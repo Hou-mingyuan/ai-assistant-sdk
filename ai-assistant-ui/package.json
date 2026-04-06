@@ -1,0 +1,57 @@
+{
+  "name": "@ai-assistant/vue",
+  "version": "1.0.0",
+  "description": "Embeddable AI assistant widget for Vue 3 - translation, summarization, chat",
+  "main": "dist/ai-assistant.umd.js",
+  "module": "dist/ai-assistant.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/ai-assistant.mjs",
+      "require": "./dist/ai-assistant.umd.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./dist/style.css": "./dist/style.css"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vue-tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build:lib": "vite build",
+    "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.0",
+    "highlight.js": "^11.9.0",
+    "marked": "^12.0.0",
+    "marked-highlight": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/marked": "^6.0.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0",
+    "vitest": "^2.1.9",
+    "vue": "^3.4.0",
+    "vue-tsc": "^2.0.0"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "vue3",
+    "translate",
+    "summarize",
+    "widget"
+  ],
+  "license": "MIT"
+}

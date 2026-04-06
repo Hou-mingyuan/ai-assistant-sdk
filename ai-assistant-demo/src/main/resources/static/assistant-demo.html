@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant 挂件 Demo（页面摘要）</title>
+  <link rel="stylesheet" href="/vue-dist/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4ff; }
+    .page { max-width: 720px; margin: 0 auto; padding: 48px 20px 120px; }
+    h1 { font-size: 26px; margin-bottom: 12px; color: #1e1b4b; }
+    .hint { color: #4338ca; font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+    .hint code { background: #e0e7ff; padding: 2px 6px; border-radius: 4px; }
+    article.demo-assistant-page-context {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(79, 70, 229, 0.12);
+      line-height: 1.75;
+      color: #334155;
+    }
+    article.demo-assistant-page-context h2 { font-size: 18px; margin: 20px 0 10px; color: #0f172a; }
+    article.demo-assistant-page-context h2:first-child { margin-top: 0; }
+    article.demo-assistant-page-context p { margin-bottom: 12px; }
+    .back { margin-top: 20px; font-size: 14px; }
+    .back a { color: #4f46e5; }
+    #app { display: none; }
+  </style>
+</head>
+<body>
+  <!-- Vue 根节点（仅用于安装插件；助手 UI 由组件自身挂到 body） -->
+  <div id="app"></div>
+
+  <div class="page">
+    <h1>带 Vue 助手的 Demo</h1>
+    <p class="hint">
+      点击右下角悬浮球打开助手 → 切换到<b>摘要</b> → 在输入框输入一句<strong>足够长的说明</strong>（至少约 12 个字），例如：<br>
+      <code>请根据下方「Demo 页面正文」区块的内容，用要点列出本页在讲什么</code><br>
+      发送后，助手会把本页 <code>article.demo-assistant-page-context</code> 内的文字一并送给模型（由 <code>pageContextBlocks</code> 配置）。
+    </p>
+
+    <article class="demo-assistant-page-context">
+      <h2>Demo 页面正文</h2>
+      <p>
+        本页用于演示 AI Assistant SDK 在纯 HTML 页面中的集成方式：通过 CDN 加载 Vue 3，
+        再加载与本仓库一并构建的 <code>ai-assistant.umd.js</code>，调用 <code>app.use(AiAssistant.default, options)</code>
+        并在 options 里声明 <code>pageContextBlocks</code>，即可把当前 DOM 中的说明性正文拼入用户消息，从而无需手动复制整页文字去做摘要。
+      </p>
+      <p>
+        项目中还包含仅使用 <code>fetch</code> 调用 REST 的 <code>index.html</code>，那种方式不会加载 Vue 挂件，因此无法实现「分析当前页 DOM」；
+        若你希望验证页面级摘要，应使用本页或在自己的 Vue 根组件中挂载 <code>&lt;AiAssistant /&gt;</code>。
+      </p>
+      <p>
+        后端仍为 Spring Boot Starter，默认上下文路径为 <code>/ai-assistant</code>。
+        请确保已配置可用的 LLM <code>api-key</code>（见 <code>application.yml</code>），否则助手请求会失败。
+      </p>
+    </article>
+
+    <p class="back"><a href="/index.html">← 返回 API 测试页</a></p>
+  </div>
+
+  <script src="https://unpkg.com/vue@3.4/dist/vue.global.prod.js"></script>
+  <script src="/vue-dist/ai-assistant.umd.js"></script>
+  <script>
+    (function () {
+      if (typeof Vue === 'undefined' || typeof AiAssistant === 'undefined') {
+        document.body.insertAdjacentHTML('afterbegin',
+          '<p style="padding:16px;background:#fee;color:#991b1b">加载失败：请先在 <code>ai-assistant-ui</code> 执行 <code>npm run build</code>，再执行 <code>mvn package</code> 以复制 <code>vue-dist</code>。</p>')
+        return
+      }
+      var createApp = Vue.createApp
+      var plugin = AiAssistant.default
+      var Assistant = AiAssistant.AiAssistant
+      var app = createApp({
+        components: { AiAssistant: Assistant },
+        template: '<AiAssistant />'
+      })
+      app.use(plugin, {
+        baseUrl: '/ai-assistant',
+        locale: 'zh',
+        theme: 'light',
+        persistHistory: false,
+        smartPageContext: false,
+        pageContextBlocks: [
+          { selector: 'article.demo-assistant-page-context', label: 'Demo 页面正文' }
+        ]
+      })
+      app.mount('#app')
+    })()
+  </script>
+</body>
+</html>

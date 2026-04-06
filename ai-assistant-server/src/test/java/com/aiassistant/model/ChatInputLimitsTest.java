@@ -1,0 +1,46 @@
+package com.aiassistant.model;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+class ChatInputLimitsTest {
+
+    @Test
+    void validateTotalCharsWithinLimit() {
+        ChatRequest req = new ChatRequest();
+        req.setText("ab");
+        assertNull(ChatInputLimits.validateTotalChars(req, 10));
+    }
+
+    @Test
+    void validateTotalCharsExceeds() {
+        ChatRequest req = new ChatRequest();
+        req.setText("abcd");
+        assertEquals("Input too large: 4 characters (max 2)", ChatInputLimits.validateTotalChars(req, 2));
+    }
+
+    @Test
+    void validateTotalCharsUnlimitedWhenMaxZero() {
+        ChatRequest req = new ChatRequest();
+        req.setText("x".repeat(9999));
+        assertNull(ChatInputLimits.validateTotalChars(req, 0));
+    }
+
+    @Test
+    void tailHistoryWithinBudgetKeepsSuffix() {
+        ChatRequest.MessageItem a = new ChatRequest.MessageItem();
+        a.setRole("user");
+        a.setContent("aa");
+        ChatRequest.MessageItem b = new ChatRequest.MessageItem();
+        b.setRole("assistant");
+        b.setContent("bbbb");
+        List<ChatRequest.MessageItem> hist = List.of(a, b);
+        List<ChatRequest.MessageItem> out = ChatInputLimits.tailHistoryWithinBudget(hist, 4);
+        assertEquals(1, out.size());
+        assertEquals("bbbb", out.get(0).getContent());
+    }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+target/
+*.class
+*.jar
+*.log
+.idea/
+*.iml
+.vscode/
+.DS_Store
+.env
+.env.local
+
+# 本机 Cursor MCP 路径，勿提交
+.cursor/mcp.json
