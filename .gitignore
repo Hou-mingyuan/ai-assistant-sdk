@@ -13,3 +13,7 @@ target/
 
 # 本机 Cursor MCP 路径，勿提交
 .cursor/mcp.json
+
+# 本地示例 /  Playground，不参与版本库（需要者自备或另仓维护）
+ai-assistant-demo/
+ai-assistant-vue-playground/

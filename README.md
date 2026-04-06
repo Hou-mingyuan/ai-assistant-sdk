@@ -531,18 +531,22 @@ ai-assistant:
 
 ### Demo 验证
 
+本仓库 **Git 中不包含** `ai-assistant-demo`（见根目录 `.gitignore`）。集成后请在你的业务 Spring Boot 里引入 Starter 并配置 `ai-assistant.*`；若仍想在本地跑一份最小 Demo，可自行新建模块或从备份拷贝该目录。
+
+历史上常用的本地命令示例（**仅当你的工作区里存在 `ai-assistant-demo` 目录时**）：
+
 ```bash
 cd ai-assistant-server && mvn clean install
 cd ../ai-assistant-demo
-set AI_API_KEY=sk-your-key
+set GEMINI_API_KEY=你的密钥
 mvn spring-boot:run
 ```
 
-若使用本仓库的 `ai-assistant-demo` 且未改端口，可在浏览器访问你的应用根路径（示例常为 `http://localhost:8080/`）打开自带测试页；**实际端口与路径以你的服务为准**。
+若 Demo 未改端口，可访问 `http://localhost:8080/`；**实际以你的服务为准**。
 
 ### 悬浮球 Playground（`ai-assistant-vue-playground`）
 
-仓库内自带一个最小 **Vite + Vue 3** 工程，用于本地调试 **`@ai-assistant/vue` 悬浮球**。你的业务前端集成方式仍以 `app.use(AiAssistant, { baseUrl: '...' })` 为准，Playground 只是本仓库内的联调壳。
+**此目录默认也不进入 Git**（`.gitignore`），需要时在本地自建或拷贝。Playground 是最小 **Vite + Vue 3** 壳，用于调试 **`@ai-assistant/vue`**；业务集成仍以 `app.use(AiAssistant, { baseUrl: '...' })` 为准。
 
 **首次准备：**
 
@@ -628,14 +632,8 @@ ai-assistant-sdk/
 │       ├── scripts/           # rebuild_styles.py：从 dist/style.css 反推样式源（应急）
 │       ├── composables/       # useAiAssistant、useSessionSearch、useAiMarkdownRenderer
 │       └── utils/             # HTTP / SSE / i18n、Markdown 代码块、客户端导出
-├── ai-assistant-demo/         # Demo 验证应用
-│   ├── pom.xml
-│   └── src/main/
-│       ├── java/com/demo/     # DemoApplication
-│       └── resources/         # 配置 + 测试页面
-├── ai-assistant-vue-playground/  # Vite 调试悬浮球（可选）
-│   ├── package.json
-│   └── src/
+├── ai-assistant-demo/         # （默认 .gitignore）本地 Demo，可选
+├── ai-assistant-vue-playground/  # （默认 .gitignore）本地 Playground，可选
 └── README.md
 ```
 
