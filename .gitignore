@@ -11,8 +11,8 @@ target/
 .env
 .env.local
 
-# 本机 Cursor MCP 路径，勿提交
-.cursor/mcp.json
+# Cursor 本地规则与 MCP（勿提交）
+.cursor/
 
 # 本地示例 /  Playground，不参与版本库（需要者自备或另仓维护）
 ai-assistant-demo/
