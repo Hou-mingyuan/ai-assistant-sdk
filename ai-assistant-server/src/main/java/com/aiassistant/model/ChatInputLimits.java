@@ -15,7 +15,7 @@ public final class ChatInputLimits {
         if (maxChars <= 0) {
             return null;
         }
-        int total = len(request.getText());
+        int total = len(request.getText()) + len(request.getSystemPrompt()) + len(request.getModel());
         List<ChatRequest.MessageItem> history = request.getHistory();
         if (history != null) {
             for (ChatRequest.MessageItem item : history) {

@@ -76,21 +76,22 @@ public class LlmService {
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlm(systemPrompt, prepareUserText(text), null, "translate");
+        return callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel());
     }
 
     public String summarize(String text) {
-        return callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize");
+        return callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel());
     }
 
-    public String chat(String userMessage, List<ChatRequest.MessageItem> history) {
-        String prompt = properties.getSystemPrompt() != null && !properties.getSystemPrompt().isBlank()
-                ? properties.getSystemPrompt() : "You are a helpful AI assistant.";
-        return callLlm(prompt, prepareUserText(userMessage), history, "chat");
+    public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
+                       String requestModel) {
+        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        String modelId = properties.resolveEffectiveModel(requestModel);
+        return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId);
     }
 
     public String chat(String userMessage) {
-        return chat(userMessage, null);
+        return chat(userMessage, null, null, null);
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
@@ -99,26 +100,44 @@ public class LlmService {
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate");
+        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel());
     }
 
     public Flux<String> summarizeStream(String text) {
-        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize");
+        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel());
     }
 
-    public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history) {
-        String prompt = properties.getSystemPrompt() != null && !properties.getSystemPrompt().isBlank()
-                ? properties.getSystemPrompt() : "You are a helpful AI assistant.";
-        return callLlmStream(prompt, prepareUserText(userMessage), history, "chat");
+    public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
+                                   String requestSystemPrompt, String requestModel) {
+        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        String modelId = properties.resolveEffectiveModel(requestModel);
+        return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId);
     }
 
     public Flux<String> chatStream(String userMessage) {
-        return chatStream(userMessage, null);
+        return chatStream(userMessage, null, null, null);
+    }
+
+    private String resolveEffectiveSystemPrompt(String requestSystemPrompt) {
+        if (properties.isAllowClientSystemPrompt()
+                && requestSystemPrompt != null
+                && !requestSystemPrompt.isBlank()) {
+            String t = requestSystemPrompt.trim();
+            int cap = properties.getClientSystemPromptMaxChars();
+            if (cap > 0 && t.length() > cap) {
+                t = t.substring(0, cap);
+            }
+            return t;
+        }
+        if (properties.getSystemPrompt() != null && !properties.getSystemPrompt().isBlank()) {
+            return properties.getSystemPrompt();
+        }
+        return "You are a helpful AI assistant.";
     }
 
     private String callLlm(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
-                         String operation) {
-        ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history);
+                         String operation, String modelId) {
+        ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId);
         if (meterRegistry == null) {
             return chatCompletionClient.complete(body, nextApiKey());
         }
@@ -154,8 +173,8 @@ public class LlmService {
     }
 
     private Flux<String> callLlmStream(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
-                                       String operation) {
-        ObjectNode body = buildRequestBody(systemPrompt, userMessage, true, history);
+                                       String operation, String modelId) {
+        ObjectNode body = buildRequestBody(systemPrompt, userMessage, true, history, modelId);
         Flux<String> flux = chatCompletionClient.completeStream(body, nextApiKey());
         if (meterRegistry == null) {
             return flux;
@@ -177,9 +196,9 @@ public class LlmService {
     }
 
     private ObjectNode buildRequestBody(String systemPrompt, String userMessage, boolean stream,
-                                        List<ChatRequest.MessageItem> history) {
+                                        List<ChatRequest.MessageItem> history, String modelId) {
         ObjectNode body = objectMapper.createObjectNode();
-        body.put("model", properties.resolveModel());
+        body.put("model", modelId != null && !modelId.isBlank() ? modelId : properties.resolveModel());
         body.put("max_tokens", properties.getMaxTokens());
         body.put("temperature", properties.getTemperature());
         body.put("stream", stream);

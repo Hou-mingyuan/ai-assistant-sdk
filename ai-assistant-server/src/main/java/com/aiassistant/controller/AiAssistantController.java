@@ -4,6 +4,7 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.model.ChatResponse;
+import com.aiassistant.model.ModelsListResponse;
 import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
@@ -51,7 +52,8 @@ public class AiAssistantController {
                 case "translate" -> llmService.translate(request.getText(),
                         request.getTargetLang() != null ? request.getTargetLang() : "zh");
                 case "summarize" -> llmService.summarize(request.getText());
-                default -> llmService.chat(request.getText(), request.getHistory());
+                default -> llmService.chat(request.getText(), request.getHistory(), request.getSystemPrompt(),
+                        request.getModel());
             };
             usageStats.recordCall(action);
             return ChatResponse.ok(result);
@@ -74,13 +76,24 @@ public class AiAssistantController {
             case "translate" -> llmService.translateStream(request.getText(),
                     request.getTargetLang() != null ? request.getTargetLang() : "zh");
             case "summarize" -> llmService.summarizeStream(request.getText());
-            default -> llmService.chatStream(request.getText(), request.getHistory());
+            default -> llmService.chatStream(request.getText(), request.getHistory(), request.getSystemPrompt(),
+                    request.getModel());
         };
     }
 
     @GetMapping("/health")
     public ChatResponse health() {
         return ChatResponse.ok("AI Assistant is running");
+    }
+
+    /**
+     * 返回可供用户选择的模型 id 列表（受 {@code ai-assistant.allowed-models} 约束；未配置时仅一条默认模型）。
+     */
+    @GetMapping("/models")
+    public ModelsListResponse listModels() {
+        return ModelsListResponse.ok(
+                assistantProperties.listModelsForClient(),
+                assistantProperties.resolveModel());
     }
 
     /**

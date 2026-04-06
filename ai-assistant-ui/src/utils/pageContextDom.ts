@@ -59,7 +59,7 @@ export function collectSmartPageContextText(maxChars: number): string {
     if (!root) continue
     const clone = root.cloneNode(true) as HTMLElement
     clone.querySelectorAll('[data-ai-assistant-auto-mount]').forEach((n) => n.remove())
-    clone.querySelector('.ai-assistant-wrapper')?.remove()
+    clone.querySelectorAll('.ai-assistant-wrapper').forEach((n) => n.remove())
 
     let text = clone.innerText?.replace(/\s+/g, ' ').trim() || ''
     if (text.length < 80) {

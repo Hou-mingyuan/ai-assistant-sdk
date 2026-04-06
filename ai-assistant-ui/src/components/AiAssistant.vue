@@ -7,13 +7,17 @@
       panelOpenFabAlignClass,
       themeClass,
       edgeDockClass,
-      { 'panel-mounted': panelMountedForLayout },
+      {
+        'panel-mounted': panelMountedForLayout,
+        'panel-expanded': panelExpanded && isOpen,
+        'fab-session-hidden': fabHidden && !panelMountedForLayout,
+      },
     ]"
     :style="wrapperStyle"
   >
     <!-- Floating Button：打开/关闭过渡期间保留在 DOM 中，便于从球心缩放面板 -->
     <button
-      v-show="!isOpen || showFabDuringPanelAnim"
+      v-show="!fabHidden && (!isOpen || showFabDuringPanelAnim)"
       ref="fabRef"
       type="button"
       class="ai-fab"
@@ -59,14 +63,28 @@
         <div
           class="ai-header"
           :class="{ 'ai-header-dragging': panelDragging }"
+          @pointerdown="onPanelHeaderPointerDown"
         >
           <span
             id="ai-assistant-title"
             class="ai-title"
-            @pointerdown="onPanelHeaderPointerDown"
           >{{ t.title }}</span>
           <span class="ai-header-spacer" aria-hidden="true" />
           <div class="ai-header-actions">
+            <button
+              v-if="mode === 'chat' && showSystemPromptUi"
+              type="button"
+              class="ai-header-personalize"
+              :title="t.personalizeTitle"
+              :aria-label="t.personalizeTitle"
+              @click.stop="openPersonalize"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span class="ai-header-personalize-text">{{ t.personalizeTitle }}</span>
+            </button>
             <button
               type="button"
               class="ai-expand"
@@ -218,34 +236,74 @@
 
         <!-- Input -->
         <div class="ai-footer">
-          <textarea
-            v-model="input"
-            :placeholder="`${placeholder} (${t.newline})`"
-            rows="2"
-            @keydown.enter.exact.prevent="send"
-          />
-          <input
-            ref="fileInputRef"
-            type="file"
-            :accept="ACCEPT_TYPES"
-            style="display:none"
-            @change="handleFileUpload"
-          />
-          <button
-            v-if="mode !== 'chat'"
-            class="ai-upload"
-            :disabled="loading"
-            @click="fileInputRef?.click()"
-            :title="t.uploadFile"
-            :aria-label="t.uploadFile"
+          <div class="ai-footer-input-row">
+            <textarea
+              v-model="input"
+              class="ai-footer-textarea"
+              :placeholder="`${placeholder} (${t.newline})`"
+              rows="2"
+              @keydown.enter.exact.prevent="send"
+            />
+            <div class="ai-footer-send-group">
+              <input
+                ref="fileInputRef"
+                type="file"
+                :accept="ACCEPT_TYPES"
+                style="display:none"
+                @change="handleFileUpload"
+              />
+              <button
+                v-if="mode !== 'chat'"
+                class="ai-upload"
+                :disabled="loading"
+                @click="fileInputRef?.click()"
+                :title="t.uploadFile"
+                :aria-label="t.uploadFile"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"/>
+                </svg>
+              </button>
+              <button
+                class="ai-send"
+                type="button"
+                :style="sendStyle"
+                :disabled="!input.trim() || loading"
+                :title="t.send"
+                :aria-label="t.send"
+                @click="send"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                  class="ai-send-icon"
+                >
+                  <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="mode === 'chat' && showModelPickerResolved && options.baseUrl"
+            class="ai-footer-model-row"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"/>
-            </svg>
-          </button>
-          <button class="ai-send" :style="sendStyle" :disabled="!input.trim() || loading" @click="send">
-            ➤
-          </button>
+            <select
+              v-model="selectedChatModel"
+              class="ai-model-select"
+              :disabled="loading || modelChoices.length === 0"
+              :aria-label="t.modelLabel"
+            >
+              <template v-if="modelChoices.length === 0">
+                <option value="" disabled>{{ t.modelsListEmpty }}</option>
+              </template>
+              <template v-else>
+                <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
+              </template>
+            </select>
+          </div>
         </div>
       </div>
     </Transition>
@@ -309,6 +367,20 @@
                 </svg>
               </span>
               <span class="ai-fab-ctx-label">{{ t.fabUndock }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-fab-ctx-item"
+              @click="hideFabUntilPageReload"
+            >
+              <span class="ai-fab-ctx-icon-wrap" aria-hidden="true">
+                <svg class="ai-fab-ctx-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                  <line x1="4" y1="4" x2="20" y2="20" />
+                </svg>
+              </span>
+              <span class="ai-fab-ctx-label">{{ t.fabHideUntilRefresh }}</span>
             </button>
           </div>
         </div>
@@ -386,6 +458,51 @@
     </Teleport>
 
     <Teleport to="body">
+      <div
+        v-if="personalizeOpen"
+        class="ai-personalize-overlay"
+        :class="{ 'ai-dark': isDark }"
+        role="presentation"
+        @click.self="personalizeOpen = false"
+      >
+        <div
+          class="ai-personalize-dialog"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="personalizeTitleId"
+          @click.stop
+        >
+          <div class="ai-personalize-head">
+            <h2 :id="personalizeTitleId" class="ai-personalize-title">{{ t.personalizeTitle }}</h2>
+            <button
+              type="button"
+              class="ai-personalize-close"
+              :aria-label="t.closePanel"
+              @click="personalizeOpen = false"
+            >&times;</button>
+          </div>
+          <p class="ai-personalize-desc">{{ t.systemPromptPlaceholder }}</p>
+          <textarea
+            ref="personalizeTaRef"
+            v-model="chatSystemPrompt"
+            class="ai-personalize-textarea"
+            rows="5"
+            :disabled="loading"
+            :maxlength="systemPromptMaxInputCharsResolved"
+            :placeholder="t.personalizePlaceholder"
+            :aria-label="t.personalizeTitle"
+          />
+          <div class="ai-personalize-meta" aria-live="polite">
+            {{ t.personalizeCharCount.replace('{cur}', String(chatSystemPrompt.length)).replace('{max}', String(systemPromptMaxInputCharsResolved)) }}
+          </div>
+          <div class="ai-personalize-actions">
+            <button type="button" class="ai-personalize-done" @click="personalizeOpen = false">{{ t.personalizeDone }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
       <Transition name="ai-export-toast-t">
         <div
           v-if="exportToastText"
@@ -427,7 +544,7 @@
 <script setup lang="ts">
 import { ref, computed, inject, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import type { AiAssistantOptions } from '../index'
-import { uploadFile, streamChat, fetchUrlPreview, postServerExport } from '../utils/api'
+import { uploadFile, streamChat, fetchUrlPreview, fetchModels, postServerExport } from '../utils/api'
 import type { ExportFormat } from '../utils/api'
 import { getMessages } from '../utils/i18n'
 import type { Locale } from '../utils/i18n'
@@ -462,6 +579,11 @@ const options = inject<AiAssistantOptions>('ai-assistant-options', {
   theme: 'light',
   persistHistory: false,
   locale: 'en',
+  showSystemPromptEditor: true,
+  systemPromptStorageKey: 'ai-assistant-chat-system-prompt',
+  systemPromptMaxInputChars: 4000,
+  showModelPicker: true,
+  selectedModelStorageKey: 'ai-assistant-selected-model',
 })
 
 function reportAssistantError(source: string, message: string) {
@@ -472,9 +594,12 @@ function textWithPageContextForModel(displayUserText: string): string {
   const max = options.pageContextMaxChars ?? 12_000
   const minUser = options.pageContextMinUserChars ?? 12
   const trimmedUser = displayUserText.trim()
-  let ctx = collectPageContextText(options.pageContextBlocks, max)
-  if (!ctx && options.smartPageContext !== false && trimmedUser.length >= minUser) {
-    ctx = collectSmartPageContextText(max)
+  let ctx = ''
+  if (trimmedUser.length >= minUser) {
+    ctx = collectPageContextText(options.pageContextBlocks, max)
+    if (!ctx && options.smartPageContext !== false) {
+      ctx = collectSmartPageContextText(max)
+    }
   }
   return augmentMessageWithPageContext(displayUserText, ctx)
 }
@@ -484,6 +609,8 @@ const t = computed(() => getMessages((options.locale || 'en') as Locale))
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options)
 
 const isOpen = ref(false)
+/** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
+const fabHidden = ref(false)
 const input = ref('')
 const loading = ref(false)
 const messages = ref<Message[]>(loadPersistedMessages(!!options.persistHistory))
@@ -495,6 +622,56 @@ const renderAllMessages = ref(false)
 const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } = useExportUi()
 
 const mode = ref<'translate' | 'summarize' | 'chat'>('chat')
+const chatSystemPrompt = ref('')
+const personalizeOpen = ref(false)
+const personalizeTaRef = ref<HTMLTextAreaElement>()
+const personalizeTitleId = 'ai-assistant-personalize-title'
+const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false)
+const systemPromptMaxInputCharsResolved = computed(() => {
+  const n = options.systemPromptMaxInputChars
+  if (n !== undefined && n > 0) {
+    return Math.min(16_000, n)
+  }
+  return 4000
+})
+const systemPromptStorageKeyResolved = computed(() => {
+  const k = options.systemPromptStorageKey?.trim()
+  return k || 'ai-assistant-chat-system-prompt'
+})
+
+const modelChoices = ref<string[]>([])
+const selectedChatModel = ref('')
+const showModelPickerResolved = computed(() => options.showModelPicker !== false)
+const selectedModelStorageKeyResolved = computed(() =>
+  options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
+)
+
+async function refreshChatModels() {
+  if (!options.baseUrl || !showModelPickerResolved.value) return
+  try {
+    const r = await fetchModels(options.baseUrl, options.accessToken)
+    if (!r.success || !r.models?.length) return
+    modelChoices.value = r.models
+    const def =
+      r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0]
+    let pick = def
+    try {
+      const saved = localStorage.getItem(selectedModelStorageKeyResolved.value)
+      if (saved && r.models.includes(saved)) pick = saved
+    } catch {
+      /* ignore */
+    }
+    selectedChatModel.value = pick
+  } catch {
+    /* 无 /models 或网络错误：不展示下拉 */
+  }
+}
+
+function openPersonalize() {
+  personalizeOpen.value = true
+  nextTick(() => personalizeTaRef.value?.focus())
+}
+
 const targetLang = ref('zh')
 const bodyRef = ref<HTMLElement>()
 const fileInputRef = ref<HTMLInputElement>()
@@ -549,6 +726,8 @@ const FAB_POS_KEY = 'ai-assistant-fab-pos-v4'
 const FAB_SIZE = 56
 const PANEL_W = 380
 const PANEL_H = 520
+/** 与 ensurePanelInViewport 一致；放大模式宽高须预留两侧，否则会超出视口 */
+const PANEL_VIEWPORT_MARGIN = 16
 
 /** 缩放边：固定「对边/对角」，框随指针方向扩展（标准窗口感知） */
 type PanelResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
@@ -706,7 +885,20 @@ let panelResizeDrag: {
   /** pointerdown 时面板屏幕矩形，缩放全程固定「对角」参照用 */
   r0: { wl: number; wt: number; w: number; h: number }
 } | null = null
-let panelResizeClampRaf = 0
+/** 缩放时合并 pointermove 到每帧一次提交，减轻 Vue 重绘卡顿 */
+let panelResizePendingRect: { w: number; h: number; wl: number; wt: number } | null = null
+let panelResizeFlushRaf = 0
+/** 标题栏拖面板：合并位移到每帧一次，与缩放手柄一致 */
+let panelHeaderDragPendingDx = 0
+let panelHeaderDragPendingDy = 0
+let panelHeaderDragFlushRaf = 0
+/** 点在标题文字上时延迟起拖，避免挡掉文本选中 */
+let panelHeaderTentative: {
+  pointerId: number
+  startX: number
+  startY: number
+  headerEl: HTMLElement
+} | null = null
 const EDGE_PEEK = 14
 const DRAG_CLICK_PX = 8
 /** 超过该位移才视为拖动并退出贴边（避免点击时的微抖动清掉贴边） */
@@ -733,9 +925,11 @@ const fabDrag = ref<{
 
 /** 打开前面板的贴边状态；关闭时只恢复贴边，球位保留拖动结果 */
 const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null)
-/** 打开面板瞬间的球位（仅当本会话内拖过缩放手柄时，关闭后面板还原到此） */
+/** 打开面板瞬间的球位；关面板且本会话未拖过标题栏时还原到此（避免仅放大/夹紧视口导致球跑偏） */
 const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null)
 let panelResizedThisSession = false
+/** 本会话内拖过标题栏移动面板，关面板时保留当前球位 */
+let panelHeaderDraggedWhileOpen = false
 
 const panelDragging = ref(false)
 const panelDrag = ref<{
@@ -888,8 +1082,7 @@ function effectivePanelWidthPx(): number {
   if (!panelExpanded.value) {
     return PANEL_W
   }
-  const edge = 12
-  return Math.max(PANEL_W, vw - edge)
+  return Math.max(PANEL_W, vw - 2 * PANEL_VIEWPORT_MARGIN)
 }
 
 function effectivePanelHeightPx(): number {
@@ -900,8 +1093,7 @@ function effectivePanelHeightPx(): number {
   if (!panelExpanded.value) {
     return Math.min(PANEL_H, Math.max(200, vh - 80))
   }
-  const edge = 16
-  return Math.max(280, vh - edge)
+  return Math.max(280, vh - 2 * PANEL_VIEWPORT_MARGIN)
 }
 
 function togglePanelExpand() {
@@ -924,17 +1116,22 @@ function onPanelResizePointerDown(e: PointerEvent, edge: PanelResizeEdge) {
   window.addEventListener('pointercancel', onPanelResizePointerUp, true)
 }
 
+function flushPanelResizeFrame() {
+  panelResizeFlushRaf = 0
+  const p = panelResizePendingRect
+  if (!p || !panelResizeDrag) return
+  panelUserSize.value = { w: p.w, h: p.h }
+  syncFabToPanelRect(p.wl, p.wt, p.w, p.h)
+  ensurePanelInViewport()
+}
+
 function onPanelResizePointerMove(e: PointerEvent) {
   if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return
   const d = panelResizeDrag
   const r = computeRectFromResizePointer(d.edge, d.r0, e.clientX, e.clientY)
-  panelUserSize.value = { w: r.w, h: r.h }
-  syncFabToPanelRect(r.wl, r.wt, r.w, r.h)
-  if (!panelResizeClampRaf) {
-    panelResizeClampRaf = requestAnimationFrame(() => {
-      panelResizeClampRaf = 0
-      ensurePanelInViewport()
-    })
+  panelResizePendingRect = { w: r.w, h: r.h, wl: r.wl, wt: r.wt }
+  if (!panelResizeFlushRaf) {
+    panelResizeFlushRaf = requestAnimationFrame(flushPanelResizeFrame)
   }
 }
 
@@ -943,11 +1140,16 @@ function onPanelResizePointerUp(e: PointerEvent) {
   window.removeEventListener('pointerup', onPanelResizePointerUp, true)
   window.removeEventListener('pointercancel', onPanelResizePointerUp, true)
   if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return
+  const d = panelResizeDrag
   panelResizeDrag = null
-  if (panelResizeClampRaf) {
-    cancelAnimationFrame(panelResizeClampRaf)
-    panelResizeClampRaf = 0
+  if (panelResizeFlushRaf) {
+    cancelAnimationFrame(panelResizeFlushRaf)
+    panelResizeFlushRaf = 0
   }
+  panelResizePendingRect = null
+  const r = computeRectFromResizePointer(d.edge, d.r0, e.clientX, e.clientY)
+  panelUserSize.value = { w: r.w, h: r.h }
+  syncFabToPanelRect(r.wl, r.wt, r.w, r.h)
   if (isOpen.value) {
     panelResizedThisSession = true
     ensurePanelInViewport()
@@ -1019,10 +1221,35 @@ function syncFabPixelFromWrapperDom() {
   }
 }
 
-function onPanelHeaderPointerDown(e: PointerEvent) {
-  if (!isOpen.value || e.button !== 0) return
-  const t = e.target as HTMLElement
-  if (t.closest?.('.ai-header-actions')) return
+function cleanupPanelHeaderTentative() {
+  if (!panelHeaderTentative) return
+  window.removeEventListener('pointermove', onPanelHeaderTentativeMove)
+  window.removeEventListener('pointerup', onPanelHeaderTentativeUp, true)
+  window.removeEventListener('pointercancel', onPanelHeaderTentativeUp, true)
+  panelHeaderTentative = null
+}
+
+function onPanelHeaderTentativeMove(e: PointerEvent) {
+  if (!panelHeaderTentative || e.pointerId !== panelHeaderTentative.pointerId) return
+  const t = panelHeaderTentative
+  const dist = Math.hypot(e.clientX - t.startX, e.clientY - t.startY)
+  if (dist < DRAG_CLICK_PX) return
+  const sel = window.getSelection()
+  if (sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed) {
+    cleanupPanelHeaderTentative()
+    return
+  }
+  const headerEl = t.headerEl
+  cleanupPanelHeaderTentative()
+  startPanelHeaderDragSession(e, headerEl)
+}
+
+function onPanelHeaderTentativeUp(e: PointerEvent) {
+  if (!panelHeaderTentative || e.pointerId !== panelHeaderTentative.pointerId) return
+  cleanupPanelHeaderTentative()
+}
+
+function startPanelHeaderDragSession(e: PointerEvent, headerEl: HTMLElement) {
   e.preventDefault()
   if (fabLeft.value === null || fabTop.value === null) {
     syncFabPixelFromWrapperDom()
@@ -1034,10 +1261,45 @@ function onPanelHeaderPointerDown(e: PointerEvent) {
     lastY: e.clientY,
   }
   panelDragging.value = true
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  headerEl.setPointerCapture(e.pointerId)
   window.addEventListener('pointermove', onPanelHeaderPointerMove)
   window.addEventListener('pointerup', onPanelHeaderPointerUp, true)
   window.addEventListener('pointercancel', onPanelHeaderPointerUp, true)
+}
+
+function onPanelHeaderPointerDown(e: PointerEvent) {
+  if (!isOpen.value || e.button !== 0) return
+  const target = e.target
+  if (target instanceof Element && target.closest('.ai-header-actions')) return
+  const headerEl = e.currentTarget as HTMLElement
+  const fromTitle = target instanceof Element && target.closest('.ai-title')
+  if (fromTitle) {
+    panelHeaderTentative = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      headerEl,
+    }
+    window.addEventListener('pointermove', onPanelHeaderTentativeMove)
+    window.addEventListener('pointerup', onPanelHeaderTentativeUp, true)
+    window.addEventListener('pointercancel', onPanelHeaderTentativeUp, true)
+    return
+  }
+  startPanelHeaderDragSession(e, headerEl)
+}
+
+function flushPanelHeaderDragFrame() {
+  panelHeaderDragFlushRaf = 0
+  const dx = panelHeaderDragPendingDx
+  const dy = panelHeaderDragPendingDy
+  if (dx === 0 && dy === 0) return
+  panelHeaderDragPendingDx = 0
+  panelHeaderDragPendingDy = 0
+  if (fabLeft.value === null || fabTop.value === null) return
+  fabLeft.value += dx
+  fabTop.value += dy
+  if (isOpen.value) panelHeaderDraggedWhileOpen = true
+  ensurePanelInViewport()
 }
 
 function onPanelHeaderPointerMove(e: PointerEvent) {
@@ -1048,9 +1310,11 @@ function onPanelHeaderPointerMove(e: PointerEvent) {
   const dy = e.clientY - d.lastY
   d.lastX = e.clientX
   d.lastY = e.clientY
-  fabLeft.value += dx
-  fabTop.value += dy
-  ensurePanelInViewport()
+  panelHeaderDragPendingDx += dx
+  panelHeaderDragPendingDy += dy
+  if (!panelHeaderDragFlushRaf) {
+    panelHeaderDragFlushRaf = requestAnimationFrame(flushPanelHeaderDragFrame)
+  }
 }
 
 function onPanelHeaderPointerUp(e: PointerEvent) {
@@ -1060,6 +1324,11 @@ function onPanelHeaderPointerUp(e: PointerEvent) {
   if (!panelDrag.value || e.pointerId !== panelDrag.value.pointerId) return
   panelDrag.value = null
   panelDragging.value = false
+  if (panelHeaderDragFlushRaf) {
+    cancelAnimationFrame(panelHeaderDragFlushRaf)
+    panelHeaderDragFlushRaf = 0
+  }
+  flushPanelHeaderDragFrame()
   saveFabPos()
 }
 
@@ -1177,7 +1446,7 @@ function saveFabPos(edgeDockOverride?: 'none' | 'left' | 'right') {
 /** 打开面板时，避免贴边位置导致 380×520 面板溢出视口（按象限对齐球的锚角后整体夹紧） */
 function ensurePanelInViewport() {
   if (fabLeft.value === null || fabTop.value === null) return
-  const m = 16
+  const m = PANEL_VIEWPORT_MARGIN
   const { w: vw, h: vh } = getViewportCssSize()
   const effW = effectivePanelWidthPx()
   const effH = effectivePanelHeightPx()
@@ -1202,6 +1471,7 @@ function estimateFabCtxMenuHeight(): number {
   if (edgeDock.value !== 'left') n++
   if (edgeDock.value !== 'right') n++
   if (edgeDock.value !== 'none') n++
+  n++ // 隐藏至刷新
   const header = 48
   const row = 52
   const listPad = 14
@@ -1210,7 +1480,7 @@ function estimateFabCtxMenuHeight(): number {
 
 function onFabContextMenu(e: MouseEvent) {
   e.preventDefault()
-  if (isOpen.value) return
+  if (isOpen.value || fabHidden.value) return
   const fab = fabRef.value
   if (!fab) return
   const fr = fab.getBoundingClientRect()
@@ -1229,6 +1499,12 @@ function onFabContextMenu(e: MouseEvent) {
 
 function closeFabCtxMenu() {
   fabCtxMenu.value.show = false
+}
+
+function hideFabUntilPageReload() {
+  closeFabCtxMenu()
+  fabHidden.value = true
+  isOpen.value = false
 }
 
 function dockFab(edge: 'none' | 'left' | 'right') {
@@ -1266,7 +1542,7 @@ function onDocPointerDownCloseFabMenu(e: MouseEvent) {
 }
 
 function onFabPointerDown(e: PointerEvent) {
-  if (isOpen.value || e.button !== 0) return
+  if (isOpen.value || fabHidden.value || e.button !== 0) return
   e.preventDefault()
   const el = wrapperRef.value
   if (!el) return
@@ -1779,7 +2055,9 @@ watch(panelExpanded, () => {
 
 watch(isOpen, (open) => {
   if (open) {
+    void refreshChatModels()
     panelResizedThisSession = false
+    panelHeaderDraggedWhileOpen = false
     if (fabLeft.value !== null && fabTop.value !== null) {
       fabFreePosBeforePanel.value = { left: fabLeft.value, top: fabTop.value }
     } else {
@@ -1806,10 +2084,11 @@ watch(isOpen, (open) => {
       window.removeEventListener('pointercancel', onPanelResizePointerUp, true)
       panelResizeDrag = null
     }
-    if (panelResizeClampRaf) {
-      cancelAnimationFrame(panelResizeClampRaf)
-      panelResizeClampRaf = 0
+    if (panelResizeFlushRaf) {
+      cancelAnimationFrame(panelResizeFlushRaf)
+      panelResizeFlushRaf = 0
     }
+    panelResizePendingRect = null
     if (panelDrag.value) {
       window.removeEventListener('pointermove', onPanelHeaderPointerMove)
       window.removeEventListener('pointerup', onPanelHeaderPointerUp, true)
@@ -1817,6 +2096,13 @@ watch(isOpen, (open) => {
       panelDrag.value = null
       panelDragging.value = false
     }
+    if (panelHeaderDragFlushRaf) {
+      cancelAnimationFrame(panelHeaderDragFlushRaf)
+      panelHeaderDragFlushRaf = 0
+    }
+    panelHeaderDragPendingDx = 0
+    panelHeaderDragPendingDy = 0
+    cleanupPanelHeaderTentative()
     if (panelSnapshot.value) {
       const s = panelSnapshot.value
       panelSnapshot.value = null
@@ -1825,17 +2111,17 @@ watch(isOpen, (open) => {
         dockFab(s.edge)
       } else {
         edgeDock.value = 'none'
-        if (panelResizedThisSession && fabFreePosBeforePanel.value) {
-          const p = fabFreePosBeforePanel.value
+        if (fabFreePosBeforePanel.value) {
+          if (!panelHeaderDraggedWhileOpen) {
+            const p = fabFreePosBeforePanel.value
+            const c = clampFabPos(p.left, p.top)
+            fabLeft.value = c.left
+            fabTop.value = c.top
+          }
           fabFreePosBeforePanel.value = null
-          panelResizedThisSession = false
-          const c = clampFabPos(p.left, p.top)
-          fabLeft.value = c.left
-          fabTop.value = c.top
-        } else {
-          fabFreePosBeforePanel.value = null
-          panelResizedThisSession = false
         }
+        panelResizedThisSession = false
+        panelHeaderDraggedWhileOpen = false
         saveFabPos()
       }
     }
@@ -1934,6 +2220,12 @@ async function send() {
     action: mode.value,
     text: textWithPageContextForModel(text),
     targetLang: targetLang.value,
+  }
+  if (mode.value === 'chat') {
+    const sp = chatSystemPrompt.value.trim()
+    if (sp) payload.systemPrompt = sp
+    const mid = selectedChatModel.value.trim()
+    if (mid && modelChoices.value.includes(mid)) payload.model = mid
   }
   if (mode.value === 'chat' && messages.value.length > 1) {
     payload.history = messages.value.slice(0, -1).map(m => ({
@@ -2101,6 +2393,11 @@ function onEscKeydown(e: KeyboardEvent) {
     closeFabCtxMenu()
     return
   }
+  if (personalizeOpen.value) {
+    e.preventDefault()
+    personalizeOpen.value = false
+    return
+  }
   if (isOpen.value) {
     e.preventDefault()
     isOpen.value = false
@@ -2111,7 +2408,33 @@ function onVisualViewportChange() {
   onWinResize()
 }
 
+watch(chatSystemPrompt, (v) => {
+  try {
+    localStorage.setItem(systemPromptStorageKeyResolved.value, v)
+  } catch {
+    /* localStorage 不可用或配额满 */
+  }
+})
+
+watch(selectedChatModel, (v) => {
+  if (!v) return
+  try {
+    localStorage.setItem(selectedModelStorageKeyResolved.value, v)
+  } catch {
+    /* ignore */
+  }
+})
+
 onMounted(() => {
+  try {
+    const s = localStorage.getItem(systemPromptStorageKeyResolved.value)
+    if (s) {
+      const cap = systemPromptMaxInputCharsResolved.value
+      chatSystemPrompt.value = s.length > cap ? s.slice(0, cap) : s
+    }
+  } catch {
+    /* ignore */
+  }
   loadFabPos()
   window.addEventListener('resize', onWinResize)
   window.visualViewport?.addEventListener('resize', onVisualViewportChange)
@@ -2124,9 +2447,11 @@ onUnmounted(() => {
   detachInlinePopLayoutListeners()
   disposeSearch()
   disposeExportToast()
+  cleanupPanelHeaderTentative()
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf)
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf)
-  if (panelResizeClampRaf) cancelAnimationFrame(panelResizeClampRaf)
+  if (panelResizeFlushRaf) cancelAnimationFrame(panelResizeFlushRaf)
+  if (panelHeaderDragFlushRaf) cancelAnimationFrame(panelHeaderDragFlushRaf)
   window.removeEventListener('resize', onWinResize)
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange)
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange)

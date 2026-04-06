@@ -8,12 +8,16 @@ export interface I18nMessages {
   placeholder: Record<'translate' | 'summarize' | 'chat', string>
   newline: string
   uploadFile: string
+  /** 输入区发送按钮 */
+  send: string
   clear: string
   title: string
   /** 悬浮球右键：贴边 */
   fabDockLeft: string
   fabDockRight: string
   fabUndock: string
+  /** 悬浮球右键：隐藏直至刷新页面 */
+  fabHideUntilRefresh: string
   /** 代码块复制按钮 */
   copyCode: string
   codeCopied: string
@@ -47,6 +51,17 @@ export interface I18nMessages {
   exportCopyMarkdown: string
   exportJson: string
   searchMessages: string
+  /** 对话模式：个性化（system prompt） */
+  personalizeTitle: string
+  personalizePlaceholder: string
+  personalizeDone: string
+  /** 字数统计，占位 {cur} {max} */
+  personalizeCharCount: string
+  systemPromptPlaceholder: string
+  /** 对话模型下拉读屏 */
+  modelLabel: string
+  /** 模型列表未加载或为空时的占位 */
+  modelsListEmpty: string
   openInIde: string
   exportServerXlsx: string
   exportServerDocx: string
@@ -83,11 +98,13 @@ const messages: Record<Locale, I18nMessages> = {
     },
     newline: 'Shift+Enter for newline',
     uploadFile: 'Upload file',
+    send: 'Send',
     clear: 'Clear',
     title: 'AI Assistant',
     fabDockLeft: 'Dock to left edge',
     fabDockRight: 'Dock to right edge',
     fabUndock: 'Float (no dock)',
+    fabHideUntilRefresh: 'Hide until page refresh',
     copyCode: 'Copy',
     codeCopied: '✓',
     noResponse: 'No response received',
@@ -111,6 +128,13 @@ const messages: Record<Locale, I18nMessages> = {
     exportCopyMarkdown: 'Copy as Markdown',
     exportJson: 'Download JSON',
     searchMessages: 'Search in conversation…',
+    personalizeTitle: 'Personalize',
+    personalizePlaceholder: 'Describe how the assistant should behave (system prompt)…',
+    personalizeDone: 'Done',
+    personalizeCharCount: '{cur} / {max} characters',
+    systemPromptPlaceholder: 'Optional. Applies to chat only; saved in this browser.',
+    modelLabel: 'Model',
+    modelsListEmpty: 'No models (check GET …/models)',
     openInIde: 'IDE',
     exportServerXlsx: 'Server: Excel (.xlsx)',
     exportServerDocx: 'Server: Word (.docx)',
@@ -139,11 +163,13 @@ const messages: Record<Locale, I18nMessages> = {
     },
     newline: 'Shift+Enter 换行',
     uploadFile: '上传文件',
+    send: '发送',
     clear: '清空',
     title: 'AI 助手',
     fabDockLeft: '贴靠左侧收起',
     fabDockRight: '贴靠右侧收起',
     fabUndock: '悬浮（不贴边）',
+    fabHideUntilRefresh: '隐藏（刷新页面后恢复）',
     copyCode: '复制',
     codeCopied: '✓',
     noResponse: '未收到回复',
@@ -167,6 +193,13 @@ const messages: Record<Locale, I18nMessages> = {
     exportCopyMarkdown: '复制为 Markdown',
     exportJson: '下载 JSON',
     searchMessages: '搜索会话…',
+    personalizeTitle: '个性化',
+    personalizePlaceholder: '描述助手角色与风格（system prompt）…',
+    personalizeDone: '完成',
+    personalizeCharCount: '已输入 {cur} / 最多 {max} 字',
+    systemPromptPlaceholder: '可选，仅「对话」模式生效；保存在本浏览器。',
+    modelLabel: '模型',
+    modelsListEmpty: '无模型列表（请检查 GET …/models）',
     openInIde: 'IDE',
     exportServerXlsx: '服务端：Excel（.xlsx）',
     exportServerDocx: '服务端：Word（.docx）',

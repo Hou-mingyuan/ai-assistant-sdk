@@ -33,8 +33,8 @@ export interface AiAssistantOptions {
    */
   smartPageContext?: boolean
   /**
-   * 用户消息短于该长度时**不**附加 smart 页面上下文，避免只说「你好」也把整页说明塞进模型导致话痨。
-   * 不限制显式 `pageContextBlocks`。默认 12。
+   * 用户消息短于该长度时**不**附加任何页面上下文（含 `pageContextBlocks` 与 smart），避免只说「你好」也把整页说明塞进模型导致长篇跑题。
+   * 设为 `0` 表示每条消息都带正文。默认 12。
    */
   pageContextMinUserChars?: number
   /**
@@ -60,6 +60,21 @@ export interface AiAssistantOptions {
    * 用户单次发送的正文最大字符（超出截断并追加省略标记）。默认 120000；0 不限制。
    */
   maxUserMessageChars?: number
+  /**
+   * 对话模式是否在面板内展示「自定义 system prompt」编辑区（localStorage 持久化）。
+   * 关闭后仍可用服务端 `ai-assistant.system-prompt`；默认 true。
+   */
+  showSystemPromptEditor?: boolean
+  /** 自定义角色说明存本地的 key，默认 `ai-assistant-chat-system-prompt` */
+  systemPromptStorageKey?: string
+  /**
+   * 「个性化」输入框最大字符（`maxlength`），默认 4000，与多数后端 `client-system-prompt-max-chars` 对齐；最大夹紧 16000。
+   */
+  systemPromptMaxInputChars?: number
+  /** 为 false 时隐藏对话模式下的模型下拉 */
+  showModelPicker?: boolean
+  /** 记住所选模型的 localStorage key，默认 `ai-assistant-selected-model` */
+  selectedModelStorageKey?: string
 }
 
 const defaultOptions: AiAssistantOptions = {
@@ -76,6 +91,11 @@ const defaultOptions: AiAssistantOptions = {
   maxMessagesInMemory: 200,
   maxTotalCharsInMemory: 4_000_000,
   maxUserMessageChars: 120_000,
+  showSystemPromptEditor: true,
+  systemPromptStorageKey: 'ai-assistant-chat-system-prompt',
+  systemPromptMaxInputChars: 4000,
+  showModelPicker: true,
+  selectedModelStorageKey: 'ai-assistant-selected-model',
 }
 
 export default {
@@ -102,7 +122,8 @@ export { useSessionSearch } from './composables/useSessionSearch'
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer'
 export type { StreamOptions } from './composables/useAiAssistant'
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api'
-export { uploadFile, fetchUrlPreview, postServerExport } from './utils/api'
+export { uploadFile, fetchUrlPreview, fetchModels, postServerExport } from './utils/api'
+export type { ModelsListResult } from './utils/api'
 export {
   collectPageContextText,
   augmentMessageWithPageContext,

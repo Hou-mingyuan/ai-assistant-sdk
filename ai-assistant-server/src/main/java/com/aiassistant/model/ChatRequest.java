@@ -1,6 +1,7 @@
 package com.aiassistant.model;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
@@ -11,6 +12,14 @@ public class ChatRequest {
     private String text;
     private String targetLang;
     private List<MessageItem> history;
+    /**
+     * 对话模式可选：覆盖服务端默认 system prompt，无需改配置重启（受服务端开关与长度上限约束）。
+     */
+    @Size(max = 16_000)
+    private String systemPrompt;
+    /** 对话模式可选，须在服务端 {@code allowed-models} 白名单内 */
+    @Size(max = 128)
+    private String model;
 
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
@@ -23,6 +32,12 @@ public class ChatRequest {
 
     public List<MessageItem> getHistory() { return history; }
     public void setHistory(List<MessageItem> history) { this.history = history; }
+
+    public String getSystemPrompt() { return systemPrompt; }
+    public void setSystemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; }
+
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
 
     public static class MessageItem {
         private String role;

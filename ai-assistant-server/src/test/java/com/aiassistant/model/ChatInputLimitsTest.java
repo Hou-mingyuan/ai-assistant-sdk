@@ -24,6 +24,24 @@ class ChatInputLimitsTest {
     }
 
     @Test
+    void validateTotalCharsIncludesSystemPrompt() {
+        ChatRequest req = new ChatRequest();
+        req.setText("ab");
+        req.setSystemPrompt("xy");
+        assertNull(ChatInputLimits.validateTotalChars(req, 10));
+        assertEquals("Input too large: 4 characters (max 3)", ChatInputLimits.validateTotalChars(req, 3));
+    }
+
+    @Test
+    void validateTotalCharsIncludesModel() {
+        ChatRequest req = new ChatRequest();
+        req.setText("a");
+        req.setModel("mm");
+        assertNull(ChatInputLimits.validateTotalChars(req, 10));
+        assertEquals("Input too large: 3 characters (max 2)", ChatInputLimits.validateTotalChars(req, 2));
+    }
+
+    @Test
     void validateTotalCharsUnlimitedWhenMaxZero() {
         ChatRequest req = new ChatRequest();
         req.setText("x".repeat(9999));

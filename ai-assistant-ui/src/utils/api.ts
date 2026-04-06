@@ -8,6 +8,17 @@ export interface ChatPayload {
   text: string
   targetLang?: string
   history?: HistoryMessage[]
+  /** 对话模式可选：覆盖服务端默认 system prompt（需后端 allow-client-system-prompt） */
+  systemPrompt?: string
+  /** 对话模式可选：须在服务端 allowed-models 白名单内 */
+  model?: string
+}
+
+export interface ModelsListResult {
+  success: boolean
+  models?: string[]
+  defaultModel?: string
+  error?: string
 }
 
 export interface ChatResult {
@@ -87,6 +98,16 @@ export async function postServerExport(
   a.click()
   URL.revokeObjectURL(url)
   return { ok: true }
+}
+
+export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
+  const headers: Record<string, string> = {}
+  if (token) headers['X-AI-Token'] = token
+  const res = await fetch(`${baseUrl}/models`, { headers })
+  if (!res.ok) {
+    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
+  }
+  return res.json()
 }
 
 export async function fetchUrlPreview(baseUrl: string, url: string, token?: string): Promise<UrlPreviewResult> {

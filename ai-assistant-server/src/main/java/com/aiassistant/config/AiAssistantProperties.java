@@ -25,6 +25,14 @@ public class AiAssistantProperties {
     private String accessToken;
     private boolean enableStats = true;
     private String systemPrompt;
+    /**
+     * 是否接受请求体中的 {@code systemPrompt} 覆盖默认角色提示（仅对话模式；关闭则始终用配置文件）。
+     */
+    private boolean allowClientSystemPrompt = true;
+    /**
+     * 客户端传入的 system prompt 实际生效最大字符，超出截断；0 表示不额外截断（仍受请求 DTO 总长度约束）。
+     */
+    private int clientSystemPromptMaxChars = 4_000;
     private int rateLimit = 0;
 
     /** 是否在调用模型前尝试抓取用户消息中的 http(s) 链接正文 */
@@ -80,6 +88,12 @@ public class AiAssistantProperties {
      * 小于等于 0 表示不截断。用于在请求体校验通过后仍控制模型侧 tokens/延迟。
      */
     private int chatHistoryMaxChars = 48_000;
+
+    /**
+     * 允许前端在 /chat、/stream 请求体中指定的模型 id；**为空则忽略**客户端 {@code model}，始终用 {@link #resolveModel()}。
+     * 非空时仅当请求中的 id 与白名单条目（trim 后）完全一致时生效。
+     */
+    private List<String> allowedModels;
 
     public String getProvider() { return provider; }
     public void setProvider(String provider) { this.provider = provider; }
@@ -139,6 +153,16 @@ public class AiAssistantProperties {
     public String getSystemPrompt() { return systemPrompt; }
     public void setSystemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; }
 
+    public boolean isAllowClientSystemPrompt() { return allowClientSystemPrompt; }
+    public void setAllowClientSystemPrompt(boolean allowClientSystemPrompt) {
+        this.allowClientSystemPrompt = allowClientSystemPrompt;
+    }
+
+    public int getClientSystemPromptMaxChars() { return clientSystemPromptMaxChars; }
+    public void setClientSystemPromptMaxChars(int clientSystemPromptMaxChars) {
+        this.clientSystemPromptMaxChars = Math.max(0, clientSystemPromptMaxChars);
+    }
+
     public int getRateLimit() { return rateLimit; }
     public void setRateLimit(int rateLimit) { this.rateLimit = rateLimit; }
 
@@ -191,6 +215,40 @@ public class AiAssistantProperties {
 
     public int getChatHistoryMaxChars() { return chatHistoryMaxChars; }
     public void setChatHistoryMaxChars(int chatHistoryMaxChars) { this.chatHistoryMaxChars = chatHistoryMaxChars; }
+
+    public List<String> getAllowedModels() { return allowedModels; }
+    public void setAllowedModels(List<String> allowedModels) { this.allowedModels = allowedModels; }
+
+    /**
+     * 客户端请求的模型经白名单校验后的实际使用 id。
+     */
+    public String resolveEffectiveModel(String requestModel) {
+        String def = resolveModel();
+        List<String> allowed = allowedModels;
+        if (allowed == null || allowed.isEmpty()) {
+            return def;
+        }
+        if (requestModel == null || requestModel.isBlank()) {
+            return def;
+        }
+        String m = requestModel.trim();
+        for (String a : allowed) {
+            if (a != null && m.equals(a.trim())) {
+                return m;
+            }
+        }
+        return def;
+    }
+
+    /** 供 GET /models：白名单为空时仅返回默认模型一条。 */
+    public java.util.List<String> listModelsForClient() {
+        String def = resolveModel();
+        List<String> allowed = allowedModels;
+        if (allowed == null || allowed.isEmpty()) {
+            return java.util.List.of(def);
+        }
+        return java.util.List.copyOf(allowed);
+    }
 
     /**
      * Resolve the actual API base URL based on provider if not explicitly set.

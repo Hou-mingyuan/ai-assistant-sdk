@@ -148,7 +148,10 @@ app.use(AiAssistant, {
 | `ai-assistant.temperature` | double | `0.7` | 生成随机性（0~2） |
 | `ai-assistant.timeout-seconds` | int | `60` | 请求超时（秒），范围 1~600 |
 | `ai-assistant.allowed-origins` | string | `*` | CORS 域名，逗号分隔 |
-| `ai-assistant.system-prompt` | string | - | 自定义对话角色提示词 |
+| `ai-assistant.system-prompt` | string | - | 自定义对话角色提示词（服务端默认） |
+| `ai-assistant.allow-client-system-prompt` | boolean | `true` | 是否允许前端在请求体传 `systemPrompt` 覆盖上者（公网暴露且未鉴权时可设 `false`） |
+| `ai-assistant.client-system-prompt-max-chars` | int | `4000` | 客户端 system prompt 实际生效最大字符，超出截断；`0` 表示不截断（仍受 DTO `@Size` 与总包上限约束） |
+| `ai-assistant.allowed-models` | list | - | **可选**：允许前端在 `/chat`、`/stream` 中传递的 **`model` id 白名单**（多项 YAML 列表）。**不配置或留空**时，**忽略**请求体中的 `model`，始终用 `ai-assistant.model`（或 provider 默认值）；配置后仅**完全匹配**（trim）的项生效，否则回退默认 |
 | `ai-assistant.access-token` | string | - | 接口鉴权 Token（不配=不鉴权） |
 | `ai-assistant.rate-limit` | int | `0` | 每分钟每 IP/Token 请求上限（0=不限） |
 | `ai-assistant.chat-max-total-chars` | int | `300000` | `/chat`、`/stream` 允许的输入总字符：`text` + `history` 各条 `content` 之和（`0`=不限制，生产不建议） |
@@ -183,6 +186,10 @@ ai-assistant:
   system-prompt: "你是一个专业的技术顾问"
   access-token: my-secret-token
   rate-limit: 60
+  # 对话可选模型白名单（与 POST body 的 model 一致）；不配则不允许前端切换模型
+  # allowed-models:
+  #   - gpt-4o-mini
+  #   - gpt-4o
   # 链接抓取（可选）
   url-fetch-enabled: true
   url-fetch-timeout-seconds: 15
@@ -232,7 +239,7 @@ ai-assistant:
 | `pageContextBlocks` | `{ selector, label? }[]` | - | 每次发消息前，用 `document.querySelector` 采集匹配元素的 **innerText**，按块拼入发给模型的 `text` 尾部（界面气泡仍只显示用户原话） |
 | `pageContextMaxChars` | number | `12000` | 上述页面上下文最大总字符，超出截断 |
 | `smartPageContext` | boolean | `true` | **常用**：未配置 `pageContextBlocks` 时，自动按 `main` → `[role=main]` → `article` → `#app` 取正文；`#app` 会克隆后移除 `.ai-assistant-wrapper` 等，避免把助手面板当页面。设为 `false` 可关闭（大型站点省 token） |
-| `pageContextMinUserChars` | number | `12` | 用户输入短于该字数时**不**加 smart 页面上下文，避免只说「你好」也把整页说明发给模型导致长篇跑题；**不影响**手工配置的 `pageContextBlocks` |
+| `pageContextMinUserChars` | number | `12` | 用户输入短于该字数时**不**加任何页面上下文（smart 与 `pageContextBlocks` 均跳过），避免只说「你好」也把整页说明发给模型；需要短句也带正文时设为 `0` |
 | `maxMessagesInMemory` | number | `200` | 会话在浏览器内存中最多保留的消息条数，超出则丢弃最旧；`0` 表示不限制（长会话单页慎用） |
 | `maxTotalCharsInMemory` | number | `4000000` | 所有消息 `content` 总字符上限，超出从头部丢整句；仅剩一条时才会硬裁该条；`0` 不限制 |
 | `maxUserMessageChars` | number | `120000` | 用户单次发送正文最大字符，超出截断并加省略；`0` 不限制 |
@@ -245,7 +252,10 @@ ai-assistant:
 - **选择器语义**：每个配置项只对 **`document.querySelector(selector)` 的第一个匹配节点** 生效；需要多块内容请配置多条 `pageContextBlocks`。选择器写错或节点尚未渲染时，该块**静默跳过**（不抛错）。
 - **体积与配额**：拼接后的全文会进入 `POST /chat`、`/stream` 的 `text`，需同时考虑后端 **`ai-assistant.chat-max-total-chars`** 与模型 **token**；页面很大时请**降低** `pageContextMaxChars`、设 **`smartPageContext: false`** 或收窄 `pageContextBlocks`。
 - **显式优先**：只要配置了 `pageContextBlocks`，**不再**走 `smartPageContext` 自动探测。
-- **短问候不带整页**：默认 `pageContextMinUserChars: 12`，避免只发「你好」时仍把演示页说明全文拼进请求，模型容易对着说明长篇发挥；需要短问题也带正文时可调低该阈值或改用 `pageContextBlocks`。
+- **短问候不带整页**：默认 `pageContextMinUserChars: 12`，避免只发「你好」时仍把演示页说明拼进请求；需要短句也带正文时设为 `0`。
+- **个性化（system prompt）**：对话模式标题栏右侧有 **齿轮** 按钮，打开「个性化」弹层编辑角色说明；文本 **`maxlength` 默认 4000**（`systemPromptMaxInputChars`），与后端 `client-system-prompt-max-chars` 对齐；**Esc** / 遮罩 /「完成」闭合。仍走请求体 `systemPrompt`，需 `allow-client-system-prompt: true`。
+- **个性化**：对话模式标题栏右侧有 **带文字的「个性化」药丸按钮**（含小齿轮图标），点击直接打开 system prompt 弹层。
+- **模型**：对话模式在 **输入框下方** 显示 **模型下拉框**，当前选项即正在使用的模型 id（来自 **`GET .../models`**）；展开可见全部可选模型（由 **`allowed-models`** 决定；未配置时仅一条默认模型）。选中写入 **localStorage**。
 - **SSR**：`pageContext*` 与 `autoMountToBody` 依赖浏览器 `document`；若站点带服务端渲染，请仅在**客户端已挂载真实 DOM** 之后依赖上述能力（或关闭 SSR 测试相关路径、改用语根模板挂载 `<AiAssistant />`）。
 
 **悬浮球与面板（`@ai-assistant/vue`）交互概要：**
@@ -295,6 +305,8 @@ ai-assistant:
 | `text` | string | 是 | 输入文本 |
 | `targetLang` | string | 否 | 翻译目标语言：`zh` / `en` / `ja`（默认 zh） |
 | `history` | array | 否 | 多轮对话历史（仅 chat），格式 `[{role, content}]` |
+| `systemPrompt` | string | 否 | 仅 **chat**：覆盖服务端默认角色提示；需 `allow-client-system-prompt: true`，长度受 `client-system-prompt-max-chars` 与校验约束 |
+| `model` | string | 否 | 仅 **chat**：模型 id，须在 `allowed-models` 中；未配置白名单时由服务端忽略 |
 
 **响应：**
 
@@ -313,6 +325,10 @@ ai-assistant:
   "error": "LLM call failed: ..."
 }
 ```
+
+### GET /ai-assistant/models
+
+返回 **`models`**（字符串数组）与 **`defaultModel`**。未配置 `allowed-models` 时仅含当前默认模型一条；配置白名单后返回列表供前端下拉。**鉴权**与 `access-token` 策略同其他接口。
 
 ### POST /ai-assistant/stream
 
@@ -367,7 +383,7 @@ SSE 流式输出，参数同 `/chat`。
 
 ### POST /ai-assistant/export
 
-将 **一组消息**导出为 **真 XLSX / DOCX / PDF**；响应头使用纯 ASCII `filename="..."`，减少浏览器「另存为」乱码。嵌入 UI 在助手气泡**右键**里通常只传**单条** `assistant`。仅当 classpath **同时**存在 **POI OOXML**（`XSSFWorkbook`）与 **PDFBox**（`PDDocument`）时自动注册该 Bean；否则 **404**（需依赖 `poi-ooxml` / `pdfbox`，见「文件上传」小节）。正文里 `![](http(s)://...)` 会在 DOCX/PDF 尝试拉图（SSRF 校验与体积上限）；`blob:` 等地址无法服务端拉取。
+将 **一组消息**导出为 **真 XLSX / DOCX / PDF**；响应头使用纯 ASCII `filename="..."`，减少浏览器「另存为」乱码。嵌入 UI 在助手气泡**右键**里通常只传**单条** `assistant`。**当前 starter 已将 `pdfbox`、`poi-ooxml` 等作为传递依赖**，宿主仅依赖本 artifact 即可用 `/export`（除非你方构建显式排除了 transitive）。若仍出现 **500** 且日志为 **`NoClassDefFoundError`（pdfbox/poi 相关）**，多为旧版 starter 曾将这些依赖标成 optional：请升级或按「文件上传」小节手动补依赖。正文里 `![](http(s)://...)` 会在 DOCX/PDF 尝试拉图（SSRF 校验与体积上限）；`blob:` 等地址无法服务端拉取。
 
 **请求体 JSON：**
 
@@ -712,6 +728,10 @@ spring:
   <version>5.2.5</version>
 </dependency>
 ```
+
+### Q: `POST /export` 返回 500、响应体为 Spring 默认 JSON
+
+常见原因是运行时 **classpath 缺少 PDFBox / POI**（旧版 starter 曾将此二者标为 optional，宿主项目未显式引入时会 `NoClassDefFoundError`）。请使用 **已改为传递依赖** 的 starter 版本，或在宿主 `pom.xml` 中手动加入与「上传 PDF/Word/Excel」小节相同的坐标。
 
 ### Q: 启动报 `ai-assistant.api-key must be configured`
 
