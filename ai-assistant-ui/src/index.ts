@@ -10,12 +10,21 @@ export interface AiAssistantOptions {
   persistHistory?: boolean
   /** 是否持久化悬浮球位置与贴边状态（localStorage），默认 true */
   persistFabPosition?: boolean
-  locale?: 'en' | 'zh'
+  locale?: 'en' | 'zh' | 'ja' | 'ko'
   accessToken?: string
   /** 与 @error 事件并行，便于接入监控/日志 */
   onAssistantError?: (payload: { source: string; message: string }) => void
   /** 对话模式下可选：快捷短语（点击填入输入框，不自动发送） */
   quickPrompts?: { label: string; text: string }[]
+  /**
+   * Prompt 模板：支持 `{{var}}` 占位符，点击后渲染小表单填充变量再发送。
+   * 无占位符的模板行为等同 quickPrompts。
+   */
+  promptTemplates?: {
+    label: string
+    template: string
+    variables?: { name: string; label: string; default?: string }[]
+  }[]
   /**
    * 若提供，代码块旁显示「IDE」按钮，由宿主实现（如 vscode://、cursor:// 或自定义协议）。
    */
@@ -37,6 +46,11 @@ export interface AiAssistantOptions {
    * 设为 `0` 表示每条消息都带正文。默认 12。
    */
   pageContextMinUserChars?: number
+  /**
+   * 全局键盘快捷键，按下后切换面板开关。默认 'Ctrl+/' (Windows/Linux) 或 'Meta+/' (Mac)。
+   * 设为 false 可禁用。
+   */
+  toggleShortcut?: string | false
   /**
    * 为 true 时，`app.use` 后在 `document.body` 末尾自动再挂载一棵 Vue 应用实例（仅含助手）。
    * 无需在根组件模板里写 `<AiAssistant />`；若已手动放置组件，请勿开启，以免重复。
@@ -75,6 +89,11 @@ export interface AiAssistantOptions {
   showModelPicker?: boolean
   /** 记住所选模型的 localStorage key，默认 `ai-assistant-selected-model` */
   selectedModelStorageKey?: string
+  /**
+   * 上下文感知模式切换：发送前根据输入内容自动判断翻译/摘要/对话，
+   * 覆盖当前 mode。默认 false。
+   */
+  smartModeSwitch?: boolean
 }
 
 const defaultOptions: AiAssistantOptions = {
@@ -103,6 +122,17 @@ export default {
     const merged = { ...defaultOptions, ...options }
     app.provide('ai-assistant-options', merged)
     app.component('AiAssistant', AiAssistant)
+    const prevHandler = app.config.errorHandler
+    app.config.errorHandler = (err, instance, info) => {
+      const isAssistant = instance?.$el?.closest?.('.ai-assistant-wrapper')
+      if (isAssistant) {
+        console.error('[AI Assistant] Uncaught error:', err, info)
+        merged.onAssistantError?.({ source: 'vue-error-boundary', message: String(err) })
+        return
+      }
+      if (prevHandler) prevHandler(err, instance, info)
+      else throw err
+    }
     if (merged.autoMountToBody && typeof document !== 'undefined') {
       queueMicrotask(() => {
         const shell = document.createElement('div')
@@ -111,7 +141,18 @@ export default {
         const child = createApp(AiAssistant)
         child.provide('ai-assistant-options', merged)
         child.mount(shell)
+        app._aiAssistantAutoMount = { app: child, shell }
       })
+    }
+    const origUnmount = app.unmount.bind(app)
+    app.unmount = () => {
+      const mount = (app as any)._aiAssistantAutoMount
+      if (mount) {
+        mount.app.unmount()
+        mount.shell.remove()
+        delete (app as any)._aiAssistantAutoMount
+      }
+      origUnmount()
     }
   },
 }
@@ -120,6 +161,8 @@ export { AiAssistant }
 export { useAiAssistant } from './composables/useAiAssistant'
 export { useSessionSearch } from './composables/useSessionSearch'
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer'
+export { usePageSelection } from './composables/usePageSelection'
+export type { PageSelectionState } from './composables/usePageSelection'
 export type { StreamOptions } from './composables/useAiAssistant'
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api'
 export { uploadFile, fetchUrlPreview, fetchModels, postServerExport } from './utils/api'
@@ -130,3 +173,17 @@ export {
   collectSmartPageContextText,
 } from './utils/pageContextDom'
 export type { PageContextBlock } from './utils/pageContextDom'
+export { captureScreenshot } from './utils/pageScreenshot'
+export { extractStructuredData } from './utils/pageStructuredData'
+export { highlightElement, highlightByText, clearHighlights, injectHighlightStyles } from './utils/domHighlight'
+export { usePageObserver } from './composables/usePageObserver'
+export { wsStreamChat } from './utils/wsChat'
+export { detectMode } from './utils/smartModeDetect'
+export { usePluginRegistry } from './composables/usePluginRegistry'
+export type { AiPlugin, PluginContext } from './composables/usePluginRegistry'
+export { useWorkflow } from './composables/useWorkflow'
+export type { Workflow, WorkflowStep, WorkflowRunResult } from './composables/useWorkflow'
+export { createStreamTracker } from './utils/perfMetrics'
+export type { StreamMetrics } from './utils/perfMetrics'
+export { useMultiSession } from './composables/useMultiSession'
+export type { SessionEntry } from './composables/useMultiSession'

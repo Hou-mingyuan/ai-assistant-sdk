@@ -117,9 +117,57 @@ export function useAiMarkdownRenderer(
     return html
   }
 
-  function clearRenderCache() {
-    renderCache.clear()
+  let lastStreamSrc = ''
+  let lastStreamHtml = ''
+
+  /**
+   * Optimized streaming render: only re-parses when content changes significantly.
+   * For small appends (< 80 chars delta), appends escaped text to avoid full re-parse.
+   */
+  function renderStreamIncremental(raw: string, copyCodeLabel: string): string {
+    const src = raw ?? ''
+    if (!src.trim()) return ''
+
+    const delta = src.length - lastStreamSrc.length
+    const ide = Boolean(options.openCodeInIde)
+
+    if (delta > 0 && delta < 80 && src.startsWith(lastStreamSrc) && !src.includes('```')) {
+      const appended = src.slice(lastStreamSrc.length)
+      const escapedDelta = escapeHtml(appended).replace(/\n/g, '<br>')
+      lastStreamSrc = src
+      const caretIdx = lastStreamHtml.lastIndexOf('<span class="ai-stream-caret"')
+      if (caretIdx >= 0) {
+        lastStreamHtml = lastStreamHtml.slice(0, caretIdx) + escapedDelta +
+          '<span class="ai-stream-caret" aria-hidden="true"></span>'
+      } else {
+        lastStreamHtml += escapedDelta
+      }
+      return lastStreamHtml
+    }
+
+    lastStreamSrc = src
+    let html: string
+    try {
+      html = markedStreamOnly.parse(src, { async: false }) as string
+    } catch {
+      html = `<pre class="ai-md-fallback">${escapeHtml(src)}</pre>`
+    }
+    html = wrapPreBlocks(html, copyCodeLabel, ide)
+    html += '<span class="ai-stream-caret" aria-hidden="true"></span>'
+    html = String(DOMPurify.sanitize(html, PURIFY))
+    lastStreamHtml = html
+    return html
   }
 
-  return { renderContent, clearRenderCache }
+  function resetStreamState() {
+    lastStreamSrc = ''
+    lastStreamHtml = ''
+  }
+
+  function clearRenderCache() {
+    renderCache.clear()
+    resetStreamState()
+  }
+
+  return { renderContent, renderStreamIncremental, resetStreamState, clearRenderCache }
 }

@@ -1,11 +1,18 @@
 package com.aiassistant.model;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public class ExportRequest {
 
+    @NotBlank(message = "format is required")
     private String format;
+    @Size(max = 200, message = "title too long")
     private String title;
+    @NotEmpty(message = "messages is required")
     private List<MessageRow> messages;
 
     public String getFormat() {

@@ -12,6 +12,8 @@ export interface ChatPayload {
   systemPrompt?: string
   /** 对话模式可选：须在服务端 allowed-models 白名单内 */
   model?: string
+  /** Base64 image data (data URI or raw base64) for vision models */
+  imageData?: string
 }
 
 export interface ModelsListResult {
@@ -46,6 +48,17 @@ export type ExportFormat = 'xlsx' | 'docx' | 'pdf'
 
 export type ExportProgressPhase = 'response' | 'download'
 
+/**
+ * Export chat messages to a file via the server-side `/export` endpoint.
+ * Downloads the generated file (XLSX/DOCX/PDF) in the browser.
+ *
+ * @param baseUrl   AI assistant API base URL
+ * @param format    Target format: 'xlsx', 'docx', or 'pdf'
+ * @param title     Export file title (used as filename stem)
+ * @param messages  Array of chat messages to export
+ * @param token     Optional X-AI-Token for authentication
+ * @param onProgress Optional callback for download progress phases
+ */
 export async function postServerExport(
   baseUrl: string,
   format: ExportFormat,
@@ -100,6 +113,7 @@ export async function postServerExport(
   return { ok: true }
 }
 
+/** Fetch the list of available models from the server. */
 export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
   const headers: Record<string, string> = {}
   if (token) headers['X-AI-Token'] = token
@@ -110,6 +124,7 @@ export async function fetchModels(baseUrl: string, token?: string): Promise<Mode
   return res.json()
 }
 
+/** Fetch URL preview (title, summary, images) from the server. */
 export async function fetchUrlPreview(baseUrl: string, url: string, token?: string): Promise<UrlPreviewResult> {
   const q = encodeURIComponent(url)
   const headers: Record<string, string> = {}
@@ -121,6 +136,7 @@ export async function fetchUrlPreview(baseUrl: string, url: string, token?: stri
   return res.json()
 }
 
+/** Send a synchronous chat/translate/summarize request. */
 export async function postChat(baseUrl: string, payload: ChatPayload, token?: string): Promise<ChatResult> {
   const res = await fetch(`${baseUrl}/chat`, {
     method: 'POST',
@@ -133,6 +149,7 @@ export async function postChat(baseUrl: string, payload: ChatPayload, token?: st
   return res.json()
 }
 
+/** Upload a file for summarization or translation. */
 export async function uploadFile(
   baseUrl: string,
   file: File,
@@ -161,11 +178,21 @@ export async function uploadFile(
   return res.json()
 }
 
-export async function* streamChat(baseUrl: string, payload: ChatPayload, token?: string): AsyncGenerator<string> {
+/**
+ * Streaming chat/translate/summarize via SSE. Yields content deltas.
+ * Pass an {@link AbortSignal} to cancel the stream mid-flight.
+ */
+export async function* streamChat(
+  baseUrl: string,
+  payload: ChatPayload,
+  token?: string,
+  signal?: AbortSignal,
+): AsyncGenerator<string> {
   const res = await fetch(`${baseUrl}/stream`, {
     method: 'POST',
     headers: buildHeaders(token),
     body: JSON.stringify(payload),
+    signal,
   })
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${res.statusText}`)
@@ -177,19 +204,23 @@ export async function* streamChat(baseUrl: string, payload: ChatPayload, token?:
   const decoder = new TextDecoder()
   let buffer = ''
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
 
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
 
-    for (const line of lines) {
-      const trimmed = line.replace(/^data:\s*/, '').trim()
-      if (trimmed && trimmed !== '[DONE]') {
-        yield trimmed
+      for (const line of lines) {
+        const trimmed = line.replace(/^data:\s*/, '').trim()
+        if (trimmed && trimmed !== '[DONE]') {
+          yield trimmed
+        }
       }
     }
+  } finally {
+    reader.cancel().catch(() => {})
   }
 }

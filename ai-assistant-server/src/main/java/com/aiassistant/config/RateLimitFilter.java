@@ -8,18 +8,26 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
+
+/**
+ * Per-IP / per-token sliding-window rate limiter.
+ * <p><b>Deployment note:</b> client IP is derived from {@code X-Forwarded-For} when present,
+ * which can be spoofed if the application is directly exposed without a trusted reverse proxy.
+ * In production, deploy behind a proxy (Nginx / ALB / etc.) that overwrites {@code X-Forwarded-For}.</p>
+ */
 public class RateLimitFilter implements Filter {
 
     private final String contextPath;
     private final int maxRequestsPerMinute;
+    private final AiAssistantProperties properties;
     private final ConcurrentHashMap<String, RateEntry> counters = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public RateLimitFilter(AiAssistantProperties properties) {
         this.contextPath = properties.getContextPath();
         this.maxRequestsPerMinute = properties.getRateLimit();
+        this.properties = properties;
     }
 
     private volatile long lastCleanup = System.currentTimeMillis();
@@ -30,7 +38,8 @@ public class RateLimitFilter implements Filter {
 
         cleanupIfNeeded();
 
-        if (maxRequestsPerMinute <= 0) {
+        boolean hasPerAction = properties.getRateLimitPerAction() != null && !properties.getRateLimitPerAction().isEmpty();
+        if (maxRequestsPerMinute <= 0 && !hasPerAction) {
             chain.doFilter(req, res);
             return;
         }
@@ -53,20 +62,36 @@ public class RateLimitFilter implements Filter {
             return;
         }
 
-        String clientKey = getClientKey(request);
+        String action = inferAction(path, request);
+        int effectiveLimit = properties.resolveRateLimit(action);
+        if (effectiveLimit <= 0) effectiveLimit = maxRequestsPerMinute;
+        if (effectiveLimit <= 0) {
+            chain.doFilter(req, res);
+            return;
+        }
+
+        String clientKey = getClientKey(request) + ":" + action;
         RateEntry entry = counters.computeIfAbsent(clientKey, k -> new RateEntry());
 
-        if (entry.isExceeded(maxRequestsPerMinute)) {
+        if (!entry.tryAcquire(effectiveLimit)) {
             HttpServletResponse response = (HttpServletResponse) res;
             response.setStatus(429);
             response.setContentType("application/json;charset=UTF-8");
             objectMapper.writeValue(response.getOutputStream(),
-                    Map.of("success", false, "error", "Rate limit exceeded. Max " + maxRequestsPerMinute + " requests/min."));
+                    Map.of("success", false, "error", "Rate limit exceeded for " + action + ". Max " + effectiveLimit + " requests/min."));
             return;
         }
 
-        entry.increment();
         chain.doFilter(req, res);
+    }
+
+    private static String inferAction(String path, HttpServletRequest request) {
+        if (path.endsWith("/chat")) return "chat";
+        if (path.endsWith("/stream")) return "stream";
+        if (path.endsWith("/export")) return "export";
+        if (path.endsWith("/url-preview")) return "url-preview";
+        if (path.contains("/file/")) return "file";
+        return "other";
     }
 
     private String getClientKey(HttpServletRequest request) {
@@ -88,29 +113,20 @@ public class RateLimitFilter implements Filter {
     }
 
     private static class RateEntry {
-        private final AtomicInteger count = new AtomicInteger(0);
-        private volatile long windowStart = System.currentTimeMillis();
+        private int count;
+        volatile long windowStart = System.currentTimeMillis();
 
-        boolean isExceeded(int max) {
-            resetIfNeeded();
-            return count.get() >= max;
-        }
-
-        void increment() {
-            resetIfNeeded();
-            count.incrementAndGet();
-        }
-
-        private void resetIfNeeded() {
+        synchronized boolean tryAcquire(int max) {
             long now = System.currentTimeMillis();
             if (now - windowStart > 60_000) {
-                synchronized (this) {
-                    if (now - windowStart > 60_000) {
-                        count.set(0);
-                        windowStart = now;
-                    }
-                }
+                count = 0;
+                windowStart = now;
             }
+            if (count >= max) {
+                return false;
+            }
+            count++;
+            return true;
         }
     }
 }

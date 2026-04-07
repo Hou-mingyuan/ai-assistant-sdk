@@ -15,10 +15,12 @@ export default defineConfig({
       name: 'AiAssistant',
       fileName: 'ai-assistant',
     },
+    cssCodeSplit: false,
+    minify: 'terser',
     rollupOptions: {
-      external: ['vue'],
+      external: ['vue', 'html2canvas'],
       output: {
-        globals: { vue: 'Vue' },
+        globals: { vue: 'Vue', html2canvas: 'html2canvas' },
       },
     },
   },

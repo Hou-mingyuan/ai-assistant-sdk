@@ -6,6 +6,8 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.stats.UsageStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,39 +31,41 @@ public class FileUploadController {
     }
 
     @PostMapping("/file/summarize")
-    public ChatResponse summarizeFile(
+    public ResponseEntity<ChatResponse> summarizeFile(
             @RequestParam("file") MultipartFile file) {
         try {
             String text = fileParserService.extractText(file);
             String result = llmService.summarize(text);
             usageStats.recordCall("file_summarize");
-            return ChatResponse.ok(result);
+            return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (IllegalArgumentException e) {
             usageStats.recordError();
-            return ChatResponse.fail(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("File summarize failed", e);
-            return ChatResponse.fail("File processing failed. Check server logs for details.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ChatResponse.fail("File processing failed. Check server logs for details."));
         }
     }
 
     @PostMapping("/file/translate")
-    public ChatResponse translateFile(
+    public ResponseEntity<ChatResponse> translateFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "targetLang", defaultValue = "zh") String targetLang) {
         try {
             String text = fileParserService.extractText(file);
             String result = llmService.translate(text, targetLang);
             usageStats.recordCall("file_translate");
-            return ChatResponse.ok(result);
+            return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (IllegalArgumentException e) {
             usageStats.recordError();
-            return ChatResponse.fail(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("File translate failed", e);
-            return ChatResponse.fail("File processing failed. Check server logs for details.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ChatResponse.fail("File processing failed. Check server logs for details."));
         }
     }
 }

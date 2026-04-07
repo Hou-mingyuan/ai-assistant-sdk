@@ -16,8 +16,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,6 +25,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Fetches and parses HTTP(S) page content for URL enrichment and preview.
+ * <p>Features: SSRF-safe redirect following, TTL-based content cache, og/twitter image extraction,
+ * and intelligent article image scoring.</p>
+ *
+ * @see com.aiassistant.util.UrlFetchSafety
+ */
 public class UrlFetchService {
 
     private static final Logger log = LoggerFactory.getLogger(UrlFetchService.class);
@@ -73,6 +80,17 @@ public class UrlFetchService {
                     + "|/images1/ch/.+/(nav|share)",
             Pattern.CASE_INSENSITIVE);
 
+    private static final Pattern WIDTH_ATTR = Pattern.compile(
+            "width=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HEIGHT_ATTR = Pattern.compile(
+            "height=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ALT_ATTR = Pattern.compile(
+            "alt=[\"']([^\"']*)[\"']", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ID_CLASS_ATTR = Pattern.compile(
+            "(class|id)=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CHARSET_ATTR = Pattern.compile(
+            "charset=([a-zA-Z0-9._-]+)", Pattern.CASE_INSENSITIVE);
+
     /**
      * 常见分享条 / 社交 widget / 侧栏小图标 URL 片段，不参与正文图预览。
      */
@@ -90,15 +108,25 @@ public class UrlFetchService {
 
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
-    private final Map<String, CacheEntry> fetchCache = new LinkedHashMap<>(16, 0.75f, true);
+    private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
+
+    private static final int MAX_REDIRECTS = 5;
 
     public UrlFetchService(AiAssistantProperties properties) {
+        this(properties, null);
+    }
+
+    public UrlFetchService(AiAssistantProperties properties, HttpClient httpClient) {
         this.properties = properties;
-        int timeout = Math.max(1, properties.getUrlFetchTimeoutSeconds());
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(timeout))
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+        if (httpClient != null) {
+            this.httpClient = httpClient;
+        } else {
+            int timeout = Math.max(1, properties.getUrlFetchTimeoutSeconds());
+            this.httpClient = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(timeout))
+                    .followRedirects(HttpClient.Redirect.NEVER)
+                    .build();
+        }
     }
 
     public UrlPreviewResponse previewUrl(String url) {
@@ -181,25 +209,41 @@ public class UrlFetchService {
             UrlFetchSafety.validateHttpUrlForServerSideFetch(uri);
         }
         int max = Math.max(1024, properties.getUrlFetchMaxBytes());
-        HttpRequest req = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(Math.max(1, properties.getUrlFetchTimeoutSeconds())))
-                .header("User-Agent", "AiAssistantUrlFetch/1.0")
-                .GET()
-                .build();
-        HttpResponse<byte[]> res = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
-        if (res.statusCode() < 200 || res.statusCode() >= 300) {
-            throw new IllegalStateException("HTTP " + res.statusCode());
+        URI current = uri;
+        for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
+            HttpRequest req = HttpRequest.newBuilder(current)
+                    .timeout(Duration.ofSeconds(Math.max(1, properties.getUrlFetchTimeoutSeconds())))
+                    .header("User-Agent", "AiAssistantUrlFetch/1.0")
+                    .GET()
+                    .build();
+            HttpResponse<byte[]> res = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
+            int code = res.statusCode();
+            if (code >= 301 && code <= 308 && code != 304) {
+                String location = res.headers().firstValue("Location").orElse(null);
+                if (location == null || location.isBlank()) {
+                    throw new IllegalStateException("Redirect " + code + " without Location header");
+                }
+                current = current.resolve(location);
+                if (properties.isUrlFetchSsrfProtection()) {
+                    UrlFetchSafety.validateHttpUrlForServerSideFetch(current);
+                }
+                continue;
+            }
+            if (code < 200 || code >= 300) {
+                throw new IllegalStateException("HTTP " + code);
+            }
+            byte[] body = res.body();
+            if (body == null) {
+                return new byte[0];
+            }
+            return body.length <= max ? body : java.util.Arrays.copyOf(body, max);
         }
-        byte[] body = res.body();
-        if (body == null) {
-            return new byte[0];
-        }
-        return body.length <= max ? body : java.util.Arrays.copyOf(body, max);
+        throw new IllegalStateException("Too many redirects (max " + MAX_REDIRECTS + ")");
     }
 
     private static Charset sniffCharset(byte[] body, URI uri) {
         String head = new String(body, 0, Math.min(body.length, 8192), StandardCharsets.ISO_8859_1);
-        Matcher cm = Pattern.compile("charset=([a-zA-Z0-9._-]+)", Pattern.CASE_INSENSITIVE).matcher(head);
+        Matcher cm = CHARSET_ATTR.matcher(head);
         if (cm.find()) {
             try {
                 return Charset.forName(cm.group(1).trim());
@@ -348,11 +392,10 @@ public class UrlFetchService {
         if (attrs == null) {
             return new int[]{-1, -1};
         }
-        String a = attrs.toLowerCase(Locale.ROOT);
         int w = -1;
         int h = -1;
-        Matcher wm = Pattern.compile("width=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE).matcher(a);
-        Matcher hm = Pattern.compile("height=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE).matcher(a);
+        Matcher wm = WIDTH_ATTR.matcher(attrs);
+        Matcher hm = HEIGHT_ATTR.matcher(attrs);
         try {
             if (wm.find()) {
                 w = Integer.parseInt(wm.group(1));
@@ -394,7 +437,7 @@ public class UrlFetchService {
         if (attrs == null) {
             return 0;
         }
-        Matcher am = Pattern.compile("alt=[\"']([^\"']*)[\"']", Pattern.CASE_INSENSITIVE).matcher(attrs);
+        Matcher am = ALT_ATTR.matcher(attrs);
         String alt = am.find() ? am.group(1).trim() : "";
         if (alt.isEmpty()) {
             return 0;
@@ -525,7 +568,7 @@ public class UrlFetchService {
                 || a.contains("topbar") || a.contains("top-bar") || a.contains("header-logo")) {
             return true;
         }
-        Matcher idClass = Pattern.compile("(class|id)=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE).matcher(a);
+        Matcher idClass = ID_CLASS_ATTR.matcher(a);
         while (idClass.find()) {
             String block = idClass.group(2).toLowerCase(Locale.ROOT);
             if (block.contains("logo") || block.contains("toolbar") || block.contains("lang-switch")
@@ -533,7 +576,7 @@ public class UrlFetchService {
                 return true;
             }
         }
-        Matcher am = Pattern.compile("alt=[\"']([^\"']*)[\"']", Pattern.CASE_INSENSITIVE).matcher(attrs);
+        Matcher am = ALT_ATTR.matcher(attrs);
         if (am.find()) {
             String alt = am.group(1).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
             if (alt.contains("中国网") || alt.contains("网logo") || alt.contains("网站logo")
@@ -562,8 +605,8 @@ public class UrlFetchService {
                 && (a.contains("icon") || a.contains("btn"))) {
             return true;
         }
-        Matcher wm = Pattern.compile("width=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE).matcher(a);
-        Matcher hm = Pattern.compile("height=[\"']?(\\d+)[\"']?", Pattern.CASE_INSENSITIVE).matcher(a);
+        Matcher wm = WIDTH_ATTR.matcher(a);
+        Matcher hm = HEIGHT_ATTR.matcher(a);
         if (wm.find() && hm.find()) {
             try {
                 int w = Integer.parseInt(wm.group(1));
@@ -577,7 +620,7 @@ public class UrlFetchService {
         return false;
     }
 
-    private synchronized String getCachedText(URI uri) {
+    private String getCachedText(URI uri) {
         int ttl = properties.getUrlFetchCacheTtlSeconds();
         if (ttl <= 0) {
             return null;
@@ -594,15 +637,21 @@ public class UrlFetchService {
         return e.text;
     }
 
-    private synchronized void putCachedText(URI uri, String text) {
+    private void putCachedText(URI uri, String text) {
         int ttl = properties.getUrlFetchCacheTtlSeconds();
         if (ttl <= 0) {
             return;
         }
         int maxEntries = Math.max(4, properties.getUrlFetchCacheMaxEntries());
-        while (fetchCache.size() >= maxEntries) {
-            String first = fetchCache.keySet().iterator().next();
-            fetchCache.remove(first);
+        if (fetchCache.size() >= maxEntries) {
+            fetchCache.entrySet().removeIf(e -> Instant.now().isAfter(e.getValue().expires));
+        }
+        if (fetchCache.size() >= maxEntries) {
+            var it = fetchCache.entrySet().iterator();
+            if (it.hasNext()) {
+                it.next();
+                it.remove();
+            }
         }
         fetchCache.put(uri.toString(), new CacheEntry(text, Instant.now().plusSeconds(ttl)));
     }

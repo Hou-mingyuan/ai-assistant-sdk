@@ -12,11 +12,27 @@
 - SSE 流式 — 打字机效果逐字显示
 - Markdown 渲染 — 代码语法高亮（内置常用语言子集以控制包体，未收录语言按纯文本块显示）+ 复制按钮
 - 暗色主题 — 支持 light / dark / auto（跟随系统）
-- 多语言 UI — 中/英切换
+- 多语言 UI — 中/英/日/韩切换
 - 对话持久化 — localStorage 保存历史
 - 安全 — API Key 轮询 / Token 鉴权 / IP 限流
 - 用量统计 — 按 action、日期统计调用次数
 - **链接正文抓取（服务端）** — 用户消息中含 `http(s)` 链接时，由 **Spring 后端**拉取页面、抽取纯文本并拼入模型上下文（可关闭、可限流大小；可选短 TTL 内存缓存减轻重复抓取）
+- **图片理解（Vision）** — 粘贴/拖入图片发送给多模态模型分析（前端 base64 + 后端 multimodal content）
+- **拖拽文件上传** — 拖入文件到面板即可摘要/翻译，视觉覆盖层反馈
+- **Prompt 模板** — 配置带 `{{var}}` 占位符的模板，空状态显示卡片，点击填变量发送
+- **TTS 朗读** — 助手回复旁 🔊 按钮，使用浏览器 SpeechSynthesis API
+- **语音输入** — 🎤 麦克风按钮，Web Speech API 实时识别
+- **回答评价** — 👍👎 评价助手回复，`@feedback` 事件供宿主接入统计
+- **自动会话标题** — 首次回复后自动提取标题，显示在面板标题栏
+- **多会话标签页** — 同时管理多个独立对话，标签切换 + localStorage 持久化
+- **会话分叉** — 右键菜单"从此处分叉"，从任意消息新开分支对话
+- **服务端会话持久化** — REST CRUD `/sessions`，内置内存存储（可替换为 DB 实现）
+- **WebSocket 通道** — 可选替代 SSE 的双向通道（`ai-assistant.websocket-enabled=true`）
+- **分 action 限流** — `rate-limit-per-action` 配置独立配额（chat/stream/export 等各自限流）
+- **上下文感知模式切换** — `smartModeSwitch: true` 后自动根据输入判断翻译/摘要/对话（中英混合→翻译、长文→摘要、问句→对话）
+- **对话流程编排** — `useWorkflow` 预设多步骤 workflow（如"翻译→摘要→提问"），自动链式执行，支持 `{{input}}` 变量和进度回调
+- **插件系统** — `registerPlugin({ id, label, icon, position, action })` 在 header/footer/右键菜单注册自定义按钮，`PluginContext` 提供对话读写能力
+- **Function Calling（工具调用）** — 实现 `ToolDefinition` 接口注册为 Spring Bean，LLM 自动发现并调用；支持多轮 tool calling 循环（最多 5 轮）
 
 ---
 
@@ -56,6 +72,38 @@ cd ai-assistant-ui && npm test
 # 后端（JUnit 5）
 cd ai-assistant-server && mvn test
 ```
+
+### CI/CD
+
+项目已配置 GitHub Actions 自动化流水线：
+
+- **CI（`.github/workflows/ci.yml`）** — push 到 `main`/`develop` 或 PR 时自动运行：
+  - 前端：`npm ci` → `lint` → `test` → `build`
+  - 后端：`mvn verify`（跳过集成测试）
+
+- **发布（`.github/workflows/publish.yml`）** — 创建 GitHub Release 时自动触发：
+  - 前端发布到 GitHub Packages（npm）
+  - 后端发布到 GitHub Packages（Maven）
+
+**无需额外配置 Secrets** — 使用内置的 `GITHUB_TOKEN`，仅同仓库/同 org 有权限访问。
+
+创建 Release 即可自动发布。使用方需在 `.npmrc` 中配置 `@<owner>:registry=https://npm.pkg.github.com`。
+
+### Docker Demo
+
+```bash
+AI_ASSISTANT_API_KEY=sk-xxx docker compose up
+```
+
+访问 `http://localhost:8080` 即可体验完整 demo。
+
+### 文档站
+
+```bash
+cd docs && npm ci && npm run dev
+```
+
+基于 VitePress，包含快速开始、API 文档、Changelog。CI 自动构建验证。
 
 ---
 

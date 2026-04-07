@@ -1,7 +1,5 @@
 package com.aiassistant.service;
 
-
-
 import com.aiassistant.config.AiAssistantProperties;
 
 import com.aiassistant.export.ExportHttpUrls;
@@ -44,8 +42,6 @@ import org.springframework.core.io.DefaultResourceLoader;
 
 import org.springframework.core.io.Resource;
 
-
-
 import javax.imageio.ImageIO;
 
 import java.io.IOException;
@@ -86,36 +82,36 @@ import java.util.Map;
 
 import java.util.Set;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import java.util.regex.Matcher;
 
 import java.util.regex.Pattern;
 
-
-
+/**
+ * Exports chat sessions to XLSX, DOCX, or PDF.
+ * <p>Handles Markdown rendering (headings, code blocks, lists, inline bold/code),
+ * HTTP image embedding with SSRF protection, and CJK-aware PDF text wrapping.</p>
+ */
 public class AssistantExportService {
 
-
-
+    private static final ExecutorService EXPORT_IMAGE_POOL =
+            Executors.newFixedThreadPool(4, r -> { Thread t = new Thread(r, "ai-export-img"); t.setDaemon(true); return t; });
     private static final ThreadLocal<Map<String, byte[]>> EXPORT_IMAGE_CACHE = new ThreadLocal<>();
-
-
 
     private final AiAssistantProperties properties;
 
     /** 导出拉图复用，避免每张图新建 HttpClient */
     private volatile HttpClient exportHttpClient;
 
-
-
     public AssistantExportService(AiAssistantProperties properties) {
 
         this.properties = properties;
 
     }
-
-
 
     private HttpClient exportHttpClient() {
 
@@ -148,8 +144,6 @@ public class AssistantExportService {
         return c;
 
     }
-
-
 
     public PreparedExport prepare(ExportRequest req) {
 
@@ -209,13 +203,9 @@ public class AssistantExportService {
 
         }
 
-
-
         String title = req.getTitle() != null && !req.getTitle().isBlank() ? req.getTitle().trim() : "export";
 
         String baseName = ExportTextLayout.sanitizeFileStem(title);
-
-
 
         return switch (fmt) {
 
@@ -236,8 +226,6 @@ public class AssistantExportService {
         };
 
     }
-
-
 
     public void write(PreparedExport prepared, OutputStream out) throws Exception {
 
@@ -281,8 +269,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private void writeDocx(List<ExportRequest.MessageRow> messages, OutputStream out) throws Exception {
 
         try (XWPFDocument d = new XWPFDocument()) {
@@ -312,8 +298,6 @@ public class AssistantExportService {
         }
 
     }
-
-
 
     private void appendMarkdownDocx(XWPFDocument d, String markdown) throws Exception {
 
@@ -506,8 +490,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private void flushCodeBlockDocx(XWPFDocument d, String code) throws Exception {
 
         XWPFParagraph p = d.createParagraph();
@@ -525,8 +507,6 @@ public class AssistantExportService {
         r.setText(body.isEmpty() ? " " : body);
 
     }
-
-
 
     /** Word：内联 **粗体**、`代码`，与前端 Markdown 观感接近 */
     private void appendRichDocxInParagraph(XWPFParagraph p, String text, int textStyle) throws Exception {
@@ -645,8 +625,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private void appendInlineImagesDocx(XWPFDocument d, XWPFParagraph p, String line, int textStyle) throws Exception {
 
         Matcher m = ExportMarkdownPatterns.MD_IMAGE.matcher(line);
@@ -682,8 +660,6 @@ public class AssistantExportService {
         }
 
     }
-
-
 
     /** 图片插在调用方段落内，避免与正文脱节 */
     private void embedOrFallbackDocx(XWPFDocument d, XWPFParagraph p, String url) throws Exception {
@@ -748,8 +724,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private void writePdf(List<ExportRequest.MessageRow> messages, OutputStream out) throws Exception {
 
         try (PDDocument doc = new PDDocument()) {
@@ -780,8 +754,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private final class PdfLayout {
 
         private final PDDocument doc;
@@ -806,8 +778,6 @@ public class AssistantExportService {
 
         final float defaultLeading = 14;
 
-
-
         PdfLayout(PDDocument document, FontCtx fontCtx) throws Exception {
 
             this.doc = document;
@@ -826,8 +796,6 @@ public class AssistantExportService {
 
         }
 
-
-
         void newPage() throws Exception {
 
             if (cs != null) {
@@ -845,8 +813,6 @@ public class AssistantExportService {
             y = pageH - margin;
 
         }
-
-
 
         void ensureSpace(float needBelowY) throws Exception {
 
@@ -868,15 +834,11 @@ public class AssistantExportService {
 
         }
 
-
-
         void printRoleLine(String role) throws Exception {
 
             printWrapped(role, defaultSize, true);
 
         }
-
-
 
         void printWrapped(String text, float fontSize, boolean bold) throws Exception {
 
@@ -900,8 +862,6 @@ public class AssistantExportService {
 
         }
 
-
-
         void printLineRaw(String line, float fontSize, float leading) throws Exception {
 
             ensureSpace(leading);
@@ -919,8 +879,6 @@ public class AssistantExportService {
             y -= leading;
 
         }
-
-
 
         void drawImage(byte[] bytes) throws Exception {
 
@@ -962,15 +920,11 @@ public class AssistantExportService {
 
         }
 
-
-
         void gap() throws Exception {
 
             y -= defaultLeading * 0.5f;
 
         }
-
-
 
         void close() throws Exception {
 
@@ -983,8 +937,6 @@ public class AssistantExportService {
         }
 
     }
-
-
 
     private void appendMarkdownPdf(PdfLayout L, String markdown) throws Exception {
 
@@ -1158,15 +1110,11 @@ public class AssistantExportService {
 
     }
 
-
-
     private void emitPdfLineWithImages(PdfLayout L, String line, float fontSize, float leading) throws Exception {
 
         emitPdfLineWithImages(L, line, fontSize, leading, L.textWidth);
 
     }
-
-
 
     private void emitPdfLineWithImages(PdfLayout L, String line, float fontSize, float leading, float maxTextW) throws Exception {
 
@@ -1222,8 +1170,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private Map<String, byte[]> prefetchExportImages(List<ExportRequest.MessageRow> messages) {
 
         if (!properties.isExportEmbedImages()) {
@@ -1247,24 +1193,19 @@ public class AssistantExportService {
         }
 
         ConcurrentHashMap<String, byte[]> out = new ConcurrentHashMap<>();
-
-        urls.parallelStream().forEach(u -> {
-
-            byte[] b = fetchImageBytes(u);
-
-            if (b != null && b.length > 0) {
-
-                out.put(u, b);
-
-            }
-
-        });
-
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (String u : urls) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                byte[] b = fetchImageBytes(u);
+                if (b != null && b.length > 0) {
+                    out.put(u, b);
+                }
+            }, EXPORT_IMAGE_POOL));
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         return out;
 
     }
-
-
 
     private byte[] lookupExportImageBytes(String url) {
 
@@ -1279,8 +1220,6 @@ public class AssistantExportService {
         return cache.get(url);
 
     }
-
-
 
     private void pdfImageOrNote(PdfLayout L, String url) throws Exception {
 
@@ -1309,8 +1248,6 @@ public class AssistantExportService {
         }
 
     }
-
-
 
     private byte[] fetchImageBytes(String urlStr) {
 
@@ -1426,13 +1363,9 @@ public class AssistantExportService {
 
     }
 
-
-
     private interface FontCtx {
 
         void useFont(PDPageContentStream cs, float size) throws Exception;
-
-
 
         void showLine(PDPageContentStream cs, String line) throws Exception;
 
@@ -1440,8 +1373,6 @@ public class AssistantExportService {
         float stringWidth(String text, float fontSize) throws IOException;
 
     }
-
-
 
     private FontCtx loadFont(PDDocument doc) throws Exception {
 
@@ -1465,8 +1396,6 @@ public class AssistantExportService {
 
                         }
 
-
-
                         @Override
 
                         public void showLine(PDPageContentStream cs, String line) throws Exception {
@@ -1474,8 +1403,6 @@ public class AssistantExportService {
                             cs.showText(line);
 
                         }
-
-
 
                         @Override
 
@@ -1511,8 +1438,6 @@ public class AssistantExportService {
 
             }
 
-
-
             @Override
 
             public void showLine(PDPageContentStream cs, String line) throws Exception {
@@ -1524,8 +1449,6 @@ public class AssistantExportService {
                 cs.showText(safe);
 
             }
-
-
 
             @Override
 
@@ -1554,8 +1477,6 @@ public class AssistantExportService {
         };
 
     }
-
-
 
     private InputStream openFontStream(String spec) throws Exception {
 
@@ -1589,8 +1510,6 @@ public class AssistantExportService {
 
     }
 
-
-
     private List<String> wrapToLines(String text, FontCtx font, float fontSize, float maxW) throws IOException {
 
         List<String> lines = new ArrayList<>();
@@ -1621,61 +1540,38 @@ public class AssistantExportService {
 
     }
 
-
-
-    /** 按 PDF 字体真实宽度换行，修正中英文混排时「估宽」偏窄导致超出页边在部分阅读器中被裁切的问题 */
+    /**
+     * 按 PDF 字体真实宽度换行（二分查找优化，O(n log n) 替代逐字符 O(n^2)）。
+     * 每行通过二分定位最后一个不超出 maxW 的码点偏移。
+     */
     private void wrapParagraphByMeasurement(FontCtx font, float fontSize, float maxW, List<String> lines, String para)
-
             throws IOException {
-
         int i = 0;
-
-        final int n = para.length();
-
-        while (i < n) {
-
-            int j = i;
-
-            int lineEnd = i;
-
-            while (j < n) {
-
-                int nextJ = para.offsetByCodePoints(j, 1);
-
-                String trial = para.substring(i, nextJ);
-
-                if (font.stringWidth(trial, fontSize) <= maxW) {
-
-                    lineEnd = nextJ;
-
-                    j = nextJ;
-
+        final int cpLen = para.codePointCount(0, para.length());
+        int cpStart = 0;
+        while (cpStart < cpLen) {
+            int lo = 1;
+            int hi = cpLen - cpStart;
+            int best = 0;
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                int charEnd = para.offsetByCodePoints(i, mid);
+                float w = font.stringWidth(para.substring(i, charEnd), fontSize);
+                if (w <= maxW) {
+                    best = mid;
+                    lo = mid + 1;
                 } else {
-
-                    break;
-
+                    hi = mid - 1;
                 }
-
             }
-
-            if (lineEnd > i) {
-
-                lines.add(para.substring(i, lineEnd));
-
-                i = lineEnd;
-
-            } else {
-
-                int nextJ = para.offsetByCodePoints(i, 1);
-
-                lines.add(para.substring(i, nextJ));
-
-                i = nextJ;
-
+            if (best == 0) {
+                best = 1;
             }
-
+            int charEnd = para.offsetByCodePoints(i, best);
+            lines.add(para.substring(i, charEnd));
+            i = charEnd;
+            cpStart += best;
         }
-
     }
 
 }

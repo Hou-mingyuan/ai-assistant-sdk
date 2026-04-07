@@ -34,6 +34,14 @@ public class AiAssistantProperties {
      */
     private int clientSystemPromptMaxChars = 4_000;
     private int rateLimit = 0;
+    /**
+     * Per-action rate limits (requests/min). Keys: "chat", "translate", "summarize", "export", "url-preview".
+     * Actions not listed fall back to the global {@link #rateLimit}.
+     */
+    private java.util.Map<String, Integer> rateLimitPerAction;
+
+    /** 启用 WebSocket endpoint（/ws）作为 SSE 的替代通道，默认关闭 */
+    private boolean websocketEnabled = false;
 
     /** 是否在调用模型前尝试抓取用户消息中的 http(s) 链接正文 */
     private boolean urlFetchEnabled = true;
@@ -166,6 +174,22 @@ public class AiAssistantProperties {
     public int getRateLimit() { return rateLimit; }
     public void setRateLimit(int rateLimit) { this.rateLimit = rateLimit; }
 
+    public java.util.Map<String, Integer> getRateLimitPerAction() { return rateLimitPerAction; }
+    public void setRateLimitPerAction(java.util.Map<String, Integer> rateLimitPerAction) {
+        this.rateLimitPerAction = rateLimitPerAction;
+    }
+
+    public boolean isWebsocketEnabled() { return websocketEnabled; }
+    public void setWebsocketEnabled(boolean websocketEnabled) { this.websocketEnabled = websocketEnabled; }
+
+    public int resolveRateLimit(String action) {
+        if (rateLimitPerAction != null && action != null) {
+            Integer v = rateLimitPerAction.get(action);
+            if (v != null && v > 0) return v;
+        }
+        return rateLimit;
+    }
+
     public boolean isUrlFetchEnabled() { return urlFetchEnabled; }
     public void setUrlFetchEnabled(boolean urlFetchEnabled) { this.urlFetchEnabled = urlFetchEnabled; }
 
@@ -281,6 +305,7 @@ public class AiAssistantProperties {
             case "deepseek" -> "deepseek-chat";
             case "tongyi", "qwen" -> "qwen-turbo";
             case "zhipu" -> "glm-4-flash";
+            case "volcengine", "doubao" -> "doubao-1.5-pro-32k";
             case "minimax" -> "MiniMax-Text-01";
             case "kimi", "moonshot" -> "moonshot-v1-8k";
             default -> throw new IllegalArgumentException("Unknown provider: " + provider + ". Please set ai-assistant.model explicitly.");

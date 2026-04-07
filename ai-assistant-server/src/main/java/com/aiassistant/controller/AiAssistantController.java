@@ -11,7 +11,9 @@ import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,11 +43,11 @@ public class AiAssistantController {
     }
 
     @PostMapping("/chat")
-    public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
+    public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
         try {
             String tooLarge = ChatInputLimits.validateTotalChars(request, assistantProperties.getChatMaxTotalChars());
             if (tooLarge != null) {
-                return ChatResponse.fail(tooLarge);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(tooLarge));
             }
             String action = request.getAction() == null ? "chat" : request.getAction();
             String result = switch (action) {
@@ -53,32 +55,38 @@ public class AiAssistantController {
                         request.getTargetLang() != null ? request.getTargetLang() : "zh");
                 case "summarize" -> llmService.summarize(request.getText());
                 default -> llmService.chat(request.getText(), request.getHistory(), request.getSystemPrompt(),
-                        request.getModel());
+                        request.getModel(), request.getImageData());
             };
             usageStats.recordCall(action);
-            return ChatResponse.ok(result);
+            return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("POST /chat failed", e);
-            return ChatResponse.fail("AI service error. Check server logs for details.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ChatResponse.fail("AI service error. Check server logs for details."));
         }
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> stream(@Valid @RequestBody ChatRequest request) {
+    public ResponseEntity<Flux<String>> stream(@Valid @RequestBody ChatRequest request) {
         String tooLarge = ChatInputLimits.validateTotalChars(request, assistantProperties.getChatMaxTotalChars());
         if (tooLarge != null) {
-            return Flux.just("Error: " + tooLarge);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Flux.just(tooLarge));
         }
         String action = request.getAction() == null ? "chat" : request.getAction();
         usageStats.recordCall("stream_" + action);
-        return switch (action) {
+        Flux<String> flux = switch (action) {
             case "translate" -> llmService.translateStream(request.getText(),
                     request.getTargetLang() != null ? request.getTargetLang() : "zh");
             case "summarize" -> llmService.summarizeStream(request.getText());
             default -> llmService.chatStream(request.getText(), request.getHistory(), request.getSystemPrompt(),
-                    request.getModel());
+                    request.getModel(), request.getImageData());
         };
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(flux);
     }
 
     @GetMapping("/health")

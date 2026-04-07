@@ -4,6 +4,8 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.tool.ToolRegistry;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -16,8 +18,14 @@ import reactor.core.publisher.SignalType;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Core service for AI assistant operations: chat, translate, summarize (sync &amp; streaming).
+ * <p>Delegates to {@link ChatCompletionClient} for LLM calls and {@link UrlFetchService} for
+ * enriching user messages with linked page content. Supports multiple API keys with round-robin rotation.</p>
+ */
 public class LlmService {
 
     private static final Logger log = LoggerFactory.getLogger(LlmService.class);
@@ -26,9 +34,13 @@ public class LlmService {
     private final UrlFetchService urlFetchService;
     private final ChatCompletionClient chatCompletionClient;
     private final MeterRegistry meterRegistry;
+    private final ToolRegistry toolRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final int MAX_TOOL_ROUNDS = 5;
     private final List<String> apiKeys;
     private final AtomicInteger keyIndex = new AtomicInteger(0);
+    private final ConcurrentHashMap<String, Long> keyCooldown = new ConcurrentHashMap<>();
+    private static final long KEY_COOLDOWN_MS = 30_000;
 
     /** 与翻译模式、流式翻译、文件翻译共用：走同一 LLM，强调口语化、地道表达 */
     private static final Map<String, String> TRANSLATE_PROMPTS = Map.of(
@@ -49,7 +61,8 @@ public class LlmService {
     public LlmService(AiAssistantProperties properties,
                         UrlFetchService urlFetchService,
                         ChatCompletionClient chatCompletionClient,
-                        MeterRegistry meterRegistry) {
+                        MeterRegistry meterRegistry,
+                        ToolRegistry toolRegistry) {
         this.apiKeys = properties.resolveApiKeys();
         if (apiKeys.isEmpty()) {
             throw new IllegalArgumentException("ai-assistant.api-key must be configured");
@@ -58,6 +71,7 @@ public class LlmService {
         this.urlFetchService = urlFetchService;
         this.chatCompletionClient = chatCompletionClient;
         this.meterRegistry = meterRegistry;
+        this.toolRegistry = toolRegistry;
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info("AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}",
@@ -66,8 +80,22 @@ public class LlmService {
     }
 
     private String nextApiKey() {
-        int idx = keyIndex.getAndUpdate(i -> (i + 1) % apiKeys.size());
+        long now = System.currentTimeMillis();
+        int size = apiKeys.size();
+        for (int attempt = 0; attempt < size; attempt++) {
+            int idx = keyIndex.getAndUpdate(i -> (i + 1) % size);
+            String key = apiKeys.get(idx);
+            Long until = keyCooldown.get(key);
+            if (until == null || now >= until) {
+                return key;
+            }
+        }
+        int idx = keyIndex.getAndUpdate(i -> (i + 1) % size);
         return apiKeys.get(idx);
+    }
+
+    private void markKeyFailed(String key) {
+        keyCooldown.put(key, System.currentTimeMillis() + KEY_COOLDOWN_MS);
     }
 
     public String translate(String text, String targetLang) {
@@ -76,22 +104,27 @@ public class LlmService {
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel());
+        return callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
     }
 
     public String summarize(String text) {
-        return callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel());
+        return callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+    }
+
+    public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
+                       String requestModel, String imageData) {
+        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        String modelId = properties.resolveEffectiveModel(requestModel);
+        return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
                        String requestModel) {
-        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        String modelId = properties.resolveEffectiveModel(requestModel);
-        return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId);
+        return chat(userMessage, history, requestSystemPrompt, requestModel, null);
     }
 
     public String chat(String userMessage) {
-        return chat(userMessage, null, null, null);
+        return chat(userMessage, null, null, null, null);
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
@@ -100,22 +133,27 @@ public class LlmService {
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel());
+        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
     }
 
     public Flux<String> summarizeStream(String text) {
-        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel());
+        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+    }
+
+    public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
+                                   String requestSystemPrompt, String requestModel, String imageData) {
+        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        String modelId = properties.resolveEffectiveModel(requestModel);
+        return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
                                    String requestSystemPrompt, String requestModel) {
-        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        String modelId = properties.resolveEffectiveModel(requestModel);
-        return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId);
+        return chatStream(userMessage, history, requestSystemPrompt, requestModel, null);
     }
 
     public Flux<String> chatStream(String userMessage) {
-        return chatStream(userMessage, null, null, null);
+        return chatStream(userMessage, null, null, null, null);
     }
 
     private String resolveEffectiveSystemPrompt(String requestSystemPrompt) {
@@ -136,20 +174,87 @@ public class LlmService {
     }
 
     private String callLlm(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
-                         String operation, String modelId) {
-        ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId);
-        if (meterRegistry == null) {
-            return chatCompletionClient.complete(body, nextApiKey());
-        }
-        Timer.Sample sample = Timer.start(meterRegistry);
+                         String operation, String modelId, String imageData) {
+        ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId, imageData);
+        String key = nextApiKey();
+        Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         try {
-            String result = chatCompletionClient.complete(body, nextApiKey());
-            sample.stop(completionTimer(operation, "success"));
+            String rawResponse = chatCompletionClient.completeRaw(body, key);
+            String result = processToolCallingLoop(body, rawResponse, key);
+            if (sample != null) sample.stop(completionTimer(operation, "success"));
             return result;
         } catch (RuntimeException e) {
-            sample.stop(completionTimer(operation, "error"));
+            markKeyFailed(key);
+            if (sample != null) sample.stop(completionTimer(operation, "error"));
             throw e;
         }
+    }
+
+    private String processToolCallingLoop(ObjectNode body, String rawResponse, String apiKey) {
+        if (toolRegistry == null || toolRegistry.isEmpty()) {
+            return parseContentFromRaw(rawResponse);
+        }
+        for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
+            JsonNode root;
+            try {
+                root = objectMapper.readTree(rawResponse);
+            } catch (Exception e) {
+                return rawResponse;
+            }
+            JsonNode choices = root.path("choices");
+            if (!choices.isArray() || choices.isEmpty()) return parseContentFromRaw(rawResponse);
+
+            JsonNode firstChoice = choices.get(0);
+            JsonNode msg = firstChoice.path("message");
+            String finishReason = firstChoice.path("finish_reason").asText("");
+            JsonNode toolCalls = msg.path("tool_calls");
+
+            if (!"tool_calls".equals(finishReason) || !toolCalls.isArray() || toolCalls.isEmpty()) {
+                return msg.path("content").asText("");
+            }
+
+            ArrayNode messages = (ArrayNode) body.get("messages");
+            ObjectNode assistantMsg = messages.addObject();
+            assistantMsg.put("role", "assistant");
+            if (msg.has("content") && !msg.get("content").isNull()) {
+                assistantMsg.put("content", msg.get("content").asText(""));
+            } else {
+                assistantMsg.putNull("content");
+            }
+            assistantMsg.set("tool_calls", toolCalls);
+
+            for (JsonNode tc : toolCalls) {
+                String callId = tc.path("id").asText();
+                String fnName = tc.path("function").path("name").asText();
+                String argsStr = tc.path("function").path("arguments").asText("{}");
+                String toolResult;
+                try {
+                    JsonNode args = objectMapper.readTree(argsStr);
+                    toolResult = toolRegistry.execute(fnName, args);
+                } catch (Exception e) {
+                    toolResult = "Error: " + e.getMessage();
+                    log.warn("Tool execution failed: {} - {}", fnName, e.getMessage());
+                }
+                ObjectNode toolMsg = messages.addObject();
+                toolMsg.put("role", "tool");
+                toolMsg.put("tool_call_id", callId);
+                toolMsg.put("content", toolResult);
+            }
+
+            rawResponse = chatCompletionClient.completeRaw(body, apiKey);
+        }
+        return parseContentFromRaw(rawResponse);
+    }
+
+    private String parseContentFromRaw(String raw) {
+        try {
+            JsonNode root = objectMapper.readTree(raw);
+            JsonNode choices = root.path("choices");
+            if (choices.isArray() && !choices.isEmpty()) {
+                return choices.get(0).path("message").path("content").asText("");
+            }
+        } catch (Exception ignored) {}
+        return raw;
     }
 
     private Timer completionTimer(String operation, String outcome) {
@@ -173,9 +278,11 @@ public class LlmService {
     }
 
     private Flux<String> callLlmStream(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
-                                       String operation, String modelId) {
-        ObjectNode body = buildRequestBody(systemPrompt, userMessage, true, history, modelId);
-        Flux<String> flux = chatCompletionClient.completeStream(body, nextApiKey());
+                                       String operation, String modelId, String imageData) {
+        ObjectNode body = buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
+        String key = nextApiKey();
+        Flux<String> flux = chatCompletionClient.completeStream(body, key)
+                .doOnError(e -> markKeyFailed(key));
         if (meterRegistry == null) {
             return flux;
         }
@@ -196,7 +303,8 @@ public class LlmService {
     }
 
     private ObjectNode buildRequestBody(String systemPrompt, String userMessage, boolean stream,
-                                        List<ChatRequest.MessageItem> history, String modelId) {
+                                        List<ChatRequest.MessageItem> history, String modelId,
+                                        String imageData) {
         ObjectNode body = objectMapper.createObjectNode();
         body.put("model", modelId != null && !modelId.isBlank() ? modelId : properties.resolveModel());
         body.put("max_tokens", properties.getMaxTokens());
@@ -222,7 +330,22 @@ public class LlmService {
             }
         }
 
-        messages.addObject().put("role", "user").put("content", userMessage);
+        if (toolRegistry != null && !toolRegistry.isEmpty()) {
+            body.set("tools", toolRegistry.toOpenAiToolsArray());
+        }
+
+        boolean hasImage = imageData != null && !imageData.isBlank();
+        if (hasImage) {
+            ObjectNode userMsg = messages.addObject().put("role", "user");
+            ArrayNode content = userMsg.putArray("content");
+            content.addObject().put("type", "text").put("text", userMessage);
+            String dataUrl = imageData.startsWith("data:") ? imageData
+                    : "data:image/png;base64," + imageData;
+            ObjectNode imgPart = content.addObject().put("type", "image_url");
+            imgPart.putObject("image_url").put("url", dataUrl);
+        } else {
+            messages.addObject().put("role", "user").put("content", userMessage);
+        }
         return body;
     }
 }

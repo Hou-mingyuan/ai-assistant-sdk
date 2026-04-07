@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'zh'
+export type Locale = 'en' | 'zh' | 'ja' | 'ko'
 
 export interface I18nMessages {
   greeting: string
@@ -83,6 +83,17 @@ export interface I18nMessages {
   exportStartingDownload: string
   /** 服务端导出：已开始下载（保存框即将出现） */
   exportDownloadStarted: string
+  /** 页面选中文本浮层：发起对话 */
+  pageSelAsk: string
+  dropFileHere: string
+  ttsPlay: string
+  ttsStop: string
+  thumbsUp: string
+  thumbsDown: string
+  micStart: string
+  micStop: string
+  newSession: string
+  msgCtxFork: string
 }
 
 const messages: Record<Locale, I18nMessages> = {
@@ -150,6 +161,16 @@ const messages: Record<Locale, I18nMessages> = {
     exportReceiving: 'Receiving file from server…',
     exportStartingDownload: 'Starting download — watch for the save dialog…',
     exportDownloadStarted: 'Download started — check your save dialog',
+    pageSelAsk: 'Ask AI',
+    dropFileHere: 'Drop file here',
+    ttsPlay: 'Read aloud',
+    ttsStop: 'Stop reading',
+    thumbsUp: 'Helpful',
+    thumbsDown: 'Not helpful',
+    micStart: 'Voice input',
+    micStop: 'Stop recording',
+    newSession: 'New chat',
+    msgCtxFork: 'Fork from here',
   },
   zh: {
     greeting: '👋 你好！我可以帮你：',
@@ -215,9 +236,82 @@ const messages: Record<Locale, I18nMessages> = {
     exportReceiving: '服务器已响应，正在接收文件…',
     exportStartingDownload: '准备开始下载，请留意保存提示…',
     exportDownloadStarted: '已开始下载，请关注浏览器保存提示',
+    pageSelAsk: '问 AI',
+    dropFileHere: '拖放文件到此处',
+    ttsPlay: '朗读',
+    ttsStop: '停止朗读',
+    thumbsUp: '有帮助',
+    thumbsDown: '没帮助',
+    micStart: '语音输入',
+    micStop: '停止录音',
+    newSession: '新对话',
+    msgCtxFork: '从此处分叉',
   },
 }
 
+const ja: I18nMessages = {
+  ...messages.en,
+  greeting: '👋 こんにちは！お手伝いします：',
+  translate: '🌐 翻訳',
+  summarize: '📝 要約',
+  chat: '💬 チャット',
+  placeholder: { translate: '翻訳するテキストを貼り付け...', summarize: '要約するテキストを貼り付け...', chat: '何でも聞いてください...' },
+  newline: 'Shift+Enterで改行',
+  uploadFile: 'ファイルをアップロード',
+  send: '送信',
+  clear: 'クリア',
+  title: 'AIアシスタント',
+  closePanel: '閉じる',
+  expandPanel: '全画面',
+  shrinkPanel: '全画面解除',
+  errorPrefix: 'エラー',
+  searchMessages: '会話を検索…',
+  personalizeTitle: 'カスタマイズ',
+  personalizeDone: '完了',
+  dropFileHere: 'ここにファイルをドロップ',
+  ttsPlay: '読み上げ',
+  ttsStop: '停止',
+  thumbsUp: '役に立った',
+  thumbsDown: '役に立たなかった',
+  micStart: '音声入力',
+  micStop: '録音停止',
+  newSession: '新しいチャット',
+  msgCtxFork: 'ここから分岐',
+}
+
+const ko: I18nMessages = {
+  ...messages.en,
+  greeting: '👋 안녕하세요! 도와드리겠습니다:',
+  translate: '🌐 번역',
+  summarize: '📝 요약',
+  chat: '💬 채팅',
+  placeholder: { translate: '번역할 텍스트를 붙여넣기...', summarize: '요약할 텍스트를 붙여넣기...', chat: '무엇이든 물어보세요...' },
+  newline: 'Shift+Enter로 줄바꿈',
+  uploadFile: '파일 업로드',
+  send: '전송',
+  clear: '지우기',
+  title: 'AI 어시스턴트',
+  closePanel: '닫기',
+  expandPanel: '전체화면',
+  shrinkPanel: '전체화면 해제',
+  errorPrefix: '오류',
+  searchMessages: '대화 검색…',
+  personalizeTitle: '맞춤 설정',
+  personalizeDone: '완료',
+  dropFileHere: '여기에 파일을 놓으세요',
+  ttsPlay: '읽어주기',
+  ttsStop: '중지',
+  thumbsUp: '도움이 됐어요',
+  thumbsDown: '도움이 안 됐어요',
+  micStart: '음성 입력',
+  micStop: '녹음 중지',
+  newSession: '새 채팅',
+  msgCtxFork: '여기서 분기',
+}
+
+;(messages as Record<string, I18nMessages>).ja = ja
+;(messages as Record<string, I18nMessages>).ko = ko
+
 export function getMessages(locale: Locale): I18nMessages {
-  return messages[locale] || messages.en
+  return (messages as Record<string, I18nMessages>)[locale] || messages.en
 }

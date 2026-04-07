@@ -68,7 +68,8 @@
           <span
             id="ai-assistant-title"
             class="ai-title"
-          >{{ t.title }}</span>
+            :title="sessionTitle || t.title"
+          >{{ sessionTitle || t.title }}</span>
           <span class="ai-header-spacer" aria-hidden="true" />
           <div class="ai-header-actions">
             <button
@@ -123,6 +124,21 @@
               </svg>
             </button>
             <button
+              v-for="pl in getPlugins('header')"
+              :key="pl.id"
+              type="button"
+              class="ai-plugin-btn"
+              :title="pl.label"
+              @click.stop="runPlugin(pl)"
+            >{{ pl.icon || pl.label.charAt(0) }}</button>
+            <button
+              type="button"
+              class="ai-new-session"
+              :title="t.newSession"
+              :aria-label="t.newSession"
+              @click="startNewSession"
+            >+</button>
+            <button
               v-if="messages.length > 0"
               type="button"
               class="ai-clear"
@@ -141,6 +157,14 @@
 
         <div class="ai-sr-only" aria-live="polite" aria-atomic="true">{{ a11yStatusText }}</div>
 
+        <SessionTabs
+          :sessions="multiSessions.sessions.value"
+          :active-id="multiSessions.activeSessionId.value"
+          :new-label="t.newSession"
+          @switch="switchToSession"
+          @delete="deleteSessionTab"
+        />
+
         <div v-if="messages.length > 0" class="ai-chat-search">
           <input
             v-model="chatSearchInput"
@@ -158,15 +182,36 @@
           class="ai-body"
           :aria-busy="loading"
           @click="handleBodyClick"
-          @dragover="onBodyDragOver"
-          @drop="onBodyDrop"
+          @dragover.prevent="onBodyDragOver"
+          @dragenter.prevent="onBodyDragEnter"
+          @dragleave.prevent="onBodyDragLeave"
+          @drop.prevent="onBodyDrop"
         >
+          <Transition name="ai-fade">
+            <div v-if="dragActive" class="ai-drop-overlay">
+              <div class="ai-drop-overlay-inner">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"/>
+                </svg>
+                <span>{{ t.dropFileHere }}</span>
+              </div>
+            </div>
+          </Transition>
           <div v-if="messages.length === 0" class="ai-empty">
             <p>{{ t.greeting }}</p>
             <div class="ai-quick-actions">
               <button @click="setMode('translate')">{{ t.translate }}</button>
               <button @click="setMode('summarize')">{{ t.summarize }}</button>
               <button @click="setMode('chat')">{{ t.chat }}</button>
+            </div>
+            <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
+              <button
+                v-for="(tpl, ti) in promptTemplateList"
+                :key="ti"
+                type="button"
+                class="ai-prompt-tpl-btn"
+                @click="applyPromptTemplate(tpl)"
+              >{{ tpl.label }}</button>
             </div>
           </div>
           <div
@@ -188,16 +233,37 @@
               v-html="renderContent(msg.content, t.copyCode, loading && msg.role === 'assistant' && idx === displayedMessages.length - 1)"
               @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
             ></div>
-            <button
-              v-if="msg.role === 'assistant' && msg.content && !loading"
-              type="button"
-              class="ai-msg-copy"
-              :title="t.copyCode"
-              :aria-label="t.copyCode"
-              @click="copyMessage(msg.contentArchive ?? msg.content)"
-            >
-              {{ copiedIndex === displayOffset + idx ? t.codeCopied : '📋' }}
-            </button>
+            <div v-if="msg.role === 'assistant' && msg.content && !loading" class="ai-msg-actions">
+              <button
+                type="button"
+                class="ai-msg-copy"
+                :title="t.copyCode"
+                :aria-label="t.copyCode"
+                @click="copyMessage(msg.contentArchive ?? msg.content)"
+              >{{ copiedIndex === displayOffset + idx ? t.codeCopied : '📋' }}</button>
+              <button
+                v-if="speechSynthesisSupported"
+                type="button"
+                class="ai-msg-speak"
+                :title="ttsPlayingIndex === displayOffset + idx ? t.ttsStop : t.ttsPlay"
+                :aria-label="ttsPlayingIndex === displayOffset + idx ? t.ttsStop : t.ttsPlay"
+                @click="toggleSpeak(displayOffset + idx, msg.contentArchive ?? msg.content)"
+              >{{ ttsPlayingIndex === displayOffset + idx ? '⏹' : '🔊' }}</button>
+              <button
+                type="button"
+                class="ai-msg-feedback"
+                :class="{ active: msg.feedback === 'up' }"
+                :title="t.thumbsUp"
+                @click="setFeedback(displayOffset + idx, 'up')"
+              >👍</button>
+              <button
+                type="button"
+                class="ai-msg-feedback"
+                :class="{ active: msg.feedback === 'down' }"
+                :title="t.thumbsDown"
+                @click="setFeedback(displayOffset + idx, 'down')"
+              >👎</button>
+            </div>
           </div>
           <div v-if="loading" class="ai-msg assistant">
             <div class="ai-bubble ai-typing">
@@ -236,6 +302,10 @@
 
         <!-- Input -->
         <div class="ai-footer">
+          <div v-if="pendingImageThumb" class="ai-pending-image">
+            <img :src="pendingImageThumb" alt="Pending image" class="ai-pending-image-thumb" />
+            <button type="button" class="ai-pending-image-remove" @click="clearPendingImage" aria-label="Remove">&times;</button>
+          </div>
           <div class="ai-footer-input-row">
             <textarea
               v-model="input"
@@ -243,6 +313,7 @@
               :placeholder="`${placeholder} (${t.newline})`"
               rows="2"
               @keydown.enter.exact.prevent="send"
+              @paste="onPasteImage"
             />
             <div class="ai-footer-send-group">
               <input
@@ -262,6 +333,29 @@
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"/>
+                </svg>
+              </button>
+              <button
+                v-for="pl in getPlugins('footer')"
+                :key="pl.id"
+                type="button"
+                class="ai-plugin-btn"
+                :title="pl.label"
+                :disabled="loading"
+                @click="runPlugin(pl)"
+              >{{ pl.icon || pl.label.charAt(0) }}</button>
+              <button
+                v-if="speechRecognitionSupported"
+                type="button"
+                class="ai-mic"
+                :class="{ recording: micRecording }"
+                :disabled="loading"
+                :title="micRecording ? t.micStop : t.micStart"
+                :aria-label="micRecording ? t.micStop : t.micStart"
+                @click="toggleMic"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
               </button>
               <button
@@ -308,241 +402,84 @@
       </div>
     </Transition>
 
-    <Teleport to="body">
-      <Transition name="ai-fab-ctx">
-        <div
-          v-if="fabCtxMenu.show"
-          class="ai-fab-ctx-menu"
-          :class="{ 'ai-dark': isDark }"
-          :style="{ left: fabCtxMenu.x + 'px', top: fabCtxMenu.y + 'px', '--fab-accent': color }"
-          role="menu"
-          @click.stop
-        >
-          <div class="ai-fab-ctx-head">
-            <span class="ai-fab-ctx-head-dot" aria-hidden="true" />
-            <span class="ai-fab-ctx-head-text">{{ t.title }}</span>
-          </div>
-          <div class="ai-fab-ctx-list">
-            <button
-              v-if="edgeDock !== 'left'"
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              @click="dockFab('left')"
-            >
-              <span class="ai-fab-ctx-icon-wrap" aria-hidden="true">
-                <svg class="ai-fab-ctx-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3.5" y="5" width="17" height="14" rx="2.5" opacity="0.9" />
-                  <line x1="9.25" y1="5" x2="9.25" y2="19" opacity="0.95" />
-                </svg>
-              </span>
-              <span class="ai-fab-ctx-label">{{ t.fabDockLeft }}</span>
-            </button>
-            <button
-              v-if="edgeDock !== 'right'"
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              @click="dockFab('right')"
-            >
-              <span class="ai-fab-ctx-icon-wrap" aria-hidden="true">
-                <svg class="ai-fab-ctx-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3.5" y="5" width="17" height="14" rx="2.5" opacity="0.9" />
-                  <line x1="14.75" y1="5" x2="14.75" y2="19" opacity="0.95" />
-                </svg>
-              </span>
-              <span class="ai-fab-ctx-label">{{ t.fabDockRight }}</span>
-            </button>
-            <button
-              v-if="edgeDock !== 'none'"
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              @click="dockFab('none')"
-            >
-              <span class="ai-fab-ctx-icon-wrap" aria-hidden="true">
-                <svg class="ai-fab-ctx-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3.2" />
-                  <path d="M12 4.25v2.35M12 17.4v2.35M4.25 12h2.35M17.4 12h2.35" />
-                </svg>
-              </span>
-              <span class="ai-fab-ctx-label">{{ t.fabUndock }}</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              @click="hideFabUntilPageReload"
-            >
-              <span class="ai-fab-ctx-icon-wrap" aria-hidden="true">
-                <svg class="ai-fab-ctx-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-                  <line x1="4" y1="4" x2="20" y2="20" />
-                </svg>
-              </span>
-              <span class="ai-fab-ctx-label">{{ t.fabHideUntilRefresh }}</span>
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <FabContextMenu
+      :show="fabCtxMenu.show"
+      :x="fabCtxMenu.x"
+      :y="fabCtxMenu.y"
+      :color="color"
+      :is-dark="isDark"
+      :edge-dock="edgeDock"
+      :t="t"
+      @dock="(edge) => { dockFab(edge); closeFabCtxMenu() }"
+      @hide="hideFabUntilPageReload"
+    />
 
-    <Teleport to="body">
-      <Transition name="ai-fab-ctx">
-        <div
-          v-if="msgCtxMenu.show"
-          class="ai-fab-ctx-menu ai-msg-ctx-menu"
-          role="menu"
-          :style="{ left: msgCtxMenu.x + 'px', top: msgCtxMenu.y + 'px', '--fab-accent': color }"
-          @contextmenu.prevent
-        >
-          <div class="ai-fab-ctx-list">
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              :disabled="!msgCtxMenu.selectionText"
-              :title="!msgCtxMenu.selectionText ? t.msgCtxNeedSelection : undefined"
-              @click="copyAssistantSelection"
-            >
-              <span class="ai-fab-ctx-label">{{ t.msgCtxCopy }}</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-fab-ctx-item"
-              :disabled="!msgCtxMenu.selectionText"
-              :title="!msgCtxMenu.selectionText ? t.msgCtxNeedSelection : undefined"
-              @click="translateAssistantSelection"
-            >
-              <span class="ai-fab-ctx-label">{{ t.msgCtxTranslate }}</span>
-            </button>
-            <button type="button" role="menuitem" class="ai-fab-ctx-item" @click="deleteAssistantAt(msgCtxMenu.index)">
-              <span class="ai-fab-ctx-label">{{ t.msgCtxDelete }}</span>
-            </button>
-            <template v-if="options.baseUrl">
-              <button
-                type="button"
-                role="menuitem"
-                class="ai-fab-ctx-item"
-                :disabled="exportServerBusy"
-                :title="exportServerBusy ? t.exportPreparing : undefined"
-                @click="exportAssistantMessageServer(msgCtxMenu.index, 'docx')"
-              >
-                <span class="ai-fab-ctx-label">{{ t.msgCtxExportDocx }}</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                class="ai-fab-ctx-item"
-                :disabled="exportServerBusy"
-                :title="exportServerBusy ? t.exportPreparing : undefined"
-                @click="exportAssistantMessageServer(msgCtxMenu.index, 'pdf')"
-              >
-                <span class="ai-fab-ctx-label">{{ t.msgCtxExportPdf }}</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                class="ai-fab-ctx-item"
-                :disabled="exportServerBusy"
-                :title="exportServerBusy ? t.exportPreparing : undefined"
-                @click="exportAssistantMessageServer(msgCtxMenu.index, 'xlsx')"
-              >
-                <span class="ai-fab-ctx-label">{{ t.msgCtxExportXlsx }}</span>
-              </button>
-            </template>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <MessageContextMenu
+      :show="msgCtxMenu.show"
+      :x="msgCtxMenu.x"
+      :y="msgCtxMenu.y"
+      :color="color"
+      :selection-text="msgCtxMenu.selectionText"
+      :has-base-url="!!options.baseUrl"
+      :export-busy="exportServerBusy"
+      :t="t"
+      @copy="copyAssistantSelection"
+      @translate="translateAssistantSelection"
+      @delete="deleteAssistantAt(msgCtxMenu.index)"
+      @export="(fmt) => exportAssistantMessageServer(msgCtxMenu.index, fmt)"
+      @fork="forkFromHere(msgCtxMenu.index)"
+    />
 
-    <Teleport to="body">
-      <div
-        v-if="personalizeOpen"
-        class="ai-personalize-overlay"
-        :class="{ 'ai-dark': isDark }"
-        role="presentation"
-        @click.self="personalizeOpen = false"
-      >
-        <div
-          class="ai-personalize-dialog"
-          role="dialog"
-          aria-modal="true"
-          :aria-labelledby="personalizeTitleId"
-          @click.stop
-        >
-          <div class="ai-personalize-head">
-            <h2 :id="personalizeTitleId" class="ai-personalize-title">{{ t.personalizeTitle }}</h2>
-            <button
-              type="button"
-              class="ai-personalize-close"
-              :aria-label="t.closePanel"
-              @click="personalizeOpen = false"
-            >&times;</button>
-          </div>
-          <p class="ai-personalize-desc">{{ t.systemPromptPlaceholder }}</p>
-          <textarea
-            ref="personalizeTaRef"
-            v-model="chatSystemPrompt"
-            class="ai-personalize-textarea"
-            rows="5"
-            :disabled="loading"
-            :maxlength="systemPromptMaxInputCharsResolved"
-            :placeholder="t.personalizePlaceholder"
-            :aria-label="t.personalizeTitle"
-          />
-          <div class="ai-personalize-meta" aria-live="polite">
-            {{ t.personalizeCharCount.replace('{cur}', String(chatSystemPrompt.length)).replace('{max}', String(systemPromptMaxInputCharsResolved)) }}
-          </div>
-          <div class="ai-personalize-actions">
-            <button type="button" class="ai-personalize-done" @click="personalizeOpen = false">{{ t.personalizeDone }}</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <PersonalizeDialog
+      :open="personalizeOpen"
+      v-model="chatSystemPrompt"
+      :is-dark="isDark"
+      :disabled="loading"
+      :max-chars="systemPromptMaxInputCharsResolved"
+      :t="t"
+      @close="personalizeOpen = false"
+    />
 
-    <Teleport to="body">
-      <Transition name="ai-export-toast-t">
-        <div
-          v-if="exportToastText"
-          class="ai-export-toast"
-          :class="{ 'ai-dark': isDark }"
-          :style="{ '--export-accent': color }"
-          role="status"
-          aria-live="polite"
-        >
-          {{ exportToastText }}
-        </div>
-      </Transition>
-    </Teleport>
+    <ExportToast
+      :text="exportToastText"
+      :color="color"
+      :is-dark="isDark"
+    />
 
-    <Teleport to="body">
-      <div
-        v-if="inlineTranslatePopover.show"
-        ref="inlineTransPopRef"
-        class="ai-inline-trans-pop"
-        :class="{ 'ai-dark': isDark }"
-        role="dialog"
-        aria-live="polite"
-        :style="{
-          left: inlineTranslatePopover.x + 'px',
-          top: inlineTranslatePopover.y + 'px',
-          '--primary': color,
-        }"
-      >
-        <div v-if="inlineTranslatePopover.loading" class="ai-inline-trans-loading">{{ t.replying }}</div>
-        <div v-else-if="inlineTranslatePopover.error" class="ai-inline-trans-error">
-          {{ inlineTranslatePopover.error }}
-        </div>
-        <div v-else class="ai-inline-trans-body">{{ inlineTranslatePopover.text }}</div>
-      </div>
-    </Teleport>
+    <PageSelectionBar
+      :show="pageSel.show && !isOpen"
+      :x="pageSel.x"
+      :y="pageSel.y"
+      :color="color"
+      :is-dark="isDark"
+      :t="t"
+      @action="onPageSelAction"
+    />
+
+    <InlineTranslatePopover
+      ref="inlineTransPopRef"
+      :show="inlineTranslatePopover.show"
+      :x="inlineTranslatePopover.x"
+      :y="inlineTranslatePopover.y"
+      :text="inlineTranslatePopover.text"
+      :loading="inlineTranslatePopover.loading"
+      :error="inlineTranslatePopover.error"
+      :color="color"
+      :is-dark="isDark"
+      :t="t"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, inject, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import FabContextMenu from './FabContextMenu.vue'
+import MessageContextMenu from './MessageContextMenu.vue'
+import PersonalizeDialog from './PersonalizeDialog.vue'
+import InlineTranslatePopover from './InlineTranslatePopover.vue'
+import ExportToast from './ExportToast.vue'
+import PageSelectionBar from './PageSelectionBar.vue'
+import SessionTabs from './SessionTabs.vue'
 import type { AiAssistantOptions } from '../index'
 import { uploadFile, streamChat, fetchUrlPreview, fetchModels, postServerExport } from '../utils/api'
 import type { ExportFormat } from '../utils/api'
@@ -553,23 +490,48 @@ import { useMessageMemoryCap } from '../composables/useMessageMemoryCap'
 import { loadPersistedMessages, useChatHistoryPersistence } from '../composables/useChatHistoryPersistence'
 import { useExportUi } from '../composables/useExportUi'
 import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer'
+import { useMultiSession } from '../composables/useMultiSession'
+import { usePluginRegistry, type PluginContext } from '../composables/usePluginRegistry'
 import {
   collectPageContextText,
   augmentMessageWithPageContext,
   collectSmartPageContextText,
 } from '../utils/pageContextDom'
+import { usePageSelection } from '../composables/usePageSelection'
 import {
   extractHttpUrls,
   isProbablyDirectImageUrl,
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed'
+import { detectMode } from '../utils/smartModeDetect'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
   /** 内存 cap 截断展示文案时保留的全文，导出/复制优先使用 */
   contentArchive?: string
+  feedback?: 'up' | 'down'
+}
+
+const sessionTitle = ref('')
+const multiSessions = useMultiSession()
+const { getPlugins } = usePluginRegistry()
+
+function makePluginContext(): PluginContext {
+  return {
+    input: input.value,
+    messages: messages.value.map(m => ({ role: m.role, content: m.contentArchive ?? m.content })),
+    setInput: (text: string) => { input.value = text },
+    addMessage: (role: 'user' | 'assistant', content: string) => {
+      messages.value.push({ role, content })
+      scrollToBottom(true)
+    },
+  }
+}
+
+function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void> }) {
+  plugin.action(makePluginContext())
 }
 
 const options = inject<AiAssistantOptions>('ai-assistant-options', {
@@ -624,8 +586,6 @@ const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } 
 const mode = ref<'translate' | 'summarize' | 'chat'>('chat')
 const chatSystemPrompt = ref('')
 const personalizeOpen = ref(false)
-const personalizeTaRef = ref<HTMLTextAreaElement>()
-const personalizeTitleId = 'ai-assistant-personalize-title'
 const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false)
 const systemPromptMaxInputCharsResolved = computed(() => {
   const n = options.systemPromptMaxInputChars
@@ -669,12 +629,15 @@ async function refreshChatModels() {
 
 function openPersonalize() {
   personalizeOpen.value = true
-  nextTick(() => personalizeTaRef.value?.focus())
 }
 
 const targetLang = ref('zh')
 const bodyRef = ref<HTMLElement>()
 const fileInputRef = ref<HTMLInputElement>()
+const dragActive = ref(false)
+let dragCounter = 0
+const pendingImageData = ref<string | null>(null)
+const pendingImageThumb = ref<string | null>(null)
 
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls'
 
@@ -691,6 +654,34 @@ const quickPrompts = computed(() => {
   if (!Array.isArray(q)) return []
   return q.filter((x) => x && typeof x.label === 'string' && typeof x.text === 'string' && x.label && x.text)
 })
+
+type PromptTemplate = NonNullable<AiAssistantOptions['promptTemplates']>[number]
+const promptTemplateList = computed<PromptTemplate[]>(() => {
+  const t = options.promptTemplates
+  if (!Array.isArray(t)) return []
+  return t.filter((x) => x && typeof x.label === 'string' && typeof x.template === 'string')
+})
+
+function applyPromptTemplate(tpl: PromptTemplate) {
+  const vars = tpl.variables
+  if (!vars || vars.length === 0) {
+    input.value = tpl.template
+    setMode('chat')
+    return
+  }
+  const values: Record<string, string> = {}
+  for (const v of vars) {
+    const answer = prompt(v.label, v.default ?? '')
+    if (answer === null) return
+    values[v.name] = answer
+  }
+  let text = tpl.template
+  for (const [k, val] of Object.entries(values)) {
+    text = text.replaceAll(`{{${k}}}`, val)
+  }
+  input.value = text
+  setMode('chat')
+}
 
 const {
   chatSearchInput,
@@ -909,6 +900,7 @@ let winResizeRaf = 0
 
 const wrapperRef = ref<HTMLElement>()
 const fabRef = ref<HTMLButtonElement>()
+const { selection: pageSel, dismissSelection: dismissPageSel } = usePageSelection(wrapperRef)
 /** pixel position; null = use CSS position option */
 const fabLeft = ref<number | null>(null)
 const fabTop = ref<number | null>(null)
@@ -977,7 +969,7 @@ const inlineTranslatePopover = ref({
   selBottom: 0,
 })
 let inlineTranslateAbort = false
-const inlineTransPopRef = ref<HTMLElement | null>(null)
+const inlineTransPopRef = ref<InstanceType<typeof InlineTranslatePopover> | null>(null)
 let inlinePopResizeHandler: (() => void) | null = null
 let positionInlinePopRaf = 0
 
@@ -1011,7 +1003,8 @@ function positionInlineTranslatePopoverNearPointer() {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const pw = Math.min(360, vw - 2 * pad)
-  const ph = Math.max(inlineTransPopRef.value?.offsetHeight ?? 120, 72)
+  const popEl = inlineTransPopRef.value?.popRef
+  const ph = Math.max(popEl?.offsetHeight ?? 120, 72)
   const sl = pop.selLeft
   const sr = pop.selRight
   const st = pop.selTop
@@ -1669,10 +1662,56 @@ const emit = defineEmits<{
   (e: 'send', payload: { action: string; text: string }): void
   (e: 'response', content: string): void
   (e: 'error', message: string): void
+  (e: 'feedback', payload: { index: number; value: 'up' | 'down' | null }): void
 }>()
 
 function setMode(m: 'translate' | 'summarize' | 'chat') {
   mode.value = m
+}
+
+function startNewSession() {
+  saveCurrentSessionToMulti()
+  multiSessions.createSession()
+  messages.value = []
+  renderAllMessages.value = false
+  resetSearch()
+  clearRenderCache()
+  sessionTitle.value = ''
+}
+
+function switchToSession(id: string) {
+  if (id === multiSessions.activeSessionId.value) return
+  saveCurrentSessionToMulti()
+  multiSessions.switchSession(id)
+  const s = multiSessions.getActiveSession()
+  messages.value = s?.messages ?? []
+  sessionTitle.value = s?.title ?? ''
+  renderAllMessages.value = false
+  resetSearch()
+  clearRenderCache()
+}
+
+function deleteSessionTab(id: string) {
+  multiSessions.deleteSession(id)
+  const s = multiSessions.getActiveSession()
+  messages.value = s?.messages ?? []
+  sessionTitle.value = s?.title ?? ''
+  clearRenderCache()
+}
+
+function forkFromHere(index: number) {
+  saveCurrentSessionToMulti()
+  const forked = multiSessions.forkFromMessage(multiSessions.activeSessionId.value, index)
+  if (forked) {
+    messages.value = forked.messages as Message[]
+    sessionTitle.value = forked.title
+    clearRenderCache()
+  }
+}
+
+function saveCurrentSessionToMulti() {
+  multiSessions.updateActiveMessages(JSON.parse(JSON.stringify(messages.value)))
+  if (sessionTitle.value) multiSessions.updateActiveTitle(sessionTitle.value)
 }
 
 function clearMessages() {
@@ -1681,6 +1720,8 @@ function clearMessages() {
   resetSearch()
   clearRenderCache()
   clearStoredHistory()
+  sessionTitle.value = ''
+  multiSessions.updateActiveMessages([])
 }
 
 function closeMsgCtxMenu() {
@@ -2002,6 +2043,77 @@ function showAllOlderMessages() {
 
 const copiedIndex = ref(-1)
 
+const speechSynthesisSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
+const ttsPlayingIndex = ref(-1)
+
+function toggleSpeak(idx: number, text: string) {
+  if (!speechSynthesisSupported) return
+  if (ttsPlayingIndex.value === idx) {
+    speechSynthesis.cancel()
+    ttsPlayingIndex.value = -1
+    return
+  }
+  speechSynthesis.cancel()
+  const plain = text.replace(/[#*`_~\[\]()>!|]/g, '').replace(/\n+/g, '. ').trim()
+  if (!plain) return
+  const utterance = new SpeechSynthesisUtterance(plain)
+  utterance.onend = () => { ttsPlayingIndex.value = -1 }
+  utterance.onerror = () => { ttsPlayingIndex.value = -1 }
+  ttsPlayingIndex.value = idx
+  speechSynthesis.speak(utterance)
+}
+
+const SpeechRecognitionCtor = typeof window !== 'undefined'
+  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  : null
+const speechRecognitionSupported = Boolean(SpeechRecognitionCtor)
+const micRecording = ref(false)
+let recognitionInstance: any = null
+
+function toggleMic() {
+  if (micRecording.value) {
+    recognitionInstance?.stop()
+    micRecording.value = false
+    return
+  }
+  if (!SpeechRecognitionCtor) return
+  const recognition = new SpeechRecognitionCtor()
+  recognition.continuous = false
+  recognition.interimResults = true
+  recognition.lang = options.locale === 'zh' ? 'zh-CN' : 'en-US'
+  let finalTranscript = ''
+  recognition.onresult = (e: any) => {
+    let interim = ''
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalTranscript += e.results[i][0].transcript
+      } else {
+        interim += e.results[i][0].transcript
+      }
+    }
+    input.value = finalTranscript + interim
+  }
+  recognition.onend = () => {
+    micRecording.value = false
+    recognitionInstance = null
+    if (finalTranscript) input.value = finalTranscript
+  }
+  recognition.onerror = () => {
+    micRecording.value = false
+    recognitionInstance = null
+  }
+  recognitionInstance = recognition
+  micRecording.value = true
+  recognition.start()
+}
+
+function setFeedback(globalIdx: number, value: 'up' | 'down') {
+  const msg = messages.value[globalIdx]
+  if (!msg || msg.role !== 'assistant') return
+  msg.feedback = msg.feedback === value ? undefined : value
+  emit('feedback', { index: globalIdx, value: msg.feedback ?? null })
+}
+
 function handleBodyClick(e: MouseEvent) {
   const target = e.target as HTMLElement
   if (target.dataset.ide === 'true') {
@@ -2024,16 +2136,84 @@ function handleBodyClick(e: MouseEvent) {
 }
 
 function onBodyDragOver(e: DragEvent) {
-  if (mode.value === 'chat' || loading.value) return
-  e.preventDefault()
+  if (loading.value) return
   if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
 }
 
+function onBodyDragEnter(_e: DragEvent) {
+  if (loading.value) return
+  dragCounter++
+  dragActive.value = true
+}
+
+function onBodyDragLeave(_e: DragEvent) {
+  dragCounter--
+  if (dragCounter <= 0) {
+    dragCounter = 0
+    dragActive.value = false
+  }
+}
+
 function onBodyDrop(e: DragEvent) {
-  if (mode.value === 'chat' || loading.value) return
-  e.preventDefault()
+  dragCounter = 0
+  dragActive.value = false
+  if (loading.value) return
   const file = e.dataTransfer?.files?.[0]
-  if (file) void processFileUpload(file)
+  if (!file) return
+  if (file.type.startsWith('image/')) {
+    readFileAsDataUrl(file)
+  } else {
+    void processFileUpload(file)
+  }
+}
+
+function onPasteImage(e: ClipboardEvent) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault()
+      const file = item.getAsFile()
+      if (file) readFileAsDataUrl(file)
+      return
+    }
+  }
+}
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+function readFileAsDataUrl(file: File) {
+  if (file.size > MAX_IMAGE_BYTES) {
+    messages.value.push({ role: 'assistant', content: `${t.value.errorPrefix}: Image exceeds 5MB limit` })
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    const dataUrl = reader.result as string
+    pendingImageData.value = dataUrl
+    const canvas = document.createElement('canvas')
+    const img = new Image()
+    img.onload = () => {
+      const maxDim = 80
+      let w = img.width, h = img.height
+      if (w > maxDim || h > maxDim) {
+        const scale = maxDim / Math.max(w, h)
+        w = Math.round(w * scale)
+        h = Math.round(h * scale)
+      }
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      pendingImageThumb.value = canvas.toDataURL('image/png', 0.7)
+    }
+    img.src = dataUrl
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearPendingImage() {
+  pendingImageData.value = null
+  pendingImageThumb.value = null
 }
 
 async function copyMessage(text: string) {
@@ -2043,6 +2223,26 @@ async function copyMessage(text: string) {
     copiedIndex.value = idx
     setTimeout(() => { copiedIndex.value = -1 }, 1500)
   } catch {}
+}
+
+function onPageSelAction(action: 'ask' | 'translate' | 'summarize') {
+  const text = pageSel.value.text
+  dismissPageSel()
+  if (!text) return
+  if (action === 'ask') {
+    mode.value = 'chat'
+  } else if (action === 'translate') {
+    mode.value = 'translate'
+  } else {
+    mode.value = 'summarize'
+  }
+  input.value = text
+  isOpen.value = true
+  nextTick(() => {
+    if (action !== 'ask') {
+      send()
+    }
+  })
 }
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages })
@@ -2216,11 +2416,25 @@ async function send() {
   loading.value = true
   scrollToBottom(true)
 
+  if (options.smartModeSwitch) {
+    const detected = detectMode(text)
+    if (detected && detected !== mode.value) {
+      mode.value = detected
+    }
+  }
+
+  const imageForPayload = pendingImageData.value
+  if (pendingImageThumb.value && pendingImageData.value) {
+    userEntry.content = `🖼️ ${userEntry.content}`
+  }
+  clearPendingImage()
+
   const payload: any = {
     action: mode.value,
     text: textWithPageContextForModel(text),
     targetLang: targetLang.value,
   }
+  if (imageForPayload) payload.imageData = imageForPayload
   if (mode.value === 'chat') {
     const sp = chatSystemPrompt.value.trim()
     if (sp) payload.systemPrompt = sp
@@ -2281,6 +2495,10 @@ async function send() {
     }
     if (urlPreviewImgs.length) scrollToBottom(false)
     emit('response', fullContent)
+    if (!sessionTitle.value && fullContent) {
+      const plain = fullContent.replace(/[#*`_~\[\]()>!|]/g, '').trim()
+      sessionTitle.value = plain.length > 30 ? plain.slice(0, 30) + '…' : plain
+    }
   } catch (e: any) {
     const currentContent = messages.value[msgIndex]?.content || ''
     if (!currentContent) {
@@ -2299,11 +2517,12 @@ async function processFileUpload(file: File) {
   if (!file || loading.value || !options.baseUrl) return
 
   const action = mode.value === 'translate' ? 'translate' as const : 'summarize' as const
-  messages.value.push({ role: 'user', content: `[File] ${file.name}` })
+  const label = `📎 ${file.name} (${(file.size / 1024).toFixed(1)}KB)`
+  messages.value.push({ role: 'user', content: label })
   loading.value = true
   scrollToBottom(true)
 
-  emit('send', { action, text: `[File] ${file.name}` })
+  emit('send', { action, text: label })
   try {
     const res = await uploadFile(options.baseUrl, file, action, targetLang.value, options.accessToken)
     const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`
@@ -2376,7 +2595,24 @@ watch(() => messages.value.length, () => {
   saveHistory()
 })
 
+function matchesToggleShortcut(e: KeyboardEvent): boolean {
+  const shortcut = options.toggleShortcut
+  if (shortcut === false) return false
+  const key = shortcut || '/'
+  if (e.key !== key.replace(/^(Ctrl|Meta|Alt|Shift)\+/i, '')) return false
+  const isMac = navigator.platform?.startsWith('Mac') || navigator.userAgent?.includes('Mac')
+  const needCtrl = !isMac
+  const needMeta = isMac
+  return (needCtrl ? e.ctrlKey : e.metaKey) && !e.shiftKey && !e.altKey
+}
+
 function onEscKeydown(e: KeyboardEvent) {
+  if (matchesToggleShortcut(e)) {
+    e.preventDefault()
+    if (fabHidden.value) return
+    isOpen.value = !isOpen.value
+    return
+  }
   if (e.key !== 'Escape') return
   if (inlineTranslatePopover.value.show) {
     e.preventDefault()
@@ -2457,6 +2693,9 @@ onUnmounted(() => {
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange)
   window.removeEventListener('keydown', onEscKeydown, true)
   document.removeEventListener('mousedown', onDocPointerDownCloseFabMenu, true)
+  window.removeEventListener('pointermove', onFabPointerMove)
+  window.removeEventListener('pointerup', onFabPointerUp)
+  window.removeEventListener('pointercancel', onFabPointerUp)
   window.removeEventListener('pointermove', onPanelHeaderPointerMove)
   window.removeEventListener('pointerup', onPanelHeaderPointerUp, true)
   window.removeEventListener('pointercancel', onPanelHeaderPointerUp, true)

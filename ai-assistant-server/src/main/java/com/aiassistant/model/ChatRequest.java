@@ -9,8 +9,10 @@ public class ChatRequest {
 
     private String action;
     @NotBlank(message = "text is required")
+    @Size(max = 300_000, message = "text exceeds 300000 characters")
     private String text;
     private String targetLang;
+    @Size(max = 500, message = "history exceeds 500 messages")
     private List<MessageItem> history;
     /**
      * 对话模式可选：覆盖服务端默认 system prompt，无需改配置重启（受服务端开关与长度上限约束）。
@@ -20,6 +22,9 @@ public class ChatRequest {
     /** 对话模式可选，须在服务端 {@code allowed-models} 白名单内 */
     @Size(max = 128)
     private String model;
+    /** Base64-encoded image (data URI or raw base64); sent as vision content to multimodal models */
+    @Size(max = 10_000_000, message = "imageData exceeds 10MB")
+    private String imageData;
 
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
@@ -38,6 +43,9 @@ public class ChatRequest {
 
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
+
+    public String getImageData() { return imageData; }
+    public void setImageData(String imageData) { this.imageData = imageData; }
 
     public static class MessageItem {
         private String role;

@@ -1,6 +1,5 @@
 package com.aiassistant.controller;
 
-import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.export.PreparedExport;
 import com.aiassistant.model.ExportRequest;
 import com.aiassistant.service.AssistantExportService;
@@ -12,8 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -23,33 +22,31 @@ public class AssistantExportController {
 
     private final AssistantExportService exportService;
 
-    public AssistantExportController(AiAssistantProperties properties) {
-        this.exportService = new AssistantExportService(properties);
+    public AssistantExportController(AssistantExportService exportService) {
+        this.exportService = exportService;
     }
 
     @PostMapping("/export")
     public ResponseEntity<?> export(@RequestBody ExportRequest body) {
+        PreparedExport p;
         try {
-            PreparedExport p = exportService.prepare(body);
-            /* 一次性写入字节再返回：避免 StreamingResponseBody 在提交响应后抛错时只得到框架默认 500 JSON，且便于在同一 try 中捕获 POI/PDFBox 异常 */
-            ByteArrayOutputStream buf = new ByteArrayOutputStream(65536);
-            exportService.write(p, buf);
-            byte[] bytes = buf.toByteArray();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType(p.mediaType()));
-            addRFC5987Attachment(headers, p.filename());
-            headers.setContentLength(bytes.length);
-            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+            p = exportService.prepare(body);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(e.getMessage());
-        } catch (Exception e) {
-            String detail = e.getClass().getSimpleName() + ": " + e.getMessage();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("Export failed: " + detail);
         }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(p.mediaType()));
+        addRFC5987Attachment(headers, p.filename());
+        StreamingResponseBody stream = out -> {
+            try {
+                exportService.write(p, out);
+            } catch (Exception e) {
+                throw new RuntimeException("Export write failed: " + e.getMessage(), e);
+            }
+        };
+        return new ResponseEntity<>(stream, headers, HttpStatus.OK);
     }
 
     /**

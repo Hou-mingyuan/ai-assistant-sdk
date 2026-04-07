@@ -42,9 +42,17 @@ export function useMessageMemoryCap(
     }
     const charCap = options.maxTotalCharsInMemory
     if (charCap !== undefined && charCap > 0 && messages.value.length > 0) {
-      while (messages.value.length > 1 && countMessagesChars(messages.value) > charCap) {
-        messages.value.shift()
-        changed = true
+      if (countMessagesChars(messages.value) > charCap) {
+        let drop = 0
+        let acc = countMessagesChars(messages.value)
+        while (drop < messages.value.length - 1 && acc > charCap) {
+          acc -= messageCharFootprint(messages.value[drop])
+          drop++
+        }
+        if (drop > 0) {
+          messages.value = messages.value.slice(drop)
+          changed = true
+        }
       }
       if (messages.value.length === 1 && countMessagesChars(messages.value) > charCap) {
         const only = messages.value[0]!

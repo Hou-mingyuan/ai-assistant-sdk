@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  demo:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - AI_ASSISTANT_API_KEY=${AI_ASSISTANT_API_KEY}
+      - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-deepseek}
+    restart: unless-stopped

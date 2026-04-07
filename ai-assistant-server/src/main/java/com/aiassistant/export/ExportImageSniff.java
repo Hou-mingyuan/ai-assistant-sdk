@@ -3,8 +3,11 @@ package com.aiassistant.export;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.util.Iterator;
 
 /**
  * 导出嵌入图片时的魔数识别与尺寸探测。
@@ -33,7 +36,26 @@ public final class ExportImageSniff {
         return -1;
     }
 
+    /**
+     * Read image dimensions without decoding full pixel data (saves memory for large images).
+     */
     public static int[] imagePixelSize(byte[] bytes) {
+        try (ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
+             ImageInputStream iis = ImageIO.createImageInputStream(bin)) {
+            if (iis != null) {
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+                if (readers.hasNext()) {
+                    ImageReader reader = readers.next();
+                    try {
+                        reader.setInput(iis);
+                        return new int[]{reader.getWidth(0), reader.getHeight(0)};
+                    } finally {
+                        reader.dispose();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
         try (ByteArrayInputStream in = new ByteArrayInputStream(bytes)) {
             BufferedImage bi = ImageIO.read(in);
             if (bi != null) {

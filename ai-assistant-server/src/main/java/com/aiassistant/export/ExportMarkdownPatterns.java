@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
  */
 public final class ExportMarkdownPatterns {
 
-    public static final Pattern MD_IMAGE = Pattern.compile("!\\[([^\\]]*)\\]\\(([^)]+)\\)");
+    public static final Pattern MD_IMAGE = Pattern.compile("!\\[([^\\]]*)\\]\\(([^)]*(?:\\([^)]*\\))*[^)]*)\\)");
     public static final Pattern MD_HEADING = Pattern.compile("^(#{1,6})\\s+(.*)$");
     public static final Pattern MD_OL = Pattern.compile("^(\\d+)\\.\\s+(.*)$");
     public static final Pattern MD_INLINE_BOLD = Pattern.compile("\\*\\*(.+?)\\*\\*");

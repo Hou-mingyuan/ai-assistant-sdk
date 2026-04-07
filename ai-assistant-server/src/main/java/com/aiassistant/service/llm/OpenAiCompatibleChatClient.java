@@ -65,6 +65,39 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
     }
 
     @Override
+    public String completeRaw(ObjectNode requestBody, String apiKey) {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                String body = webClient.post()
+                        .uri("/chat/completions")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(timeout)
+                        .block();
+                return body != null ? body : "";
+            } catch (IllegalStateException e) {
+                throw e;
+            } catch (WebClientResponseException e) {
+                int code = e.getStatusCode().value();
+                log.warn("chat completion raw HTTP {} (try {}/{})", code, attempt + 1, maxRetries + 1);
+                if (attempt < maxRetries && isRetriableStatus(code)) {
+                    sleepBackoff(attempt);
+                    continue;
+                }
+                throw new IllegalStateException("LLM error: HTTP " + code, e);
+            } catch (Exception e) {
+                if (attempt < maxRetries && isRetriableNetwork(e)) {
+                    sleepBackoff(attempt);
+                    continue;
+                }
+                throw new IllegalStateException("LLM request failed: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @Override
     public String complete(ObjectNode requestBody, String apiKey) {
         for (int attempt = 0; ; attempt++) {
             try {
@@ -153,7 +186,7 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
                     .filter(err -> !emittedChunk.get() && isRetriableStreamError(Exceptions.unwrap(err)))
                     .jitter(0.1)
                     .doBeforeRetry(sig -> log.warn("LLM stream retry (no text chunks yet): {}", sig.failure())));
-        }).onErrorResume(e -> Flux.just("Error: " + e.getMessage()));
+        });
     }
 
     private Flux<String> streamEventLines(ObjectNode requestBody, String apiKey) {

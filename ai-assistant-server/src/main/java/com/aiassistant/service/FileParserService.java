@@ -10,6 +10,12 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
+/**
+ * Extracts plain text from uploaded files. Supports txt, md, csv, json, xml, html, yml,
+ * pdf (PDFBox), docx/xlsx (POI-OOXML), doc/xls (POI legacy).
+ * <p>Dependencies are loaded via reflection so the Starter compiles without POI/PDFBox;
+ * missing libraries produce clear error messages.</p>
+ */
 public class FileParserService {
 
     private static final Logger log = LoggerFactory.getLogger(FileParserService.class);
@@ -134,34 +140,38 @@ public class FileParserService {
     }
 
     private String readDocx(MultipartFile file) throws Exception {
+        Object doc = null;
         Object extractor = null;
         try {
             Class<?> xwpfClass = Class.forName("org.apache.poi.xwpf.usermodel.XWPFDocument");
             Class<?> extractorClass = Class.forName("org.apache.poi.xwpf.extractor.XWPFWordExtractor");
 
-            Object doc = xwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
+            doc = xwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
             extractor = extractorClass.getDeclaredConstructor(xwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("DOCX parsing requires poi-ooxml dependency. Add org.apache.poi:poi-ooxml:5.2.5 to your project.");
         } finally {
             closeQuietly(extractor);
+            closeQuietly(doc);
         }
     }
 
     private String readDoc(MultipartFile file) throws Exception {
+        Object doc = null;
         Object extractor = null;
         try {
             Class<?> hwpfClass = Class.forName("org.apache.poi.hwpf.HWPFDocument");
             Class<?> extractorClass = Class.forName("org.apache.poi.hwpf.extractor.WordExtractor");
 
-            Object doc = hwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
+            doc = hwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
             extractor = extractorClass.getDeclaredConstructor(hwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("DOC parsing requires poi-scratchpad dependency. Add org.apache.poi:poi-scratchpad:5.2.5 to your project.");
         } finally {
             closeQuietly(extractor);
+            closeQuietly(doc);
         }
     }
 
