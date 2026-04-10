@@ -28,7 +28,7 @@ export interface PanelGeometryDeps {
   fabTop: Ref<number | null>
   fabSize: number
   isOpen: Ref<boolean>
-  saveFabPos: (overrideEdge?: string) => void
+  saveFabPos: (overrideEdge?: 'none' | 'left' | 'right') => void
   clampFabPos: (l: number, t: number) => { left: number; top: number }
   defaultPosition: string
 }

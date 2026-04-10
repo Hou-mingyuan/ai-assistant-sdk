@@ -901,26 +901,6 @@ const wrapperStyle = computed(() => {
 })
 
 
-/** 打开面板时，避免贴边位置导致 380×520 面板溢出视口（按象限对齐球的锚角后整体夹紧） */
-function ensurePanelInViewport() {
-  if (fabLeft.value === null || fabTop.value === null) return
-  const m = PANEL_VIEWPORT_MARGIN
-  const { w: vw, h: vh } = getViewportCssSize()
-  const effW = effectivePanelWidthPx()
-  const effH = effectivePanelHeightPx()
-  const { dx, dy } = wrapperOffsetFromFab(openPanelQuadrant.value)
-  let wl = fabLeft.value + dx
-  let wt = fabTop.value + dy
-
-  if (wl + effW > vw - m) wl = Math.max(m, vw - effW - m)
-  if (wl < m) wl = m
-  if (wt + effH > vh - m) wt = Math.max(m, vh - effH - m)
-  if (wt < m) wt = m
-
-  fabLeft.value = wl - dx
-  fabTop.value = wt - dy
-}
-
 /** 菜单预估宽度（与样式同步，用于视口夹紧） */
 const FAB_CTX_MENU_W = 236
 
