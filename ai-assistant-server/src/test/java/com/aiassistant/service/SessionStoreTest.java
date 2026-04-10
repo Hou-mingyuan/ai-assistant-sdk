@@ -28,10 +28,11 @@ class SessionStoreTest {
     }
 
     @Test
-    void listReturnsSortedByUpdatedAt() {
+    void listReturnsSortedByUpdatedAt() throws Exception {
         SessionData a = new SessionData();
         a.setTitle("A");
         store.create("u", a);
+        Thread.sleep(2);
         SessionData b = new SessionData();
         b.setTitle("B");
         store.create("u", b);

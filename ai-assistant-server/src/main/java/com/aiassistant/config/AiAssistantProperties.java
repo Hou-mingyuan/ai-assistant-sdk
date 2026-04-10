@@ -7,6 +7,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "ai-assistant")
 public class AiAssistantProperties {
 
+    // ── LLM Provider ──────────────────────────────────────────────────
     private String provider = "openai";
     private String apiKey;
     private List<String> apiKeys;
@@ -33,69 +34,86 @@ public class AiAssistantProperties {
      * 客户端传入的 system prompt 实际生效最大字符，超出截断；0 表示不额外截断（仍受请求 DTO 总长度约束）。
      */
     private int clientSystemPromptMaxChars = 4_000;
+    // ── Rate Limiting ──────────────────────────────────────────────────
     private int rateLimit = 0;
-    /**
-     * Per-action rate limits (requests/min). Keys: "chat", "translate", "summarize", "export", "url-preview".
-     * Actions not listed fall back to the global {@link #rateLimit}.
-     */
     private java.util.Map<String, Integer> rateLimitPerAction;
 
-    /** 启用 WebSocket endpoint（/ws）作为 SSE 的替代通道，默认关闭 */
+    // ── WebSocket / Headless ─────────────────────────────────────────
     private boolean websocketEnabled = false;
 
-    /** 是否在调用模型前尝试抓取用户消息中的 http(s) 链接正文 */
-    private boolean urlFetchEnabled = true;
-    /**
-     * 对服务端发起的 URL 抓取、导出拉图等请求做 SSRF 基线防护（禁解析到私网/回环等）。
-     * 仅内网使用时如需抓取内网页可设为 false（对公网暴露时不建议）。
-     */
-    private boolean urlFetchSsrfProtection = true;
-    /** 单次拉取响应体最大字节 */
-    private int urlFetchMaxBytes = 524_288;
-    /** 拉取超时（秒） */
-    private int urlFetchTimeoutSeconds = 15;
-    /** 注入给模型的正文最大字符（超出截断） */
-    private int urlFetchMaxCharsInjected = 24_000;
-    /** 同一 URL 抓取正文的内存缓存 TTL（秒），0=关闭 */
-    private int urlFetchCacheTtlSeconds = 90;
-    /** 正文缓存最大条数（超出则淘汰） */
-    private int urlFetchCacheMaxEntries = 32;
-    /** GET /url-preview 返回的页面纯文本摘要最大字符（由 HTML 转纯文本后截取） */
-    private int urlPreviewMaxSummaryChars = 900;
-    /**
-     * GET /url-preview 从页面 HTML 抽取的图片链接最大条数（og/twitter/正文 img 合计，过滤装饰图后）。
-     * 默认 10；上限在服务端再夹紧，避免单次响应过大。
-     */
-    private int urlPreviewMaxImages = 10;
+    /** 启用 headless 浏览器抓取（Playwright），用于 JS 渲染页面的链接预览/正文提取。需要先安装浏览器：mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install chromium" */
+    private boolean headlessFetchEnabled = false;
+    /** headless 浏览器页面加载超时（秒） */
+    private int headlessFetchTimeoutSeconds = 30;
 
-    /** POST /export 允许的最大消息条数 */
-    private int exportMaxMessages = 2_000;
-    /** POST /export 所有 content 累计最大字符（防爆内存） */
-    private int exportMaxTotalChars = 2_000_000;
+    // ── URL Fetch / Preview (ai-assistant.url-fetch.*) ─────────────────
+    private UrlFetchProperties urlFetch = new UrlFetchProperties();
 
-    /**
-     * PDF 导出用的 Unicode 字体字节（需含中文等目标字形；PDFBox 3.x 需要 TrueType glyf，勿用常见 CJK CFF .otf）。
-     * 支持 {@code classpath:/fonts/...}、{@code file:///...} 或绝对路径。
-     * Starter 默认指向内置 {@code NotoSansSC_400Regular.ttf}（来自 expo/google-fonts，SIL OFL）；设为空字符串则退回 Helvetica（非 ASCII 变空格）。
-     */
-    private String exportPdfUnicodeFont = "classpath:/fonts/NotoSansSC_400Regular.ttf";
+    // ── Export (ai-assistant.export.*) ────────────────────────────────
+    private ExportProperties export_ = new ExportProperties();
 
-    /** 单张导出嵌入图片最大字节（HTTP 拉图）；超出则跳过该图，正文中保留 URL 占位说明 */
-    private int exportMaxImageBytes = 3_000_000;
-    /** Word/PDF 是否尝试嵌入 http(s) 图片；关闭则仅保留 Markdown 图片语法纯文本 */
-    private boolean exportEmbedImages = true;
+    // ── Chat Limits (ai-assistant.chat.*) ─────────────────────────────
+    private ChatProperties chat = new ChatProperties();
 
-    /**
-     * POST /chat、/stream 允许的用户输入总字符：当前 text + history 中各条 content 之和。
-     * 0 表示不限制（不推荐生产环境）。
-     */
-    private int chatMaxTotalChars = 300_000;
+    /** Nested: URL fetch & preview settings. YAML prefix: {@code ai-assistant.url-fetch} */
+    public static class UrlFetchProperties {
+        private boolean enabled = true;
+        private boolean ssrfProtection = true;
+        private int maxBytes = 524_288;
+        private int timeoutSeconds = 15;
+        private int maxCharsInjected = 24_000;
+        private int cacheTtlSeconds = 90;
+        private int cacheMaxEntries = 32;
+        private int previewMaxSummaryChars = 900;
+        private int previewMaxImages = 10;
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public boolean isSsrfProtection() { return ssrfProtection; }
+        public void setSsrfProtection(boolean v) { this.ssrfProtection = v; }
+        public int getMaxBytes() { return maxBytes; }
+        public void setMaxBytes(int v) { this.maxBytes = v; }
+        public int getTimeoutSeconds() { return timeoutSeconds; }
+        public void setTimeoutSeconds(int v) { this.timeoutSeconds = v; }
+        public int getMaxCharsInjected() { return maxCharsInjected; }
+        public void setMaxCharsInjected(int v) { this.maxCharsInjected = v; }
+        public int getCacheTtlSeconds() { return cacheTtlSeconds; }
+        public void setCacheTtlSeconds(int v) { this.cacheTtlSeconds = v; }
+        public int getCacheMaxEntries() { return cacheMaxEntries; }
+        public void setCacheMaxEntries(int v) { this.cacheMaxEntries = v; }
+        public int getPreviewMaxSummaryChars() { return previewMaxSummaryChars; }
+        public void setPreviewMaxSummaryChars(int v) { this.previewMaxSummaryChars = v; }
+        public int getPreviewMaxImages() { return previewMaxImages; }
+        public void setPreviewMaxImages(int v) { this.previewMaxImages = v; }
+    }
 
-    /**
-     * 实际发往 LLM 的 {@code history} 各条 content 累计上限（从末尾向前保留）。
-     * 小于等于 0 表示不截断。用于在请求体校验通过后仍控制模型侧 tokens/延迟。
-     */
-    private int chatHistoryMaxChars = 48_000;
+    /** Nested: export settings. YAML prefix: {@code ai-assistant.export} */
+    public static class ExportProperties {
+        private int maxMessages = 2_000;
+        private int maxTotalChars = 2_000_000;
+        private String pdfUnicodeFont = "classpath:/fonts/NotoSansSC_400Regular.ttf";
+        private int maxImageBytes = 3_000_000;
+        private boolean embedImages = true;
+        public int getMaxMessages() { return maxMessages; }
+        public void setMaxMessages(int v) { this.maxMessages = v; }
+        public int getMaxTotalChars() { return maxTotalChars; }
+        public void setMaxTotalChars(int v) { this.maxTotalChars = v; }
+        public String getPdfUnicodeFont() { return pdfUnicodeFont; }
+        public void setPdfUnicodeFont(String v) { this.pdfUnicodeFont = v; }
+        public int getMaxImageBytes() { return maxImageBytes; }
+        public void setMaxImageBytes(int v) { this.maxImageBytes = v; }
+        public boolean isEmbedImages() { return embedImages; }
+        public void setEmbedImages(boolean v) { this.embedImages = v; }
+    }
+
+    /** Nested: chat limits. YAML prefix: {@code ai-assistant.chat} */
+    public static class ChatProperties {
+        private int maxTotalChars = 300_000;
+        private int historyMaxChars = 48_000;
+        public int getMaxTotalChars() { return maxTotalChars; }
+        public void setMaxTotalChars(int v) { this.maxTotalChars = v; }
+        public int getHistoryMaxChars() { return historyMaxChars; }
+        public void setHistoryMaxChars(int v) { this.historyMaxChars = v; }
+    }
 
     /**
      * 允许前端在 /chat、/stream 请求体中指定的模型 id；**为空则忽略**客户端 {@code model}，始终用 {@link #resolveModel()}。
@@ -182,6 +200,12 @@ public class AiAssistantProperties {
     public boolean isWebsocketEnabled() { return websocketEnabled; }
     public void setWebsocketEnabled(boolean websocketEnabled) { this.websocketEnabled = websocketEnabled; }
 
+    public boolean isHeadlessFetchEnabled() { return headlessFetchEnabled; }
+    public void setHeadlessFetchEnabled(boolean headlessFetchEnabled) { this.headlessFetchEnabled = headlessFetchEnabled; }
+
+    public int getHeadlessFetchTimeoutSeconds() { return headlessFetchTimeoutSeconds; }
+    public void setHeadlessFetchTimeoutSeconds(int headlessFetchTimeoutSeconds) { this.headlessFetchTimeoutSeconds = Math.max(5, headlessFetchTimeoutSeconds); }
+
     public int resolveRateLimit(String action) {
         if (rateLimitPerAction != null && action != null) {
             Integer v = rateLimitPerAction.get(action);
@@ -190,55 +214,50 @@ public class AiAssistantProperties {
         return rateLimit;
     }
 
-    public boolean isUrlFetchEnabled() { return urlFetchEnabled; }
-    public void setUrlFetchEnabled(boolean urlFetchEnabled) { this.urlFetchEnabled = urlFetchEnabled; }
+    public UrlFetchProperties getUrlFetch() { return urlFetch; }
+    public void setUrlFetch(UrlFetchProperties urlFetch) { this.urlFetch = urlFetch; }
+    public ExportProperties getExport() { return export_; }
+    public void setExport(ExportProperties export_) { this.export_ = export_; }
+    public ChatProperties getChat() { return chat; }
+    public void setChat(ChatProperties chat) { this.chat = chat; }
 
-    public boolean isUrlFetchSsrfProtection() { return urlFetchSsrfProtection; }
-    public void setUrlFetchSsrfProtection(boolean urlFetchSsrfProtection) {
-        this.urlFetchSsrfProtection = urlFetchSsrfProtection;
-    }
+    /** @deprecated Use {@code getUrlFetch().isEnabled()} */
+    public boolean isUrlFetchEnabled() { return urlFetch.isEnabled(); }
+    public void setUrlFetchEnabled(boolean v) { urlFetch.setEnabled(v); }
+    public boolean isUrlFetchSsrfProtection() { return urlFetch.isSsrfProtection(); }
+    public void setUrlFetchSsrfProtection(boolean v) { urlFetch.setSsrfProtection(v); }
+    public int getUrlFetchMaxBytes() { return urlFetch.getMaxBytes(); }
+    public void setUrlFetchMaxBytes(int v) { urlFetch.setMaxBytes(v); }
+    public int getUrlFetchTimeoutSeconds() { return urlFetch.getTimeoutSeconds(); }
+    public void setUrlFetchTimeoutSeconds(int v) { urlFetch.setTimeoutSeconds(v); }
+    public int getUrlFetchMaxCharsInjected() { return urlFetch.getMaxCharsInjected(); }
+    public void setUrlFetchMaxCharsInjected(int v) { urlFetch.setMaxCharsInjected(v); }
+    public int getUrlFetchCacheTtlSeconds() { return urlFetch.getCacheTtlSeconds(); }
+    public void setUrlFetchCacheTtlSeconds(int v) { urlFetch.setCacheTtlSeconds(v); }
+    public int getUrlFetchCacheMaxEntries() { return urlFetch.getCacheMaxEntries(); }
+    public void setUrlFetchCacheMaxEntries(int v) { urlFetch.setCacheMaxEntries(v); }
+    public int getUrlPreviewMaxSummaryChars() { return urlFetch.getPreviewMaxSummaryChars(); }
+    public void setUrlPreviewMaxSummaryChars(int v) { urlFetch.setPreviewMaxSummaryChars(v); }
+    public int getUrlPreviewMaxImages() { return urlFetch.getPreviewMaxImages(); }
+    public void setUrlPreviewMaxImages(int v) { urlFetch.setPreviewMaxImages(v); }
 
-    public int getUrlFetchMaxBytes() { return urlFetchMaxBytes; }
-    public void setUrlFetchMaxBytes(int urlFetchMaxBytes) { this.urlFetchMaxBytes = urlFetchMaxBytes; }
+    /** @deprecated Use {@code getExport().getMaxMessages()} */
+    public int getExportMaxMessages() { return export_.getMaxMessages(); }
+    public void setExportMaxMessages(int v) { export_.setMaxMessages(v); }
+    public int getExportMaxTotalChars() { return export_.getMaxTotalChars(); }
+    public void setExportMaxTotalChars(int v) { export_.setMaxTotalChars(v); }
+    public String getExportPdfUnicodeFont() { return export_.getPdfUnicodeFont(); }
+    public void setExportPdfUnicodeFont(String v) { export_.setPdfUnicodeFont(v); }
+    public int getExportMaxImageBytes() { return export_.getMaxImageBytes(); }
+    public void setExportMaxImageBytes(int v) { export_.setMaxImageBytes(v); }
+    public boolean isExportEmbedImages() { return export_.isEmbedImages(); }
+    public void setExportEmbedImages(boolean v) { export_.setEmbedImages(v); }
 
-    public int getUrlFetchTimeoutSeconds() { return urlFetchTimeoutSeconds; }
-    public void setUrlFetchTimeoutSeconds(int urlFetchTimeoutSeconds) { this.urlFetchTimeoutSeconds = urlFetchTimeoutSeconds; }
-
-    public int getUrlFetchMaxCharsInjected() { return urlFetchMaxCharsInjected; }
-    public void setUrlFetchMaxCharsInjected(int urlFetchMaxCharsInjected) { this.urlFetchMaxCharsInjected = urlFetchMaxCharsInjected; }
-
-    public int getUrlFetchCacheTtlSeconds() { return urlFetchCacheTtlSeconds; }
-    public void setUrlFetchCacheTtlSeconds(int urlFetchCacheTtlSeconds) { this.urlFetchCacheTtlSeconds = urlFetchCacheTtlSeconds; }
-
-    public int getUrlFetchCacheMaxEntries() { return urlFetchCacheMaxEntries; }
-    public void setUrlFetchCacheMaxEntries(int urlFetchCacheMaxEntries) { this.urlFetchCacheMaxEntries = urlFetchCacheMaxEntries; }
-
-    public int getUrlPreviewMaxSummaryChars() { return urlPreviewMaxSummaryChars; }
-    public void setUrlPreviewMaxSummaryChars(int urlPreviewMaxSummaryChars) { this.urlPreviewMaxSummaryChars = urlPreviewMaxSummaryChars; }
-
-    public int getUrlPreviewMaxImages() { return urlPreviewMaxImages; }
-    public void setUrlPreviewMaxImages(int urlPreviewMaxImages) { this.urlPreviewMaxImages = urlPreviewMaxImages; }
-
-    public int getExportMaxMessages() { return exportMaxMessages; }
-    public void setExportMaxMessages(int exportMaxMessages) { this.exportMaxMessages = exportMaxMessages; }
-
-    public int getExportMaxTotalChars() { return exportMaxTotalChars; }
-    public void setExportMaxTotalChars(int exportMaxTotalChars) { this.exportMaxTotalChars = exportMaxTotalChars; }
-
-    public String getExportPdfUnicodeFont() { return exportPdfUnicodeFont; }
-    public void setExportPdfUnicodeFont(String exportPdfUnicodeFont) { this.exportPdfUnicodeFont = exportPdfUnicodeFont; }
-
-    public int getExportMaxImageBytes() { return exportMaxImageBytes; }
-    public void setExportMaxImageBytes(int exportMaxImageBytes) { this.exportMaxImageBytes = exportMaxImageBytes; }
-
-    public boolean isExportEmbedImages() { return exportEmbedImages; }
-    public void setExportEmbedImages(boolean exportEmbedImages) { this.exportEmbedImages = exportEmbedImages; }
-
-    public int getChatMaxTotalChars() { return chatMaxTotalChars; }
-    public void setChatMaxTotalChars(int chatMaxTotalChars) { this.chatMaxTotalChars = chatMaxTotalChars; }
-
-    public int getChatHistoryMaxChars() { return chatHistoryMaxChars; }
-    public void setChatHistoryMaxChars(int chatHistoryMaxChars) { this.chatHistoryMaxChars = chatHistoryMaxChars; }
+    /** @deprecated Use {@code getChat().getMaxTotalChars()} */
+    public int getChatMaxTotalChars() { return chat.getMaxTotalChars(); }
+    public void setChatMaxTotalChars(int v) { chat.setMaxTotalChars(v); }
+    public int getChatHistoryMaxChars() { return chat.getHistoryMaxChars(); }
+    public void setChatHistoryMaxChars(int v) { chat.setHistoryMaxChars(v); }
 
     public List<String> getAllowedModels() { return allowedModels; }
     public void setAllowedModels(List<String> allowedModels) { this.allowedModels = allowedModels; }
@@ -281,7 +300,7 @@ public class AiAssistantProperties {
         if (baseUrl != null && !baseUrl.isBlank()) {
             return baseUrl;
         }
-        return switch (provider.toLowerCase()) {
+        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
             case "openai" -> "https://api.openai.com/v1";
             case "deepseek" -> "https://api.deepseek.com/v1";
             case "tongyi", "qwen" -> "https://dashscope.aliyuncs.com/compatible-mode/v1";
@@ -300,7 +319,7 @@ public class AiAssistantProperties {
         if (model != null && !model.isBlank()) {
             return model;
         }
-        return switch (provider.toLowerCase()) {
+        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
             case "openai" -> "gpt-4o-mini";
             case "deepseek" -> "deepseek-chat";
             case "tongyi", "qwen" -> "qwen-turbo";
@@ -311,4 +330,5 @@ public class AiAssistantProperties {
             default -> throw new IllegalArgumentException("Unknown provider: " + provider + ". Please set ai-assistant.model explicitly.");
         };
     }
+
 }

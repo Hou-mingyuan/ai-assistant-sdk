@@ -42,12 +42,12 @@
     >
       <div
         v-if="isOpen"
-        id="ai-assistant-panel"
+        :id="uid + '-panel'"
         class="ai-panel"
         :style="panelStyle"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="ai-assistant-title"
+        :aria-labelledby="uid + '-title'"
       >
         <div class="ai-panel-resize-overlay" aria-hidden="true">
           <div
@@ -66,7 +66,7 @@
           @pointerdown="onPanelHeaderPointerDown"
         >
           <span
-            id="ai-assistant-title"
+            :id="uid + '-title'"
             class="ai-title"
             :title="sessionTitle || t.title"
           >{{ sessionTitle || t.title }}</span>
@@ -138,6 +138,24 @@
               :aria-label="t.newSession"
               @click="startNewSession"
             >+</button>
+            <div v-if="messages.length > 0" class="ai-batch-export-wrap">
+              <button
+                type="button"
+                class="ai-batch-export-btn"
+                :title="t.batchExport"
+                :aria-label="t.batchExport"
+                @click.stop="toggleBatchExportMenu"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              </button>
+              <div v-if="batchExportMenuOpen" class="ai-batch-export-menu">
+                <button type="button" @click="batchExportAllJson">{{ t.exportJson }}</button>
+                <button type="button" @click="batchExportAllMarkdown">{{ t.exportMarkdown }}</button>
+                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('xlsx')">{{ t.exportServerXlsx }}</button>
+                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('docx')">{{ t.exportServerDocx }}</button>
+                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('pdf')">{{ t.exportServerPdf }}</button>
+              </div>
+            </div>
             <button
               v-if="messages.length > 0"
               type="button"
@@ -173,7 +191,30 @@
             :placeholder="t.searchMessages"
             :aria-label="t.searchMessages"
             autocomplete="off"
+            @keydown.enter.exact.prevent="goNextMatch"
+            @keydown.enter.shift.prevent="goPrevMatch"
           >
+          <span v-if="searchCountLabel" class="ai-search-count">{{ searchCountLabel }}</span>
+          <button
+            v-if="debouncedSearchQuery.trim()"
+            type="button"
+            class="ai-search-nav"
+            :disabled="totalMatches === 0"
+            aria-label="Previous match"
+            @click="goPrevMatch"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+          </button>
+          <button
+            v-if="debouncedSearchQuery.trim()"
+            type="button"
+            class="ai-search-nav"
+            :disabled="totalMatches === 0"
+            aria-label="Next match"
+            @click="goNextMatch"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+          </button>
         </div>
 
         <!-- Messages -->
@@ -228,27 +269,53 @@
             :class="['ai-msg', msg.role]"
             :data-ai-msg-global-idx="displayOffset + idx"
           >
-            <div
-              class="ai-bubble"
-              v-html="renderContent(msg.content, t.copyCode, loading && msg.role === 'assistant' && idx === displayedMessages.length - 1)"
-              @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
-            ></div>
+            <template v-if="editingMsgIdx === displayOffset + idx">
+              <div class="ai-bubble ai-bubble-editing">
+                <textarea
+                  ref="editTextareaRef"
+                  v-model="editingText"
+                  class="ai-edit-textarea"
+                  rows="3"
+                  @keydown.enter.exact.prevent="confirmEditAndResend(displayOffset + idx)"
+                  @keydown.escape="cancelEdit"
+                ></textarea>
+                <div class="ai-edit-actions">
+                  <button type="button" class="ai-edit-cancel" @click="cancelEdit">{{ t.closePanel }}</button>
+                  <button type="button" class="ai-edit-confirm" @click="confirmEditAndResend(displayOffset + idx)">{{ t.send }}</button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div
+                class="ai-bubble"
+                v-html="renderBubble(msg.content, displayOffset + idx, loading && msg.role === 'assistant' && idx === displayedMessages.length - 1)"
+                @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
+              ></div>
+            </template>
+            <div v-if="msg.role === 'user' && !loading && editingMsgIdx !== displayOffset + idx" class="ai-msg-actions">
+              <button
+                type="button"
+                class="ai-msg-edit"
+                :title="t.msgCtxEdit"
+                :aria-label="t.msgCtxEdit"
+                @click="startEdit(displayOffset + idx)"
+              >✏️</button>
+            </div>
             <div v-if="msg.role === 'assistant' && msg.content && !loading" class="ai-msg-actions">
               <button
                 type="button"
                 class="ai-msg-copy"
                 :title="t.copyCode"
                 :aria-label="t.copyCode"
-                @click="copyMessage(msg.contentArchive ?? msg.content)"
+                @click="copyMessage(msg.contentArchive ?? msg.content, displayOffset + idx)"
               >{{ copiedIndex === displayOffset + idx ? t.codeCopied : '📋' }}</button>
               <button
-                v-if="speechSynthesisSupported"
                 type="button"
-                class="ai-msg-speak"
-                :title="ttsPlayingIndex === displayOffset + idx ? t.ttsStop : t.ttsPlay"
-                :aria-label="ttsPlayingIndex === displayOffset + idx ? t.ttsStop : t.ttsPlay"
-                @click="toggleSpeak(displayOffset + idx, msg.contentArchive ?? msg.content)"
-              >{{ ttsPlayingIndex === displayOffset + idx ? '⏹' : '🔊' }}</button>
+                class="ai-msg-regenerate"
+                :title="t.regenerate"
+                :aria-label="t.regenerate"
+                @click="regenerateAt(displayOffset + idx)"
+              >🔄</button>
               <button
                 type="button"
                 class="ai-msg-feedback"
@@ -266,9 +333,19 @@
             </div>
           </div>
           <div v-if="loading" class="ai-msg assistant">
-            <div class="ai-bubble ai-typing">
-              <span></span><span></span><span></span>
+            <div class="ai-bubble">
+              <div class="ai-skeleton">
+                <div class="ai-skeleton-line"></div>
+                <div class="ai-skeleton-line"></div>
+                <div class="ai-skeleton-line"></div>
+              </div>
             </div>
+            <button
+              type="button"
+              class="ai-stop-generate"
+              :title="t.stopGenerate"
+              @click="stopGenerate"
+            >{{ t.stopGenerate }}</button>
           </div>
         </div>
 
@@ -344,20 +421,6 @@
                 :disabled="loading"
                 @click="runPlugin(pl)"
               >{{ pl.icon || pl.label.charAt(0) }}</button>
-              <button
-                v-if="speechRecognitionSupported"
-                type="button"
-                class="ai-mic"
-                :class="{ recording: micRecording }"
-                :disabled="loading"
-                :title="micRecording ? t.micStop : t.micStart"
-                :aria-label="micRecording ? t.micStop : t.micStart"
-                @click="toggleMic"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-              </button>
               <button
                 class="ai-send"
                 type="button"
@@ -483,20 +546,21 @@ import SessionTabs from './SessionTabs.vue'
 import type { AiAssistantOptions } from '../index'
 import { uploadFile, streamChat, fetchUrlPreview, fetchModels, postServerExport } from '../utils/api'
 import type { ExportFormat } from '../utils/api'
+import { useStreamWithFallback } from '../composables/useStreamWithFallback'
+import { useExportActions } from '../composables/useExportActions'
+import { useFabDrag } from '../composables/useFabDrag'
+import { usePanelGeometry, RESIZE_ZONES } from '../composables/usePanelGeometry'
+import type { PanelResizeEdge } from '../composables/usePanelGeometry'
+import { useMsgContextMenu } from '../composables/useMsgContextMenu'
 import { getMessages } from '../utils/i18n'
 import type { Locale } from '../utils/i18n'
-import { useSessionSearch } from '../composables/useSessionSearch'
+import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch'
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap'
 import { loadPersistedMessages, useChatHistoryPersistence } from '../composables/useChatHistoryPersistence'
 import { useExportUi } from '../composables/useExportUi'
 import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer'
 import { useMultiSession } from '../composables/useMultiSession'
-import { usePluginRegistry, type PluginContext } from '../composables/usePluginRegistry'
-import {
-  collectPageContextText,
-  augmentMessageWithPageContext,
-  collectSmartPageContextText,
-} from '../utils/pageContextDom'
+import { providePluginRegistry, usePluginRegistry, type PluginContext } from '../composables/usePluginRegistry'
 import { usePageSelection } from '../composables/usePageSelection'
 import {
   extractHttpUrls,
@@ -504,7 +568,6 @@ import {
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed'
-import { detectMode } from '../utils/smartModeDetect'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -516,7 +579,9 @@ interface Message {
 
 const sessionTitle = ref('')
 const multiSessions = useMultiSession()
+providePluginRegistry()
 const { getPlugins } = usePluginRegistry()
+const { streamWithFallback } = useStreamWithFallback()
 
 function makePluginContext(): PluginContext {
   return {
@@ -533,6 +598,8 @@ function makePluginContext(): PluginContext {
 function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void> }) {
   plugin.action(makePluginContext())
 }
+
+const uid = 'ai-' + Math.random().toString(36).slice(2, 8)
 
 const options = inject<AiAssistantOptions>('ai-assistant-options', {
   baseUrl: '/ai-assistant',
@@ -552,36 +619,50 @@ function reportAssistantError(source: string, message: string) {
   options.onAssistantError?.({ source, message })
 }
 
-function textWithPageContextForModel(displayUserText: string): string {
-  const max = options.pageContextMaxChars ?? 12_000
-  const minUser = options.pageContextMinUserChars ?? 12
-  const trimmedUser = displayUserText.trim()
-  let ctx = ''
-  if (trimmedUser.length >= minUser) {
-    ctx = collectPageContextText(options.pageContextBlocks, max)
-    if (!ctx && options.smartPageContext !== false) {
-      ctx = collectSmartPageContextText(max)
-    }
-  }
-  return augmentMessageWithPageContext(displayUserText, ctx)
-}
-
 const t = computed(() => getMessages((options.locale || 'en') as Locale))
 
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options)
 
+const wrapperRef = ref<HTMLElement>()
+const isDark = computed(() => {
+  if (options.theme === 'dark') return true
+  if (options.theme === 'auto') return window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  return false
+})
 const isOpen = ref(false)
 /** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
 const fabHidden = ref(false)
 const input = ref('')
 const loading = ref(false)
+let streamAbortController: AbortController | null = null
 const messages = ref<Message[]>(loadPersistedMessages(!!options.persistHistory))
-const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(messages, () => !!options.persistHistory)
+const { saveHistory, saveHistoryImmediate, clearStoredHistory } = useChatHistoryPersistence(messages, () => !!options.persistHistory)
 const { trimMessagesForMemoryCap } = useMessageMemoryCap(messages, options, clearRenderCache)
 /** 超过条数时只挂载最近 N 条 DOM，减少长会话卡顿 */
 const MAX_RENDERED_MESSAGES = 60
 const renderAllMessages = ref(false)
 const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } = useExportUi()
+
+const exportActions = useExportActions({
+  sessions: multiSessions.sessions,
+  messages,
+  wrapperRef,
+  baseUrl: options.baseUrl,
+  accessToken: options.accessToken,
+  isDark,
+  t,
+  exportServerBusy,
+  setExportToast,
+  reportError: reportAssistantError,
+})
+const {
+  batchExportMenuOpen,
+  toggleBatchExportMenu,
+  batchExportAllJson,
+  batchExportAllMarkdown,
+  batchExportAllServer,
+  exportAssistantMessageServer,
+} = exportActions
 
 const mode = ref<'translate' | 'summarize' | 'chat'>('chat')
 const chatSystemPrompt = ref('')
@@ -632,6 +713,17 @@ function openPersonalize() {
 }
 
 const targetLang = ref('zh')
+
+const msgCtxComposable = useMsgContextMenu({
+  messages, loading, baseUrl: options.baseUrl, accessToken: options.accessToken,
+  targetLang, t, reportError: reportAssistantError,
+})
+const { msgCtxMenu, inlineTranslatePopover, closeMsgCtxMenu, onBubbleContextMenu,
+  copyAssistantSelection, translateAssistantSelection, closeInlineTranslatePopover,
+  deleteAssistantAt, MSG_CTX_MENU_W, MSG_CTX_MENU_H,
+  schedulePositionInlineTranslatePopover, detachInlinePopLayoutListeners,
+} = msgCtxComposable
+
 const bodyRef = ref<HTMLElement>()
 const fileInputRef = ref<HTMLInputElement>()
 const dragActive = ref(false)
@@ -685,9 +777,15 @@ function applyPromptTemplate(tpl: PromptTemplate) {
 
 const {
   chatSearchInput,
+  debouncedSearchQuery,
   displayOffset,
   displayedMessages,
   hiddenOlderCount,
+  totalMatches,
+  currentMatchIdx,
+  activeMatchGlobalIdx,
+  goNextMatch,
+  goPrevMatch,
   resetSearch,
   disposeSearch,
 } = useSessionSearch(messages, loading, renderAllMessages, MAX_RENDERED_MESSAGES)
@@ -695,6 +793,22 @@ const {
 const showEarlierLabel = computed(() =>
   t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
 )
+
+function renderBubble(content: string, globalIdx: number, isStreamingLast: boolean): string {
+  let html = renderContent(content, t.value.copyCode, isStreamingLast)
+  const q = debouncedSearchQuery.value.trim()
+  if (q) {
+    html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value)
+  }
+  return html
+}
+
+const searchCountLabel = computed(() => {
+  const q = debouncedSearchQuery.value.trim()
+  if (!q) return ''
+  if (totalMatches.value === 0) return '0'
+  return `${currentMatchIdx.value + 1}/${totalMatches.value}`
+})
 const a11yStatusText = computed(() => {
   if (!isOpen.value) return ''
   if (exportServerBusy.value) return t.value.exportPreparing
@@ -705,625 +819,45 @@ const a11yStatusText = computed(() => {
 const color = computed(() => options.primaryColor || '#6366f1')
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`)
 
-const isDark = computed(() => {
-  if (options.theme === 'dark') return true
-  if (options.theme === 'auto') return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  return false
-})
 const themeClass = computed(() => isDark.value ? 'ai-dark' : '')
 
-/** v4：贴边改由右键菜单控制，不再自动吸附 */
-const FAB_POS_KEY = 'ai-assistant-fab-pos-v4'
-const FAB_SIZE = 56
-const PANEL_W = 380
-const PANEL_H = 520
-/** 与 ensurePanelInViewport 一致；放大模式宽高须预留两侧，否则会超出视口 */
-const PANEL_VIEWPORT_MARGIN = 16
-
-/** 缩放边：固定「对边/对角」，框随指针方向扩展（标准窗口感知） */
-type PanelResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
-/** 顶边仍用 nw/ne，避免与标题栏拖拽冲突 */
-const RESIZE_ZONES: { edge: PanelResizeEdge; cls: string }[] = [
-  { edge: 'n', cls: 'ai-rz-n' },
-  { edge: 's', cls: 'ai-rz-s' },
-  { edge: 'e', cls: 'ai-rz-e' },
-  { edge: 'w', cls: 'ai-rz-w' },
-  { edge: 'ne', cls: 'ai-rz-ne' },
-  { edge: 'nw', cls: 'ai-rz-nw' },
-  { edge: 'se', cls: 'ai-rz-se' },
-  { edge: 'sw', cls: 'ai-rz-sw' },
-]
-const resizeZoneDefs = RESIZE_ZONES
-
-/** wrapper（面板）左上角 + 尺寸，屏幕 CSS 像素 */
-function getPanelScreenRect(): { wl: number; wt: number; w: number; h: number } | null {
-  if (fabLeft.value === null || fabTop.value === null) return null
-  const w = effectivePanelWidthPx()
-  const h = effectivePanelHeightPx()
-  const { dx, dy } = wrapperOffsetFromFab(openPanelQuadrant.value)
-  return {
-    wl: fabLeft.value + dx,
-    wt: fabTop.value + dy,
-    w,
-    h,
-  }
-}
-
-function syncFabToPanelRect(wl: number, wt: number, w: number, h: number) {
-  const q = openPanelQuadrant.value
-  if (q === 'br') {
-    fabLeft.value = wl + w - FAB_SIZE
-    fabTop.value = wt + h - FAB_SIZE
-  } else if (q === 'tl') {
-    fabLeft.value = wl
-    fabTop.value = wt
-  } else if (q === 'tr') {
-    fabLeft.value = wl + w - FAB_SIZE
-    fabTop.value = wt
-  } else {
-    fabLeft.value = wl
-    fabTop.value = wt + h - FAB_SIZE
-  }
-}
-
-function computeRectFromResizePointer(
-  edge: PanelResizeEdge,
-  r0: { wl: number; wt: number; w: number; h: number },
-  ex: number,
-  ey: number,
-): { wl: number; wt: number; w: number; h: number } {
-  const { wl: wl0, wt: wt0, w: w0, h: h0 } = r0
-  let wl = wl0
-  let wt = wt0
-  let w = w0
-  let h = h0
-  switch (edge) {
-    case 'se':
-      w = ex - wl0
-      h = ey - wt0
-      break
-    case 'sw':
-      w = wl0 + w0 - ex
-      h = ey - wt0
-      wl = ex
-      break
-    case 'ne':
-      w = ex - wl0
-      h = wt0 + h0 - ey
-      wt = ey
-      break
-    case 'nw':
-      w = wl0 + w0 - ex
-      h = wt0 + h0 - ey
-      wl = ex
-      wt = ey
-      break
-    case 'e':
-      w = ex - wl0
-      break
-    case 'w':
-      w = wl0 + w0 - ex
-      wl = ex
-      break
-    case 's':
-      h = ey - wt0
-      break
-    case 'n':
-      h = wt0 + h0 - ey
-      wt = ey
-      break
-  }
-  const cl = clampPanelSize(w, h)
-  w = cl.w
-  h = cl.h
-  switch (edge) {
-    case 'se':
-      wl = wl0
-      wt = wt0
-      break
-    case 'sw':
-      wl = wl0 + w0 - w
-      wt = wt0
-      break
-    case 'ne':
-      wl = wl0
-      wt = wt0 + h0 - h
-      break
-    case 'nw':
-      wl = wl0 + w0 - w
-      wt = wt0 + h0 - h
-      break
-    case 'e':
-      wl = wl0
-      wt = wt0
-      break
-    case 'w':
-      wl = wl0 + w0 - w
-      wt = wt0
-      break
-    case 's':
-      wl = wl0
-      wt = wt0
-      break
-    case 'n':
-      wl = wl0
-      wt = wt0 + h0 - h
-      break
-  }
-  return { wl, wt, w, h }
-}
-
-/**
- * 布局用视口尺寸：优先 Visual Viewport（移动端地址栏、缩放时比 inner 更贴近可见区）。
- * 缺失或异常时回退 innerWidth/innerHeight。
- */
-function getViewportCssSize(): { w: number; h: number } {
-  if (typeof window === 'undefined') return { w: 1024, h: 768 }
-  const vv = window.visualViewport
-  if (vv && vv.width >= 16 && vv.height >= 16) {
-    return { w: Math.floor(vv.width), h: Math.floor(vv.height) }
-  }
-  return { w: window.innerWidth, h: window.innerHeight }
-}
-
-/** 标题栏切换：近似全屏；缩回为默认小窗（与拖动自定义尺寸互斥由 panelUserSize 处理） */
-const panelExpanded = ref(false)
-/** 用户拖动右下角后的自定义宽高，优先于预设 */
-const panelUserSize = ref<{ w: number; h: number } | null>(null)
-let panelResizeDrag: {
-  pointerId: number
-  edge: PanelResizeEdge
-  /** pointerdown 时面板屏幕矩形，缩放全程固定「对角」参照用 */
-  r0: { wl: number; wt: number; w: number; h: number }
-} | null = null
-/** 缩放时合并 pointermove 到每帧一次提交，减轻 Vue 重绘卡顿 */
-let panelResizePendingRect: { w: number; h: number; wl: number; wt: number } | null = null
-let panelResizeFlushRaf = 0
-/** 标题栏拖面板：合并位移到每帧一次，与缩放手柄一致 */
-let panelHeaderDragPendingDx = 0
-let panelHeaderDragPendingDy = 0
-let panelHeaderDragFlushRaf = 0
-/** 点在标题文字上时延迟起拖，避免挡掉文本选中 */
-let panelHeaderTentative: {
-  pointerId: number
-  startX: number
-  startY: number
-  headerEl: HTMLElement
-} | null = null
 const EDGE_PEEK = 14
 const DRAG_CLICK_PX = 8
-/** 超过该位移才视为拖动并退出贴边（避免点击时的微抖动清掉贴边） */
 const DOCK_BREAK_PX = 10
-
-/** 窗口 resize 合并到每帧最多一次，减轻 clamp/saveFabPos 压力 */
 let winResizeRaf = 0
 
-const wrapperRef = ref<HTMLElement>()
 const fabRef = ref<HTMLButtonElement>()
 const { selection: pageSel, dismissSelection: dismissPageSel } = usePageSelection(wrapperRef)
-/** pixel position; null = use CSS position option */
-const fabLeft = ref<number | null>(null)
-const fabTop = ref<number | null>(null)
-/** 'left' | 'right' = stick to browser side, mostly hidden */
-const edgeDock = ref<'none' | 'left' | 'right'>('none')
-const fabDragging = ref(false)
+const persistFabRef = computed(() => options.persistFabPosition !== false)
+const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right')
+const { fabLeft, fabTop, edgeDock, fabDragging, edgeDockClass: fabEdgeDockClass,
+  clampFabPos, defaultFabCoords, loadFabPos, saveFabPos, FAB_SIZE } = fab
+const panelGeo = usePanelGeometry({
+  fabLeft, fabTop, fabSize: FAB_SIZE, isOpen, saveFabPos, clampFabPos,
+  defaultPosition: options.position || 'bottom-right',
+})
+const {
+  panelExpanded, panelMountedForLayout, panelDragging, panelOpenFabAlignClass,
+  panelTransformOrigin, resizeZoneDefs,
+  effectivePanelWidthPx, effectivePanelHeightPx, togglePanelExpand,
+  wrapperOffsetFromFab, ensurePanelInViewport, syncFabPixelFromWrapperDom,
+  onPanelResizePointerDown, onPanelHeaderPointerDown,
+  onPanelOpen, onPanelClose, onWinResizePanel, cleanupGeometry, clampPanelSize,
+  panelUserSize, openPanelQuadrant, resolveFabScreenQuadrant,
+} = panelGeo
 const fabDrag = ref<{
-  pointerId: number
-  startX: number
-  startY: number
-  originLeft: number
-  originTop: number
+  pointerId: number; startX: number; startY: number; originLeft: number; originTop: number
 } | null>(null)
 
 /** 打开前面板的贴边状态；关闭时只恢复贴边，球位保留拖动结果 */
 const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null)
 /** 打开面板瞬间的球位；关面板且本会话未拖过标题栏时还原到此（避免仅放大/夹紧视口导致球跑偏） */
 const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null)
-let panelResizedThisSession = false
-/** 本会话内拖过标题栏移动面板，关面板时保留当前球位 */
-let panelHeaderDraggedWhileOpen = false
-
-const panelDragging = ref(false)
-const panelDrag = ref<{
-  pointerId: number
-  lastX: number
-  lastY: number
-} | null>(null)
-
 const fabCtxMenu = ref({ show: false, x: 0, y: 0 })
-/** 助手气泡右键 */
-const msgCtxMenu = ref({
-  show: false,
-  x: 0,
-  y: 0,
-  index: -1,
-  selectionText: '',
-  /** 翻译气泡锚点（视口 px）；有选区时 prefer 选区右侧 */
-  pointerX: 0,
-  pointerY: 0,
-  /** 选中区域上沿，用于弹层向上翻出 */
-  anchorTop: 0,
-  /** 选区包围盒（视口 px），全 0 表示无几何信息 */
-  selLeft: 0,
-  selRight: 0,
-  selTop: 0,
-  selBottom: 0,
-})
-const MSG_CTX_MENU_W = 228
-const MSG_CTX_MENU_H = 280
-
-/** 右键「翻译选中」：靠近点击处的浮层（可选中文本） */
-const inlineTranslatePopover = ref({
-  show: false,
-  x: 0,
-  y: 0,
-  text: '',
-  loading: false,
-  error: '',
-  pointerX: 0,
-  pointerY: 0,
-  anchorTop: 0,
-  selLeft: 0,
-  selRight: 0,
-  selTop: 0,
-  selBottom: 0,
-})
-let inlineTranslateAbort = false
 const inlineTransPopRef = ref<InstanceType<typeof InlineTranslatePopover> | null>(null)
-let inlinePopResizeHandler: (() => void) | null = null
-let positionInlinePopRaf = 0
-
-function detachInlinePopLayoutListeners() {
-  if (inlinePopResizeHandler) {
-    window.removeEventListener('resize', inlinePopResizeHandler)
-    inlinePopResizeHandler = null
-  }
-}
-
-function attachInlinePopLayoutListeners() {
-  detachInlinePopLayoutListeners()
-  inlinePopResizeHandler = () => schedulePositionInlineTranslatePopover()
-  window.addEventListener('resize', inlinePopResizeHandler, { passive: true })
-}
-
-function schedulePositionInlineTranslatePopover() {
-  if (!inlineTranslatePopover.value.show) return
-  if (positionInlinePopRaf) return
-  positionInlinePopRaf = requestAnimationFrame(() => {
-    positionInlinePopRaf = 0
-    positionInlineTranslatePopoverNearPointer()
-  })
-}
-
-function positionInlineTranslatePopoverNearPointer() {
-  const pop = inlineTranslatePopover.value
-  if (!pop.show) return
-  const pad = 8
-  const gap = 10
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const pw = Math.min(360, vw - 2 * pad)
-  const popEl = inlineTransPopRef.value?.popRef
-  const ph = Math.max(popEl?.offsetHeight ?? 120, 72)
-  const sl = pop.selLeft
-  const sr = pop.selRight
-  const st = pop.selTop
-  const sb = pop.selBottom
-  const hasSel = sr > sl + 2 && sb >= st
-
-  let left: number
-  let top: number
-
-  if (hasSel) {
-    const placeRight = sr + gap
-    const placeLeft = sl - pw - gap
-    if (placeRight + pw <= vw - pad) {
-      left = placeRight
-    } else if (placeLeft >= pad) {
-      left = placeLeft
-    } else {
-      left = Math.max(pad, Math.min(sl, vw - pw - pad))
-    }
-    top = st + (sb - st) / 2 - ph / 2
-    top = Math.max(pad, Math.min(top, vh - ph - pad))
-  } else {
-    const cx = pop.pointerX
-    const cy = pop.pointerY
-    const selTop = pop.anchorTop
-    left = cx
-    top = cy
-    if (left + pw > vw - pad) {
-      left = Math.max(pad, vw - pw - pad)
-    }
-    if (left < pad) left = pad
-    if (top + ph > vh - pad) {
-      top = Math.max(pad, selTop - ph - 4)
-    }
-    if (top < pad) top = pad
-  }
-
-  pop.x = left
-  pop.y = top
-}
 
 /** 面板进出场时短暂保留悬浮球，使缩放原点与球心一致 */
 const showFabDuringPanelAnim = ref(true)
-/** 面板在 DOM 中（含 leave 过渡）：wrapper 使用面板尺寸，避免布局从角上错位 */
-const panelMountedForLayout = ref(false)
-
-/** 打开面板时由悬浮球所在视口象限决定：锚角对齐球，动画朝对向展开 */
-type FabScreenQuadrant = 'tl' | 'tr' | 'bl' | 'br'
-const openPanelQuadrant = ref<FabScreenQuadrant>('br')
-
-function clampPanelSize(w: number, h: number): { w: number; h: number } {
-  const { w: vw, h: vh } = getViewportCssSize()
-  const minW = 300
-  const minH = 280
-  const maxW = Math.max(minW, vw - 12)
-  const maxH = Math.max(minH, vh - 16)
-  return {
-    w: Math.round(Math.max(minW, Math.min(maxW, w))),
-    h: Math.round(Math.max(minH, Math.min(maxH, h))),
-  }
-}
-
-function effectivePanelWidthPx(): number {
-  if (panelUserSize.value) {
-    return panelUserSize.value.w
-  }
-  const { w: vw } = getViewportCssSize()
-  if (!panelExpanded.value) {
-    return PANEL_W
-  }
-  return Math.max(PANEL_W, vw - 2 * PANEL_VIEWPORT_MARGIN)
-}
-
-function effectivePanelHeightPx(): number {
-  if (panelUserSize.value) {
-    return panelUserSize.value.h
-  }
-  const { h: vh } = getViewportCssSize()
-  if (!panelExpanded.value) {
-    return Math.min(PANEL_H, Math.max(200, vh - 80))
-  }
-  return Math.max(280, vh - 2 * PANEL_VIEWPORT_MARGIN)
-}
-
-function togglePanelExpand() {
-  panelUserSize.value = null
-  panelExpanded.value = !panelExpanded.value
-}
-
-function onPanelResizePointerDown(e: PointerEvent, edge: PanelResizeEdge) {
-  if (e.button !== 0) return
-  const r0 = getPanelScreenRect()
-  if (!r0) return
-  panelResizeDrag = {
-    pointerId: e.pointerId,
-    edge,
-    r0,
-  }
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  window.addEventListener('pointermove', onPanelResizePointerMove)
-  window.addEventListener('pointerup', onPanelResizePointerUp, true)
-  window.addEventListener('pointercancel', onPanelResizePointerUp, true)
-}
-
-function flushPanelResizeFrame() {
-  panelResizeFlushRaf = 0
-  const p = panelResizePendingRect
-  if (!p || !panelResizeDrag) return
-  panelUserSize.value = { w: p.w, h: p.h }
-  syncFabToPanelRect(p.wl, p.wt, p.w, p.h)
-  ensurePanelInViewport()
-}
-
-function onPanelResizePointerMove(e: PointerEvent) {
-  if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return
-  const d = panelResizeDrag
-  const r = computeRectFromResizePointer(d.edge, d.r0, e.clientX, e.clientY)
-  panelResizePendingRect = { w: r.w, h: r.h, wl: r.wl, wt: r.wt }
-  if (!panelResizeFlushRaf) {
-    panelResizeFlushRaf = requestAnimationFrame(flushPanelResizeFrame)
-  }
-}
-
-function onPanelResizePointerUp(e: PointerEvent) {
-  window.removeEventListener('pointermove', onPanelResizePointerMove)
-  window.removeEventListener('pointerup', onPanelResizePointerUp, true)
-  window.removeEventListener('pointercancel', onPanelResizePointerUp, true)
-  if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return
-  const d = panelResizeDrag
-  panelResizeDrag = null
-  if (panelResizeFlushRaf) {
-    cancelAnimationFrame(panelResizeFlushRaf)
-    panelResizeFlushRaf = 0
-  }
-  panelResizePendingRect = null
-  const r = computeRectFromResizePointer(d.edge, d.r0, e.clientX, e.clientY)
-  panelUserSize.value = { w: r.w, h: r.h }
-  syncFabToPanelRect(r.wl, r.wt, r.w, r.h)
-  if (isOpen.value) {
-    panelResizedThisSession = true
-    ensurePanelInViewport()
-    saveFabPos()
-  }
-}
-
-function resolveFabScreenQuadrant(): FabScreenQuadrant {
-  if (fabLeft.value === null || fabTop.value === null) {
-    const p = options.position || 'bottom-right'
-    if (p === 'top-left') return 'tl'
-    if (p === 'top-right') return 'tr'
-    if (p === 'bottom-left') return 'bl'
-    return 'br'
-  }
-  const cx = fabLeft.value + FAB_SIZE / 2
-  const cy = fabTop.value + FAB_SIZE / 2
-  const midX = window.innerWidth / 2
-  const midY = window.innerHeight / 2
-  const right = cx >= midX
-  const bottom = cy >= midY
-  if (!right && !bottom) return 'tl'
-  if (right && !bottom) return 'tr'
-  if (!right && bottom) return 'bl'
-  return 'br'
-}
-
-/** 面板展开时 wrapper 左上角相对「球左上角」屏幕坐标的偏移（球始终贴在面板一角对齐象限） */
-function wrapperOffsetFromFab(quadrant: FabScreenQuadrant): { dx: number; dy: number } {
-  const h = effectivePanelHeightPx()
-  const w = effectivePanelWidthPx()
-  switch (quadrant) {
-    case 'tl':
-      return { dx: 0, dy: 0 }
-    case 'tr':
-      return { dx: -(w - FAB_SIZE), dy: 0 }
-    case 'bl':
-      return { dx: 0, dy: -(h - FAB_SIZE) }
-    case 'br':
-    default:
-      return { dx: -(w - FAB_SIZE), dy: -(h - FAB_SIZE) }
-  }
-}
-
-/** 预设角（无像素坐标）打开后，用 wrapper 实际像素对齐球的锚角 */
-function syncFabPixelFromWrapperDom() {
-  const el = wrapperRef.value
-  if (!el) return
-  const r = el.getBoundingClientRect()
-  const q = openPanelQuadrant.value
-  switch (q) {
-    case 'tl':
-      fabLeft.value = r.left
-      fabTop.value = r.top
-      break
-    case 'tr':
-      fabLeft.value = r.right - FAB_SIZE
-      fabTop.value = r.top
-      break
-    case 'bl':
-      fabLeft.value = r.left
-      fabTop.value = r.bottom - FAB_SIZE
-      break
-    case 'br':
-    default:
-      fabLeft.value = r.right - FAB_SIZE
-      fabTop.value = r.bottom - FAB_SIZE
-      break
-  }
-}
-
-function cleanupPanelHeaderTentative() {
-  if (!panelHeaderTentative) return
-  window.removeEventListener('pointermove', onPanelHeaderTentativeMove)
-  window.removeEventListener('pointerup', onPanelHeaderTentativeUp, true)
-  window.removeEventListener('pointercancel', onPanelHeaderTentativeUp, true)
-  panelHeaderTentative = null
-}
-
-function onPanelHeaderTentativeMove(e: PointerEvent) {
-  if (!panelHeaderTentative || e.pointerId !== panelHeaderTentative.pointerId) return
-  const t = panelHeaderTentative
-  const dist = Math.hypot(e.clientX - t.startX, e.clientY - t.startY)
-  if (dist < DRAG_CLICK_PX) return
-  const sel = window.getSelection()
-  if (sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed) {
-    cleanupPanelHeaderTentative()
-    return
-  }
-  const headerEl = t.headerEl
-  cleanupPanelHeaderTentative()
-  startPanelHeaderDragSession(e, headerEl)
-}
-
-function onPanelHeaderTentativeUp(e: PointerEvent) {
-  if (!panelHeaderTentative || e.pointerId !== panelHeaderTentative.pointerId) return
-  cleanupPanelHeaderTentative()
-}
-
-function startPanelHeaderDragSession(e: PointerEvent, headerEl: HTMLElement) {
-  e.preventDefault()
-  if (fabLeft.value === null || fabTop.value === null) {
-    syncFabPixelFromWrapperDom()
-  }
-  if (fabLeft.value === null || fabTop.value === null) return
-  panelDrag.value = {
-    pointerId: e.pointerId,
-    lastX: e.clientX,
-    lastY: e.clientY,
-  }
-  panelDragging.value = true
-  headerEl.setPointerCapture(e.pointerId)
-  window.addEventListener('pointermove', onPanelHeaderPointerMove)
-  window.addEventListener('pointerup', onPanelHeaderPointerUp, true)
-  window.addEventListener('pointercancel', onPanelHeaderPointerUp, true)
-}
-
-function onPanelHeaderPointerDown(e: PointerEvent) {
-  if (!isOpen.value || e.button !== 0) return
-  const target = e.target
-  if (target instanceof Element && target.closest('.ai-header-actions')) return
-  const headerEl = e.currentTarget as HTMLElement
-  const fromTitle = target instanceof Element && target.closest('.ai-title')
-  if (fromTitle) {
-    panelHeaderTentative = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      headerEl,
-    }
-    window.addEventListener('pointermove', onPanelHeaderTentativeMove)
-    window.addEventListener('pointerup', onPanelHeaderTentativeUp, true)
-    window.addEventListener('pointercancel', onPanelHeaderTentativeUp, true)
-    return
-  }
-  startPanelHeaderDragSession(e, headerEl)
-}
-
-function flushPanelHeaderDragFrame() {
-  panelHeaderDragFlushRaf = 0
-  const dx = panelHeaderDragPendingDx
-  const dy = panelHeaderDragPendingDy
-  if (dx === 0 && dy === 0) return
-  panelHeaderDragPendingDx = 0
-  panelHeaderDragPendingDy = 0
-  if (fabLeft.value === null || fabTop.value === null) return
-  fabLeft.value += dx
-  fabTop.value += dy
-  if (isOpen.value) panelHeaderDraggedWhileOpen = true
-  ensurePanelInViewport()
-}
-
-function onPanelHeaderPointerMove(e: PointerEvent) {
-  if (!panelDrag.value || e.pointerId !== panelDrag.value.pointerId) return
-  if (fabLeft.value === null || fabTop.value === null) return
-  const d = panelDrag.value
-  const dx = e.clientX - d.lastX
-  const dy = e.clientY - d.lastY
-  d.lastX = e.clientX
-  d.lastY = e.clientY
-  panelHeaderDragPendingDx += dx
-  panelHeaderDragPendingDy += dy
-  if (!panelHeaderDragFlushRaf) {
-    panelHeaderDragFlushRaf = requestAnimationFrame(flushPanelHeaderDragFrame)
-  }
-}
-
-function onPanelHeaderPointerUp(e: PointerEvent) {
-  window.removeEventListener('pointermove', onPanelHeaderPointerMove)
-  window.removeEventListener('pointerup', onPanelHeaderPointerUp, true)
-  window.removeEventListener('pointercancel', onPanelHeaderPointerUp, true)
-  if (!panelDrag.value || e.pointerId !== panelDrag.value.pointerId) return
-  panelDrag.value = null
-  panelDragging.value = false
-  if (panelHeaderDragFlushRaf) {
-    cancelAnimationFrame(panelHeaderDragFlushRaf)
-    panelHeaderDragFlushRaf = 0
-  }
-  flushPanelHeaderDragFrame()
-  saveFabPos()
-}
 
 function onPanelBeforeEnter() {
   showFabDuringPanelAnim.value = true
@@ -1338,23 +872,11 @@ function onPanelAfterLeave() {
   panelMountedForLayout.value = false
 }
 
-const persistFab = computed(() => options.persistFabPosition !== false)
-
 const effectivePositionClass = computed(() =>
   fabLeft.value !== null ? '' : positionClass.value,
 )
 
-const edgeDockClass = computed(() => {
-  if (isOpen.value || fabDragging.value) return ''
-  if (edgeDock.value === 'left') return 'edge-dock-left'
-  if (edgeDock.value === 'right') return 'edge-dock-right'
-  return ''
-})
-
-const panelOpenFabAlignClass = computed(() => {
-  if (!panelMountedForLayout.value || fabLeft.value === null) return ''
-  return `fab-anchor-${openPanelQuadrant.value}`
-})
+const edgeDockClass = fabEdgeDockClass
 
 const wrapperStyle = computed(() => {
   const st: Record<string, string> = { '--primary': color.value }
@@ -1378,63 +900,6 @@ const wrapperStyle = computed(() => {
   return st
 })
 
-function clampFabPos(left: number, top: number) {
-  const m = 8
-  const maxL = window.innerWidth - FAB_SIZE - m
-  const maxT = window.innerHeight - FAB_SIZE - m
-  return {
-    left: Math.max(m, Math.min(left, maxL)),
-    top: Math.max(m, Math.min(top, maxT)),
-  }
-}
-
-function defaultFabCoords(): { left: number; top: number } {
-  const m = 24
-  const pos = options.position || 'bottom-right'
-  const w = window.innerWidth
-  const h = window.innerHeight
-  switch (pos) {
-    case 'bottom-left':
-      return { left: m, top: h - FAB_SIZE - m }
-    case 'top-right':
-      return { left: w - FAB_SIZE - m, top: m }
-    case 'top-left':
-      return { left: m, top: m }
-    case 'bottom-right':
-    default:
-      return { left: w - FAB_SIZE - m, top: h - FAB_SIZE - m }
-  }
-}
-
-function loadFabPos() {
-  if (!persistFab.value) return
-  try {
-    const raw = localStorage.getItem(FAB_POS_KEY)
-    if (!raw) return
-    const o = JSON.parse(raw) as { left: number; top: number; edgeDock?: string }
-    if (typeof o.left === 'number' && typeof o.top === 'number') {
-      const c = clampFabPos(o.left, o.top)
-      fabLeft.value = c.left
-      fabTop.value = c.top
-      if (o.edgeDock === 'left' || o.edgeDock === 'right') edgeDock.value = o.edgeDock
-    }
-  } catch {}
-}
-
-function saveFabPos(edgeDockOverride?: 'none' | 'left' | 'right') {
-  if (!persistFab.value || fabLeft.value === null || fabTop.value === null) return
-  const dock = edgeDockOverride !== undefined ? edgeDockOverride : edgeDock.value
-  try {
-    localStorage.setItem(
-      FAB_POS_KEY,
-      JSON.stringify({
-        left: fabLeft.value,
-        top: fabTop.value,
-        edgeDock: dock,
-      }),
-    )
-  } catch {}
-}
 
 /** 打开面板时，避免贴边位置导致 380×520 面板溢出视口（按象限对齐球的锚角后整体夹紧） */
 function ensurePanelInViewport() {
@@ -1501,26 +966,7 @@ function hideFabUntilPageReload() {
 }
 
 function dockFab(edge: 'none' | 'left' | 'right') {
-  if (fabLeft.value === null || fabTop.value === null) {
-    const d = defaultFabCoords()
-    fabLeft.value = d.left
-    fabTop.value = d.top
-  }
-  edgeDock.value = edge
-  if (edge === 'left') {
-    fabLeft.value = 0
-  } else if (edge === 'right') {
-    fabLeft.value = window.innerWidth - FAB_SIZE
-  } else {
-    if (fabLeft.value <= 8) fabLeft.value = 24
-    else if (fabLeft.value >= window.innerWidth - FAB_SIZE - 8) {
-      fabLeft.value = window.innerWidth - FAB_SIZE - 24
-    }
-  }
-  const c = clampFabPos(fabLeft.value, fabTop.value)
-  fabLeft.value = c.left
-  fabTop.value = c.top
-  saveFabPos()
+  fab.dockFab(edge)
   closeFabCtxMenu()
 }
 
@@ -1638,17 +1084,6 @@ const fabLayoutStyle = computed(() => {
   }
   return { ...base, ...(map[p] || map['bottom-right']) }
 })
-/** 缩放原点：与当前打开象限下球的锚角对齐，使面板朝视口对向胀开 */
-const panelTransformOrigin = computed(() => {
-  const origins: Record<FabScreenQuadrant, string> = {
-    tl: `${FAB_R}px ${FAB_R}px`,
-    tr: `calc(100% - ${FAB_R}px) ${FAB_R}px`,
-    bl: `${FAB_R}px calc(100% - ${FAB_R}px)`,
-    br: `calc(100% - ${FAB_R}px) calc(100% - ${FAB_R}px)`,
-  }
-  return origins[openPanelQuadrant.value]
-})
-
 const panelStyle = computed(
   () =>
     ({
@@ -1724,387 +1159,69 @@ function clearMessages() {
   multiSessions.updateActiveMessages([])
 }
 
-function closeMsgCtxMenu() {
-  msgCtxMenu.value.show = false
-  msgCtxMenu.value.index = -1
-  msgCtxMenu.value.selectionText = ''
-  msgCtxMenu.value.pointerX = 0
-  msgCtxMenu.value.pointerY = 0
-  msgCtxMenu.value.anchorTop = 0
-  msgCtxMenu.value.selLeft = 0
-  msgCtxMenu.value.selRight = 0
-  msgCtxMenu.value.selTop = 0
-  msgCtxMenu.value.selBottom = 0
-}
 
-function getSelectionInsideElement(el: HTMLElement): string {
-  const sel = window.getSelection()
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return ''
-  const range = sel.getRangeAt(0)
-  if (!el.contains(range.commonAncestorContainer)) return ''
-  return sel.toString().trim()
-}
-
-/** 右键翻译选中：中文为主译英文，英文为主译中文；混杂按字数多的一侧决定输出语。 */
-function inferInlineTranslateTargetLang(text: string, fallback: string): string {
-  const cjk = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || []).length
-  const latin = (text.match(/[a-zA-Z]/g) || []).length
-  if (cjk > 0 && latin === 0) return 'en'
-  if (latin > 0 && cjk === 0) return 'zh'
-  if (cjk > 0 && latin > 0) return cjk >= latin ? 'en' : 'zh'
-  const f = (fallback || 'zh').toLowerCase()
-  if (f === 'en' || f.startsWith('en')) return 'zh'
-  return 'en'
-}
-
-function onBubbleContextMenu(e: MouseEvent, globalIndex: number, role: Message['role']) {
-  if (role !== 'assistant' || loading.value) return
-  const m = messages.value[globalIndex]
-  if (!m || m.role !== 'assistant' || !m.content?.trim()) return
-  e.preventDefault()
-  e.stopPropagation()
-  const bubble = e.currentTarget as HTMLElement
-  const selectionText = getSelectionInsideElement(bubble)
-  const pad = 8
-  const selGap = 10
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  let x = e.clientX
-  let y = e.clientY
-  if (x + MSG_CTX_MENU_W > vw - pad) x = vw - MSG_CTX_MENU_W - pad
-  if (y + MSG_CTX_MENU_H > vh - pad) y = vh - MSG_CTX_MENU_H - pad
-  if (x < pad) x = pad
-  if (y < pad) y = pad
-  let ptrX = e.clientX
-  let ptrY = e.clientY
-  let anchorTop = e.clientY
-  let selLeft = 0
-  let selRight = 0
-  let selTop = 0
-  let selBottom = 0
-  if (selectionText) {
-    const sel = window.getSelection()
-    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-      const range = sel.getRangeAt(0)
-      if (bubble.contains(range.commonAncestorContainer)) {
-        const rr = range.getBoundingClientRect()
-        if ((rr.width > 0 || rr.height > 0) && rr.bottom >= rr.top) {
-          selLeft = rr.left
-          selRight = rr.right
-          selTop = rr.top
-          selBottom = rr.bottom
-          ptrX = rr.right + selGap
-          ptrY = rr.top
-          anchorTop = rr.top
-        }
-      }
-    }
-  }
-  msgCtxMenu.value = {
-    show: true,
-    x,
-    y,
-    index: globalIndex,
-    selectionText,
-    pointerX: ptrX,
-    pointerY: ptrY,
-    anchorTop,
-    selLeft,
-    selRight,
-    selTop,
-    selBottom,
-  }
-}
-
-async function copyAssistantSelection() {
-  const text = msgCtxMenu.value.selectionText
-  closeMsgCtxMenu()
-  if (!text) return
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    reportAssistantError('copy', 'clipboard unavailable')
-  }
-}
-
-function closeInlineTranslatePopover() {
-  inlineTranslateAbort = true
-  detachInlinePopLayoutListeners()
-  if (positionInlinePopRaf) {
-    cancelAnimationFrame(positionInlinePopRaf)
-    positionInlinePopRaf = 0
-  }
-  inlineTranslatePopover.value = {
-    show: false,
-    x: 0,
-    y: 0,
-    text: '',
-    loading: false,
-    error: '',
-    pointerX: 0,
-    pointerY: 0,
-    anchorTop: 0,
-    selLeft: 0,
-    selRight: 0,
-    selTop: 0,
-    selBottom: 0,
-  }
-}
-
-async function translateAssistantSelection() {
-  const text = msgCtxMenu.value.selectionText
-  if (!text) return
-  if (!options.baseUrl) {
-    closeMsgCtxMenu()
-    reportAssistantError('translate-inline', 'baseUrl required')
-    return
-  }
-  const pointerX = msgCtxMenu.value.pointerX
-  const pointerY = msgCtxMenu.value.pointerY
-  const anchorTop = msgCtxMenu.value.anchorTop
-  const selLeft = msgCtxMenu.value.selLeft
-  const selRight = msgCtxMenu.value.selRight
-  const selTop = msgCtxMenu.value.selTop
-  const selBottom = msgCtxMenu.value.selBottom
-  closeMsgCtxMenu()
-  inlineTranslateAbort = false
-  inlineTranslatePopover.value = {
-    show: true,
-    x: 0,
-    y: 0,
-    text: '',
-    loading: true,
-    error: '',
-    pointerX,
-    pointerY,
-    anchorTop,
-    selLeft,
-    selRight,
-    selTop,
-    selBottom,
-  }
-  await nextTick()
-  schedulePositionInlineTranslatePopover()
-  attachInlinePopLayoutListeners()
-  try {
-    const payload = {
-      action: 'translate' as const,
-      text,
-      targetLang: inferInlineTranslateTargetLang(text, targetLang.value),
-    }
-    let acc = ''
-    let textFlushRaf = 0
-    const stream = streamChat(options.baseUrl, payload, options.accessToken)
-    try {
-      for await (const chunk of stream) {
-        if (inlineTranslateAbort) {
-          inlineTranslatePopover.value.loading = false
-          return
-        }
-        acc += chunk
-        if (!textFlushRaf) {
-          textFlushRaf = requestAnimationFrame(() => {
-            textFlushRaf = 0
-            if (!inlineTranslateAbort) {
-              inlineTranslatePopover.value.text = acc
-              schedulePositionInlineTranslatePopover()
-            }
-          })
-        }
-      }
-    } finally {
-      if (textFlushRaf) {
-        cancelAnimationFrame(textFlushRaf)
-        textFlushRaf = 0
-      }
-    }
-    if (!inlineTranslateAbort) {
-      inlineTranslatePopover.value.text = acc
-      schedulePositionInlineTranslatePopover()
-    }
-    if (inlineTranslateAbort) {
-      inlineTranslatePopover.value.loading = false
-      return
-    }
-  } catch (e: any) {
-    inlineTranslatePopover.value.error = `${t.value.errorPrefix}: ${e?.message ?? e}`
-    reportAssistantError('translate-inline', String(e?.message ?? e))
-  } finally {
-    if (!inlineTranslateAbort) inlineTranslatePopover.value.loading = false
-    if (!inlineTranslateAbort) {
-      await nextTick()
-      schedulePositionInlineTranslatePopover()
-    }
-  }
-}
-
-function deleteAssistantAt(globalIndex: number) {
-  closeMsgCtxMenu()
-  if (globalIndex < 0 || globalIndex >= messages.value.length) return
-  messages.value.splice(globalIndex, 1)
-  clearRenderCache()
-}
-
-/**
- * 导出正文以消息存储的 Markdown 为准（与渲染源一致），避免 innerText 丢标题/代码围栏/链接等。
- * 仅把气泡里多出来的 http(s) 图（如懒加载后才出现的 src）补成 ![](url)。
- */
-function resolveExportImageUrl(raw: string | null | undefined): string | null {
-  if (!raw?.trim()) return null
-  const u = raw.trim()
-  if (u.startsWith('data:') || u.startsWith('blob:')) return u
-  try {
-    return new URL(u, document.baseURI).href
-  } catch {
-    return u
-  }
-}
-
-function markdownReferencesImageUrl(md: string, absUrl: string): boolean {
-  if (!md || !absUrl) return false
-  if (md.includes(absUrl)) return true
-  try {
-    const rel = new URL(absUrl, document.baseURI).pathname + new URL(absUrl, document.baseURI).search
-    if (rel.length > 2 && md.includes(rel)) return true
-  } catch {
-    /* ignore */
-  }
-  return false
-}
-
-function buildExportContentFromAssistantBubble(globalIndex: number, fallback: string): string {
-  const m = messages.value[globalIndex]
-  const source = (m?.contentArchive ?? fallback ?? '').replace(/\r\n/g, '\n')
-  let out = source.trim()
-  const root = wrapperRef.value?.querySelector(`[data-ai-msg-global-idx="${globalIndex}"]`)
-  const bubble = root?.querySelector('.ai-bubble') as HTMLElement | undefined
-  if (!bubble) return out
-  const urls: string[] = []
-  bubble.querySelectorAll('img').forEach((img) => {
-    const raw =
-      (img as HTMLImageElement).currentSrc ||
-      img.getAttribute('src') ||
-      img.getAttribute('data-src') ||
-      img.getAttribute('data-lazy-src')
-    const abs = resolveExportImageUrl(raw)
-    if (abs && !urls.includes(abs)) urls.push(abs)
-  })
-  for (const u of urls) {
-    if (!markdownReferencesImageUrl(out, u)) {
-      out += `${out ? '\n\n' : ''}![](${u})`
-    }
-  }
-  return out.trim()
-}
-
-async function exportAssistantMessageServer(globalIndex: number, fmt: ExportFormat) {
-  if (exportServerBusy.value) return
-  closeMsgCtxMenu()
-  if (!options.baseUrl) return
-  const m = messages.value[globalIndex]
-  if (!m || m.role !== 'assistant') return
-  exportServerBusy.value = true
-  setExportToast(t.value.exportPreparing, 0)
-  try {
-    const title = `${t.value.title}-${globalIndex + 1}`
-    const content = buildExportContentFromAssistantBubble(globalIndex, m.contentArchive ?? m.content)
-    const res = await postServerExport(
-      options.baseUrl,
-      fmt,
-      title,
-      [{ role: 'assistant', content }],
-      options.accessToken,
-      (phase) => {
-        if (phase === 'response') setExportToast(t.value.exportReceiving, 0)
-        if (phase === 'download') setExportToast(t.value.exportStartingDownload, 0)
-      },
-    )
-    if (!res.ok) {
-      setExportToast('', 0)
-      reportAssistantError('export-server', res.error)
-      emit('error', res.error)
-    } else {
-      setExportToast(t.value.exportDownloadStarted, 3200)
-    }
-  } catch (e: unknown) {
-    setExportToast('', 0)
-    const msg = String((e as Error)?.message ?? e)
-    reportAssistantError('export-server', msg)
-    emit('error', msg)
-  } finally {
-    exportServerBusy.value = false
-  }
-}
 
 function showAllOlderMessages() {
   renderAllMessages.value = true
   nextTick(() => scrollToBottom(true))
 }
 
+
 const copiedIndex = ref(-1)
 
-const speechSynthesisSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
-const ttsPlayingIndex = ref(-1)
-
-function toggleSpeak(idx: number, text: string) {
-  if (!speechSynthesisSupported) return
-  if (ttsPlayingIndex.value === idx) {
-    speechSynthesis.cancel()
-    ttsPlayingIndex.value = -1
-    return
+function stopGenerate() {
+  if (streamAbortController) {
+    streamAbortController.abort()
+    streamAbortController = null
   }
-  speechSynthesis.cancel()
-  const plain = text.replace(/[#*`_~\[\]()>!|]/g, '').replace(/\n+/g, '. ').trim()
-  if (!plain) return
-  const utterance = new SpeechSynthesisUtterance(plain)
-  utterance.onend = () => { ttsPlayingIndex.value = -1 }
-  utterance.onerror = () => { ttsPlayingIndex.value = -1 }
-  ttsPlayingIndex.value = idx
-  speechSynthesis.speak(utterance)
 }
 
-const SpeechRecognitionCtor = typeof window !== 'undefined'
-  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  : null
-const speechRecognitionSupported = Boolean(SpeechRecognitionCtor)
-const micRecording = ref(false)
-let recognitionInstance: any = null
+function regenerateAt(globalIdx: number) {
+  if (loading.value) return
+  const assistantMsg = messages.value[globalIdx]
+  if (!assistantMsg || assistantMsg.role !== 'assistant') return
+  let userIdx = globalIdx - 1
+  while (userIdx >= 0 && messages.value[userIdx].role !== 'user') userIdx--
+  if (userIdx < 0) return
+  const userText = messages.value[userIdx].contentArchive ?? messages.value[userIdx].content
+  const cleanText = userText.replace(/^🖼️\s*/, '')
+  messages.value.splice(globalIdx, 1)
+  clearRenderCache()
+  input.value = cleanText
+  nextTick(() => send())
+}
 
-function toggleMic() {
-  if (micRecording.value) {
-    recognitionInstance?.stop()
-    micRecording.value = false
-    return
-  }
-  if (!SpeechRecognitionCtor) return
-  const recognition = new SpeechRecognitionCtor()
-  recognition.continuous = false
-  recognition.interimResults = true
-  recognition.lang = options.locale === 'zh' ? 'zh-CN' : 'en-US'
-  let finalTranscript = ''
-  recognition.onresult = (e: any) => {
-    let interim = ''
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        finalTranscript += e.results[i][0].transcript
-      } else {
-        interim += e.results[i][0].transcript
-      }
-    }
-    input.value = finalTranscript + interim
-  }
-  recognition.onend = () => {
-    micRecording.value = false
-    recognitionInstance = null
-    if (finalTranscript) input.value = finalTranscript
-  }
-  recognition.onerror = () => {
-    micRecording.value = false
-    recognitionInstance = null
-  }
-  recognitionInstance = recognition
-  micRecording.value = true
-  recognition.start()
+const editingMsgIdx = ref<number | null>(null)
+const editingText = ref('')
+const editTextareaRef = ref<HTMLTextAreaElement[]>()
+
+function startEdit(globalIdx: number) {
+  if (loading.value) return
+  const msg = messages.value[globalIdx]
+  if (!msg || msg.role !== 'user') return
+  const raw = (msg.contentArchive ?? msg.content).replace(/^🖼️\s*/, '')
+  editingMsgIdx.value = globalIdx
+  editingText.value = raw
+  nextTick(() => {
+    const ta = editTextareaRef.value?.[0]
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length) }
+  })
+}
+
+function cancelEdit() {
+  editingMsgIdx.value = null
+  editingText.value = ''
+}
+
+function confirmEditAndResend(globalIdx: number) {
+  const newText = editingText.value.trim()
+  if (!newText || loading.value) return
+  messages.value.splice(globalIdx)
+  clearRenderCache()
+  editingMsgIdx.value = null
+  editingText.value = ''
+  input.value = newText
+  nextTick(() => send())
 }
 
 function setFeedback(globalIdx: number, value: 'up' | 'down') {
@@ -2216,11 +1333,10 @@ function clearPendingImage() {
   pendingImageThumb.value = null
 }
 
-async function copyMessage(text: string) {
+async function copyMessage(text: string, globalIdx: number) {
   try {
     await navigator.clipboard.writeText(text)
-    const idx = messages.value.findIndex(m => m.content === text && m.role === 'assistant')
-    copiedIndex.value = idx
+    copiedIndex.value = globalIdx
     setTimeout(() => { copiedIndex.value = -1 }, 1500)
   } catch {}
 }
@@ -2256,53 +1372,22 @@ watch(panelExpanded, () => {
 watch(isOpen, (open) => {
   if (open) {
     void refreshChatModels()
-    panelResizedThisSession = false
-    panelHeaderDraggedWhileOpen = false
     if (fabLeft.value !== null && fabTop.value !== null) {
       fabFreePosBeforePanel.value = { left: fabLeft.value, top: fabTop.value }
     } else {
       fabFreePosBeforePanel.value = null
     }
-    openPanelQuadrant.value = resolveFabScreenQuadrant()
-    panelMountedForLayout.value = true
     panelSnapshot.value = { edge: edgeDock.value }
-    edgeDock.value = 'none'
+    onPanelOpen(wrapperRef.value, edgeDock)
     nextTick(() => {
       if (fabLeft.value === null || fabTop.value === null) {
-        syncFabPixelFromWrapperDom()
+        syncFabPixelFromWrapperDom(wrapperRef.value)
       }
       ensurePanelInViewport()
-      // 会话内 edgeDock 已为 none，持久化仍写打开前的贴边，避免 LS 被 none 覆盖
       saveFabPos(panelSnapshot.value?.edge)
     })
   } else {
-    panelExpanded.value = false
-    panelUserSize.value = null
-    if (panelResizeDrag) {
-      window.removeEventListener('pointermove', onPanelResizePointerMove)
-      window.removeEventListener('pointerup', onPanelResizePointerUp, true)
-      window.removeEventListener('pointercancel', onPanelResizePointerUp, true)
-      panelResizeDrag = null
-    }
-    if (panelResizeFlushRaf) {
-      cancelAnimationFrame(panelResizeFlushRaf)
-      panelResizeFlushRaf = 0
-    }
-    panelResizePendingRect = null
-    if (panelDrag.value) {
-      window.removeEventListener('pointermove', onPanelHeaderPointerMove)
-      window.removeEventListener('pointerup', onPanelHeaderPointerUp, true)
-      window.removeEventListener('pointercancel', onPanelHeaderPointerUp, true)
-      panelDrag.value = null
-      panelDragging.value = false
-    }
-    if (panelHeaderDragFlushRaf) {
-      cancelAnimationFrame(panelHeaderDragFlushRaf)
-      panelHeaderDragFlushRaf = 0
-    }
-    panelHeaderDragPendingDx = 0
-    panelHeaderDragPendingDy = 0
-    cleanupPanelHeaderTentative()
+    onPanelClose()
     if (panelSnapshot.value) {
       const s = panelSnapshot.value
       panelSnapshot.value = null
@@ -2312,7 +1397,7 @@ watch(isOpen, (open) => {
       } else {
         edgeDock.value = 'none'
         if (fabFreePosBeforePanel.value) {
-          if (!panelHeaderDraggedWhileOpen) {
+          if (!panelGeo.panelHeaderDraggedWhileOpen) {
             const p = fabFreePosBeforePanel.value
             const c = clampFabPos(p.left, p.top)
             fabLeft.value = c.left
@@ -2320,8 +1405,6 @@ watch(isOpen, (open) => {
           }
           fabFreePosBeforePanel.value = null
         }
-        panelResizedThisSession = false
-        panelHeaderDraggedWhileOpen = false
         saveFabPos()
       }
     }
@@ -2338,12 +1421,7 @@ function onWinResize() {
     fabTop.value = c.top
     if (edgeDock.value === 'right') fabLeft.value = window.innerWidth - FAB_SIZE
     saveFabPos()
-    if (isOpen.value) {
-      if (panelUserSize.value) {
-        panelUserSize.value = clampPanelSize(panelUserSize.value.w, panelUserSize.value.h)
-      }
-      ensurePanelInViewport()
-    }
+    if (isOpen.value) onWinResizePanel()
   })
 }
 
@@ -2416,13 +1494,6 @@ async function send() {
   loading.value = true
   scrollToBottom(true)
 
-  if (options.smartModeSwitch) {
-    const detected = detectMode(text)
-    if (detected && detected !== mode.value) {
-      mode.value = detected
-    }
-  }
-
   const imageForPayload = pendingImageData.value
   if (pendingImageThumb.value && pendingImageData.value) {
     userEntry.content = `🖼️ ${userEntry.content}`
@@ -2431,7 +1502,7 @@ async function send() {
 
   const payload: any = {
     action: mode.value,
-    text: textWithPageContextForModel(text),
+    text,
     targetLang: targetLang.value,
   }
   if (imageForPayload) payload.imageData = imageForPayload
@@ -2481,10 +1552,11 @@ async function send() {
     }
   }
 
+  streamAbortController = new AbortController()
   try {
     const fullContent = await applyStreamToAssistantMessage(
       msgIndex,
-      streamChat(options.baseUrl!, payload, options.accessToken),
+      streamWithFallback(options.baseUrl!, payload, options.accessToken, streamAbortController.signal),
     )
     streamDone = true
     /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
@@ -2494,11 +1566,12 @@ async function send() {
       appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs)
     }
     if (urlPreviewImgs.length) scrollToBottom(false)
-    emit('response', fullContent)
-    if (!sessionTitle.value && fullContent) {
-      const plain = fullContent.replace(/[#*`_~\[\]()>!|]/g, '').trim()
-      sessionTitle.value = plain.length > 30 ? plain.slice(0, 30) + '…' : plain
+    if (!sessionTitle.value && text.trim()) {
+      const raw = text.replace(/\n+/g, ' ').trim()
+      sessionTitle.value = raw.length > 20 ? raw.slice(0, 20) + '…' : raw
+      multiSessions.updateActiveTitle(sessionTitle.value)
     }
+    emit('response', fullContent)
   } catch (e: any) {
     const currentContent = messages.value[msgIndex]?.content || ''
     if (!currentContent) {
@@ -2508,6 +1581,7 @@ async function send() {
     emit('error', e.message)
     scrollToBottom(false)
   } finally {
+    streamAbortController = null
     loading.value = false
     scrollToBottom(false)
   }
@@ -2680,14 +1754,14 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  streamAbortController?.abort()
+  streamAbortController = null
   detachInlinePopLayoutListeners()
   disposeSearch()
   disposeExportToast()
-  cleanupPanelHeaderTentative()
+  cleanupGeometry()
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf)
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf)
-  if (panelResizeFlushRaf) cancelAnimationFrame(panelResizeFlushRaf)
-  if (panelHeaderDragFlushRaf) cancelAnimationFrame(panelHeaderDragFlushRaf)
   window.removeEventListener('resize', onWinResize)
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange)
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange)
@@ -2696,13 +1770,7 @@ onUnmounted(() => {
   window.removeEventListener('pointermove', onFabPointerMove)
   window.removeEventListener('pointerup', onFabPointerUp)
   window.removeEventListener('pointercancel', onFabPointerUp)
-  window.removeEventListener('pointermove', onPanelHeaderPointerMove)
-  window.removeEventListener('pointerup', onPanelHeaderPointerUp, true)
-  window.removeEventListener('pointercancel', onPanelHeaderPointerUp, true)
-  window.removeEventListener('pointermove', onPanelResizePointerMove)
-  window.removeEventListener('pointerup', onPanelResizePointerUp, true)
-  window.removeEventListener('pointercancel', onPanelResizePointerUp, true)
 })
 </script>
 
-<style scoped src="./AiAssistant.styles.css"></style>
+<style src="./AiAssistant.styles.css"></style>

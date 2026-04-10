@@ -11,11 +11,17 @@
       @click="$emit('switch', s.id)"
     >
       <span class="ai-session-tab-label">{{ s.title || newLabel }}</span>
-      <span
+      <button
         v-if="sessions.length > 1"
+        type="button"
         class="ai-session-tab-close"
+        role="button"
+        :aria-label="'Close ' + (s.title || newLabel)"
+        tabindex="0"
         @click.stop="$emit('delete', s.id)"
-      >&times;</span>
+        @keydown.enter.stop="$emit('delete', s.id)"
+        @keydown.space.prevent.stop="$emit('delete', s.id)"
+      >&times;</button>
     </button>
   </div>
 </template>

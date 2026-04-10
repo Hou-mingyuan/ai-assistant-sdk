@@ -1,4 +1,5 @@
-import { ref, computed, type Ref } from 'vue'
+/** 悬浮球拖拽/贴边/点击展开逻辑：pointer 事件驱动，支持左右贴边和位置持久化。 */
+import { ref, computed, onUnmounted, type Ref } from 'vue'
 
 const FAB_SIZE = 56
 const DRAG_CLICK_PX = 8
@@ -157,7 +158,11 @@ export function useFabDrag(
     window.removeEventListener('pointermove', onFabPointerMove)
     window.removeEventListener('pointerup', onFabPointerUp)
     window.removeEventListener('pointercancel', onFabPointerUp)
+    fabDrag.value = null
+    fabDragging.value = false
   }
+
+  onUnmounted(cleanupFabDrag)
 
   const edgeDockClass = computed(() => {
     if (isOpen.value || fabDragging.value) return ''

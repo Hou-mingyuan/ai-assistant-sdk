@@ -1,5 +1,7 @@
-import { ref, inject } from 'vue'
+/** 宿主组件用的 composable：提供 translate/summarize/chat/stream/upload 快捷方法。 */
+import { ref, inject, onUnmounted } from 'vue'
 import type { AiAssistantOptions } from '../index'
+import type { ChatPayload } from '../utils/api'
 import { postChat, streamChat, uploadFile as uploadFileApi } from '../utils/api'
 
 export interface StreamOptions {
@@ -12,67 +14,51 @@ export function useAiAssistant() {
   const loading = ref(false)
   const result = ref('')
   const error = ref('')
+  let abortCtrl: AbortController | null = null
 
-  async function translate(text: string, targetLang = 'zh') {
+  async function callAction(payload: ChatPayload, fallbackError: string) {
     if (loading.value) return
     loading.value = true
     error.value = ''
     result.value = ''
     try {
-      const res = await postChat(options.baseUrl!, { action: 'translate', text, targetLang }, options.accessToken)
-      if (res.success) result.value = res.result!
-      else error.value = res.error || 'Translation failed'
-    } catch (e: any) {
-      error.value = e.message
+      const res = await postChat(options.baseUrl!, payload, options.accessToken)
+      if (res.success) result.value = res.result ?? ''
+      else error.value = res.error || fallbackError
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e)
     } finally {
       loading.value = false
     }
   }
 
-  async function summarize(text: string) {
-    if (loading.value) return
-    loading.value = true
-    error.value = ''
-    result.value = ''
-    try {
-      const res = await postChat(options.baseUrl!, { action: 'summarize', text }, options.accessToken)
-      if (res.success) result.value = res.result!
-      else error.value = res.error || 'Summarization failed'
-    } catch (e: any) {
-      error.value = e.message
-    } finally {
-      loading.value = false
-    }
-  }
+  const translate = (text: string, targetLang = 'zh') =>
+    callAction({ action: 'translate', text, targetLang }, 'Translation failed')
 
-  async function chat(text: string) {
-    if (loading.value) return
-    loading.value = true
-    error.value = ''
-    result.value = ''
-    try {
-      const res = await postChat(options.baseUrl!, { action: 'chat', text }, options.accessToken)
-      if (res.success) result.value = res.result!
-      else error.value = res.error || 'Chat failed'
-    } catch (e: any) {
-      error.value = e.message
-    } finally {
-      loading.value = false
-    }
-  }
+  const summarize = (text: string) =>
+    callAction({ action: 'summarize', text }, 'Summarization failed')
+
+  const chat = (text: string) =>
+    callAction({ action: 'chat', text }, 'Chat failed')
 
   async function stream(text: string, opts: StreamOptions = {}) {
     const { action = 'chat', targetLang = 'zh' } = opts
     if (loading.value) return
+    abortCtrl?.abort()
+    abortCtrl = new AbortController()
+    const signal = abortCtrl.signal
     loading.value = true
     error.value = ''
     result.value = ''
     try {
-      for await (const chunk of streamChat(options.baseUrl!, { action, text, targetLang }, options.accessToken)) {
+      for await (const chunk of streamChat(options.baseUrl!, { action, text, targetLang }, options.accessToken, signal)) {
+        if (signal.aborted) break
         result.value += chunk
       }
-    } catch (e: any) {
-      error.value = e.message
+    } catch (e: unknown) {
+      if (!signal.aborted) {
+        error.value = e instanceof Error ? e.message : String(e)
+      }
     } finally {
       loading.value = false
     }
@@ -85,14 +71,18 @@ export function useAiAssistant() {
     result.value = ''
     try {
       const res = await uploadFileApi(options.baseUrl!, file, action, targetLang, options.accessToken)
-      if (res.success) result.value = res.result!
+      if (res.success) result.value = res.result ?? ''
       else error.value = res.error || 'File processing failed'
-    } catch (e: any) {
-      error.value = e.message
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e)
     } finally {
       loading.value = false
     }
   }
+
+  onUnmounted(() => {
+    abortCtrl?.abort()
+  })
 
   return { loading, result, error, translate, summarize, chat, stream, upload }
 }

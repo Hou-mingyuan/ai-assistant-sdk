@@ -44,6 +44,10 @@ function buildHeaders(token?: string): Record<string, string> {
   return headers
 }
 
+const DEFAULT_TIMEOUT_MS = 60_000
+const FILE_UPLOAD_TIMEOUT_MS = 300_000
+const EXPORT_TIMEOUT_MS = 180_000
+
 export type ExportFormat = 'xlsx' | 'docx' | 'pdf'
 
 export type ExportProgressPhase = 'response' | 'download'
@@ -66,13 +70,17 @@ export async function postServerExport(
   messages: { role: string; content: string }[],
   token?: string,
   onProgress?: (phase: ExportProgressPhase) => void,
+  theme?: 'light' | 'dark',
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['X-AI-Token'] = token
+  const body: Record<string, unknown> = { format, title, messages }
+  if (theme) body.theme = theme
   const res = await fetch(`${baseUrl}/export`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ format, title, messages }),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(EXPORT_TIMEOUT_MS),
   })
   if (!res.ok) {
     const err = await res.text().catch(() => res.statusText)
@@ -109,7 +117,7 @@ export async function postServerExport(
   a.href = url
   a.download = filename
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
   return { ok: true }
 }
 
@@ -117,7 +125,7 @@ export async function postServerExport(
 export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
   const headers: Record<string, string> = {}
   if (token) headers['X-AI-Token'] = token
-  const res = await fetch(`${baseUrl}/models`, { headers })
+  const res = await fetch(`${baseUrl}/models`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
   }
@@ -129,7 +137,7 @@ export async function fetchUrlPreview(baseUrl: string, url: string, token?: stri
   const q = encodeURIComponent(url)
   const headers: Record<string, string> = {}
   if (token) headers['X-AI-Token'] = token
-  const res = await fetch(`${baseUrl}/url-preview?url=${q}`, { headers })
+  const res = await fetch(`${baseUrl}/url-preview?url=${q}`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
   }
@@ -142,6 +150,7 @@ export async function postChat(baseUrl: string, payload: ChatPayload, token?: st
     method: 'POST',
     headers: buildHeaders(token),
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
@@ -171,6 +180,7 @@ export async function uploadFile(
     method: 'POST',
     headers,
     body: formData,
+    signal: AbortSignal.timeout(FILE_UPLOAD_TIMEOUT_MS),
   })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }

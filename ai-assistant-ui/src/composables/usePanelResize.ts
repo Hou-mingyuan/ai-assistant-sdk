@@ -1,4 +1,5 @@
-import { ref, type Ref } from 'vue'
+/** 面板八向缩放逻辑：pointer 事件驱动，固定对边/对角锚点，rAF 合并提交。 */
+import { ref, onUnmounted, type Ref } from 'vue'
 
 export type PanelResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
@@ -114,6 +115,8 @@ export function usePanelResize(
     resizeDrag = null
     pendingRect = null
   }
+
+  onUnmounted(cleanup)
 
   return {
     panelResizedThisSession,

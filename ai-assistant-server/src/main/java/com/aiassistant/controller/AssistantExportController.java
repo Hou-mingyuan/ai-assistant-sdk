@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +28,7 @@ public class AssistantExportController {
     }
 
     @PostMapping("/export")
-    public ResponseEntity<?> export(@RequestBody ExportRequest body) {
+    public ResponseEntity<?> export(@Valid @RequestBody ExportRequest body) {
         PreparedExport p;
         try {
             p = exportService.prepare(body);

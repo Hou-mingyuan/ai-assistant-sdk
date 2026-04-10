@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
 public class AiAssistantController {
@@ -86,12 +88,38 @@ public class AiAssistantController {
         };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(flux);
+                .body(fluxWithFriendlyErrors(flux));
     }
 
+    private final AtomicLong lastDeepHealthMs = new AtomicLong();
+
     @GetMapping("/health")
-    public ChatResponse health() {
-        return ChatResponse.ok("AI Assistant is running");
+    public java.util.Map<String, Object> health(
+            @RequestParam(value = "deep", required = false, defaultValue = "false") boolean deep) {
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("success", true);
+        result.put("status", "running");
+        result.put("provider", assistantProperties.getProvider());
+        result.put("model", assistantProperties.resolveModel());
+        if (deep) {
+            long now = System.currentTimeMillis();
+            long prev = lastDeepHealthMs.get();
+            if (now - prev < 60_000) {
+                result.put("llmReachable", "rate-limited (1 deep check per minute)");
+            } else if (lastDeepHealthMs.compareAndSet(prev, now)) {
+                boolean llmReachable = false;
+                try {
+                    String test = llmService.chat("ping");
+                    llmReachable = test != null && !test.isBlank();
+                } catch (Exception e) {
+                    log.debug("deep health check failed: {}", e.getMessage());
+                }
+                result.put("llmReachable", llmReachable);
+            } else {
+                result.put("llmReachable", "rate-limited (1 deep check per minute)");
+            }
+        }
+        return result;
     }
 
     /**
@@ -110,5 +138,17 @@ public class AiAssistantController {
     @GetMapping("/url-preview")
     public UrlPreviewResponse urlPreview(@RequestParam(value = "url", required = false) String url) {
         return urlFetchService.previewUrl(url);
+    }
+
+    /**
+     * LLM 流中途失败时若直接抛错，Servlet 往往整条 /stream 变成 HTTP 500，前端只能看到 statusText。
+     * 转为 200 SSE 单段文案，便于展示具体原因（如上游 429/5xx 信息）。
+     */
+    private Flux<String> fluxWithFriendlyErrors(Flux<String> flux) {
+        return flux.onErrorResume(e -> {
+            usageStats.recordError();
+            log.warn("Assistant stream failed", e);
+            return Flux.just("AI service error. Check server logs for details.");
+        });
     }
 }

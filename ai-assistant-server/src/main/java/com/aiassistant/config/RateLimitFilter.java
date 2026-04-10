@@ -12,9 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Per-IP / per-token sliding-window rate limiter.
- * <p><b>Deployment note:</b> client IP is derived from {@code X-Forwarded-For} when present,
- * which can be spoofed if the application is directly exposed without a trusted reverse proxy.
- * In production, deploy behind a proxy (Nginx / ALB / etc.) that overwrites {@code X-Forwarded-For}.</p>
+ * <p>Client identity is resolved as: (1) {@code X-AI-Token} header if present; (2) first IP in
+ * {@code X-Forwarded-For} header if present; (3) {@code request.getRemoteAddr()} fallback.</p>
+ * <p><b>Deployment note:</b> {@code X-Forwarded-For} can be spoofed if the application is directly
+ * exposed without a trusted reverse proxy. In production, deploy behind a proxy (Nginx / ALB / etc.)
+ * that overwrites {@code X-Forwarded-For}.</p>
  */
 public class RateLimitFilter implements Filter {
 
@@ -30,7 +32,7 @@ public class RateLimitFilter implements Filter {
         this.properties = properties;
     }
 
-    private volatile long lastCleanup = System.currentTimeMillis();
+    private final java.util.concurrent.atomic.AtomicLong lastCleanup = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -97,18 +99,18 @@ public class RateLimitFilter implements Filter {
     private String getClientKey(HttpServletRequest request) {
         String token = request.getHeader("X-AI-Token");
         if (token != null && !token.isBlank()) return "token:" + token;
-
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null) return "ip:" + forwarded.split(",")[0].trim();
-
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return "ip:" + xff.split(",")[0].trim();
+        }
         return "ip:" + request.getRemoteAddr();
     }
 
     private void cleanupIfNeeded() {
         long now = System.currentTimeMillis();
-        if (now - lastCleanup > 300_000) {
-            lastCleanup = now;
-            counters.entrySet().removeIf(e -> now - e.getValue().windowStart > 120_000);
+        long prev = lastCleanup.get();
+        if (now - prev > 60_000 && lastCleanup.compareAndSet(prev, now)) {
+            counters.entrySet().removeIf(e -> now - e.getValue().windowStart > 60_000);
         }
     }
 

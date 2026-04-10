@@ -52,7 +52,9 @@ public class FileParserService {
                 case ".xlsx" -> readXlsx(file);
                 case ".xls" -> readXls(file);
                 default -> throw new IllegalArgumentException(
-                        "Unsupported file type: " + ext + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
+                        ext.isEmpty()
+                                ? "Cannot determine file type (no extension). Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml"
+                                : "Unsupported file type: " + ext + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
             };
             log.info("Extracted {} characters from {}", text.length(), filename);
             return text;
@@ -142,11 +144,11 @@ public class FileParserService {
     private String readDocx(MultipartFile file) throws Exception {
         Object doc = null;
         Object extractor = null;
-        try {
+        try (InputStream is = file.getInputStream()) {
             Class<?> xwpfClass = Class.forName("org.apache.poi.xwpf.usermodel.XWPFDocument");
             Class<?> extractorClass = Class.forName("org.apache.poi.xwpf.extractor.XWPFWordExtractor");
 
-            doc = xwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
+            doc = xwpfClass.getDeclaredConstructor(InputStream.class).newInstance(is);
             extractor = extractorClass.getDeclaredConstructor(xwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
@@ -160,11 +162,11 @@ public class FileParserService {
     private String readDoc(MultipartFile file) throws Exception {
         Object doc = null;
         Object extractor = null;
-        try {
+        try (InputStream is = file.getInputStream()) {
             Class<?> hwpfClass = Class.forName("org.apache.poi.hwpf.HWPFDocument");
             Class<?> extractorClass = Class.forName("org.apache.poi.hwpf.extractor.WordExtractor");
 
-            doc = hwpfClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
+            doc = hwpfClass.getDeclaredConstructor(InputStream.class).newInstance(is);
             extractor = extractorClass.getDeclaredConstructor(hwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
@@ -199,7 +201,10 @@ public class FileParserService {
         Class<?> cellInterface = Class.forName("org.apache.poi.ss.usermodel.Cell");
         Class<?> formatterClass = Class.forName("org.apache.poi.ss.usermodel.DataFormatter");
 
-        Object workbook = workbookClass.getDeclaredConstructor(InputStream.class).newInstance(file.getInputStream());
+        Object workbook;
+        try (InputStream wbStream = file.getInputStream()) {
+            workbook = workbookClass.getDeclaredConstructor(InputStream.class).newInstance(wbStream);
+        }
         try {
             Object formatter = formatterClass.getDeclaredConstructor().newInstance();
             StringBuilder sb = new StringBuilder();

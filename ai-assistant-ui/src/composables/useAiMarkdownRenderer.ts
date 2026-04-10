@@ -61,7 +61,7 @@ function wrapPreBlocks(html: string, copyLabel: string, showIde: boolean): strin
 }
 
 const PURIFY = {
-  ADD_TAGS: ['button'],
+  ADD_TAGS: ['button', 'mark'],
   ADD_ATTR: ['data-ide', 'data-copy', 'data-highlighted', 'aria-label', 'class', 'type'],
 }
 
@@ -136,12 +136,14 @@ export function useAiMarkdownRenderer(
       const escapedDelta = escapeHtml(appended).replace(/\n/g, '<br>')
       lastStreamSrc = src
       const caretIdx = lastStreamHtml.lastIndexOf('<span class="ai-stream-caret"')
+      let candidate: string
       if (caretIdx >= 0) {
-        lastStreamHtml = lastStreamHtml.slice(0, caretIdx) + escapedDelta +
+        candidate = lastStreamHtml.slice(0, caretIdx) + escapedDelta +
           '<span class="ai-stream-caret" aria-hidden="true"></span>'
       } else {
-        lastStreamHtml += escapedDelta
+        candidate = lastStreamHtml + escapedDelta
       }
+      lastStreamHtml = String(DOMPurify.sanitize(candidate, PURIFY))
       return lastStreamHtml
     }
 

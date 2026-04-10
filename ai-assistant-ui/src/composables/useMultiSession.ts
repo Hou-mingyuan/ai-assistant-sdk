@@ -1,4 +1,5 @@
-import { ref } from 'vue'
+/** 多会话标签页管理：创建/切换/删除/分叉会话，localStorage 持久化。 */
+import { ref, onUnmounted } from 'vue'
 
 export interface SessionEntry {
   id: string
@@ -18,13 +19,20 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
   const sessions = ref<SessionEntry[]>([])
   const activeSessionId = ref('')
 
+  function isValidSession(o: unknown): o is SessionEntry {
+    return typeof o === 'object' && o !== null
+      && typeof (o as SessionEntry).id === 'string'
+      && Array.isArray((o as SessionEntry).messages)
+  }
+
   function loadSessions() {
+    if (typeof window === 'undefined') return
     try {
       const raw = localStorage.getItem(storageKey)
       if (raw) {
-        const parsed = JSON.parse(raw) as SessionEntry[]
+        const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
-          sessions.value = parsed.slice(0, MAX_SESSIONS)
+          sessions.value = parsed.filter(isValidSession).slice(0, MAX_SESSIONS)
         }
       }
     } catch { /* ignore */ }
@@ -35,7 +43,18 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     }
   }
 
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
   function saveSessions() {
+    if (saveTimer) return
+    saveTimer = setTimeout(() => {
+      saveTimer = null
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(sessions.value))
+      } catch { /* ignore */ }
+    }, 300)
+  }
+  function saveSessionsImmediate() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
     try {
       localStorage.setItem(storageKey, JSON.stringify(sessions.value))
     } catch { /* ignore */ }
@@ -53,7 +72,7 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
       sessions.value = sessions.value.slice(0, MAX_SESSIONS)
     }
     activeSessionId.value = entry.id
-    saveSessions()
+    saveSessionsImmediate()
     return entry
   }
 
@@ -69,7 +88,7 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     } else if (activeSessionId.value === id) {
       activeSessionId.value = sessions.value[0].id
     }
-    saveSessions()
+    saveSessionsImmediate()
   }
 
   function getActiveSession(): SessionEntry | undefined {
@@ -98,9 +117,14 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     const forked = createSession()
     forked.messages = JSON.parse(JSON.stringify(src.messages.slice(0, messageIndex + 1)))
     forked.title = (src.title || 'Untitled') + ' (fork)'
-    saveSessions()
+    saveSessionsImmediate()
     return forked
   }
+
+  onUnmounted(() => {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
+    saveSessionsImmediate()
+  })
 
   loadSessions()
 

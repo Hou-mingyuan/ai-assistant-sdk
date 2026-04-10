@@ -1,5 +1,8 @@
 package com.aiassistant.model;
 
+/**
+ * 统一 API 响应体：{@code success}=true 时结果在 {@code result}，否则错误信息在 {@code error}。
+ */
 public class ChatResponse {
 
     private boolean success;

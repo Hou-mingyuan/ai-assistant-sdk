@@ -8,9 +8,11 @@ import type { ChatPayload } from './api'
 export async function* wsStreamChat(
   wsUrl: string,
   payload: ChatPayload,
+  token?: string,
   signal?: AbortSignal,
 ): AsyncGenerator<string> {
-  const ws = new WebSocket(wsUrl)
+  const finalUrl = token ? (wsUrl + (wsUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token)) : wsUrl
+  const ws = new WebSocket(finalUrl)
 
   const queue: string[] = []
   let done = false
@@ -28,26 +30,28 @@ export async function* wsStreamChat(
       wake()
       return
     }
-    if (data.startsWith('{"error"')) {
+    if (data.charAt(0) === '{') {
       try {
         const parsed = JSON.parse(data)
-        error = new Error(parsed.error || 'WebSocket error')
-      } catch {
-        error = new Error(data)
-      }
-      done = true
-      wake()
-      return
+        if (typeof parsed === 'object' && parsed !== null && 'error' in parsed && Object.keys(parsed).length === 1) {
+          error = new Error(parsed.error || 'WebSocket error')
+          done = true
+          wake()
+          return
+        }
+      } catch { /* not JSON, treat as content */ }
     }
     queue.push(data)
     wake()
   }
 
-  ws.onerror = () => {
+  function onRuntimeError() {
     error = error || new Error('WebSocket connection error')
     done = true
     wake()
   }
+
+  ws.onerror = onRuntimeError
 
   ws.onclose = () => {
     done = true
@@ -64,6 +68,7 @@ export async function* wsStreamChat(
 
   await new Promise<void>((resolve, reject) => {
     ws.onopen = () => {
+      ws.onerror = onRuntimeError
       ws.send(JSON.stringify(payload))
       resolve()
     }

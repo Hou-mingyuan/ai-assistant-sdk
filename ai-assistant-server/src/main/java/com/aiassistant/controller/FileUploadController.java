@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * 文件上传端点：接收 PDF/Word/Excel/CSV 等文件，提取纯文本后调用 LLM 进行摘要或翻译。
+ * 文件大小上限由 {@link FileParserService} 内 10MB 硬限控制。
+ */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
 public class FileUploadController {

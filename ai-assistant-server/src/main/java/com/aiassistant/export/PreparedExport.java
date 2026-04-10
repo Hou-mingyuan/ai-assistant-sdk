@@ -11,6 +11,7 @@ public record PreparedExport(
         String formatKey,
         String mediaType,
         String filename,
-        List<ExportRequest.MessageRow> messages
+        List<ExportRequest.MessageRow> messages,
+        boolean darkTheme
 ) {
 }

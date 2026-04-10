@@ -22,7 +22,7 @@ export function useMessageMemoryCap(
   function messageCharFootprint(m: MemoryCapMessage): number {
     const c = m.content?.length ?? 0
     const a = m.contentArchive?.length ?? 0
-    return Math.max(c, a)
+    return c + a
   }
 
   function countMessagesChars(arr: MemoryCapMessage[]): number {
@@ -42,9 +42,9 @@ export function useMessageMemoryCap(
     }
     const charCap = options.maxTotalCharsInMemory
     if (charCap !== undefined && charCap > 0 && messages.value.length > 0) {
-      if (countMessagesChars(messages.value) > charCap) {
+      let acc = countMessagesChars(messages.value)
+      if (acc > charCap) {
         let drop = 0
-        let acc = countMessagesChars(messages.value)
         while (drop < messages.value.length - 1 && acc > charCap) {
           acc -= messageCharFootprint(messages.value[drop])
           drop++
@@ -58,7 +58,7 @@ export function useMessageMemoryCap(
         const only = messages.value[0]!
         const full = (only.contentArchive ?? only.content) ?? ''
         if (full.length > charCap) {
-          only.contentArchive = full
+          only.contentArchive = undefined
           only.content = full.slice(0, charCap) + '…'
           changed = true
         }

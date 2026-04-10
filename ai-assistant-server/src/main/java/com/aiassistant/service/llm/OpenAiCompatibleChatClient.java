@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class OpenAiCompatibleChatClient implements ChatCompletionClient {
+public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.springframework.beans.factory.DisposableBean {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleChatClient.class);
 
@@ -37,6 +37,7 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
     private final WebClient webClient;
     private final Duration timeout;
     private final int maxRetries;
+    private final ConnectionProvider connectionProvider;
 
     public OpenAiCompatibleChatClient(AiAssistantProperties properties) {
         String base = properties.resolveBaseUrl();
@@ -50,11 +51,11 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(codecBytes))
                 .build();
         int connectMs = Math.min(60_000, Math.max(5_000, properties.getTimeoutSeconds() * 250));
-        ConnectionProvider provider = ConnectionProvider.builder("llm-chat-completions")
+        this.connectionProvider = ConnectionProvider.builder("llm-chat-completions")
                 .maxConnections(64)
                 .pendingAcquireMaxCount(256)
                 .build();
-        HttpClient reactorHttpClient = HttpClient.create(provider)
+        HttpClient reactorHttpClient = HttpClient.create(connectionProvider)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs);
         this.webClient = WebClient.builder()
                 .baseUrl(base)
@@ -62,6 +63,12 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
                 .exchangeStrategies(strategies)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
+    }
+
+    @Override
+    public void destroy() {
+        connectionProvider.dispose();
+        log.debug("LLM ConnectionProvider disposed");
     }
 
     @Override
@@ -75,6 +82,7 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
                         .retrieve()
                         .bodyToMono(String.class)
                         .timeout(timeout)
+                        .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
                         .block();
                 return body != null ? body : "";
             } catch (IllegalStateException e) {
@@ -108,6 +116,7 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient {
                         .retrieve()
                         .bodyToMono(String.class)
                         .timeout(timeout)
+                        .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
                         .block();
                 return parseNonStreamContent(body);
             } catch (IllegalStateException e) {

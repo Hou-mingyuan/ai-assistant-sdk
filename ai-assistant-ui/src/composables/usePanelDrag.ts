@@ -1,4 +1,5 @@
-import { ref, type Ref } from 'vue'
+/** 面板标题栏拖拽移动：延迟起拖避免挡文本选中，rAF 合并位移提交。 */
+import { ref, onUnmounted, type Ref } from 'vue'
 
 const DRAG_CLICK_PX = 8
 
@@ -110,6 +111,8 @@ export function usePanelDrag(
     drag.value = null
     panelDragging.value = false
   }
+
+  onUnmounted(cleanup)
 
   return {
     panelDragging,

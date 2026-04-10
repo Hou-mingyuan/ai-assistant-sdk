@@ -30,23 +30,6 @@ export interface AiAssistantOptions {
    */
   openCodeInIde?: (payload: { code: string; language?: string }) => void
   /**
-   * 每次发往服务端前，从当前文档中抓取与选择器匹配区块的 innerText，拼入用户消息之后。
-   * 适合根布局挂载、多路由共用的场景（如 `#news-panel` 新闻区）。
-   */
-  pageContextBlocks?: { selector: string; label?: string }[]
-  /** 页面上下文最大字符，默认 12000 */
-  pageContextMaxChars?: number
-  /**
-   * 为 true 且未设置 pageContextBlocks 时，自动按 main → [role=main] → article → #app 采集页面正文；
-   * #app 会先克隆并去掉助手 DOM，避免把对话内容拼进上下文。默认 true。
-   */
-  smartPageContext?: boolean
-  /**
-   * 用户消息短于该长度时**不**附加任何页面上下文（含 `pageContextBlocks` 与 smart），避免只说「你好」也把整页说明塞进模型导致长篇跑题。
-   * 设为 `0` 表示每条消息都带正文。默认 12。
-   */
-  pageContextMinUserChars?: number
-  /**
    * 全局键盘快捷键，按下后切换面板开关。默认 'Ctrl+/' (Windows/Linux) 或 'Meta+/' (Mac)。
    * 设为 false 可禁用。
    */
@@ -89,11 +72,6 @@ export interface AiAssistantOptions {
   showModelPicker?: boolean
   /** 记住所选模型的 localStorage key，默认 `ai-assistant-selected-model` */
   selectedModelStorageKey?: string
-  /**
-   * 上下文感知模式切换：发送前根据输入内容自动判断翻译/摘要/对话，
-   * 覆盖当前 mode。默认 false。
-   */
-  smartModeSwitch?: boolean
 }
 
 const defaultOptions: AiAssistantOptions = {
@@ -104,8 +82,6 @@ const defaultOptions: AiAssistantOptions = {
   persistHistory: false,
   locale: 'en',
   accessToken: undefined,
-  smartPageContext: true,
-  pageContextMinUserChars: 12,
   enableSessionExport: false,
   maxMessagesInMemory: 200,
   maxTotalCharsInMemory: 4_000_000,
@@ -141,7 +117,7 @@ export default {
         const child = createApp(AiAssistant)
         child.provide('ai-assistant-options', merged)
         child.mount(shell)
-        app._aiAssistantAutoMount = { app: child, shell }
+        ;(app as any)._aiAssistantAutoMount = { app: child, shell }
       })
     }
     const origUnmount = app.unmount.bind(app)
@@ -159,7 +135,7 @@ export default {
 
 export { AiAssistant }
 export { useAiAssistant } from './composables/useAiAssistant'
-export { useSessionSearch } from './composables/useSessionSearch'
+export { useSessionSearch, highlightSearchInHtml } from './composables/useSessionSearch'
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer'
 export { usePageSelection } from './composables/usePageSelection'
 export type { PageSelectionState } from './composables/usePageSelection'
@@ -167,22 +143,13 @@ export type { StreamOptions } from './composables/useAiAssistant'
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api'
 export { uploadFile, fetchUrlPreview, fetchModels, postServerExport } from './utils/api'
 export type { ModelsListResult } from './utils/api'
-export {
-  collectPageContextText,
-  augmentMessageWithPageContext,
-  collectSmartPageContextText,
-} from './utils/pageContextDom'
-export type { PageContextBlock } from './utils/pageContextDom'
 export { captureScreenshot } from './utils/pageScreenshot'
 export { extractStructuredData } from './utils/pageStructuredData'
 export { highlightElement, highlightByText, clearHighlights, injectHighlightStyles } from './utils/domHighlight'
-export { usePageObserver } from './composables/usePageObserver'
 export { wsStreamChat } from './utils/wsChat'
-export { detectMode } from './utils/smartModeDetect'
-export { usePluginRegistry } from './composables/usePluginRegistry'
+export { useStreamWithFallback } from './composables/useStreamWithFallback'
+export { providePluginRegistry, usePluginRegistry } from './composables/usePluginRegistry'
 export type { AiPlugin, PluginContext } from './composables/usePluginRegistry'
-export { useWorkflow } from './composables/useWorkflow'
-export type { Workflow, WorkflowStep, WorkflowRunResult } from './composables/useWorkflow'
 export { createStreamTracker } from './utils/perfMetrics'
 export type { StreamMetrics } from './utils/perfMetrics'
 export { useMultiSession } from './composables/useMultiSession'

@@ -25,7 +25,7 @@ public class AiAssistantCorsConfig implements WebMvcConfigurer {
         String[] origins = properties.getAllowedOrigins().split(",");
         registry.addMapping(pattern)
                 .allowedOrigins(origins)
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("Content-Disposition")
                 .maxAge(3600);

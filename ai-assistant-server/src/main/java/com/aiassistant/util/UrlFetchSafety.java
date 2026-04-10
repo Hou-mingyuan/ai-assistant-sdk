@@ -69,6 +69,11 @@ public final class UrlFetchSafety {
             if (o1 == 100 && o2 >= 64 && o2 <= 127) {
                 return true;
             }
+            int o3 = b[2] & 0xff;
+            int o4 = b[3] & 0xff;
+            if (o1 == 100 && o2 == 100 && o3 == 100 && o4 == 200) {
+                return true;
+            }
             if (o1 == 169 && o2 == 254) {
                 return true;
             }

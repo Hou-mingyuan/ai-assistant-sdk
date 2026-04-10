@@ -1,15 +1,17 @@
-import { computed, onUnmounted, ref, watch, type Ref } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch, type Ref } from 'vue'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
   contentArchive?: string
+  feedback?: 'up' | 'down'
 }
 
 const SEARCH_DEBOUNCE_MS = 200
 
 /**
  * 会话内搜索 + 长会话仅挂载最近 N 条（与「显示更早消息」配合）。
+ * 支持匹配计数、prev/next 跳转、高亮渲染。
  */
 export function useSessionSearch(
   messages: Ref<Message[]>,
@@ -19,6 +21,7 @@ export function useSessionSearch(
 ) {
   const chatSearchInput = ref('')
   const debouncedSearchQuery = ref('')
+  const currentMatchIdx = ref(0)
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   watch(
@@ -27,6 +30,7 @@ export function useSessionSearch(
       if (debounceTimer !== null) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         debouncedSearchQuery.value = v
+        currentMatchIdx.value = 0
         debounceTimer = null
       }, SEARCH_DEBOUNCE_MS)
     },
@@ -35,6 +39,26 @@ export function useSessionSearch(
 
   onUnmounted(() => {
     if (debounceTimer !== null) clearTimeout(debounceTimer)
+  })
+
+  const searchMatchedIndices = computed(() => {
+    const q = debouncedSearchQuery.value.trim().toLowerCase()
+    if (!q) return [] as number[]
+    const result: number[] = []
+    const all = messages.value
+    for (let i = 0; i < all.length; i++) {
+      if ((all[i]?.content ?? '').toLowerCase().includes(q)) {
+        result.push(i)
+      }
+    }
+    return result
+  })
+
+  const totalMatches = computed(() => searchMatchedIndices.value.length)
+
+  const activeMatchGlobalIdx = computed(() => {
+    if (totalMatches.value === 0) return -1
+    return searchMatchedIndices.value[currentMatchIdx.value] ?? -1
   })
 
   const plan = computed(() => {
@@ -46,13 +70,7 @@ export function useSessionSearch(
     }
 
     if (q) {
-      const matchIdx: number[] = []
-      for (let i = 0; i < all.length; i++) {
-        const c = all[i]?.content ?? ''
-        if (c.toLowerCase().includes(q)) {
-          matchIdx.push(i)
-        }
-      }
+      const matchIdx = searchMatchedIndices.value
       if (matchIdx.length === 0) {
         return { offset: 0, list: [] as Message[], hiddenBefore: 0 }
       }
@@ -91,6 +109,27 @@ export function useSessionSearch(
     return Math.max(0, messages.value.length - cap)
   })
 
+  function goNextMatch() {
+    if (totalMatches.value === 0) return
+    currentMatchIdx.value = (currentMatchIdx.value + 1) % totalMatches.value
+    scrollToActiveMatch()
+  }
+
+  function goPrevMatch() {
+    if (totalMatches.value === 0) return
+    currentMatchIdx.value = (currentMatchIdx.value - 1 + totalMatches.value) % totalMatches.value
+    scrollToActiveMatch()
+  }
+
+  function scrollToActiveMatch() {
+    const gIdx = activeMatchGlobalIdx.value
+    if (gIdx < 0) return
+    nextTick(() => {
+      const el = document.querySelector(`[data-ai-msg-global-idx="${gIdx}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
   function resetSearch() {
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer)
@@ -98,6 +137,7 @@ export function useSessionSearch(
     }
     chatSearchInput.value = ''
     debouncedSearchQuery.value = ''
+    currentMatchIdx.value = 0
   }
 
   function disposeSearch() {
@@ -106,10 +146,32 @@ export function useSessionSearch(
 
   return {
     chatSearchInput,
+    debouncedSearchQuery,
     displayOffset,
     displayedMessages,
     hiddenOlderCount,
+    totalMatches,
+    currentMatchIdx,
+    activeMatchGlobalIdx,
+    goNextMatch,
+    goPrevMatch,
     resetSearch,
     disposeSearch,
   }
+}
+
+/**
+ * 在已渲染的 HTML 文本节点中标记搜索匹配词。
+ * 跳过 HTML 标签内部，仅处理可见文本。
+ */
+export function highlightSearchInHtml(html: string, query: string, isActive: boolean): string {
+  if (!query) return html
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`(${escaped})`, 'gi')
+  const cls = isActive ? 'ai-search-hl ai-search-hl-active' : 'ai-search-hl'
+  const parts = html.split(/(<[^>]+>)/)
+  return parts.map(part => {
+    if (part.startsWith('<')) return part
+    return part.replace(re, `<mark class="${cls}">$1</mark>`)
+  }).join('')
 }

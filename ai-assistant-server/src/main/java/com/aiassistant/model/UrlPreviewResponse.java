@@ -3,6 +3,9 @@ package com.aiassistant.model;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * GET /url-preview 响应体：页面标题、纯文本摘要、og/正文主图 URL 列表。
+ */
 public class UrlPreviewResponse {
 
     private boolean success;

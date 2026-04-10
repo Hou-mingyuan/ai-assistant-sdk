@@ -57,10 +57,5 @@ async function loadHtml2Canvas(): Promise<Html2CanvasFn | null> {
 }
 
 export function isHtml2CanvasAvailable(): boolean {
-  try {
-    require.resolve('html2canvas')
-    return true
-  } catch {
-    return false
-  }
+  return cachedH2c !== false
 }

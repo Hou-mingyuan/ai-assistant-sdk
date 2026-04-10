@@ -3,6 +3,10 @@ package com.aiassistant.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 请求体输入限制工具类：总字符校验与历史消息从末尾截断。
+ * 用于 Controller 层前置校验和 LLM 调用前的二次裁剪。
+ */
 public final class ChatInputLimits {
 
     private ChatInputLimits() {
@@ -15,7 +19,7 @@ public final class ChatInputLimits {
         if (maxChars <= 0) {
             return null;
         }
-        int total = len(request.getText()) + len(request.getSystemPrompt()) + len(request.getModel());
+        int total = len(request.getText()) + len(request.getSystemPrompt());
         List<ChatRequest.MessageItem> history = request.getHistory();
         if (history != null) {
             for (ChatRequest.MessageItem item : history) {

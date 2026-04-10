@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, inject, provide, computed, type Ref, type InjectionKey } from 'vue'
 
 export interface AiPlugin {
   id: string
@@ -17,14 +17,25 @@ export interface PluginContext {
   addMessage: (role: 'user' | 'assistant', content: string) => void
 }
 
-const plugins: Ref<AiPlugin[]> = ref([])
+const PLUGIN_KEY: InjectionKey<Ref<AiPlugin[]>> = Symbol('ai-plugins')
+
+export function providePluginRegistry() {
+  const plugins = ref<AiPlugin[]>([])
+  provide(PLUGIN_KEY, plugins)
+  return plugins
+}
 
 export function usePluginRegistry() {
+  const plugins = inject(PLUGIN_KEY, () => ref<AiPlugin[]>([]), true)
+
   function registerPlugin(plugin: AiPlugin) {
+    if (typeof plugin.action !== 'function') {
+      throw new TypeError(`Plugin "${plugin.id}" must have an action function`)
+    }
     if (plugins.value.some(p => p.id === plugin.id)) {
       plugins.value = plugins.value.map(p => p.id === plugin.id ? plugin : p)
     } else {
-      plugins.value.push(plugin)
+      plugins.value = [...plugins.value, plugin]
     }
   }
 
@@ -32,8 +43,16 @@ export function usePluginRegistry() {
     plugins.value = plugins.value.filter(p => p.id !== id)
   }
 
+  const headerPlugins = computed(() => plugins.value.filter(p => p.position === 'header'))
+  const footerPlugins = computed(() => plugins.value.filter(p => p.position === 'footer'))
+  const contextPlugins = computed(() => plugins.value.filter(p => p.position === 'context'))
+
   function getPlugins(position: AiPlugin['position']): AiPlugin[] {
-    return plugins.value.filter(p => p.position === position)
+    switch (position) {
+      case 'header': return headerPlugins.value
+      case 'footer': return footerPlugins.value
+      case 'context': return contextPlugins.value
+    }
   }
 
   return { plugins, registerPlugin, unregisterPlugin, getPlugins }

@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * 进程内用量统计：按 action 和日期记录调用次数与错误次数，保留最近 90 天数据。
+ * 多实例部署时各节点独立计数。
+ */
 public class UsageStats {
 
     private final AtomicLong totalCalls = new AtomicLong();
@@ -14,13 +18,16 @@ public class UsageStats {
     private final AtomicLong totalErrors = new AtomicLong();
 
     private static final int MAX_DATE_ENTRIES = 90;
+    private volatile long lastDateCleanupMs;
 
     public void recordCall(String action) {
         totalCalls.incrementAndGet();
         callsByAction.computeIfAbsent(action, k -> new AtomicLong()).incrementAndGet();
         String today = LocalDate.now().toString();
         callsByDate.computeIfAbsent(today, k -> new AtomicLong()).incrementAndGet();
-        if (callsByDate.size() > MAX_DATE_ENTRIES) {
+        long now = System.currentTimeMillis();
+        if (callsByDate.size() > MAX_DATE_ENTRIES && now - lastDateCleanupMs > 3_600_000) {
+            lastDateCleanupMs = now;
             callsByDate.keySet().stream()
                     .sorted()
                     .limit(callsByDate.size() - MAX_DATE_ENTRIES)

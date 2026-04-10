@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -81,6 +82,7 @@ public class LlmService {
 
     private String nextApiKey() {
         long now = System.currentTimeMillis();
+        keyCooldown.entrySet().removeIf(e -> now >= e.getValue());
         int size = apiKeys.size();
         for (int attempt = 0; attempt < size; attempt++) {
             int idx = keyIndex.getAndUpdate(i -> (i + 1) % size);
@@ -175,6 +177,7 @@ public class LlmService {
 
     private String callLlm(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
                          String operation, String modelId, String imageData) {
+        userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
         ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId, imageData);
         String key = nextApiKey();
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
@@ -277,10 +280,59 @@ public class LlmService {
         }
     }
 
+    /**
+     * {@link ChatInputLimits#validateTotalChars} 只统计原始请求体；链接抓取会在服务端显著放大 {@code text}，
+     * 与 history 叠加后易触发上游 LLM 5xx。此处与 {@link #buildRequestBody} 相同的 history 裁剪规则对齐后再截断 user。
+     */
+    private String clampUserMessageForTotalBudget(String userMessage, List<ChatRequest.MessageItem> history,
+                                                  String systemPrompt) {
+        if (userMessage == null) {
+            return null;
+        }
+        int max = properties.getChatMaxTotalChars();
+        if (max <= 0) {
+            return userMessage;
+        }
+        List<ChatRequest.MessageItem> hist = history;
+        int histCap = properties.getChatHistoryMaxChars();
+        if (hist != null && !hist.isEmpty() && histCap > 0) {
+            hist = ChatInputLimits.tailHistoryWithinBudget(history, histCap);
+        }
+        int used = strLen(systemPrompt);
+        if (hist != null) {
+            for (ChatRequest.MessageItem item : hist) {
+                if (item != null) {
+                    used += strLen(item.getContent());
+                }
+            }
+        }
+        int room = max - used;
+        if (room >= userMessage.length()) {
+            return userMessage;
+        }
+        if (room <= 64) {
+            log.warn("chatMaxTotalChars exhausted by system/history (used={}, max={}); user text hard-clamped",
+                    used, max);
+            return userMessage.length() <= 64 ? userMessage : userMessage.substring(0, 61) + "…";
+        }
+        log.debug("User message truncated for chatMaxTotalChars: {} -> {} chars", userMessage.length(), room);
+        return userMessage.substring(0, room - 24) + "\n…[truncated: chatMaxTotalChars]";
+    }
+
+    private static int strLen(String s) {
+        return s == null ? 0 : s.length();
+    }
+
     private Flux<String> callLlmStream(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
                                        String operation, String modelId, String imageData) {
+        userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
         ObjectNode body = buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
         String key = nextApiKey();
+
+        if (toolRegistry != null && !toolRegistry.isEmpty()) {
+            return callLlmStreamWithTools(body, key, operation);
+        }
+
         Flux<String> flux = chatCompletionClient.completeStream(body, key)
                 .doOnError(e -> markKeyFailed(key));
         if (meterRegistry == null) {
@@ -292,6 +344,107 @@ public class LlmService {
                     : signal == SignalType.ON_ERROR ? "error" : "cancel";
             sample.stop(streamTimer(operation, outcome));
         });
+    }
+
+    private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
+        return Flux.defer(() -> {
+            body.put("stream", false);
+            try {
+                String rawResponse = chatCompletionClient.completeRaw(body, apiKey);
+                JsonNode root = objectMapper.readTree(rawResponse);
+                JsonNode choices = root.path("choices");
+                if (!choices.isArray() || choices.isEmpty()) {
+                    return Flux.just(parseContentFromRaw(rawResponse));
+                }
+                JsonNode firstChoice = choices.get(0);
+                String finishReason = firstChoice.path("finish_reason").asText("");
+                JsonNode toolCalls = firstChoice.path("message").path("tool_calls");
+
+                if (!"tool_calls".equals(finishReason) || !toolCalls.isArray() || toolCalls.isEmpty()) {
+                    String content = firstChoice.path("message").path("content").asText("");
+                    body.put("stream", true);
+                    return Flux.just(content);
+                }
+
+                return executeToolsWithProgress(body, firstChoice.path("message"), toolCalls, apiKey)
+                        .subscribeOn(Schedulers.boundedElastic());
+            } catch (Exception e) {
+                markKeyFailed(apiKey);
+                return Flux.error(e);
+            }
+        });
+    }
+
+    private Flux<String> executeToolsWithProgress(ObjectNode body, JsonNode assistantMessage,
+                                                   JsonNode toolCalls, String apiKey) {
+        return Flux.create(sink -> {
+            try {
+                ObjectNode bodyClone = body.deepCopy();
+                bodyClone.put("stream", false);
+                ArrayNode messages = (ArrayNode) bodyClone.get("messages");
+
+                for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
+                    ObjectNode aMsg = messages.addObject();
+                    aMsg.put("role", "assistant");
+                    if (assistantMessage.has("content") && !assistantMessage.get("content").isNull()) {
+                        aMsg.put("content", assistantMessage.get("content").asText(""));
+                    } else {
+                        aMsg.putNull("content");
+                    }
+                    aMsg.set("tool_calls", toolCalls);
+
+                    for (JsonNode tc : toolCalls) {
+                        String callId = tc.path("id").asText();
+                        String fnName = tc.path("function").path("name").asText();
+                        String argsStr = tc.path("function").path("arguments").asText("{}");
+
+                        sink.next("\n\n> \uD83D\uDD27 **" + fnName + "** `" + truncate(argsStr, 80) + "`\n");
+
+                        String toolResult;
+                        try {
+                            JsonNode args = objectMapper.readTree(argsStr);
+                            toolResult = toolRegistry.execute(fnName, args);
+                        } catch (Exception e) {
+                            toolResult = "Error: " + e.getMessage();
+                            log.warn("Tool execution failed: {} - {}", fnName, e.getMessage());
+                        }
+
+                        sink.next("> ✅ " + truncate(toolResult, 120) + "\n\n");
+
+                        ObjectNode toolMsg = messages.addObject();
+                        toolMsg.put("role", "tool");
+                        toolMsg.put("tool_call_id", callId);
+                        toolMsg.put("content", toolResult);
+                    }
+
+                    String rawResponse = chatCompletionClient.completeRaw(bodyClone, apiKey);
+                    JsonNode root = objectMapper.readTree(rawResponse);
+                    JsonNode choices = root.path("choices");
+                    if (!choices.isArray() || choices.isEmpty()) {
+                        sink.next(parseContentFromRaw(rawResponse));
+                        break;
+                    }
+                    JsonNode nextChoice = choices.get(0);
+                    String nextFinish = nextChoice.path("finish_reason").asText("");
+                    JsonNode nextToolCalls = nextChoice.path("message").path("tool_calls");
+
+                    if (!"tool_calls".equals(nextFinish) || !nextToolCalls.isArray() || nextToolCalls.isEmpty()) {
+                        sink.next(nextChoice.path("message").path("content").asText(""));
+                        break;
+                    }
+                    assistantMessage = nextChoice.path("message");
+                    toolCalls = nextToolCalls;
+                }
+                sink.complete();
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        });
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() <= maxLen ? s : s.substring(0, maxLen) + "…";
     }
 
     private Timer streamTimer(String operation, String outcome) {

@@ -94,9 +94,13 @@ export interface I18nMessages {
   micStop: string
   newSession: string
   msgCtxFork: string
+  msgCtxEdit: string
+  batchExport: string
+  stopGenerate: string
+  regenerate: string
 }
 
-const messages: Record<Locale, I18nMessages> = {
+const messages: Record<string, I18nMessages> = {
   en: {
     greeting: '👋 Hi! I can help you:',
     translate: '🌐 Translate',
@@ -171,6 +175,10 @@ const messages: Record<Locale, I18nMessages> = {
     micStop: 'Stop recording',
     newSession: 'New chat',
     msgCtxFork: 'Fork from here',
+    msgCtxEdit: 'Edit & resend',
+    batchExport: 'Export all sessions',
+    stopGenerate: 'Stop',
+    regenerate: 'Regenerate',
   },
   zh: {
     greeting: '👋 你好！我可以帮你：',
@@ -246,10 +254,14 @@ const messages: Record<Locale, I18nMessages> = {
     micStop: '停止录音',
     newSession: '新对话',
     msgCtxFork: '从此处分叉',
+    msgCtxEdit: '编辑并重发',
+    batchExport: '导出全部会话',
+    stopGenerate: '停止生成',
+    regenerate: '重新生成',
   },
 }
 
-const ja: I18nMessages = {
+const ja = {
   ...messages.en,
   greeting: '👋 こんにちは！お手伝いします：',
   translate: '🌐 翻訳',
@@ -261,13 +273,55 @@ const ja: I18nMessages = {
   send: '送信',
   clear: 'クリア',
   title: 'AIアシスタント',
+  fabDockLeft: '左端に固定',
+  fabDockRight: '右端に固定',
+  fabUndock: 'フロート（固定解除）',
+  fabHideUntilRefresh: '非表示（ページ更新で復帰）',
+  copyCode: 'コピー',
+  codeCopied: '✓',
+  noResponse: '応答がありません',
+  errorPrefix: 'エラー',
+  replying: 'アシスタントが返信中…',
+  showEarlierTemplate: '{n}件の古いメッセージを非表示 — タップで全表示',
   closePanel: '閉じる',
   expandPanel: '全画面',
   shrinkPanel: '全画面解除',
-  errorPrefix: 'エラー',
+  resizePanel: 'ドラッグしてリサイズ',
+  urlPreviewImagesNote: '以下の画像はリンクページから自動抽出されたもので、参考用です。モデルによる検証はされていません。',
+  fabOpen: 'AIアシスタントを開く',
+  export: 'エクスポート',
+  exportMarkdown: 'Markdown（.md）',
+  exportCsv: 'テーブル（.csv）',
+  exportPrintPdf: '印刷 / PDFとして保存…',
+  exportRoleUser: 'ユーザー',
+  exportRoleAssistant: 'アシスタント',
+  exportAssistantOnlyMd: 'アシスタント回答のみ（.md）',
+  exportCopyMarkdown: 'Markdownとしてコピー',
+  exportJson: 'JSONをダウンロード',
   searchMessages: '会話を検索…',
   personalizeTitle: 'カスタマイズ',
+  personalizePlaceholder: 'アシスタントの振る舞いを記述（システムプロンプト）…',
   personalizeDone: '完了',
+  personalizeCharCount: '{cur} / {max} 文字',
+  systemPromptPlaceholder: '任意。チャットモードのみ有効、このブラウザに保存。',
+  modelLabel: 'モデル',
+  modelsListEmpty: 'モデルなし（GET …/models を確認）',
+  openInIde: 'IDE',
+  exportServerXlsx: 'サーバー: Excel（.xlsx）',
+  exportServerDocx: 'サーバー: Word（.docx）',
+  exportServerPdf: 'サーバー: PDF（.pdf）',
+  msgCtxCopy: '選択をコピー',
+  msgCtxDelete: 'この返信を削除',
+  msgCtxTranslate: '選択を翻訳',
+  msgCtxNeedSelection: '先に返信内のテキストを選択してください',
+  msgCtxExportDocx: 'Wordとしてエクスポート…',
+  msgCtxExportPdf: 'PDFとしてエクスポート…',
+  msgCtxExportXlsx: 'Excelとしてエクスポート…',
+  exportPreparing: 'エクスポート準備中…（再クリック不要）',
+  exportReceiving: 'サーバーからファイルを受信中…',
+  exportStartingDownload: 'ダウンロード開始中…',
+  exportDownloadStarted: 'ダウンロードが開始されました',
+  pageSelAsk: 'AIに聞く',
   dropFileHere: 'ここにファイルをドロップ',
   ttsPlay: '読み上げ',
   ttsStop: '停止',
@@ -277,9 +331,13 @@ const ja: I18nMessages = {
   micStop: '録音停止',
   newSession: '新しいチャット',
   msgCtxFork: 'ここから分岐',
+  msgCtxEdit: '編集して再送信',
+  batchExport: '全セッションをエクスポート',
+  stopGenerate: '停止',
+  regenerate: '再生成',
 }
 
-const ko: I18nMessages = {
+const ko = {
   ...messages.en,
   greeting: '👋 안녕하세요! 도와드리겠습니다:',
   translate: '🌐 번역',
@@ -291,13 +349,55 @@ const ko: I18nMessages = {
   send: '전송',
   clear: '지우기',
   title: 'AI 어시스턴트',
+  fabDockLeft: '왼쪽에 고정',
+  fabDockRight: '오른쪽에 고정',
+  fabUndock: '플로팅 (고정 해제)',
+  fabHideUntilRefresh: '숨기기 (새로고침 시 복원)',
+  copyCode: '복사',
+  codeCopied: '✓',
+  noResponse: '응답을 받지 못했습니다',
+  errorPrefix: '오류',
+  replying: '어시스턴트가 응답 중…',
+  showEarlierTemplate: '{n}개의 이전 메시지 숨김 — 탭하여 모두 표시',
   closePanel: '닫기',
   expandPanel: '전체화면',
   shrinkPanel: '전체화면 해제',
-  errorPrefix: '오류',
+  resizePanel: '드래그하여 크기 조절',
+  urlPreviewImagesNote: '아래 이미지는 링크된 페이지에서 자동 추출된 것으로 참고용입니다. 모델의 검증을 거치지 않았습니다.',
+  fabOpen: 'AI 어시스턴트 열기',
+  export: '내보내기',
+  exportMarkdown: 'Markdown (.md)',
+  exportCsv: '표 (.csv)',
+  exportPrintPdf: '인쇄 / PDF로 저장…',
+  exportRoleUser: '사용자',
+  exportRoleAssistant: '어시스턴트',
+  exportAssistantOnlyMd: '어시스턴트 답변만 (.md)',
+  exportCopyMarkdown: 'Markdown으로 복사',
+  exportJson: 'JSON 다운로드',
   searchMessages: '대화 검색…',
   personalizeTitle: '맞춤 설정',
+  personalizePlaceholder: '어시스턴트의 역할과 스타일을 설명 (시스템 프롬프트)…',
   personalizeDone: '완료',
+  personalizeCharCount: '{cur} / {max} 자',
+  systemPromptPlaceholder: '선택 사항. 채팅 모드에만 적용, 이 브라우저에 저장됩니다.',
+  modelLabel: '모델',
+  modelsListEmpty: '모델 없음 (GET …/models 확인)',
+  openInIde: 'IDE',
+  exportServerXlsx: '서버: Excel (.xlsx)',
+  exportServerDocx: '서버: Word (.docx)',
+  exportServerPdf: '서버: PDF (.pdf)',
+  msgCtxCopy: '선택 복사',
+  msgCtxDelete: '이 답변 삭제',
+  msgCtxTranslate: '선택 번역',
+  msgCtxNeedSelection: '먼저 답변 내 텍스트를 선택하세요',
+  msgCtxExportDocx: 'Word로 내보내기…',
+  msgCtxExportPdf: 'PDF로 내보내기…',
+  msgCtxExportXlsx: 'Excel로 내보내기…',
+  exportPreparing: '내보내기 준비 중… (다시 클릭하지 마세요)',
+  exportReceiving: '서버에서 파일 수신 중…',
+  exportStartingDownload: '다운로드 시작 중…',
+  exportDownloadStarted: '다운로드가 시작되었습니다',
+  pageSelAsk: 'AI에게 질문',
   dropFileHere: '여기에 파일을 놓으세요',
   ttsPlay: '읽어주기',
   ttsStop: '중지',
@@ -307,10 +407,14 @@ const ko: I18nMessages = {
   micStop: '녹음 중지',
   newSession: '새 채팅',
   msgCtxFork: '여기서 분기',
+  msgCtxEdit: '편집 후 재전송',
+  batchExport: '전체 세션 내보내기',
+  stopGenerate: '중지',
+  regenerate: '재생성',
 }
 
-;(messages as Record<string, I18nMessages>).ja = ja
-;(messages as Record<string, I18nMessages>).ko = ko
+messages.ja = ja satisfies I18nMessages
+messages.ko = ko satisfies I18nMessages
 
 export function getMessages(locale: Locale): I18nMessages {
   return (messages as Record<string, I18nMessages>)[locale] || messages.en

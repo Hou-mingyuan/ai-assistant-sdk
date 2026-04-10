@@ -6,6 +6,7 @@ import com.aiassistant.util.UrlFetchSafety;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -109,11 +110,12 @@ public class UrlFetchService {
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
+    private volatile HeadlessFetcher headlessFetchService;
 
     private static final int MAX_REDIRECTS = 5;
 
     public UrlFetchService(AiAssistantProperties properties) {
-        this(properties, null);
+        this(properties, (HttpClient) null);
     }
 
     public UrlFetchService(AiAssistantProperties properties, HttpClient httpClient) {
@@ -127,6 +129,10 @@ public class UrlFetchService {
                     .followRedirects(HttpClient.Redirect.NEVER)
                     .build();
         }
+    }
+
+    public void setHeadlessFetchService(HeadlessFetcher headlessFetchService) {
+        this.headlessFetchService = headlessFetchService;
     }
 
     public UrlPreviewResponse previewUrl(String url) {
@@ -146,7 +152,7 @@ public class UrlFetchService {
         try {
             byte[] body = fetchBytes(uri);
             if (body.length == 0) {
-                return UrlPreviewResponse.ok("", "", null, List.of());
+                return tryHeadlessFallback(url);
             }
             Charset cs = sniffCharset(body, uri);
             String html = new String(body, cs);
@@ -157,51 +163,106 @@ public class UrlFetchService {
             );
             String plainFull = htmlToPlain(html);
             List<String> images = collectImages(html, uri, title, plainFull, properties.getUrlPreviewMaxImages());
+
+            if (images.isEmpty() && plainFull.length() < 200 && headlessFetchService != null) {
+                log.debug("HTTP result too sparse for {}, falling back to headless", url);
+                return tryHeadlessFallback(url);
+            }
+
             String primary = images.isEmpty() ? null : images.get(0);
             int cap = Math.max(100, properties.getUrlPreviewMaxSummaryChars());
             String plain = plainFull.length() > cap ? plainFull.substring(0, cap) + "…" : plainFull;
             return UrlPreviewResponse.ok(title, plain, primary, images);
+        } catch (IllegalArgumentException e) {
+            log.debug("url preview blocked (safety): {}", e.getMessage());
+            return UrlPreviewResponse.fail("preview blocked: " + e.getMessage());
         } catch (Exception e) {
             log.debug("url preview failed: {}", e.toString());
+            if (headlessFetchService != null) {
+                return tryHeadlessFallback(url);
+            }
             return UrlPreviewResponse.fail("preview failed: " + e.getMessage());
         }
     }
 
+    private static final int MAX_URLS_TO_ENRICH = 3;
+
     /**
-     * 若用户正文中含 http(s) 链接，尝试抓取首条可解析 URL 的正文并附在消息后（有长度上限）。
+     * 若用户正文中含 http(s) 链接，抓取所有可解析 URL 的正文并附在消息后（有长度上限）。
      */
     public String enrichUserMessage(String text) throws Exception {
         if (text == null || !properties.isUrlFetchEnabled()) {
             return text;
         }
         Matcher m = URL_IN_TEXT.matcher(text);
-        if (!m.find()) {
-            return text;
+        List<String> urls = new ArrayList<>();
+        while (m.find() && urls.size() < MAX_URLS_TO_ENRICH) {
+            String url = m.group();
+            try {
+                URI uri = URI.create(url);
+                if (uri.getScheme() != null
+                        && List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
+                    urls.add(url);
+                }
+            } catch (Exception ignored) {
+            }
         }
-        String url = m.group();
-        URI uri = URI.create(url);
-        if (uri.getScheme() == null || !List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
+        if (urls.isEmpty()) {
             return text;
         }
 
-        String cached = getCachedText(uri);
-        String extracted;
-        if (cached != null) {
-            extracted = cached;
-        } else {
-            byte[] raw = fetchBytes(uri);
-            Charset cs = sniffCharset(raw, uri);
-            String html = new String(raw, cs);
-            extracted = htmlToPlain(html);
-            putCachedText(uri, extracted);
-        }
-
+        StringBuilder sb = new StringBuilder(text);
         int injectCap = Math.max(0, properties.getUrlFetchMaxCharsInjected());
-        if (injectCap > 0 && extracted.length() > injectCap) {
-            extracted = extracted.substring(0, injectCap) + "\n…[truncated]";
+
+        for (String url : urls) {
+            try {
+                URI uri = URI.create(url);
+                String cached = getCachedText(uri);
+                String extracted;
+                if (cached != null) {
+                    extracted = cached;
+                } else {
+                    byte[] raw = fetchBytes(uri);
+                    Charset cs = sniffCharset(raw, uri);
+                    String html = new String(raw, cs);
+                    extracted = htmlToPlain(html);
+                    if (extracted.length() < 200 && headlessFetchService != null) {
+                        HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
+                        if (!hr.text().isBlank()) {
+                            extracted = hr.text();
+                        }
+                    }
+                    putCachedText(uri, extracted);
+                }
+
+                if (injectCap > 0 && extracted.length() > injectCap) {
+                    extracted = extracted.substring(0, injectCap) + "\n…[truncated]";
+                }
+                sb.append("\n\n--- fetched: ").append(url).append(" ---\n").append(extracted);
+            } catch (Exception e) {
+                log.debug("Failed to enrich URL {}: {}", url, e.getMessage());
+            }
         }
 
-        return text + "\n\n--- fetched: " + url + " ---\n" + extracted;
+        return sb.toString();
+    }
+
+    private UrlPreviewResponse tryHeadlessFallback(String url) {
+        if (headlessFetchService == null) {
+            return UrlPreviewResponse.ok("", "", null, List.of());
+        }
+        try {
+            HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
+            int cap = Math.max(100, properties.getUrlPreviewMaxSummaryChars());
+            String plain = hr.text().length() > cap ? hr.text().substring(0, cap) + "…" : hr.text();
+            String primary = hr.imageUrls().isEmpty() ? null : hr.imageUrls().get(0);
+            int maxImg = Math.min(30, Math.max(1, properties.getUrlPreviewMaxImages()));
+            List<String> imgs = hr.imageUrls().size() > maxImg ? hr.imageUrls().subList(0, maxImg) : hr.imageUrls();
+            return UrlPreviewResponse.ok(hr.title(), plain, primary, imgs);
+        } catch (Exception e) {
+            log.warn("Headless fallback also failed for {}: {}", url, e.getMessage());
+            return UrlPreviewResponse.fail("preview failed (headless): " + e.getMessage());
+        }
     }
 
     private byte[] fetchBytes(URI uri) throws Exception {
@@ -216,9 +277,10 @@ public class UrlFetchService {
                     .header("User-Agent", "AiAssistantUrlFetch/1.0")
                     .GET()
                     .build();
-            HttpResponse<byte[]> res = httpClient.send(req, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<InputStream> res = httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream());
             int code = res.statusCode();
             if (code >= 301 && code <= 308 && code != 304) {
+                res.body().close();
                 String location = res.headers().firstValue("Location").orElse(null);
                 if (location == null || location.isBlank()) {
                     throw new IllegalStateException("Redirect " + code + " without Location header");
@@ -230,13 +292,12 @@ public class UrlFetchService {
                 continue;
             }
             if (code < 200 || code >= 300) {
+                res.body().close();
                 throw new IllegalStateException("HTTP " + code);
             }
-            byte[] body = res.body();
-            if (body == null) {
-                return new byte[0];
+            try (InputStream bodyStream = res.body()) {
+                return bodyStream.readNBytes(max);
             }
-            return body.length <= max ? body : java.util.Arrays.copyOf(body, max);
         }
         throw new IllegalStateException("Too many redirects (max " + MAX_REDIRECTS + ")");
     }
@@ -253,18 +314,60 @@ public class UrlFetchService {
         return StandardCharsets.UTF_8;
     }
 
+    private static int indexOfIgnoreCase(String src, String target, int from) {
+        int tLen = target.length();
+        int limit = src.length() - tLen;
+        for (int j = from; j <= limit; j++) {
+            if (src.regionMatches(true, j, target, 0, tLen)) {
+                return j;
+            }
+        }
+        return -1;
+    }
+
     private static String htmlToPlain(String html) {
-        String s = html
-                .replaceAll("(?is)<script[^>]*>.*?</script>", " ")
-                .replaceAll("(?is)<style[^>]*>.*?</style>", " ");
-        s = s.replaceAll("<[^>]+>", " ");
-        s = s.replace("&nbsp;", " ")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&amp;", "&")
-                .replace("&quot;", "\"");
-        s = s.replaceAll("\\s+", " ").trim();
-        return s;
+        int len = html.length();
+        StringBuilder sb = new StringBuilder(len / 3);
+        int i = 0;
+        while (i < len) {
+            char c = html.charAt(i);
+            if (c == '<') {
+                boolean isScript = len - i >= 7 && html.regionMatches(true, i, "<script", 0, 7);
+                boolean isStyle = !isScript && len - i >= 6 && html.regionMatches(true, i, "<style", 0, 6);
+                if (isScript || isStyle) {
+                    String endTag = isScript ? "</script>" : "</style>";
+                    int close = indexOfIgnoreCase(html, endTag, i);
+                    i = close < 0 ? len : close + endTag.length();
+                    sb.append(' ');
+                    continue;
+                }
+                int gt = html.indexOf('>', i);
+                i = gt < 0 ? len : gt + 1;
+                sb.append(' ');
+            } else if (c == '&') {
+                int semi = html.indexOf(';', i);
+                if (semi > i && semi - i <= 8) {
+                    String ent = html.substring(i, semi + 1);
+                    switch (ent) {
+                        case "&nbsp;" -> sb.append(' ');
+                        case "&lt;" -> sb.append('<');
+                        case "&gt;" -> sb.append('>');
+                        case "&amp;" -> sb.append('&');
+                        case "&quot;" -> sb.append('"');
+                        case "&#39;" -> sb.append('\'');
+                        default -> sb.append(ent);
+                    }
+                    i = semi + 1;
+                } else {
+                    sb.append(c);
+                    i++;
+                }
+            } else {
+                sb.append(c);
+                i++;
+            }
+        }
+        return sb.toString().replaceAll("\\s+", " ").trim();
     }
 
     private static String stripTags(String s) {
@@ -473,16 +576,15 @@ public class UrlFetchService {
         if (t.length() < 4 || a.length() < 4) {
             return 0;
         }
-        int best = 0;
         int maxWindow = Math.min(24, a.length());
         for (int len = maxWindow; len >= 4; len--) {
             for (int i = 0; i + len <= a.length(); i++) {
                 if (t.contains(a.substring(i, i + len))) {
-                    best = Math.max(best, len);
+                    return len >= 8 ? 65 : (len >= 6 ? 40 : 20);
                 }
             }
         }
-        return best >= 8 ? 65 : (best >= 6 ? 40 : (best >= 4 ? 20 : 0));
+        return 0;
     }
 
     private static boolean hasTokenOverlap(String a, String b) {
@@ -637,14 +739,15 @@ public class UrlFetchService {
         return e.text;
     }
 
-    private void putCachedText(URI uri, String text) {
+    private synchronized void putCachedText(URI uri, String text) {
         int ttl = properties.getUrlFetchCacheTtlSeconds();
         if (ttl <= 0) {
             return;
         }
         int maxEntries = Math.max(4, properties.getUrlFetchCacheMaxEntries());
         if (fetchCache.size() >= maxEntries) {
-            fetchCache.entrySet().removeIf(e -> Instant.now().isAfter(e.getValue().expires));
+            Instant now = Instant.now();
+            fetchCache.entrySet().removeIf(e -> now.isAfter(e.getValue().expires));
         }
         if (fetchCache.size() >= maxEntries) {
             var it = fetchCache.entrySet().iterator();
