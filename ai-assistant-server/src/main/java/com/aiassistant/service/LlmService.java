@@ -382,18 +382,20 @@ public class LlmService {
                 ObjectNode bodyClone = body.deepCopy();
                 bodyClone.put("stream", false);
                 ArrayNode messages = (ArrayNode) bodyClone.get("messages");
+                JsonNode curAssistantMsg = assistantMessage;
+                JsonNode curToolCalls = toolCalls;
 
                 for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
                     ObjectNode aMsg = messages.addObject();
                     aMsg.put("role", "assistant");
-                    if (assistantMessage.has("content") && !assistantMessage.get("content").isNull()) {
-                        aMsg.put("content", assistantMessage.get("content").asText(""));
+                    if (curAssistantMsg.has("content") && !curAssistantMsg.get("content").isNull()) {
+                        aMsg.put("content", curAssistantMsg.get("content").asText(""));
                     } else {
                         aMsg.putNull("content");
                     }
-                    aMsg.set("tool_calls", toolCalls);
+                    aMsg.set("tool_calls", curToolCalls);
 
-                    for (JsonNode tc : toolCalls) {
+                    for (JsonNode tc : curToolCalls) {
                         String callId = tc.path("id").asText();
                         String fnName = tc.path("function").path("name").asText();
                         String argsStr = tc.path("function").path("arguments").asText("{}");
@@ -432,8 +434,8 @@ public class LlmService {
                         sink.next(nextChoice.path("message").path("content").asText(""));
                         break;
                     }
-                    assistantMessage = nextChoice.path("message");
-                    toolCalls = nextToolCalls;
+                    curAssistantMsg = nextChoice.path("message");
+                    curToolCalls = nextToolCalls;
                 }
                 sink.complete();
             } catch (Exception e) {
