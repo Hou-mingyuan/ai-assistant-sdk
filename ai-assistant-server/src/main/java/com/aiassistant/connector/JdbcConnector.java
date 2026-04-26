@@ -1,6 +1,5 @@
 package com.aiassistant.connector;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +21,6 @@ public class JdbcConnector implements DataConnector {
     private final DataSource dataSource;
     private final Set<String> allowedTables;
     private final String schema;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile List<ModuleInfo> cachedModules;
     private volatile long cacheExpiry = 0;

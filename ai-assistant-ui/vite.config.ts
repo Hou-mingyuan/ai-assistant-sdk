@@ -6,11 +6,7 @@ import { resolve } from 'path'
 const isWC = process.env.BUILD_TARGET === 'wc'
 
 export default defineConfig({
-  plugins: [
-    vue({
-      ...(isWC ? { customElement: true } : {}),
-    }),
-  ],
+  plugins: [vue()],
   test: {
     environment: 'node',
     include: ['src/**/*.spec.ts'],

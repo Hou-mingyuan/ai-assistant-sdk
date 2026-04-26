@@ -33,12 +33,13 @@ class ChatInputLimitsTest {
     }
 
     @Test
-    void validateTotalCharsIncludesModel() {
+    void validateTotalCharsDoesNotCountModel() {
         ChatRequest req = new ChatRequest();
-        req.setText("a");
-        req.setModel("mm");
+        req.setText("ab");
+        req.setModel("mmm");
         assertNull(ChatInputLimits.validateTotalChars(req, 10));
-        assertEquals("Input too large: 3 characters (max 2)", ChatInputLimits.validateTotalChars(req, 2));
+        assertNull(ChatInputLimits.validateTotalChars(req, 2));
+        assertEquals("Input too large: 2 characters (max 1)", ChatInputLimits.validateTotalChars(req, 1));
     }
 
     @Test

@@ -14,7 +14,7 @@ class SessionStoreTest {
 
     @BeforeEach
     void setUp() {
-        store = new SessionStore();
+        store = new InMemorySessionStore();
     }
 
     @Test

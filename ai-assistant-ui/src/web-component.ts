@@ -57,18 +57,9 @@ class AiAssistantElement extends HTMLElement {
   }
 
   private _mount() {
-    const shadow = this.shadowRoot ?? this.attachShadow({ mode: 'open' })
-
-    const styleEl = document.createElement('style')
-    styleEl.textContent = `
-      :host { display: block; position: relative; }
-      :host([hidden]) { display: none; }
-    `
-    shadow.appendChild(styleEl)
-
     this._mountEl = document.createElement('div')
     this._mountEl.setAttribute('data-ai-assistant-wc', '')
-    shadow.appendChild(this._mountEl)
+    this.appendChild(this._mountEl)
 
     const options = this._resolveOptions()
 
@@ -82,10 +73,10 @@ class AiAssistantElement extends HTMLElement {
       this._app.unmount()
       this._app = null
     }
-    if (this.shadowRoot) {
-      this.shadowRoot.innerHTML = ''
+    if (this._mountEl) {
+      this._mountEl.remove()
+      this._mountEl = null
     }
-    this._mountEl = null
   }
 
   private _resolveOptions(): AiAssistantOptions {

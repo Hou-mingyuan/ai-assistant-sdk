@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 
@@ -98,7 +100,7 @@ public class RestApiConnector implements DataConnector {
     @Override
     public TableSchema getSchema(String moduleId) {
         try {
-            String body = get(schemaPath + "?moduleId=" + moduleId);
+            String body = get(schemaPath + "?moduleId=" + URLEncoder.encode(moduleId, StandardCharsets.UTF_8));
             JsonNode root = mapper.readTree(body);
             String moduleName = root.path("moduleName").asText(root.path("name").asText(moduleId));
             JsonNode fieldsNode = root.path("fields");
@@ -160,6 +162,10 @@ public class RestApiConnector implements DataConnector {
     private String get(String path) {
         return webClient.get().uri(path)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new RuntimeException(
+                                        "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
                 .block(Duration.ofSeconds(timeoutSeconds));
     }
@@ -168,7 +174,15 @@ public class RestApiConnector implements DataConnector {
         return webClient.post().uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new RuntimeException(
+                                        "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
                 .block(Duration.ofSeconds(timeoutSeconds));
+    }
+
+    private static String truncate(String s, int max) {
+        return (s != null && s.length() > max) ? s.substring(0, max) + "..." : s;
     }
 }

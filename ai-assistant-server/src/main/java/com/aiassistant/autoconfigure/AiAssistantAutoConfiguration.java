@@ -163,22 +163,20 @@ public class AiAssistantAutoConfiguration {
     static class JdbcConnectorAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean(name = "jdbcDataConnector")
-        @ConditionalOnProperty(prefix = "ai-assistant", name = "connectors[0].type", havingValue = "jdbc")
         public DataConnector jdbcDataConnector(
                 ObjectProvider<javax.sql.DataSource> dataSourceProvider,
                 AiAssistantProperties properties) {
-            javax.sql.DataSource ds = dataSourceProvider.getIfAvailable();
-            if (ds == null) return null;
             List<ConnectorProperties> cfgs = properties.getConnectors();
             if (cfgs == null) return null;
-            for (ConnectorProperties cfg : cfgs) {
-                if ("jdbc".equalsIgnoreCase(cfg.getType())) {
-                    return new JdbcConnector(
-                            cfg.resolveId(), cfg.resolveDisplayName(),
-                            ds, cfg.resolveAllowedTables(), cfg.getSchema());
-                }
-            }
-            return null;
+            ConnectorProperties jdbcCfg = cfgs.stream()
+                    .filter(c -> "jdbc".equalsIgnoreCase(c.getType()))
+                    .findFirst().orElse(null);
+            if (jdbcCfg == null) return null;
+            javax.sql.DataSource ds = dataSourceProvider.getIfAvailable();
+            if (ds == null) return null;
+            return new JdbcConnector(
+                    jdbcCfg.resolveId(), jdbcCfg.resolveDisplayName(),
+                    ds, jdbcCfg.resolveAllowedTables(), jdbcCfg.getSchema());
         }
     }
 
