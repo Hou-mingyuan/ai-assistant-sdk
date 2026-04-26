@@ -348,9 +348,10 @@ public class LlmService {
 
     private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
         return Flux.defer(() -> {
-            body.put("stream", false);
+            ObjectNode probeBody = body.deepCopy();
+            probeBody.put("stream", false);
             try {
-                String rawResponse = chatCompletionClient.completeRaw(body, apiKey);
+                String rawResponse = chatCompletionClient.completeRaw(probeBody, apiKey);
                 JsonNode root = objectMapper.readTree(rawResponse);
                 JsonNode choices = root.path("choices");
                 if (!choices.isArray() || choices.isEmpty()) {
@@ -361,12 +362,10 @@ public class LlmService {
                 JsonNode toolCalls = firstChoice.path("message").path("tool_calls");
 
                 if (!"tool_calls".equals(finishReason) || !toolCalls.isArray() || toolCalls.isEmpty()) {
-                    String content = firstChoice.path("message").path("content").asText("");
-                    body.put("stream", true);
-                    return Flux.just(content);
+                    return chatCompletionClient.completeStream(body, apiKey);
                 }
 
-                return executeToolsWithProgress(body, firstChoice.path("message"), toolCalls, apiKey)
+                return executeToolsWithProgress(probeBody, firstChoice.path("message"), toolCalls, apiKey)
                         .subscribeOn(Schedulers.boundedElastic());
             } catch (Exception e) {
                 markKeyFailed(apiKey);
@@ -377,8 +376,10 @@ public class LlmService {
 
     private Flux<String> executeToolsWithProgress(ObjectNode body, JsonNode assistantMessage,
                                                    JsonNode toolCalls, String apiKey) {
+        long toolLoopTimeoutMs = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)) * 1000L * MAX_TOOL_ROUNDS;
         return Flux.create(sink -> {
             try {
+                long deadline = System.currentTimeMillis() + toolLoopTimeoutMs;
                 ObjectNode bodyClone = body.deepCopy();
                 bodyClone.put("stream", false);
                 ArrayNode messages = (ArrayNode) bodyClone.get("messages");
@@ -386,6 +387,11 @@ public class LlmService {
                 JsonNode curToolCalls = toolCalls;
 
                 for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
+                    if (System.currentTimeMillis() > deadline) {
+                        sink.next("\n\n> ⚠️ Tool calling loop timed out after "
+                                + (toolLoopTimeoutMs / 1000) + "s\n");
+                        break;
+                    }
                     ObjectNode aMsg = messages.addObject();
                     aMsg.put("role", "assistant");
                     if (curAssistantMsg.has("content") && !curAssistantMsg.get("content").isNull()) {

@@ -49,6 +49,9 @@ public class AiAssistantAuthFilter implements Filter {
         }
 
         String token = request.getHeader("X-AI-Token");
+        if (token == null || token.isBlank()) {
+            token = request.getParameter("token");
+        }
 
         byte[] expected = accessToken.getBytes(StandardCharsets.UTF_8);
         byte[] got = token == null ? null : token.getBytes(StandardCharsets.UTF_8);

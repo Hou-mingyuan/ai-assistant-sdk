@@ -1,7 +1,6 @@
 package com.aiassistant.service;
 
 import com.aiassistant.config.AiAssistantProperties;
-
 import com.aiassistant.export.ExportHttpUrls;
 import com.aiassistant.export.ExportImageSniff;
 import com.aiassistant.export.ExportMarkdownPatterns;
@@ -10,86 +9,49 @@ import com.aiassistant.export.ExportTextLayout;
 import com.aiassistant.export.ExportPdfWriter;
 import com.aiassistant.export.ExportXlsxWriter;
 import com.aiassistant.export.PreparedExport;
-
 import com.aiassistant.model.ExportRequest;
-
 import com.aiassistant.util.UrlFetchSafety;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
-
 import org.apache.pdfbox.pdmodel.PDPage;
-
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
-
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
-
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-
 import org.apache.poi.util.Units;
-
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
-
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-
 import org.springframework.core.io.DefaultResourceLoader;
-
 import org.springframework.core.io.Resource;
 
 import javax.imageio.ImageIO;
-
-import java.io.IOException;
-
 import java.io.ByteArrayInputStream;
-
 import java.io.ByteArrayOutputStream;
-
+import java.io.IOException;
 import java.io.InputStream;
-
 import java.io.OutputStream;
-
 import java.net.URI;
-
 import java.net.http.HttpClient;
-
 import java.net.http.HttpRequest;
-
 import java.net.http.HttpResponse;
-
 import java.nio.charset.StandardCharsets;
-
 import java.nio.file.Files;
-
 import java.nio.file.Path;
-
 import java.time.Duration;
-
 import java.util.ArrayList;
-
 import java.util.LinkedHashSet;
-
 import java.util.List;
-
 import java.util.Locale;
-
 import java.util.Map;
-
 import java.util.Set;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import java.util.regex.Matcher;
-
 import java.util.regex.Pattern;
 
 /**
@@ -109,13 +71,10 @@ public class AssistantExportService {
     private volatile HttpClient exportHttpClient;
 
     public AssistantExportService(AiAssistantProperties properties) {
-
         this.properties = properties;
-
     }
 
     private HttpClient exportHttpClient() {
-
         HttpClient c = exportHttpClient;
         if (c == null) {
             synchronized (this) {
@@ -130,11 +89,9 @@ public class AssistantExportService {
             }
         }
         return c;
-
     }
 
     public PreparedExport prepare(ExportRequest req) {
-
         if (req == null || req.getFormat() == null || req.getFormat().isBlank()) {
             throw new IllegalArgumentException("format is required");
         }
@@ -175,11 +132,9 @@ public class AssistantExportService {
                     baseName + ".docx", List.copyOf(messages), dark);
             default -> new PreparedExport("pdf", "application/pdf", baseName + ".pdf", List.copyOf(messages), dark);
         };
-
     }
 
     public void write(PreparedExport prepared, OutputStream out) throws Exception {
-
         switch (prepared.formatKey()) {
             case "xlsx" -> ExportXlsxWriter.write(prepared.messages(), out, prepared.darkTheme());
             case "docx" -> {
@@ -199,11 +154,9 @@ public class AssistantExportService {
                 }
             }
         }
-
     }
 
     private void writeDocx(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark) throws Exception {
-
         try (XWPFDocument d = new XWPFDocument()) {
             for (ExportRequest.MessageRow m : messages) {
                 String role = m != null && m.getRole() != null ? m.getRole() : "";
@@ -218,11 +171,9 @@ public class AssistantExportService {
             }
             d.write(out);
         }
-
     }
 
     private void appendMarkdownDocx(XWPFDocument d, String markdown) throws Exception {
-
         String text = markdown == null ? "" : markdown.replace("\r\n", "\n");
         String[] lines = text.split("\n", -1);
         boolean inCode = false;
@@ -301,14 +252,12 @@ public class AssistantExportService {
         if (inCode) {
             flushCodeBlockDocx(d, codeBuf.toString());
         }
-
     }
 
     /**
      * @param textStyle 0 正文；-1 引用斜体；1–6 对应 Markdown 标题级别（字号+粗体）
      */
     private static void applyDocxTextStyle(XWPFRun r, int textStyle) {
-
         if (textStyle == -1) {
             r.setItalic(true);
         }
@@ -321,11 +270,9 @@ public class AssistantExportService {
                 default -> 14;
             });
         }
-
     }
 
     private void flushCodeBlockDocx(XWPFDocument d, String code) throws Exception {
-
         XWPFParagraph p = d.createParagraph();
         p.setIndentationLeft(280);
         XWPFRun r = p.createRun();
@@ -333,12 +280,10 @@ public class AssistantExportService {
         r.setFontSize(9);
         String body = ExportTextLayout.hardWrapLongPhysicalLines(code.replace("\t", "    "), 96).trim();
         r.setText(body.isEmpty() ? " " : body);
-
     }
 
     /** Word：内联 **粗体**、`代码`，与前端 Markdown 观感接近 */
     private void appendRichDocxInParagraph(XWPFParagraph p, String text, int textStyle) throws Exception {
-
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -395,11 +340,9 @@ public class AssistantExportService {
                 pos = cj;
             }
         }
-
     }
 
     private void appendInlineImagesDocx(XWPFDocument d, XWPFParagraph p, String line, int textStyle) throws Exception {
-
         Matcher m = ExportMarkdownPatterns.MD_IMAGE.matcher(line);
         int last = 0;
         if (!m.find()) {
@@ -416,12 +359,10 @@ public class AssistantExportService {
         if (last < line.length()) {
             appendRichDocxInParagraph(p, line.substring(last), textStyle);
         }
-
     }
 
     /** 图片插在调用方段落内，避免与正文脱节 */
     private void embedOrFallbackDocx(XWPFDocument d, XWPFParagraph p, String url) throws Exception {
-
         byte[] bytes = null;
         if (properties.isExportEmbedImages()) {
             bytes = lookupExportImageBytes(url);
@@ -451,16 +392,13 @@ public class AssistantExportService {
         try (ByteArrayInputStream in = new ByteArrayInputStream(bytes)) {
             ir.addPicture(in, type, "img", wEmu, hEmu);
         }
-
     }
 
     private void writePdf(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark) throws Exception {
         new ExportPdfWriter(properties).write(messages, out, dark);
     }
 
-
     private Map<String, byte[]> prefetchExportImages(List<ExportRequest.MessageRow> messages) {
-
         if (!properties.isExportEmbedImages()) {
             return Map.of();
         }
@@ -483,19 +421,15 @@ public class AssistantExportService {
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         return out;
-
     }
 
     private byte[] lookupExportImageBytes(String url) {
-
         Map<String, byte[]> cache = EXPORT_IMAGE_CACHE.get();
         if (cache == null) {
             return null;
         }
         return cache.get(url);
-
     }
-
 
     private static final int MAX_IMAGE_REDIRECTS = 5;
 

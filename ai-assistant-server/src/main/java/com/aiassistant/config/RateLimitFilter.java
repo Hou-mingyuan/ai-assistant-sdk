@@ -23,6 +23,7 @@ public class RateLimitFilter implements Filter {
     private final String contextPath;
     private final int maxRequestsPerMinute;
     private final AiAssistantProperties properties;
+    private static final int MAX_TRACKED_CLIENTS = 10_000;
     private final ConcurrentHashMap<String, RateEntry> counters = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -73,6 +74,17 @@ public class RateLimitFilter implements Filter {
         }
 
         String clientKey = getClientKey(request) + ":" + action;
+        if (counters.size() >= MAX_TRACKED_CLIENTS && !counters.containsKey(clientKey)) {
+            cleanupIfNeeded();
+            if (counters.size() >= MAX_TRACKED_CLIENTS) {
+                HttpServletResponse response = (HttpServletResponse) res;
+                response.setStatus(429);
+                response.setContentType("application/json;charset=UTF-8");
+                objectMapper.writeValue(response.getOutputStream(),
+                        Map.of("success", false, "error", "Too many concurrent clients. Try again later."));
+                return;
+            }
+        }
         RateEntry entry = counters.computeIfAbsent(clientKey, k -> new RateEntry());
 
         if (!entry.tryAcquire(effectiveLimit)) {

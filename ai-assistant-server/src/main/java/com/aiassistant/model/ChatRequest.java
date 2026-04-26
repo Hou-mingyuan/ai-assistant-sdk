@@ -1,12 +1,14 @@
 package com.aiassistant.model;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
 
 public class ChatRequest {
 
+    @Pattern(regexp = "translate|summarize|chat", message = "action must be one of: translate, summarize, chat")
     private String action;
     @NotBlank(message = "text is required")
     @Size(max = 300_000, message = "text exceeds 300000 characters")
