@@ -63,6 +63,134 @@
 
 ---
 
+## Data Connector — 外部数据源连接器
+
+通过 `DataConnector` 插件架构，让 LLM 自动查询外部数据源（低代码平台、数据库、REST API 等）。每个 Connector 自动注册为 3 个 Function Calling 工具：`list_modules`、`get_schema`、`query_data`。
+
+### 内置连接器
+
+| 类型 | 类 | 说明 |
+|------|-----|------|
+| `informat` | `InformatConnector` | 对接织信NEXT WebAPI |
+| `jdbc` | `JdbcConnector` | 直连数据库，`DatabaseMetaData` 自动发现表结构，参数化 SQL 防注入 |
+| `rest` | `RestApiConnector` | 代理任意 REST API（可配 endpoints 和 headers） |
+
+### YAML 配置示例
+
+```yaml
+ai-assistant:
+  api-key: sk-xxx
+  connectors:
+    # 织信NEXT 低代码平台
+    - type: informat
+      id: erp
+      display-name: 生产管理系统
+      base-url: https://your-informat.com
+      app-id: croe0zft168y3
+      token: your-api-token
+
+    # 直连数据库
+    - type: jdbc
+      id: bizdb
+      display-name: 业务数据库
+      tables: orders,products,customers   # 限制暴露的表，空=全部
+      schema: public                      # 数据库 schema，null=默认
+
+    # 通用 REST API
+    - type: rest
+      id: crm-api
+      display-name: CRM系统
+      base-url: https://api.example.com/data
+      headers: Authorization=Bearer xxx,X-Tenant=main
+      timeout-seconds: 15
+```
+
+### 自定义 Connector（Java Bean）
+
+实现 `DataConnector` 接口并注册为 Spring Bean，Starter 自动发现并注册工具：
+
+```java
+@Bean
+public DataConnector myConnector() {
+    return new DataConnector() {
+        @Override public String id() { return "my-source"; }
+        @Override public String displayName() { return "我的数据源"; }
+        @Override public List<ModuleInfo> listModules() { /* ... */ }
+        @Override public TableSchema getSchema(String moduleId) { /* ... */ }
+        @Override public QueryResult queryData(String moduleId, QueryFilter filter) { /* ... */ }
+    };
+}
+```
+
+LLM 对话时自动可用：用户说"查一下订单表"，LLM 会依次调用 `list_modules` → `get_schema` → `query_data`。
+
+---
+
+## Web Component — 框架无关嵌入
+
+除了 Vue 3 插件，还提供 **Web Component** 封装，可在 Vue 2、React、Angular 或原生 HTML 中使用，无框架依赖。
+
+### 构建
+
+```bash
+cd ai-assistant-ui
+npm run build:wc    # 输出 dist/ai-assistant-wc.umd.js + .mjs
+```
+
+### 使用
+
+```html
+<!-- 引入 JS 和 CSS -->
+<script src="ai-assistant-wc.umd.js"></script>
+<link rel="stylesheet" href="style.css">
+
+<!-- 使用自定义元素 -->
+<ai-assistant
+  endpoint="/ai-assistant"
+  token="your-token"
+  theme="dark"
+  locale="zh"
+  position="bottom-right"
+  primary-color="#6366f1"
+></ai-assistant>
+```
+
+### 支持的属性
+
+| HTML 属性 | 对应选项 | 类型 |
+|-----------|---------|------|
+| `endpoint` / `base-url` | `baseUrl` | string |
+| `token` / `access-token` | `accessToken` | string |
+| `primary-color` | `primaryColor` | string |
+| `position` | `position` | string |
+| `theme` | `theme` | string |
+| `locale` | `locale` | string |
+| `persist-history` | `persistHistory` | boolean |
+| `max-messages` | `maxMessagesInMemory` | number |
+| `toggle-shortcut` | `toggleShortcut` | string |
+| `show-model-picker` | `showModelPicker` | boolean |
+| `show-system-prompt` | `showSystemPromptEditor` | boolean |
+
+### 在 React 中使用
+
+```jsx
+import 'ai-assistant-wc/dist/ai-assistant-wc.umd.js'
+import 'ai-assistant-wc/dist/style.css'
+
+function App() {
+  return <ai-assistant endpoint="/api" token="xxx" theme="light" />
+}
+```
+
+### 自定义标签名
+
+```js
+import { registerAiAssistant } from '@ai-assistant/vue/wc'
+registerAiAssistant('my-ai-chat')  // 注册为 <my-ai-chat>
+```
+
+---
+
 ## 开发与测试
 
 ```bash
@@ -684,9 +812,11 @@ ai-assistant-sdk/
 │   └── src/main/java/com/aiassistant/
 │       ├── autoconfigure/     # 自动装配
 │       ├── config/            # 配置属性 + CORS + 鉴权 + 限流
+│       ├── connector/         # DataConnector 接口 + 内置实现（Informat/JDBC/REST）
 │       ├── controller/        # REST 接口（chat/stream/file/stats/health）
 │       ├── model/             # 请求/响应 POJO
 │       ├── service/           # LlmService、文件解析、URL 抓取；子包 llm（ChatCompletionClient）
+│       ├── tool/              # Function Calling：ToolDefinition / ToolRegistry
 │       └── stats/             # 用量统计
 ├── ai-assistant-ui/           # Vue 3 npm 包
 │   ├── package.json
@@ -694,6 +824,7 @@ ai-assistant-sdk/
 │       ├── index.ts           # 插件入口
 │       ├── components/        # AiAssistant.vue + AiAssistant.styles.css（scoped 样式，勿删）
 │       ├── scripts/           # rebuild_styles.py：从 dist/style.css 反推样式源（应急）
+│       ├── web-component.ts   # Web Component 封装（<ai-assistant> 自定义元素）
 │       ├── composables/       # useAiAssistant、useSessionSearch、useAiMarkdownRenderer
 │       └── utils/             # HTTP / SSE / i18n、Markdown 代码块、客户端导出
 ├── ai-assistant-demo/         # （默认 .gitignore）本地 Demo，可选
