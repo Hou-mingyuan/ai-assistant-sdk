@@ -4,7 +4,11 @@ import com.aiassistant.config.AiAssistantAuthFilter;
 import com.aiassistant.config.AiAssistantCorsConfig;
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.AiAssistantRestExceptionHandler;
+import com.aiassistant.config.ConnectorProperties;
 import com.aiassistant.config.RateLimitFilter;
+import com.aiassistant.connector.ConnectorToolRegistrar;
+import com.aiassistant.connector.DataConnector;
+import com.aiassistant.connector.InformatConnector;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
@@ -99,9 +103,49 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ToolRegistry toolRegistry(ObjectProvider<List<ToolDefinition>> toolDefs) {
+    public ToolRegistry toolRegistry(ObjectProvider<List<ToolDefinition>> toolDefs,
+                                     ObjectProvider<List<DataConnector>> connectorProvider,
+                                     AiAssistantProperties properties) {
         List<ToolDefinition> defs = toolDefs.getIfAvailable();
-        return new ToolRegistry(defs != null ? defs : List.of());
+        ToolRegistry registry = new ToolRegistry(defs != null ? defs : List.of());
+
+        List<DataConnector> connectors = connectorProvider.getIfAvailable();
+        if (connectors != null) {
+            for (DataConnector connector : connectors) {
+                ConnectorToolRegistrar.register(connector, registry);
+            }
+        }
+
+        List<ConnectorProperties> cfgConnectors = properties.getConnectors();
+        if (cfgConnectors != null) {
+            java.util.Set<String> registeredIds = new java.util.HashSet<>();
+            if (connectors != null) {
+                connectors.forEach(c -> registeredIds.add(c.id()));
+            }
+            for (ConnectorProperties cfg : cfgConnectors) {
+                if (registeredIds.contains(cfg.resolveId())) continue;
+                DataConnector connector = createConnectorFromConfig(cfg);
+                if (connector != null) {
+                    ConnectorToolRegistrar.register(connector, registry);
+                }
+            }
+        }
+
+        return registry;
+    }
+
+    private DataConnector createConnectorFromConfig(ConnectorProperties cfg) {
+        if ("informat".equalsIgnoreCase(cfg.getType())) {
+            if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
+                    || cfg.getAppId() == null || cfg.getAppId().isBlank()) {
+                return null;
+            }
+            return new InformatConnector(
+                    cfg.resolveId(), cfg.resolveDisplayName(),
+                    cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
+                    cfg.getTimeoutSeconds());
+        }
+        return null;
     }
 
     @Configuration

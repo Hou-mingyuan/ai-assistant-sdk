@@ -38,6 +38,9 @@ public class AiAssistantProperties {
     private int rateLimit = 0;
     private java.util.Map<String, Integer> rateLimitPerAction;
 
+    // ── Data Connectors ─────────────────────────────────────────────
+    private List<ConnectorProperties> connectors;
+
     // ── WebSocket / Headless ─────────────────────────────────────────
     private boolean websocketEnabled = false;
 
@@ -258,6 +261,9 @@ public class AiAssistantProperties {
     public void setChatMaxTotalChars(int v) { chat.setMaxTotalChars(v); }
     public int getChatHistoryMaxChars() { return chat.getHistoryMaxChars(); }
     public void setChatHistoryMaxChars(int v) { chat.setHistoryMaxChars(v); }
+
+    public List<ConnectorProperties> getConnectors() { return connectors; }
+    public void setConnectors(List<ConnectorProperties> connectors) { this.connectors = connectors; }
 
     public List<String> getAllowedModels() { return allowedModels; }
     public void setAllowedModels(List<String> allowedModels) { this.allowedModels = allowedModels; }
