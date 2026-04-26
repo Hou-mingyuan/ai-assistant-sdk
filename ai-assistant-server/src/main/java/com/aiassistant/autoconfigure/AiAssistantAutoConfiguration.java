@@ -9,6 +9,8 @@ import com.aiassistant.config.RateLimitFilter;
 import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
 import com.aiassistant.connector.InformatConnector;
+import com.aiassistant.connector.JdbcConnector;
+import com.aiassistant.connector.RestApiConnector;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
@@ -135,17 +137,49 @@ public class AiAssistantAutoConfiguration {
     }
 
     private DataConnector createConnectorFromConfig(ConnectorProperties cfg) {
-        if ("informat".equalsIgnoreCase(cfg.getType())) {
-            if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
-                    || cfg.getAppId() == null || cfg.getAppId().isBlank()) {
-                return null;
+        String type = cfg.getType() != null ? cfg.getType().toLowerCase(java.util.Locale.ROOT) : "";
+        return switch (type) {
+            case "informat" -> {
+                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
+                        || cfg.getAppId() == null || cfg.getAppId().isBlank()) yield null;
+                yield new InformatConnector(
+                        cfg.resolveId(), cfg.resolveDisplayName(),
+                        cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
+                        cfg.getTimeoutSeconds());
             }
-            return new InformatConnector(
-                    cfg.resolveId(), cfg.resolveDisplayName(),
-                    cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
-                    cfg.getTimeoutSeconds());
+            case "rest" -> {
+                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()) yield null;
+                yield new RestApiConnector(
+                        cfg.resolveId(), cfg.resolveDisplayName(),
+                        cfg.getBaseUrl(), null, null, null,
+                        cfg.resolveHeaders(), cfg.getTimeoutSeconds());
+            }
+            default -> null;
+        };
+    }
+
+    @Configuration
+    @ConditionalOnClass(name = "javax.sql.DataSource")
+    static class JdbcConnectorAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(name = "jdbcDataConnector")
+        @ConditionalOnProperty(prefix = "ai-assistant", name = "connectors[0].type", havingValue = "jdbc")
+        public DataConnector jdbcDataConnector(
+                ObjectProvider<javax.sql.DataSource> dataSourceProvider,
+                AiAssistantProperties properties) {
+            javax.sql.DataSource ds = dataSourceProvider.getIfAvailable();
+            if (ds == null) return null;
+            List<ConnectorProperties> cfgs = properties.getConnectors();
+            if (cfgs == null) return null;
+            for (ConnectorProperties cfg : cfgs) {
+                if ("jdbc".equalsIgnoreCase(cfg.getType())) {
+                    return new JdbcConnector(
+                            cfg.resolveId(), cfg.resolveDisplayName(),
+                            ds, cfg.resolveAllowedTables(), cfg.getSchema());
+                }
+            }
+            return null;
         }
-        return null;
     }
 
     @Configuration

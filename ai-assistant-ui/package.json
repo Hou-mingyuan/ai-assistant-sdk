@@ -11,6 +11,10 @@
       "require": "./dist/ai-assistant.umd.js",
       "types": "./dist/index.d.ts"
     },
+    "./wc": {
+      "import": "./dist/ai-assistant-wc.mjs",
+      "require": "./dist/ai-assistant-wc.umd.js"
+    },
     "./dist/style.css": "./dist/style.css"
   },
   "sideEffects": [
@@ -23,6 +27,7 @@
     "dev": "vite",
     "build": "vite build && vue-tsc --declaration --emitDeclarationOnly --outDir dist",
     "build:lib": "vite build",
+    "build:wc": "cross-env BUILD_TARGET=wc vite build",
     "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist",
     "preview": "vite preview",
     "test": "vitest run"
@@ -39,6 +44,7 @@
   "devDependencies": {
     "@types/marked": "^6.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
+    "cross-env": "^10.1.0",
     "terser": "^5.46.1",
     "typescript": "^5.4.0",
     "vite": "^5.2.0",

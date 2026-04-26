@@ -17,20 +17,26 @@ package com.aiassistant.config;
  */
 public class ConnectorProperties {
 
-    /** Connector type: "informat", "jdbc", "rest" (only informat is supported now). */
+    /** Connector type: "informat", "jdbc", "rest". */
     private String type = "informat";
     /** Unique connector instance id (defaults to type). */
     private String id;
     /** Human-readable name shown to the LLM. */
     private String displayName;
-    /** Base URL for the data source API. */
+    /** Base URL for the data source API (informat / rest). */
     private String baseUrl;
     /** Application ID (for Informat-type connectors). */
     private String appId;
-    /** Authentication token for the data source. */
+    /** Authentication token for the data source (informat / rest). */
     private String token;
     /** Request timeout in seconds. */
     private int timeoutSeconds = 30;
+    /** Restrict exposed tables (jdbc), comma-separated. Empty = all. */
+    private String tables;
+    /** Database schema to inspect (jdbc). Null = default. */
+    private String schema;
+    /** Extra headers as key=value pairs, comma-separated (rest). */
+    private String headers;
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
@@ -52,6 +58,37 @@ public class ConnectorProperties {
 
     public int getTimeoutSeconds() { return timeoutSeconds; }
     public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
+
+    public String getTables() { return tables; }
+    public void setTables(String tables) { this.tables = tables; }
+
+    public String getSchema() { return schema; }
+    public void setSchema(String schema) { this.schema = schema; }
+
+    public String getHeaders() { return headers; }
+    public void setHeaders(String headers) { this.headers = headers; }
+
+    public java.util.Set<String> resolveAllowedTables() {
+        if (tables == null || tables.isBlank()) return java.util.Set.of();
+        java.util.Set<String> set = new java.util.LinkedHashSet<>();
+        for (String t : tables.split(",")) {
+            String trimmed = t.trim();
+            if (!trimmed.isEmpty()) set.add(trimmed);
+        }
+        return set;
+    }
+
+    public java.util.Map<String, String> resolveHeaders() {
+        if (headers == null || headers.isBlank()) return java.util.Map.of();
+        java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
+        for (String pair : headers.split(",")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                map.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());
+            }
+        }
+        return map;
+    }
 
     public String resolveId() {
         return id != null && !id.isBlank() ? id : type;
