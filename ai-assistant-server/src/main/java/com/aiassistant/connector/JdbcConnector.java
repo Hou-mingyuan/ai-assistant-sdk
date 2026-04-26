@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * DataConnector backed by a JDBC DataSource.
@@ -21,6 +23,10 @@ public class JdbcConnector implements DataConnector {
     private final DataSource dataSource;
     private final Set<String> allowedTablesLower;
     private final String schema;
+
+    private static final int MAX_CONCURRENT_QUERIES = 5;
+    private static final int QUERY_TIMEOUT_SECONDS = 30;
+    private final Semaphore querySemaphore = new Semaphore(MAX_CONCURRENT_QUERIES);
 
     private volatile List<ModuleInfo> cachedModules;
     private volatile long cacheExpiry = 0;
@@ -105,6 +111,27 @@ public class JdbcConnector implements DataConnector {
             return new QueryResult(List.of(), 0, filter.pageIndex(), filter.pageSize());
         }
 
+        boolean acquired = false;
+        try {
+            acquired = querySemaphore.tryAcquire(QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted waiting for query semaphore on {}", moduleId);
+            return new QueryResult(List.of(), 0, filter.pageIndex(), filter.pageSize());
+        }
+        if (!acquired) {
+            log.warn("Query semaphore exhausted for {} (max={})", moduleId, MAX_CONCURRENT_QUERIES);
+            return new QueryResult(List.of(), 0, filter.pageIndex(), filter.pageSize());
+        }
+
+        try {
+            return executeQuery(moduleId, filter);
+        } finally {
+            querySemaphore.release();
+        }
+    }
+
+    private QueryResult executeQuery(String moduleId, QueryFilter filter) {
         StringBuilder sql = new StringBuilder("SELECT * FROM ").append(quoteIdentifier(moduleId));
         List<Object> params = new ArrayList<>();
 
@@ -146,6 +173,7 @@ public class JdbcConnector implements DataConnector {
         int total = 0;
         try (Connection conn = dataSource.getConnection()) {
             try (PreparedStatement countStmt = conn.prepareStatement(countSql.toString())) {
+                countStmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
                 for (int i = 0; i < countParams.size(); i++) {
                     countStmt.setObject(i + 1, countParams.get(i));
                 }
@@ -155,6 +183,7 @@ public class JdbcConnector implements DataConnector {
             }
 
             try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
                 for (int i = 0; i < params.size(); i++) {
                     stmt.setObject(i + 1, params.get(i));
                 }
@@ -250,11 +279,18 @@ public class JdbcConnector implements DataConnector {
         OFFSET_FETCH
     }
 
+    private static final java.util.regex.Pattern SAFE_IDENTIFIER =
+            java.util.regex.Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,127}$");
+
     /**
-     * Simple identifier quoting to prevent SQL injection via column/table names.
-     * Uses double-quote which is ANSI SQL standard.
+     * Validates and quotes a SQL identifier. Rejects names that contain
+     * anything beyond alphanumerics and underscores to prevent injection
+     * even if quoting is somehow bypassed.
      */
     private static String quoteIdentifier(String name) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException("Unsafe SQL identifier rejected: " + name);
+        }
         return "\"" + name.replace("\"", "\"\"") + "\"";
     }
 }

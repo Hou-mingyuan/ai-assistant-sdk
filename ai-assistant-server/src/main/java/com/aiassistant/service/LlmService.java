@@ -13,10 +13,15 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +47,18 @@ public class LlmService {
     private final AtomicInteger keyIndex = new AtomicInteger(0);
     private final ConcurrentHashMap<String, Long> keyCooldown = new ConcurrentHashMap<>();
     private static final long KEY_COOLDOWN_MS = 30_000;
+
+    private static final int LLM_CACHE_MAX = 500;
+    private static final long LLM_CACHE_TTL_MS = 300_000; // 5 min
+    private final Map<String, LlmCacheEntry> llmCache = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, LlmCacheEntry> eldest) {
+            return size() > LLM_CACHE_MAX || eldest.getValue().isExpired();
+        }
+    };
+    private record LlmCacheEntry(String result, long expiresAt) {
+        boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
+    }
 
     /** 与翻译模式、流式翻译、文件翻译共用：走同一 LLM，强调口语化、地道表达 */
     private static final Map<String, String> TRANSLATE_PROMPTS = Map.of(
@@ -106,11 +123,32 @@ public class LlmService {
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
+        String cacheKey = llmCacheKey("translate:" + targetLang, text);
+        LlmCacheEntry cached = llmCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) return cached.result();
+        String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
+        llmCache.put(cacheKey, new LlmCacheEntry(result, System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+        return result;
     }
 
     public String summarize(String text) {
-        return callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+        String cacheKey = llmCacheKey("summarize", text);
+        LlmCacheEntry cached = llmCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) return cached.result();
+        String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+        llmCache.put(cacheKey, new LlmCacheEntry(result, System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+        return result;
+    }
+
+    private static String llmCacheKey(String operation, String text) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(operation.getBytes(StandardCharsets.UTF_8));
+            md.update(text.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(md.digest());
+        } catch (Exception e) {
+            return operation + ":" + text.hashCode();
+        }
     }
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
@@ -334,6 +372,7 @@ public class LlmService {
         }
 
         Flux<String> flux = chatCompletionClient.completeStream(body, key)
+                .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
                 .doOnError(e -> markKeyFailed(key));
         if (meterRegistry == null) {
             return flux;

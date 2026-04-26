@@ -14,6 +14,7 @@ import com.aiassistant.connector.RestApiConnector;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
+import com.aiassistant.controller.ConnectorHealthController;
 import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.SessionController;
 import com.aiassistant.controller.StatsController;
@@ -142,17 +143,21 @@ public class AiAssistantAutoConfiguration {
             case "informat" -> {
                 if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
                         || cfg.getAppId() == null || cfg.getAppId().isBlank()) yield null;
-                yield new InformatConnector(
+                InformatConnector ic = new InformatConnector(
                         cfg.resolveId(), cfg.resolveDisplayName(),
                         cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
                         cfg.getTimeoutSeconds());
+                ic.setMaskedFieldNames(cfg.resolveMaskedFields());
+                yield ic;
             }
             case "rest" -> {
                 if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()) yield null;
-                yield new RestApiConnector(
+                RestApiConnector rc = new RestApiConnector(
                         cfg.resolveId(), cfg.resolveDisplayName(),
                         cfg.getBaseUrl(), null, null, null,
                         cfg.resolveHeaders(), cfg.getTimeoutSeconds());
+                rc.setMaskedFieldNames(cfg.resolveMaskedFields());
+                yield rc;
             }
             default -> null;
         };
@@ -230,6 +235,13 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public StatsController statsController(UsageStats usageStats) {
         return new StatsController(usageStats);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ConnectorHealthController connectorHealthController(
+            ObjectProvider<List<DataConnector>> connectorProvider) {
+        return new ConnectorHealthController(connectorProvider.getIfAvailable());
     }
 
     @Bean

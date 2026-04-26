@@ -37,6 +37,8 @@ public class ConnectorProperties {
     private String schema;
     /** Extra headers as key=value pairs, comma-separated (rest). */
     private String headers;
+    /** Sensitive field names to mask before sending to LLM, comma-separated. */
+    private String maskedFields;
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
@@ -67,6 +69,19 @@ public class ConnectorProperties {
 
     public String getHeaders() { return headers; }
     public void setHeaders(String headers) { this.headers = headers; }
+
+    public String getMaskedFields() { return maskedFields; }
+    public void setMaskedFields(String maskedFields) { this.maskedFields = maskedFields; }
+
+    public java.util.Set<String> resolveMaskedFields() {
+        if (maskedFields == null || maskedFields.isBlank()) return java.util.Set.of();
+        java.util.Set<String> set = new java.util.LinkedHashSet<>();
+        for (String f : maskedFields.split(",")) {
+            String trimmed = f.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!trimmed.isEmpty()) set.add(trimmed);
+        }
+        return java.util.Set.copyOf(set);
+    }
 
     public java.util.Set<String> resolveAllowedTables() {
         if (tables == null || tables.isBlank()) return java.util.Set.of();

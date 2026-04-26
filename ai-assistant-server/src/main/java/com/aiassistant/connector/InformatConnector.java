@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import reactor.util.retry.Retry;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -38,6 +40,12 @@ public class InformatConnector implements DataConnector {
     private final WebClient webClient;
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private java.util.Set<String> maskedFields = java.util.Set.of();
+
+    private static final int MAX_RETRIES = 2;
+    private static final Duration RETRY_MIN_BACKOFF = Duration.ofMillis(500);
+    private static final Duration RETRY_MAX_BACKOFF = Duration.ofSeconds(5);
+
     private final ConcurrentHashMap<String, List<ModuleInfo>> moduleCache = new ConcurrentHashMap<>();
     private volatile long moduleCacheExpiry = 0;
     private static final long CACHE_TTL_MS = 300_000; // 5 min
@@ -59,15 +67,13 @@ public class InformatConnector implements DataConnector {
         log.info("InformatConnector initialized: id={}, baseUrl={}, appId={}", this.connectorId, this.baseUrl, appId);
     }
 
-    @Override
-    public String id() {
-        return connectorId;
+    public void setMaskedFieldNames(java.util.Set<String> fields) {
+        this.maskedFields = fields != null ? fields : java.util.Set.of();
     }
 
-    @Override
-    public String displayName() {
-        return displayName;
-    }
+    @Override public java.util.Set<String> maskedFieldNames() { return maskedFields; }
+    @Override public String id() { return connectorId; }
+    @Override public String displayName() { return displayName; }
 
     @Override
     public List<ModuleInfo> listModules() {
@@ -197,11 +203,16 @@ public class InformatConnector implements DataConnector {
         return webClient.get()
                 .uri(path)
                 .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                .onStatus(status -> status.is4xxClientError(),
                         resp -> resp.bodyToMono(String.class)
                                 .map(body -> new RuntimeException(
                                         "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                .onStatus(status -> status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new RetryableException(
+                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
+                .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
     }
 
@@ -210,12 +221,36 @@ public class InformatConnector implements DataConnector {
                 .uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                .onStatus(status -> status.is4xxClientError(),
                         resp -> resp.bodyToMono(String.class)
                                 .map(body -> new RuntimeException(
                                         "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                .onStatus(status -> status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new RetryableException(
+                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
+                .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+    }
+
+    private Retry retrySpec(String context) {
+        return Retry.backoff(MAX_RETRIES, RETRY_MIN_BACKOFF)
+                .maxBackoff(RETRY_MAX_BACKOFF)
+                .filter(RetryableException::isRetryable)
+                .doBeforeRetry(sig -> log.warn("Retry #{} for {}: {}",
+                        sig.totalRetries() + 1, context, sig.failure().getMessage()));
+    }
+
+    static class RetryableException extends RuntimeException {
+        RetryableException(String message) { super(message); }
+        static boolean isRetryable(Throwable t) {
+            if (t instanceof RetryableException) return true;
+            String name = t.getClass().getName();
+            return name.contains("ConnectException")
+                    || name.contains("SocketTimeoutException")
+                    || name.contains("WebClientRequestException");
+        }
     }
 
     /**

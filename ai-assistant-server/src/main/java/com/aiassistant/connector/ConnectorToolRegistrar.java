@@ -9,8 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -26,22 +25,31 @@ public class ConnectorToolRegistrar {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorToolRegistrar.class);
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final long QUERY_CACHE_TTL_MS = 30_000; // 30 seconds
+    private static final int QUERY_CACHE_MAX = 200;
 
     public static void register(DataConnector connector, ToolRegistry registry) {
-        String prefix = sanitize(connector.id());
-        String label = connector.displayName();
-
-        registry.register(listModulesTool(prefix, label, connector));
-        registry.register(getSchemaTool(prefix, label, connector));
-        registry.register(queryDataTool(prefix, label, connector));
-
-        log.info("Registered 3 tools for connector '{}' (prefix={})", label, prefix);
+        register(connector, registry, "zh");
     }
 
-    private static ToolDefinition listModulesTool(String prefix, String label, DataConnector connector) {
+    public static void register(DataConnector connector, ToolRegistry registry, String locale) {
+        String prefix = sanitize(connector.id());
+        String label = connector.displayName();
+        boolean en = "en".equalsIgnoreCase(locale);
+
+        registry.register(listModulesTool(prefix, label, connector, en));
+        registry.register(getSchemaTool(prefix, label, connector, en));
+        registry.register(queryDataTool(prefix, label, connector, en));
+
+        log.info("Registered 3 tools for connector '{}' (prefix={}, locale={})", label, prefix, locale);
+    }
+
+    private static ToolDefinition listModulesTool(String prefix, String label,
+                                                     DataConnector connector, boolean en) {
         String name = prefix + "_list_modules";
-        String desc = "列出 " + label + " 中所有可用的数据模块/表。"
-                + "当用户提到某个业务模块时，先调用此工具查找对应的 moduleId。";
+        String desc = en
+                ? "List all available modules/tables in " + label + ". Call this first when the user mentions a business module to find the moduleId."
+                : "列出 " + label + " 中所有可用的数据模块/表。当用户提到某个业务模块时，先调用此工具查找对应的 moduleId。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -63,10 +71,12 @@ public class ConnectorToolRegistrar {
         };
     }
 
-    private static ToolDefinition getSchemaTool(String prefix, String label, DataConnector connector) {
+    private static ToolDefinition getSchemaTool(String prefix, String label,
+                                                   DataConnector connector, boolean en) {
         String name = prefix + "_get_schema";
-        String desc = "获取 " + label + " 中指定数据表的字段结构（字段名称、标识符、类型）。"
-                + "在查询数据之前必须先调用此工具了解表结构，以便构造正确的过滤条件。";
+        String desc = en
+                ? "Get the field schema (field names, IDs, types) of a specific table in " + label + ". Must be called before query_data to understand the table structure."
+                : "获取 " + label + " 中指定数据表的字段结构（字段名称、标识符、类型）。在查询数据之前必须先调用此工具了解表结构，以便构造正确的过滤条件。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -98,11 +108,12 @@ public class ConnectorToolRegistrar {
         };
     }
 
-    private static ToolDefinition queryDataTool(String prefix, String label, DataConnector connector) {
+    private static ToolDefinition queryDataTool(String prefix, String label,
+                                                   DataConnector connector, boolean en) {
         String name = prefix + "_query_data";
-        String desc = "从 " + label + " 的指定数据表中查询记录。"
-                + "支持字段过滤（等于、大于、包含等）、排序和分页。"
-                + "先用 get_schema 获取字段结构，再用正确的 fieldId 构造条件。";
+        String desc = en
+                ? "Query records from a table in " + label + ". Supports field filtering (eq, gt, contains, etc.), sorting, and pagination. Use get_schema first to learn the field structure."
+                : "从 " + label + " 的指定数据表中查询记录。支持字段过滤（等于、大于、包含等）、排序和分页。先用 get_schema 获取字段结构，再用正确的 fieldId 构造条件。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -180,14 +191,32 @@ public class ConnectorToolRegistrar {
 
                 DataConnector.QueryFilter filter = new DataConnector.QueryFilter(
                         conditions, pageIndex, pageSize, orderBy);
+
+                String ck = cacheKey(connector.id(), moduleId, filter);
+                CacheEntry cached = queryCache.get(ck);
+                if (cached != null && !cached.isExpired()) {
+                    return cached.json();
+                }
+
                 DataConnector.QueryResult result = connector.queryData(moduleId, filter);
 
-                return mapper.writeValueAsString(java.util.Map.of(
-                        "records", result.records(),
+                List<Map<String, Object>> records = result.records();
+                java.util.Set<String> masked = connector.maskedFieldNames();
+                if (!masked.isEmpty() && !records.isEmpty()) {
+                    records = maskRecords(records, masked);
+                }
+
+                String json = mapper.writeValueAsString(java.util.Map.of(
+                        "records", records,
                         "total", result.total(),
                         "pageIndex", result.pageIndex(),
                         "pageSize", result.pageSize()
                 ));
+
+                evictExpired();
+                queryCache.put(ck, new CacheEntry(json,
+                        System.currentTimeMillis() + QUERY_CACHE_TTL_MS));
+                return json;
             }
         };
     }
@@ -205,6 +234,49 @@ public class ConnectorToolRegistrar {
             return list;
         }
         return node.toString();
+    }
+
+    private static List<Map<String, Object>> maskRecords(
+            List<Map<String, Object>> records, Set<String> maskedFields) {
+        List<Map<String, Object>> result = new ArrayList<>(records.size());
+        for (Map<String, Object> row : records) {
+            Map<String, Object> masked = new LinkedHashMap<>(row);
+            for (Map.Entry<String, Object> entry : masked.entrySet()) {
+                if (maskedFields.contains(entry.getKey().toLowerCase(Locale.ROOT))
+                        && entry.getValue() != null) {
+                    String val = String.valueOf(entry.getValue());
+                    entry.setValue(maskValue(val));
+                }
+            }
+            result.add(masked);
+        }
+        return result;
+    }
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, CacheEntry> queryCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private record CacheEntry(String json, long expiresAt) {
+        boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
+    }
+
+    private static String cacheKey(String connectorId, String moduleId,
+                                   DataConnector.QueryFilter filter) {
+        return connectorId + "|" + moduleId + "|" + filter.pageIndex()
+                + "|" + filter.pageSize() + "|" + filter.conditions()
+                + "|" + filter.orderByList();
+    }
+
+    private static void evictExpired() {
+        if (queryCache.size() > QUERY_CACHE_MAX) {
+            queryCache.entrySet().removeIf(e -> e.getValue().isExpired());
+        }
+    }
+
+    private static String maskValue(String value) {
+        if (value.length() <= 2) return "**";
+        if (value.length() <= 6) return value.charAt(0) + "****" + value.charAt(value.length() - 1);
+        return value.substring(0, 3) + "****" + value.substring(value.length() - 3);
     }
 
     private static String sanitize(String id) {

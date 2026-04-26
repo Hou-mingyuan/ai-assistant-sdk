@@ -1,9 +1,26 @@
+version: "3.9"
+
 services:
-  demo:
+  ai-assistant:
     build: .
     ports:
       - "8080:8080"
     environment:
       - AI_ASSISTANT_API_KEY=${AI_ASSISTANT_API_KEY}
-      - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-deepseek}
+      - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-openai}
+      - AI_ASSISTANT_BASE_URL=${AI_ASSISTANT_BASE_URL:-https://api.openai.com}
+      - SPRING_DATA_REDIS_HOST=redis
+    depends_on:
+      - redis
     restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+volumes:
+  redis-data:

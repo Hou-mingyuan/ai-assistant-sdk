@@ -2,51 +2,60 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  frontend:
+  backend:
+    name: Backend (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ai-assistant-ui
+    strategy:
+      matrix:
+        java: [17]
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
+
+      - name: Compile
+        run: mvn -B compile -f ai-assistant-server/pom.xml
+
+      - name: Test
+        run: mvn -B test -f ai-assistant-server/pom.xml
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: ai-assistant-ui/package-lock.json
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test -- --run
-      - run: npm run build
 
-  docs:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run build
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ai-assistant-ui
 
-  backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ai-assistant-server
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: maven
-      - run: mvn -B verify -DskipITs
+      - name: Lint & Type check
+        run: npm run build:lib
+        working-directory: ai-assistant-ui
+
+      - name: Test
+        run: npm test
+        working-directory: ai-assistant-ui
+
+      - name: Build Web Component
+        run: npm run build:wc
+        working-directory: ai-assistant-ui

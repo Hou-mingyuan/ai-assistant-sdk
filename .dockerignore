@@ -1,0 +1,8 @@
+.git
+.gitignore
+*.md
+node_modules
+ai-assistant-ui/node_modules
+ai-assistant-ui/dist
+.idea
+*.iml

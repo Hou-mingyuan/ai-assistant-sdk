@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "AI Assistant", description = "Chat, translate, summarize via LLM")
 public class AiAssistantController {
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantController.class);

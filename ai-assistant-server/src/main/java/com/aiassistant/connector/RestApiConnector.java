@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import reactor.util.retry.Retry;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -34,6 +36,12 @@ public class RestApiConnector implements DataConnector {
     private final int timeoutSeconds;
     private final WebClient webClient;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private java.util.Set<String> maskedFields = java.util.Set.of();
+
+    private static final int MAX_RETRIES = 2;
+    private static final Duration RETRY_MIN_BACKOFF = Duration.ofMillis(500);
+    private static final Duration RETRY_MAX_BACKOFF = Duration.ofSeconds(5);
 
     /**
      * @param connectorId   unique connector id
@@ -70,6 +78,11 @@ public class RestApiConnector implements DataConnector {
         log.info("RestApiConnector initialized: id={}, baseUrl={}", this.connectorId, url);
     }
 
+    public void setMaskedFieldNames(java.util.Set<String> fields) {
+        this.maskedFields = fields != null ? fields : java.util.Set.of();
+    }
+
+    @Override public java.util.Set<String> maskedFieldNames() { return maskedFields; }
     @Override public String id() { return connectorId; }
     @Override public String displayName() { return displayName; }
 
@@ -162,11 +175,16 @@ public class RestApiConnector implements DataConnector {
     private String get(String path) {
         return webClient.get().uri(path)
                 .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                .onStatus(status -> status.is4xxClientError(),
                         resp -> resp.bodyToMono(String.class)
                                 .map(body -> new RuntimeException(
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
+                .onStatus(status -> status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new InformatConnector.RetryableException(
+                                        "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
+                .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
     }
 
@@ -174,12 +192,25 @@ public class RestApiConnector implements DataConnector {
         return webClient.post().uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
-                .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                .onStatus(status -> status.is4xxClientError(),
                         resp -> resp.bodyToMono(String.class)
                                 .map(body -> new RuntimeException(
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
+                .onStatus(status -> status.is5xxServerError(),
+                        resp -> resp.bodyToMono(String.class)
+                                .map(body -> new InformatConnector.RetryableException(
+                                        "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
+                .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+    }
+
+    private Retry retrySpec(String context) {
+        return Retry.backoff(MAX_RETRIES, RETRY_MIN_BACKOFF)
+                .maxBackoff(RETRY_MAX_BACKOFF)
+                .filter(InformatConnector.RetryableException::isRetryable)
+                .doBeforeRetry(sig -> log.warn("Retry #{} for {}: {}",
+                        sig.totalRetries() + 1, context, sig.failure().getMessage()));
     }
 
     private static String truncate(String s, int max) {

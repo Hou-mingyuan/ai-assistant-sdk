@@ -24,6 +24,12 @@ public interface DataConnector {
     /** Query data from a module / table with optional filters. */
     QueryResult queryData(String moduleId, QueryFilter filter);
 
+    /**
+     * Field names (case-insensitive) whose values should be masked before
+     * returning to the LLM. Override to provide connector-specific masks.
+     */
+    default java.util.Set<String> maskedFieldNames() { return java.util.Set.of(); }
+
     // ── Value objects ──────────────────────────────────────────────────
 
     record ModuleInfo(String id, String name, String type) {}

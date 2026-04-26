@@ -7,8 +7,7 @@
  *
  * Works in Vue 2, React, Angular, vanilla HTML — no framework dependency at runtime.
  */
-import { createApp, reactive, type App } from 'vue'
-import AiAssistant from './components/AiAssistant.vue'
+import type { App } from 'vue'
 import type { AiAssistantOptions } from './index'
 
 const ATTR_MAP: Record<string, keyof AiAssistantOptions> = {
@@ -56,7 +55,7 @@ class AiAssistantElement extends HTMLElement {
   }
 
   connectedCallback() {
-    this._mount()
+    this._mountLazy()
   }
 
   disconnectedCallback() {
@@ -70,17 +69,37 @@ class AiAssistantElement extends HTMLElement {
     }
   }
 
-  private _mount() {
+  private async _mountLazy() {
     this._mountEl = document.createElement('div')
     this._mountEl.setAttribute('data-ai-assistant-wc', '')
     this.appendChild(this._mountEl)
+
+    const [{ createApp, reactive }, { default: AiAssistant }] = await Promise.all([
+      import('vue'),
+      import('./components/AiAssistant.vue'),
+    ])
+
+    if (!this.isConnected) return
 
     this._options = reactive({ ...DEFAULT_OPTIONS }) as AiAssistantOptions
     this._syncOptions()
 
     this._app = createApp(AiAssistant)
     this._app.provide('ai-assistant-options', this._options)
+    this._app.provide('ai-assistant-events', {
+      emit: (name: string, detail?: unknown) => this._dispatch(name, detail),
+    })
     this._app.mount(this._mountEl)
+
+    this._dispatch('ready')
+  }
+
+  private _dispatch(name: string, detail?: unknown) {
+    this.dispatchEvent(new CustomEvent(`ai-assistant:${name}`, {
+      bubbles: true,
+      composed: true,
+      detail,
+    }))
   }
 
   private _unmount() {
