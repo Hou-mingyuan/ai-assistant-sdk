@@ -7,7 +7,7 @@
  *
  * Works in Vue 2, React, Angular, vanilla HTML — no framework dependency at runtime.
  */
-import { createApp, type App } from 'vue'
+import { createApp, reactive, type App } from 'vue'
 import AiAssistant from './components/AiAssistant.vue'
 import type { AiAssistantOptions } from './index'
 
@@ -33,9 +33,23 @@ const BOOLEAN_ATTRS = new Set([
 
 const INT_ATTRS = new Set(['max-messages'])
 
+const DEFAULT_OPTIONS: AiAssistantOptions = {
+  baseUrl: '/ai-assistant',
+  primaryColor: '#6366f1',
+  position: 'bottom-right',
+  theme: 'light',
+  persistHistory: false,
+  locale: 'en',
+  maxMessagesInMemory: 200,
+  showSystemPromptEditor: true,
+  showModelPicker: true,
+  autoMountToBody: false,
+}
+
 class AiAssistantElement extends HTMLElement {
   private _app: App | null = null
   private _mountEl: HTMLDivElement | null = null
+  private _options: AiAssistantOptions | null = null
 
   static get observedAttributes() {
     return Object.keys(ATTR_MAP)
@@ -49,10 +63,10 @@ class AiAssistantElement extends HTMLElement {
     this._unmount()
   }
 
-  attributeChangedCallback() {
-    if (this._app) {
-      this._unmount()
-      this._mount()
+  attributeChangedCallback(_name: string, oldVal: string | null, newVal: string | null) {
+    if (oldVal === newVal) return
+    if (this._options) {
+      this._syncOptions()
     }
   }
 
@@ -61,10 +75,11 @@ class AiAssistantElement extends HTMLElement {
     this._mountEl.setAttribute('data-ai-assistant-wc', '')
     this.appendChild(this._mountEl)
 
-    const options = this._resolveOptions()
+    this._options = reactive({ ...DEFAULT_OPTIONS }) as AiAssistantOptions
+    this._syncOptions()
 
     this._app = createApp(AiAssistant)
-    this._app.provide('ai-assistant-options', options)
+    this._app.provide('ai-assistant-options', this._options)
     this._app.mount(this._mountEl)
   }
 
@@ -77,37 +92,26 @@ class AiAssistantElement extends HTMLElement {
       this._mountEl.remove()
       this._mountEl = null
     }
+    this._options = null
   }
 
-  private _resolveOptions(): AiAssistantOptions {
-    const opts: Record<string, unknown> = {
-      baseUrl: '/ai-assistant',
-      primaryColor: '#6366f1',
-      position: 'bottom-right',
-      theme: 'light',
-      persistHistory: false,
-      locale: 'en',
-      maxMessagesInMemory: 200,
-      showSystemPromptEditor: true,
-      showModelPicker: true,
-      autoMountToBody: false,
-    }
+  private _syncOptions() {
+    if (!this._options) return
+    const target = this._options as Record<string, unknown>
 
     for (const [attr, prop] of Object.entries(ATTR_MAP)) {
       const val = this.getAttribute(attr)
       if (val === null) continue
 
       if (BOOLEAN_ATTRS.has(attr)) {
-        opts[prop] = val !== 'false' && val !== '0'
+        target[prop] = val !== 'false' && val !== '0'
       } else if (INT_ATTRS.has(attr)) {
         const num = parseInt(val, 10)
-        if (!isNaN(num)) opts[prop] = num
+        if (!isNaN(num)) target[prop] = num
       } else {
-        opts[prop] = val
+        target[prop] = val
       }
     }
-
-    return opts as AiAssistantOptions
   }
 }
 

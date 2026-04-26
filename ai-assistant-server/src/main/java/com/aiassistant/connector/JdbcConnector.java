@@ -19,12 +19,13 @@ public class JdbcConnector implements DataConnector {
     private final String connectorId;
     private final String displayName;
     private final DataSource dataSource;
-    private final Set<String> allowedTables;
+    private final Set<String> allowedTablesLower;
     private final String schema;
 
     private volatile List<ModuleInfo> cachedModules;
     private volatile long cacheExpiry = 0;
     private static final long CACHE_TTL_MS = 600_000; // 10 min
+    private volatile PaginationDialect dialect;
 
     /**
      * @param connectorId unique id
@@ -38,10 +39,13 @@ public class JdbcConnector implements DataConnector {
         this.connectorId = connectorId != null ? connectorId : "db";
         this.displayName = displayName != null ? displayName : "Database";
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
-        this.allowedTables = allowedTables != null ? allowedTables : Set.of();
+        Set<String> raw = allowedTables != null ? allowedTables : Set.of();
+        Set<String> lower = new HashSet<>(raw.size());
+        for (String t : raw) lower.add(t.toLowerCase(Locale.ROOT));
+        this.allowedTablesLower = Set.copyOf(lower);
         this.schema = schema;
         log.info("JdbcConnector initialized: id={}, schema={}, allowedTables={}",
-                this.connectorId, schema, this.allowedTables.isEmpty() ? "ALL" : this.allowedTables);
+                this.connectorId, schema, this.allowedTablesLower.isEmpty() ? "ALL" : this.allowedTablesLower);
     }
 
     @Override public String id() { return connectorId; }
@@ -59,7 +63,7 @@ public class JdbcConnector implements DataConnector {
                 while (rs.next()) {
                     String tableName = rs.getString("TABLE_NAME");
                     String tableType = rs.getString("TABLE_TYPE");
-                    if (!allowedTables.isEmpty() && allowedTables.stream().noneMatch(t -> t.equalsIgnoreCase(tableName))) {
+                    if (!allowedTablesLower.isEmpty() && !allowedTablesLower.contains(tableName.toLowerCase(Locale.ROOT))) {
                         continue;
                     }
                     String remarks = rs.getString("REMARKS");
@@ -124,25 +128,46 @@ public class JdbcConnector implements DataConnector {
         }
 
         int offset = (filter.pageIndex() - 1) * filter.pageSize();
-        sql.append(" LIMIT ? OFFSET ?");
-        params.add(filter.pageSize());
-        params.add(offset);
+        appendPagination(sql, params, filter.pageSize(), offset);
+
+        StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM ").append(quoteIdentifier(moduleId));
+        List<Object> countParams = new ArrayList<>();
+        if (filter.conditions() != null && !filter.conditions().isEmpty()) {
+            countSql.append(" WHERE ");
+            List<String> countClauses = new ArrayList<>();
+            for (QueryFilter.Condition c : filter.conditions()) {
+                String clause = buildCondition(c, countParams);
+                if (clause != null) countClauses.add(clause);
+            }
+            countSql.append(String.join(" AND ", countClauses));
+        }
 
         List<Map<String, Object>> records = new ArrayList<>();
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                stmt.setObject(i + 1, params.get(i));
+        int total = 0;
+        try (Connection conn = dataSource.getConnection()) {
+            try (PreparedStatement countStmt = conn.prepareStatement(countSql.toString())) {
+                for (int i = 0; i < countParams.size(); i++) {
+                    countStmt.setObject(i + 1, countParams.get(i));
+                }
+                try (ResultSet crs = countStmt.executeQuery()) {
+                    if (crs.next()) total = crs.getInt(1);
+                }
             }
-            try (ResultSet rs = stmt.executeQuery()) {
-                ResultSetMetaData rsMeta = rs.getMetaData();
-                int colCount = rsMeta.getColumnCount();
-                while (rs.next()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= colCount; i++) {
-                        row.put(rsMeta.getColumnLabel(i), rs.getObject(i));
+
+            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                for (int i = 0; i < params.size(); i++) {
+                    stmt.setObject(i + 1, params.get(i));
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    ResultSetMetaData rsMeta = rs.getMetaData();
+                    int colCount = rsMeta.getColumnCount();
+                    while (rs.next()) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        for (int i = 1; i <= colCount; i++) {
+                            row.put(rsMeta.getColumnLabel(i), rs.getObject(i));
+                        }
+                        records.add(row);
                     }
-                    records.add(row);
                 }
             }
         } catch (SQLException e) {
@@ -150,12 +175,12 @@ public class JdbcConnector implements DataConnector {
             return new QueryResult(List.of(), 0, filter.pageIndex(), filter.pageSize());
         }
 
-        return new QueryResult(records, records.size(), filter.pageIndex(), filter.pageSize());
+        return new QueryResult(records, total, filter.pageIndex(), filter.pageSize());
     }
 
     private boolean isTableAllowed(String tableName) {
-        if (allowedTables.isEmpty()) return true;
-        return allowedTables.stream().anyMatch(t -> t.equalsIgnoreCase(tableName));
+        if (allowedTablesLower.isEmpty()) return true;
+        return allowedTablesLower.contains(tableName.toLowerCase(Locale.ROOT));
     }
 
     private String buildCondition(QueryFilter.Condition c, List<Object> params) {
@@ -183,6 +208,46 @@ public class JdbcConnector implements DataConnector {
             }
             default -> { params.add(c.value()); yield col + " = ?"; }
         };
+    }
+
+    private void appendPagination(StringBuilder sql, List<Object> params, int limit, int offset) {
+        PaginationDialect d = resolveDialect();
+        switch (d) {
+            case LIMIT_OFFSET -> {
+                sql.append(" LIMIT ? OFFSET ?");
+                params.add(limit);
+                params.add(offset);
+            }
+            case OFFSET_FETCH -> {
+                if (!sql.toString().toUpperCase(Locale.ROOT).contains("ORDER BY")) {
+                    sql.append(" ORDER BY 1");
+                }
+                sql.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+                params.add(offset);
+                params.add(limit);
+            }
+        }
+    }
+
+    private PaginationDialect resolveDialect() {
+        if (dialect != null) return dialect;
+        try (Connection conn = dataSource.getConnection()) {
+            String product = conn.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+            if (product.contains("oracle") || product.contains("sql server") || product.contains("microsoft")) {
+                dialect = PaginationDialect.OFFSET_FETCH;
+            } else {
+                dialect = PaginationDialect.LIMIT_OFFSET;
+            }
+        } catch (SQLException e) {
+            log.warn("Could not detect DB dialect, defaulting to LIMIT/OFFSET: {}", e.getMessage());
+            dialect = PaginationDialect.LIMIT_OFFSET;
+        }
+        return dialect;
+    }
+
+    private enum PaginationDialect {
+        LIMIT_OFFSET,
+        OFFSET_FETCH
     }
 
     /**
