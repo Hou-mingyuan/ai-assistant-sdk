@@ -8,7 +8,7 @@ const isWC = process.env.BUILD_TARGET === 'wc'
 export default defineConfig({
   plugins: [vue()],
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
   },
   build: isWC

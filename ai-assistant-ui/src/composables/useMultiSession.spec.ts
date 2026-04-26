@@ -1,11 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useMultiSession } from './useMultiSession'
 
 const STORAGE_KEY = 'ai-test-sessions'
 
 describe('useMultiSession', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     localStorage.removeItem(STORAGE_KEY)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('creates initial session on first load', () => {
@@ -72,6 +77,7 @@ describe('useMultiSession', () => {
     const ms = useMultiSession(STORAGE_KEY)
     ms.updateActiveTitle('Persisted')
     ms.saveSessions()
+    vi.advanceTimersByTime(500)
     const raw = localStorage.getItem(STORAGE_KEY)
     expect(raw).toContain('Persisted')
   })

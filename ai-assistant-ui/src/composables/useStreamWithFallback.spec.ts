@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useStreamWithFallback } from './useStreamWithFallback'
 
 vi.mock('../utils/api', () => ({
@@ -22,6 +22,10 @@ async function collectAsync(gen: AsyncGenerator<string>): Promise<string[]> {
 }
 
 describe('useStreamWithFallback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('uses SSE by default', async () => {
     async function* fakeStream() { yield 'hello'; yield ' world' }
     mockedStreamChat.mockReturnValue(fakeStream())
