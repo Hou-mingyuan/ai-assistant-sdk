@@ -97,13 +97,16 @@ public class RagService {
 
     static List<String> chunkText(String text, int chunkSize, int overlap) {
         if (text == null || text.isBlank()) return List.of();
+        int safeOverlap = Math.max(0, Math.min(overlap, chunkSize - 1));
+        int step = chunkSize - safeOverlap;
+        if (step <= 0) step = chunkSize;
         List<String> chunks = new ArrayList<>();
         int length = text.length();
         int start = 0;
         while (start < length) {
             int end = Math.min(start + chunkSize, length);
             chunks.add(text.substring(start, end).trim());
-            start += chunkSize - overlap;
+            start += step;
         }
         return chunks.stream().filter(s -> !s.isEmpty()).toList();
     }

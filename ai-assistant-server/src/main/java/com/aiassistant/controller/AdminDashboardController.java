@@ -67,11 +67,14 @@ public class AdminDashboardController {
     }
 
     @PostMapping("/tokens/quota")
-    public Map<String, Object> setQuota(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> setQuota(@RequestBody Map<String, Object> body) {
         String tenantId = (String) body.get("tenantId");
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "tenantId is required"));
+        }
         long limit = ((Number) body.getOrDefault("dailyLimit", 0)).longValue();
         tokenTracker.setQuota(tenantId, limit);
-        return Map.of("success", true, "tenantId", tenantId, "dailyLimit", limit);
+        return ResponseEntity.ok(Map.of("success", true, "tenantId", tenantId, "dailyLimit", limit));
     }
 
     @GetMapping("/prompts")
@@ -120,13 +123,16 @@ public class AdminDashboardController {
     }
 
     @PostMapping("/ab-test")
-    public Map<String, Object> configureABTest(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> configureABTest(@RequestBody Map<String, Object> body) {
         String name = (String) body.get("name");
         String modelA = (String) body.get("modelA");
         String modelB = (String) body.get("modelB");
+        if (name == null || modelA == null || modelB == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "name, modelA, modelB are required"));
+        }
         int percentA = ((Number) body.getOrDefault("percentA", 50)).intValue();
         modelRouter.configureABTest(name, modelA, modelB, percentA);
-        return Map.of("success", true, "test", name);
+        return ResponseEntity.ok(Map.of("success", true, "test", name));
     }
 
     @GetMapping("/ab-test")
