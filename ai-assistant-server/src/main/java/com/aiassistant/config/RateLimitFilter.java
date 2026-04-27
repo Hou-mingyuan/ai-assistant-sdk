@@ -87,8 +87,13 @@ public class RateLimitFilter implements Filter {
         }
         RateEntry entry = counters.computeIfAbsent(clientKey, k -> new RateEntry());
 
-        if (!entry.tryAcquire(effectiveLimit)) {
-            HttpServletResponse response = (HttpServletResponse) res;
+        RateEntry.AcquireResult ar = entry.tryAcquireWithInfo(effectiveLimit);
+        HttpServletResponse response = (HttpServletResponse) res;
+        response.setIntHeader("X-RateLimit-Limit", effectiveLimit);
+        response.setIntHeader("X-RateLimit-Remaining", Math.max(0, effectiveLimit - ar.count()));
+        response.setHeader("X-RateLimit-Reset", String.valueOf(ar.windowResetEpochSeconds()));
+
+        if (!ar.allowed()) {
             response.setStatus(429);
             response.setContentType("application/json;charset=UTF-8");
             objectMapper.writeValue(response.getOutputStream(),
@@ -130,17 +135,20 @@ public class RateLimitFilter implements Filter {
         private int count;
         volatile long windowStart = System.currentTimeMillis();
 
-        synchronized boolean tryAcquire(int max) {
+        record AcquireResult(boolean allowed, int count, long windowResetEpochSeconds) {}
+
+        synchronized AcquireResult tryAcquireWithInfo(int max) {
             long now = System.currentTimeMillis();
             if (now - windowStart > 60_000) {
                 count = 0;
                 windowStart = now;
             }
+            long resetEpoch = (windowStart + 60_000) / 1000;
             if (count >= max) {
-                return false;
+                return new AcquireResult(false, count, resetEpoch);
             }
             count++;
-            return true;
+            return new AcquireResult(true, count, resetEpoch);
         }
     }
 }

@@ -284,6 +284,42 @@ public class AiAssistantAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.controller.AsyncTaskController asyncTaskController(LlmService llmService, UsageStats usageStats) {
+        return new com.aiassistant.controller.AsyncTaskController(llmService, usageStats);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.connector.ConnectorHealthScheduler connectorHealthScheduler(
+            ObjectProvider<List<DataConnector>> connectorProvider) {
+        var sched = new com.aiassistant.connector.ConnectorHealthScheduler(
+                connectorProvider.getIfAvailable(), 60_000);
+        sched.start();
+        return sched;
+    }
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public FilterRegistrationBean<com.aiassistant.config.TenantFilter> aiAssistantTenantFilter(AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.TenantFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new com.aiassistant.config.TenantFilter(properties.getContextPath()));
+        registration.addUrlPatterns(properties.getContextPath() + "/*");
+        registration.setOrder(-2);
+        return registration;
+    }
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter> aiAssistantSseCompressionFilter(AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new com.aiassistant.config.SseCompressionFilter(properties.getContextPath()));
+        registration.addUrlPatterns(properties.getContextPath() + "/*");
+        registration.setOrder(-3);
+        return registration;
+    }
+
+    @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     public FilterRegistrationBean<com.aiassistant.config.RequestIdFilter> aiAssistantRequestIdFilter(AiAssistantProperties properties) {
         FilterRegistrationBean<com.aiassistant.config.RequestIdFilter> registration = new FilterRegistrationBean<>();

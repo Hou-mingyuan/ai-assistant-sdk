@@ -131,7 +131,11 @@ public class LlmService {
     }
 
     private void markKeyFailed(String key) {
-        keyCooldown.put(key, System.currentTimeMillis() + KEY_COOLDOWN_MS);
+        long until = System.currentTimeMillis() + KEY_COOLDOWN_MS;
+        keyCooldown.put(key, until);
+        String masked = key.length() > 8 ? key.substring(0, 4) + "****" + key.substring(key.length() - 4) : "****";
+        int active = apiKeys.size() - keyCooldown.size();
+        log.warn("api.key.cooldown key={} cooldownUntil={} activeKeys={}/{}", masked, until, Math.max(0, active), apiKeys.size());
     }
 
     public String translate(String text, String targetLang) {
