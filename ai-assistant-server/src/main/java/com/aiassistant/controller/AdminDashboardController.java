@@ -72,7 +72,14 @@ public class AdminDashboardController {
         if (tenantId == null || tenantId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "tenantId is required"));
         }
-        long limit = ((Number) body.getOrDefault("dailyLimit", 0)).longValue();
+        Object rawLimit = body.getOrDefault("dailyLimit", 0);
+        if (!(rawLimit instanceof Number)) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "dailyLimit must be a number"));
+        }
+        long limit = ((Number) rawLimit).longValue();
+        if (limit < 0) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "dailyLimit must be >= 0"));
+        }
         tokenTracker.setQuota(tenantId, limit);
         return ResponseEntity.ok(Map.of("success", true, "tenantId", tenantId, "dailyLimit", limit));
     }
@@ -86,14 +93,14 @@ public class AdminDashboardController {
     }
 
     @PostMapping("/prompts")
-    public Map<String, Object> createPrompt(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, Object>> createPrompt(@RequestBody Map<String, String> body) {
         String name = body.get("name");
         String template = body.get("template");
         if (name == null || template == null) {
-            return Map.of("success", false, "error", "name and template required");
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "name and template required"));
         }
         promptRegistry.register(new PromptTemplate(name, template));
-        return Map.of("success", true, "name", name);
+        return ResponseEntity.ok(Map.of("success", true, "name", name));
     }
 
     @GetMapping("/tools")
@@ -124,13 +131,17 @@ public class AdminDashboardController {
 
     @PostMapping("/ab-test")
     public ResponseEntity<Map<String, Object>> configureABTest(@RequestBody Map<String, Object> body) {
-        String name = (String) body.get("name");
-        String modelA = (String) body.get("modelA");
-        String modelB = (String) body.get("modelB");
+        String name = body.get("name") instanceof String s ? s : null;
+        String modelA = body.get("modelA") instanceof String s ? s : null;
+        String modelB = body.get("modelB") instanceof String s ? s : null;
         if (name == null || modelA == null || modelB == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "name, modelA, modelB are required"));
         }
-        int percentA = ((Number) body.getOrDefault("percentA", 50)).intValue();
+        Object rawPercent = body.getOrDefault("percentA", 50);
+        int percentA = rawPercent instanceof Number n ? n.intValue() : 50;
+        if (percentA < 0 || percentA > 100) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "percentA must be 0-100"));
+        }
         modelRouter.configureABTest(name, modelA, modelB, percentA);
         return ResponseEntity.ok(Map.of("success", true, "test", name));
     }

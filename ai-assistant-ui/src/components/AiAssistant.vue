@@ -42,12 +42,14 @@
     >
       <div
         v-if="isOpen"
+        ref="panelRef"
         :id="uid + '-panel'"
         class="ai-panel"
         :style="panelStyle"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="uid + '-title'"
+        @keydown="trapFocus"
       >
         <div class="ai-panel-resize-overlay" aria-hidden="true">
           <div
@@ -129,6 +131,7 @@
               type="button"
               class="ai-plugin-btn"
               :title="pl.label"
+              :aria-label="pl.label"
               @click.stop="runPlugin(pl)"
             >{{ pl.icon || pl.label.charAt(0) }}</button>
             <button
@@ -179,6 +182,8 @@
           :sessions="multiSessions.sessions.value"
           :active-id="multiSessions.activeSessionId.value"
           :new-label="t.newSession"
+          :tab-list-label="t.chatSessions"
+          :close-label="t.closeSession"
           @switch="switchToSession"
           @delete="deleteSessionTab"
         />
@@ -241,9 +246,9 @@
           <div v-if="messages.length === 0" class="ai-empty">
             <p>{{ t.greeting }}</p>
             <div class="ai-quick-actions">
-              <button @click="setMode('translate')">{{ t.translate }}</button>
-              <button @click="setMode('summarize')">{{ t.summarize }}</button>
-              <button @click="setMode('chat')">{{ t.chat }}</button>
+              <button type="button" @click="setMode('translate')">{{ t.translate }}</button>
+              <button type="button" @click="setMode('summarize')">{{ t.summarize }}</button>
+              <button type="button" @click="setMode('chat')">{{ t.chat }}</button>
             </div>
             <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
               <button
@@ -358,6 +363,7 @@
           <button
             v-for="m in modes"
             :key="m.value"
+            type="button"
             :class="{ active: mode === m.value }"
             :aria-pressed="mode === m.value ? 'true' : 'false'"
             @click="setMode(m.value)"
@@ -385,8 +391,8 @@
         <!-- Input -->
         <div class="ai-footer">
           <div v-if="pendingImageThumb" class="ai-pending-image">
-            <img :src="pendingImageThumb" alt="Pending image" class="ai-pending-image-thumb" />
-            <button type="button" class="ai-pending-image-remove" @click="clearPendingImage" aria-label="Remove">&times;</button>
+            <img :src="pendingImageThumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
+            <button type="button" class="ai-pending-image-remove" @click="clearPendingImage" :aria-label="t.removeImage">&times;</button>
           </div>
           <div class="ai-footer-input-row">
             <textarea
@@ -407,6 +413,7 @@
               />
               <button
                 v-if="mode !== 'chat'"
+                type="button"
                 class="ai-upload"
                 :disabled="loading"
                 @click="fileInputRef?.click()"
@@ -423,6 +430,7 @@
                 type="button"
                 class="ai-plugin-btn"
                 :title="pl.label"
+                :aria-label="pl.label"
                 :disabled="loading"
                 @click="runPlugin(pl)"
               >{{ pl.icon || pl.label.charAt(0) }}</button>
@@ -629,9 +637,20 @@ const t = computed(() => getMessages((options.locale || 'en') as Locale))
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options)
 
 const wrapperRef = ref<HTMLElement>()
+const systemDarkRef = ref(window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false)
+let darkMediaCleanup: (() => void) | null = null
+onMounted(() => {
+  const mql = window.matchMedia?.('(prefers-color-scheme: dark)')
+  if (mql) {
+    const handler = (e: MediaQueryListEvent) => { systemDarkRef.value = e.matches }
+    mql.addEventListener('change', handler)
+    darkMediaCleanup = () => mql.removeEventListener('change', handler)
+  }
+})
+onUnmounted(() => { darkMediaCleanup?.() })
 const isDark = computed(() => {
   if (options.theme === 'dark') return true
-  if (options.theme === 'auto') return window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  if (options.theme === 'auto') return systemDarkRef.value
   return false
 })
 const isOpen = ref(false)
@@ -730,9 +749,11 @@ const { msgCtxMenu, inlineTranslatePopover, closeMsgCtxMenu, onBubbleContextMenu
 } = msgCtxComposable
 
 const bodyRef = ref<HTMLElement>()
+const panelRef = ref<HTMLElement>()
 const fileInputRef = ref<HTMLInputElement>()
 const dragActive = ref(false)
 let dragCounter = 0
+const pendingTimers: number[] = []
 const pendingImageData = ref<string | null>(null)
 const pendingImageThumb = ref<string | null>(null)
 
@@ -1232,7 +1253,7 @@ function handleBodyClick(e: MouseEvent) {
     const code = pre?.querySelector('code')?.textContent || ''
     navigator.clipboard.writeText(code).then(() => {
       target.textContent = t.value.codeCopied
-      setTimeout(() => { target.textContent = t.value.copyCode }, 1500)
+      pendingTimers.push(window.setTimeout(() => { target.textContent = t.value.copyCode }, 1500))
     })
   }
 }
@@ -1322,7 +1343,7 @@ async function copyMessage(text: string, globalIdx: number) {
   try {
     await navigator.clipboard.writeText(text)
     copiedIndex.value = globalIdx
-    setTimeout(() => { copiedIndex.value = -1 }, 1500)
+    pendingTimers.push(window.setTimeout(() => { copiedIndex.value = -1 }, 1500))
   } catch {}
 }
 
@@ -1563,7 +1584,7 @@ async function send() {
       messages.value[msgIndex] = { role: 'assistant', content: `${t.value.errorPrefix}: ${e.message}` }
     }
     reportAssistantError('send', String(e?.message ?? e))
-    emit('error', e.message)
+    emit('error', String(e?.message ?? 'Unknown error'))
     scrollToBottom(false)
   } finally {
     streamAbortController = null
@@ -1596,7 +1617,7 @@ async function processFileUpload(file: File) {
     messages.value.push({ role: 'assistant', content: `${t.value.errorPrefix}: ${e.message}` })
     scrollToBottom(true)
     reportAssistantError('file-upload', String(e?.message ?? e))
-    emit('error', e.message)
+    emit('error', String(e?.message ?? 'Unknown error'))
   } finally {
     loading.value = false
     scrollToBottom(false)
@@ -1654,15 +1675,44 @@ watch(() => messages.value.length, () => {
   saveHistory()
 })
 
+function trapFocus(e: KeyboardEvent) {
+  if (e.key !== 'Tab' || !panelRef.value) return
+  const focusable = panelRef.value.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
+}
+
 function matchesToggleShortcut(e: KeyboardEvent): boolean {
   const shortcut = options.toggleShortcut
   if (shortcut === false) return false
-  const key = shortcut || '/'
-  if (e.key !== key.replace(/^(Ctrl|Meta|Alt|Shift)\+/i, '')) return false
+  const raw = shortcut || '/'
+  const parts = raw.split('+')
+  const mainKey = parts[parts.length - 1]
+  if (e.key !== mainKey && e.key.toLowerCase() !== mainKey.toLowerCase()) return false
+  const modifiers = parts.slice(0, -1).map(m => m.toLowerCase())
   const isMac = navigator.platform?.startsWith('Mac') || navigator.userAgent?.includes('Mac')
-  const needCtrl = !isMac
-  const needMeta = isMac
-  return (needCtrl ? e.ctrlKey : e.metaKey) && !e.shiftKey && !e.altKey
+  const needCtrl = modifiers.includes('ctrl') || (!modifiers.some(m => m === 'meta') && !isMac)
+  const needMeta = modifiers.includes('meta') || (!modifiers.some(m => m === 'ctrl') && isMac)
+  const needShift = modifiers.includes('shift')
+  const needAlt = modifiers.includes('alt')
+  return (needCtrl ? e.ctrlKey : !e.ctrlKey || isMac)
+      && (needMeta ? e.metaKey : !e.metaKey || !isMac)
+      && needShift === e.shiftKey
+      && needAlt === e.altKey
 }
 
 function onEscKeydown(e: KeyboardEvent) {
@@ -1739,6 +1789,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  pendingTimers.forEach(clearTimeout)
+  pendingTimers.length = 0
   streamAbortController?.abort()
   streamAbortController = null
   detachInlinePopLayoutListeners()

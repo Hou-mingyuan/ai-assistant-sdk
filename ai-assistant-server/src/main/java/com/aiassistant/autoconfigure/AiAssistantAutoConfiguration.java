@@ -376,7 +376,7 @@ public class AiAssistantAutoConfiguration {
         return new com.aiassistant.controller.AsyncTaskController(llmService, usageStats);
     }
 
-    @Bean
+    @Bean(destroyMethod = "stop")
     @ConditionalOnMissingBean
     public com.aiassistant.connector.ConnectorHealthScheduler connectorHealthScheduler(
             ObjectProvider<List<DataConnector>> connectorProvider) {

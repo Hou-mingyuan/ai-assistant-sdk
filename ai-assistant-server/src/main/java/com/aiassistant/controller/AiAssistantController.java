@@ -62,6 +62,10 @@ public class AiAssistantController {
             };
             usageStats.recordCall(action);
             return ResponseEntity.ok(ChatResponse.ok(result));
+        } catch (LlmService.QuotaExceededException e) {
+            usageStats.recordError();
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(ChatResponse.fail("QUOTA_EXCEEDED", e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("POST /chat failed", e);

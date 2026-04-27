@@ -127,11 +127,12 @@ class AdminDashboardControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void createPrompt_addsNewTemplate() {
-        Map<String, Object> result = controller.createPrompt(
+        ResponseEntity<Map<String, Object>> resp = controller.createPrompt(
                 Map.of("name", "custom", "template", "Hello {{user}}"));
 
-        assertTrue((boolean) result.get("success"));
-        assertEquals("custom", result.get("name"));
+        assertEquals(200, resp.getStatusCode().value());
+        assertTrue((boolean) resp.getBody().get("success"));
+        assertEquals("custom", resp.getBody().get("name"));
 
         Map<String, Object> prompts = controller.listPrompts();
         assertTrue(prompts.containsKey("custom"));
@@ -141,8 +142,9 @@ class AdminDashboardControllerTest {
 
     @Test
     void createPrompt_missingFields_returnsError() {
-        Map<String, Object> result = controller.createPrompt(Map.of("name", "incomplete"));
-        assertFalse((boolean) result.get("success"));
+        ResponseEntity<Map<String, Object>> resp = controller.createPrompt(Map.of("name", "incomplete"));
+        assertEquals(400, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
     }
 
     @Test

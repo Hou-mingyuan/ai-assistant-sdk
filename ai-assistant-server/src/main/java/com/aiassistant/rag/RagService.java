@@ -41,6 +41,11 @@ public class RagService {
         if (chunks.isEmpty()) return 0;
 
         List<float[]> embeddings = embeddingProvider.embedBatch(chunks);
+        if (embeddings == null || embeddings.size() != chunks.size()) {
+            log.error("Embedding count mismatch: expected {} but got {}", chunks.size(),
+                    embeddings == null ? 0 : embeddings.size());
+            throw new RuntimeException("Embedding count mismatch for document: " + docId);
+        }
         List<VectorStore.Document> docs = new ArrayList<>();
         for (int i = 0; i < chunks.size(); i++) {
             String chunkId = docId + "#" + i;

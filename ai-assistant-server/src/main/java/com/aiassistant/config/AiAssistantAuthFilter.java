@@ -38,7 +38,7 @@ public class AiAssistantAuthFilter implements Filter {
             return;
         }
 
-        if (path.equals(contextPath + "/health")) {
+        if (path.equals(contextPath + "/health") && !"true".equals(request.getParameter("deep"))) {
             chain.doFilter(req, res);
             return;
         }

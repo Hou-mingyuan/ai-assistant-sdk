@@ -64,10 +64,18 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
                     .block();
 
             JsonNode root = mapper.readTree(response);
-            ArrayNode data = (ArrayNode) root.get("data");
+            JsonNode dataNode = root.get("data");
+            if (dataNode == null || !dataNode.isArray()) {
+                throw new RuntimeException("Embedding API returned unexpected format: missing 'data' array");
+            }
+            ArrayNode data = (ArrayNode) dataNode;
             List<float[]> result = new ArrayList<>();
             for (JsonNode item : data) {
-                ArrayNode embedding = (ArrayNode) item.get("embedding");
+                JsonNode embeddingNode = item.get("embedding");
+                if (embeddingNode == null || !embeddingNode.isArray()) {
+                    throw new RuntimeException("Embedding API returned invalid item: missing 'embedding' array");
+                }
+                ArrayNode embedding = (ArrayNode) embeddingNode;
                 float[] vec = new float[embedding.size()];
                 for (int i = 0; i < embedding.size(); i++) {
                     vec[i] = (float) embedding.get(i).asDouble();

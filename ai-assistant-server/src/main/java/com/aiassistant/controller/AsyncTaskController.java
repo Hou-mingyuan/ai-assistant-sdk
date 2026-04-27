@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import com.aiassistant.config.TenantContext;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -51,6 +52,11 @@ public class AsyncTaskController {
         this.usageStats = usageStats;
     }
 
+    @jakarta.annotation.PreDestroy
+    void shutdown() {
+        executor.shutdownNow();
+    }
+
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> submitChat(@RequestBody Map<String, Object> body) {
         evictExpiredTasks();
@@ -68,7 +74,9 @@ public class AsyncTaskController {
         TaskEntry entry = new TaskEntry(taskId);
         tasks.put(taskId, entry);
 
+        var tenantInfo = TenantContext.get();
         executor.submit(() -> {
+            if (tenantInfo != null) TenantContext.set(tenantInfo);
             try {
                 String result = llmService.chat(text);
                 entry.complete(result);
@@ -82,6 +90,8 @@ public class AsyncTaskController {
                 if (webhookUrl != null) {
                     sendWebhook(webhookUrl, taskId, null, e.getMessage());
                 }
+            } finally {
+                TenantContext.clear();
             }
         });
 

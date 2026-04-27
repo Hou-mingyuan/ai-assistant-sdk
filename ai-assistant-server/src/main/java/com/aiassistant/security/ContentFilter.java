@@ -48,6 +48,7 @@ public class ContentFilter {
      * Filter input text: detect injection and optionally mask PII.
      */
     public FilterResult filterInput(String text) {
+        if (text == null) return new FilterResult(null, List.of(), false);
         List<String> warnings = new ArrayList<>();
 
         if (injectionDetectionEnabled) {
@@ -68,6 +69,7 @@ public class ContentFilter {
      * Filter output text: mask PII in LLM responses.
      */
     public String filterOutput(String text) {
+        if (text == null) return null;
         return piiMaskingEnabled ? maskPii(text) : text;
     }
 

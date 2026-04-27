@@ -69,18 +69,16 @@ public class LlmService {
     private record LlmCacheEntry(byte[] compressed, long expiresAt) {
         boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
         String decompress() {
-            try {
-                var bais = new java.io.ByteArrayInputStream(compressed);
-                var gzis = new java.util.zip.GZIPInputStream(bais);
+            try (var bais = new java.io.ByteArrayInputStream(compressed);
+                 var gzis = new java.util.zip.GZIPInputStream(bais)) {
                 return new String(gzis.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             } catch (Exception e) { return ""; }
         }
         static byte[] compress(String text) {
-            try {
-                var baos = new java.io.ByteArrayOutputStream();
-                var gzos = new java.util.zip.GZIPOutputStream(baos);
+            try (var baos = new java.io.ByteArrayOutputStream();
+                 var gzos = new java.util.zip.GZIPOutputStream(baos)) {
                 gzos.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                gzos.close();
+                gzos.finish();
                 return baos.toByteArray();
             } catch (Exception e) { return text.getBytes(java.nio.charset.StandardCharsets.UTF_8); }
         }
@@ -156,6 +154,7 @@ public class LlmService {
     }
 
     public String translate(String text, String targetLang) {
+        checkQuota();
         String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
                 targetLang,
                 "You are a skilled translator. Translate the following into natural, idiomatic "
@@ -164,16 +163,19 @@ public class LlmService {
         String cacheKey = llmCacheKey("translate:" + targetLang, text);
         LlmCacheEntry cached = llmCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) return cached.decompress();
-        String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
+        String modelId = resolveModelWithRouter(null, "translate");
+        String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
         llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
         return result;
     }
 
     public String summarize(String text) {
+        checkQuota();
         String cacheKey = llmCacheKey("summarize", text);
         LlmCacheEntry cached = llmCache.get(cacheKey);
         if (cached != null && !cached.isExpired()) return cached.decompress();
-        String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+        String modelId = resolveModelWithRouter(null, "summarize");
+        String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null);
         llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
         return result;
     }
@@ -194,7 +196,8 @@ public class LlmService {
         checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
         prompt = enrichWithRag(prompt, userMessage);
-        String modelId = resolveModelWithRouter(requestModel, "chat");
+        int estTokens = estimateTokens(prompt, userMessage, history);
+        String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
         return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
@@ -208,16 +211,20 @@ public class LlmService {
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
+        checkQuota();
         String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
                 targetLang,
                 "You are a skilled translator. Translate the following into natural, idiomatic "
                         + targetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
-        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
+        String modelId = resolveModelWithRouter(null, "translate");
+        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
     }
 
     public Flux<String> summarizeStream(String text) {
-        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
+        checkQuota();
+        String modelId = resolveModelWithRouter(null, "summarize");
+        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null);
     }
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
@@ -225,7 +232,8 @@ public class LlmService {
         checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
         prompt = enrichWithRag(prompt, userMessage);
-        String modelId = resolveModelWithRouter(requestModel, "chat");
+        int estTokens = estimateTokens(prompt, userMessage, history);
+        String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
         return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
@@ -261,8 +269,15 @@ public class LlmService {
         ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId, imageData);
         String key = nextApiKey();
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
+        String rawResponse;
         try {
-            String rawResponse = chatCompletionClient.completeRaw(body, key);
+            rawResponse = chatCompletionClient.completeRaw(body, key);
+        } catch (RuntimeException e) {
+            markKeyFailed(key);
+            if (sample != null) sample.stop(completionTimer(operation, "error"));
+            throw e;
+        }
+        try {
             recordTokenUsage(rawResponse, modelId);
             String result = processToolCallingLoop(body, rawResponse, key);
             if (contentFilter != null) {
@@ -271,7 +286,6 @@ public class LlmService {
             if (sample != null) sample.stop(completionTimer(operation, "success"));
             return result;
         } catch (RuntimeException e) {
-            markKeyFailed(key);
             if (sample != null) sample.stop(completionTimer(operation, "error"));
             throw e;
         }
@@ -281,12 +295,14 @@ public class LlmService {
         if (toolRegistry == null || toolRegistry.isEmpty()) {
             return parseContentFromRaw(rawResponse);
         }
+        String modelId = body.path("model").asText("");
         for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
             JsonNode root;
             try {
                 root = objectMapper.readTree(rawResponse);
             } catch (Exception e) {
-                return rawResponse;
+                log.warn("Failed to parse LLM response in tool loop (round {}): {}", round, e.getMessage());
+                return "AI service returned an unparseable response.";
             }
             JsonNode choices = root.path("choices");
             if (!choices.isArray() || choices.isEmpty()) return parseContentFromRaw(rawResponse);
@@ -329,6 +345,7 @@ public class LlmService {
             }
 
             rawResponse = chatCompletionClient.completeRaw(body, apiKey);
+            recordTokenUsage(rawResponse, modelId);
         }
         return parseContentFromRaw(rawResponse);
     }
@@ -414,6 +431,16 @@ public class LlmService {
         return s == null ? 0 : s.length();
     }
 
+    private static int estimateTokens(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history) {
+        int chars = strLen(systemPrompt) + strLen(userMessage);
+        if (history != null) {
+            for (var item : history) {
+                if (item != null) chars += strLen(item.getContent());
+            }
+        }
+        return chars / 4;
+    }
+
     private Flux<String> callLlmStream(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
                                        String operation, String modelId, String imageData) {
         userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
@@ -421,12 +448,13 @@ public class LlmService {
         String key = nextApiKey();
 
         if (toolRegistry != null && !toolRegistry.isEmpty()) {
-            return callLlmStreamWithTools(body, key, operation);
+            return applyStreamOutputFilter(callLlmStreamWithTools(body, key, operation), modelId, operation);
         }
 
         Flux<String> flux = chatCompletionClient.completeStream(body, key)
                 .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
                 .doOnError(e -> markKeyFailed(key));
+        flux = applyStreamOutputFilter(flux, modelId, operation);
         if (meterRegistry == null) {
             return flux;
         }
@@ -435,6 +463,24 @@ public class LlmService {
             String outcome = signal == SignalType.ON_COMPLETE ? "success"
                     : signal == SignalType.ON_ERROR ? "error" : "cancel";
             sample.stop(streamTimer(operation, outcome));
+        });
+    }
+
+    private Flux<String> applyStreamOutputFilter(Flux<String> flux, String modelId, String operation) {
+        if (contentFilter == null && tokenUsageTracker == null) return flux;
+        StringBuilder fullText = new StringBuilder();
+        return flux.map(chunk -> {
+            fullText.append(chunk);
+            if (contentFilter != null) {
+                return contentFilter.filterOutput(chunk);
+            }
+            return chunk;
+        }).doOnComplete(() -> {
+            if (tokenUsageTracker != null && !fullText.isEmpty()) {
+                int estimatedCompletionTokens = fullText.length() / 4;
+                String tenantId = TenantContext.tenantId();
+                tokenUsageTracker.recordUsage(tenantId, modelId, 0, estimatedCompletionTokens);
+            }
         });
     }
 
@@ -548,11 +594,15 @@ public class LlmService {
     }
 
     private String resolveModelWithRouter(String requestModel, String operation) {
+        return resolveModelWithRouter(requestModel, operation, 0);
+    }
+
+    private String resolveModelWithRouter(String requestModel, String operation, int estimatedTokens) {
         String baseModel = properties.resolveEffectiveModel(requestModel);
         if (modelRouter == null) return baseModel;
         try {
             String tenantId = TenantContext.tenantId();
-            var decision = modelRouter.route(operation, tenantId, 0);
+            var decision = modelRouter.route(operation, tenantId, estimatedTokens);
             if (decision != null && decision.modelId() != null && !decision.modelId().isBlank()) {
                 log.debug("ModelRouter selected: {} (reason: {})", decision.modelId(), decision.reason());
                 return decision.modelId();
@@ -567,8 +617,12 @@ public class LlmService {
         if (tokenUsageTracker == null) return;
         String tenantId = TenantContext.tenantId();
         if (tokenUsageTracker.isQuotaExceeded(tenantId)) {
-            throw new RuntimeException("Token quota exceeded for tenant: " + tenantId);
+            throw new QuotaExceededException("Token quota exceeded for tenant: " + tenantId);
         }
+    }
+
+    public static class QuotaExceededException extends RuntimeException {
+        public QuotaExceededException(String message) { super(message); }
     }
 
     private void recordTokenUsage(String rawResponse, String modelId) {

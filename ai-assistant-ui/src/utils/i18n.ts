@@ -100,6 +100,10 @@ export interface I18nMessages {
   regenerate: string
   searchPrev: string
   searchNext: string
+  pendingImage: string
+  removeImage: string
+  chatSessions: string
+  closeSession: string
 }
 
 const messages: Record<string, I18nMessages> = {
@@ -183,6 +187,10 @@ const messages: Record<string, I18nMessages> = {
     regenerate: 'Regenerate',
     searchPrev: 'Previous match',
     searchNext: 'Next match',
+    pendingImage: 'Pending image',
+    removeImage: 'Remove image',
+    chatSessions: 'Chat sessions',
+    closeSession: 'Close',
   },
   zh: {
     greeting: '👋 你好！我可以帮你：',
@@ -264,6 +272,10 @@ const messages: Record<string, I18nMessages> = {
     regenerate: '重新生成',
     searchPrev: '上一个匹配',
     searchNext: '下一个匹配',
+    pendingImage: '待发送图片',
+    removeImage: '移除图片',
+    chatSessions: '会话列表',
+    closeSession: '关闭',
   },
 }
 
@@ -343,6 +355,10 @@ const ja = {
   regenerate: '再生成',
   searchPrev: '前の一致',
   searchNext: '次の一致',
+  pendingImage: '送信待ち画像',
+  removeImage: '画像を削除',
+  chatSessions: 'チャットセッション',
+  closeSession: '閉じる',
 }
 
 const ko = {
@@ -421,6 +437,10 @@ const ko = {
   regenerate: '재생성',
   searchPrev: '이전 일치',
   searchNext: '다음 일치',
+  pendingImage: '대기 중인 이미지',
+  removeImage: '이미지 제거',
+  chatSessions: '채팅 세션',
+  closeSession: '닫기',
 }
 
 messages.ja = ja satisfies I18nMessages
