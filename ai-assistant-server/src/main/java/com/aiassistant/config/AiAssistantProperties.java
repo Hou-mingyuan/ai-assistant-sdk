@@ -355,7 +355,7 @@ public class AiAssistantProperties {
         }
         return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
             case "openai"                   -> "gpt-5.4-mini";
-            case "deepseek"                 -> "deepseek-chat";
+            case "deepseek"                 -> "deepseek-v4-flash";
             case "tongyi", "qwen"           -> "qwen-plus";
             case "zhipu", "glm"             -> "glm-5.1";
             case "volcengine", "doubao"     -> "doubao-1.5-pro-32k";

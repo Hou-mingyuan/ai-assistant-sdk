@@ -449,26 +449,29 @@ ai-assistant:
 
 所有 provider 均兼容 OpenAI Chat Completions API 格式（`/v1/chat/completions`），可自由指定 `model` 和 `base-url`。
 
-| Provider | 配置值 | 默认模型 | 默认 API 地址 |
-|----------|--------|---------|---------------|
-| OpenAI | `openai` | gpt-5.4-mini | https://api.openai.com/v1 |
-| DeepSeek | `deepseek` | deepseek-chat | https://api.deepseek.com/v1 |
-| 通义千问 | `tongyi` 或 `qwen` | qwen-plus | https://dashscope.aliyuncs.com/compatible-mode/v1 |
-| 智谱/GLM | `zhipu` 或 `glm` | glm-5.1 | https://api.z.ai/api/paas/v4 |
-| 火山引擎/豆包 | `volcengine` 或 `doubao` | doubao-1.5-pro-32k | https://ark.cn-beijing.volces.com/api/v3 |
-| MiniMax | `minimax` | MiniMax-Text-01 | https://api.minimax.chat/v1 |
-| Kimi/月之暗面 | `kimi` 或 `moonshot` | moonshot-v1-auto | https://api.moonshot.cn/v1 |
-| Google Gemini | `gemini` 或 `google` | gemini-3.1-pro-preview | https://generativelanguage.googleapis.com/v1beta/openai/ |
-| SiliconFlow | `siliconflow` | deepseek-ai/DeepSeek-V3 | https://api.siliconflow.cn/v1 |
-| Groq | `groq` | llama-3.3-70b-versatile | https://api.groq.com/openai/v1 |
-| 零一万物/Yi | `yi` 或 `lingyiwanwu` | yi-lightning | https://api.lingyiwanwu.com/v1 |
-| 讯飞星火 | `spark` 或 `xunfei` | generalv3.5 | https://spark-api-open.xf-yun.com/v1 |
-| 百川智能 | `baichuan` | Baichuan4 | https://api.baichuan-ai.com/v1 |
-| 阶跃星辰 | `stepfun` | step-2-16k | https://api.stepfun.com/v1 |
-| 腾讯混元 | `hunyuan` 或 `tencent` | hunyuan-pro | https://api.hunyuan.cloud.tencent.com/v1 |
-| Ollama (本地) | `ollama` | llama3 | http://localhost:11434/v1 |
+| Provider | 配置值 | 默认模型 | 可选模型（部分） | 默认 API 地址 |
+|----------|--------|---------|-----------------|---------------|
+| OpenAI | `openai` | gpt-5.4-mini | gpt-5.5、gpt-5.5-pro、gpt-5.4、gpt-5.4-pro、gpt-5.4-nano | https://api.openai.com/v1 |
+| DeepSeek | `deepseek` | deepseek-v4-flash | deepseek-v4-pro | https://api.deepseek.com/v1 |
+| 通义千问 | `tongyi` 或 `qwen` | qwen-plus | qwen3-max、qwen3.5-plus、qwen3.5-flash、qwen3.6-plus、qwen3.6-flash | https://dashscope.aliyuncs.com/compatible-mode/v1 |
+| 智谱/GLM | `zhipu` 或 `glm` | glm-5.1 | glm-4.5、glm-4.5-air | https://api.z.ai/api/paas/v4 |
+| 火山引擎/豆包 | `volcengine` 或 `doubao` | doubao-1.5-pro-32k | 需在火山控制台创建推理接入点 | https://ark.cn-beijing.volces.com/api/v3 |
+| MiniMax | `minimax` | MiniMax-Text-01 | | https://api.minimax.chat/v1 |
+| Kimi/月之暗面 | `kimi` 或 `moonshot` | moonshot-v1-auto | moonshot-v1-8k、moonshot-v1-32k、moonshot-v1-128k | https://api.moonshot.cn/v1 |
+| Google Gemini | `gemini` 或 `google` | gemini-3.1-pro-preview | gemini-3-flash-preview、gemini-3.1-flash-lite-preview | https://generativelanguage.googleapis.com/v1beta/openai/ |
+| SiliconFlow | `siliconflow` | deepseek-ai/DeepSeek-V3 | 支持多家开源模型 | https://api.siliconflow.cn/v1 |
+| Groq | `groq` | llama-3.3-70b-versatile | | https://api.groq.com/openai/v1 |
+| 零一万物/Yi | `yi` 或 `lingyiwanwu` | yi-lightning | | https://api.lingyiwanwu.com/v1 |
+| 讯飞星火 | `spark` 或 `xunfei` | generalv3.5 | | https://spark-api-open.xf-yun.com/v1 |
+| 百川智能 | `baichuan` | Baichuan4 | | https://api.baichuan-ai.com/v1 |
+| 阶跃星辰 | `stepfun` | step-2-16k | | https://api.stepfun.com/v1 |
+| 腾讯混元 | `hunyuan` 或 `tencent` | hunyuan-pro | | https://api.hunyuan.cloud.tencent.com/v1 |
+| Ollama (本地) | `ollama` | llama3 | 取决于本地已 pull 的模型 | http://localhost:11434/v1 |
 
-> **注意**：Anthropic Claude 使用独立的 Messages API 格式（非 OpenAI 兼容），不在内置 provider 列表中。如需使用 Claude，可通过 OpenAI 兼容的代理网关（如 one-api、new-api）接入，此时 provider 设为 `openai`，`base-url` 指向代理地址即可。
+> **注意**：
+> - 默认模型仅在未配置 `ai-assistant.model` 时生效，你可以指定该厂商支持的任何模型名称。
+> - 模型名称和价格随厂商更新变动，请以各厂商官网为准。
+> - Anthropic Claude 使用独立的 Messages API 格式（非 OpenAI 兼容），不在内置 provider 列表中。如需使用 Claude，可通过 OpenAI 兼容的代理网关（如 one-api、new-api）接入，此时 provider 设为 `openai`，`base-url` 指向代理地址即可。
 
 ---
 
