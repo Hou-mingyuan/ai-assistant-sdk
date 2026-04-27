@@ -1,5 +1,6 @@
 package com.aiassistant.autoconfigure;
 
+import com.aiassistant.capability.BuiltInCapabilities;
 import com.aiassistant.config.AiAssistantAuthFilter;
 import com.aiassistant.config.AiAssistantCorsConfig;
 import com.aiassistant.config.AiAssistantProperties;
@@ -11,9 +12,14 @@ import com.aiassistant.connector.DataConnector;
 import com.aiassistant.connector.InformatConnector;
 import com.aiassistant.connector.JdbcConnector;
 import com.aiassistant.connector.RestApiConnector;
+import com.aiassistant.spi.AssistantCapability;
+import com.aiassistant.spi.ChatInterceptor;
+import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.spi.InMemoryConversationMemoryProvider;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
+import com.aiassistant.controller.CapabilityController;
 import com.aiassistant.controller.ConnectorHealthController;
 import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.SessionController;
@@ -25,6 +31,7 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
+import java.util.ArrayList;
 import java.util.List;
 import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
@@ -176,10 +183,13 @@ public class AiAssistantAutoConfiguration {
                                                  com.aiassistant.security.ContentFilter contentFilter,
                                                  com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
                                                  com.aiassistant.routing.ModelRouter modelRouter,
-                                                 ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider) {
+                                                 ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+                                                 ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
+                                                 ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
             return new LlmService(properties, urlFetchService, chatCompletionClient,
                     meterRegistryProvider.getIfAvailable(), toolRegistry,
-                    contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable());
+                    contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable(),
+                    memoryProviderProvider.getIfAvailable(), interceptorsProvider.getIfAvailable());
         }
     }
 
@@ -193,10 +203,13 @@ public class AiAssistantAutoConfiguration {
                                                com.aiassistant.security.ContentFilter contentFilter,
                                                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
                                                com.aiassistant.routing.ModelRouter modelRouter,
-                                               ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider) {
+                                               ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+                                               ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
+                                               ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
         return new LlmService(properties, urlFetchService, chatCompletionClient,
                 null, toolRegistry,
-                contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable());
+                contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable(),
+                memoryProviderProvider.getIfAvailable(), interceptorsProvider.getIfAvailable());
     }
 
     @Bean
@@ -418,6 +431,7 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnMissingClass("org.springframework.data.redis.core.StringRedisTemplate")
     public FilterRegistrationBean<RateLimitFilter> aiAssistantRateLimitFilter(AiAssistantProperties properties) {
         FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RateLimitFilter(properties));
@@ -449,5 +463,51 @@ public class AiAssistantAutoConfiguration {
         return event -> {
             Thread.ofVirtual().name("provider-connectivity-check").start(checker::check);
         };
+    }
+
+    // ── SPI: Conversation Memory ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ConversationMemoryProvider conversationMemoryProvider() {
+        return new InMemoryConversationMemoryProvider();
+    }
+
+    // ── SPI: Capabilities (translate / summarize / chat exposed as invocable) ──
+
+    @Bean
+    @ConditionalOnMissingBean(name = "builtInCapabilities")
+    public List<AssistantCapability> builtInCapabilities(LlmService llmService) {
+        List<AssistantCapability> caps = new ArrayList<>();
+        caps.add(BuiltInCapabilities.translate(llmService));
+        caps.add(BuiltInCapabilities.summarize(llmService));
+        caps.add(BuiltInCapabilities.chat(llmService));
+        return caps;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public CapabilityController capabilityController(
+            ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
+        return new CapabilityController(capabilitiesProvider.getIfAvailable());
+    }
+
+    // ── SPI: Redis distributed rate limit (auto-activate when Redis is present) ──
+
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.data.redis.core.StringRedisTemplate")
+    static class RedisRateLimitAutoConfiguration {
+        @Bean
+        @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+        @ConditionalOnProperty(prefix = "ai-assistant", name = "rate-limit-distributed", havingValue = "true", matchIfMissing = true)
+        public FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> aiAssistantRedisRateLimitFilter(
+                AiAssistantProperties properties,
+                org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+            FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> registration = new FilterRegistrationBean<>();
+            registration.setFilter(new com.aiassistant.config.RedisRateLimitFilter(properties, redisTemplate));
+            registration.addUrlPatterns(properties.getContextPath() + "/*");
+            registration.setOrder(0);
+            return registration;
+        }
     }
 }

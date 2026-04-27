@@ -10,6 +10,19 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'json-summary'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/**/*.spec.ts', 'src/**/*.d.ts', 'src/web-component.ts'],
+      thresholds: {
+        lines: 50,
+        branches: 40,
+        functions: 50,
+        statements: 50,
+      },
+    },
   },
   build: isWC
     ? {

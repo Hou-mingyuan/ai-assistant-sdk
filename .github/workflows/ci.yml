@@ -27,8 +27,25 @@ jobs:
       - name: Compile
         run: mvn -B compile -f ai-assistant-server/pom.xml
 
-      - name: Test
-        run: mvn -B test -f ai-assistant-server/pom.xml
+      - name: Spotless format check
+        run: mvn -B spotless:check -f ai-assistant-server/pom.xml
+
+      - name: Test + JaCoCo coverage
+        run: mvn -B test jacoco:report -f ai-assistant-server/pom.xml
+
+      - name: Checkstyle
+        run: mvn -B checkstyle:check -f ai-assistant-server/pom.xml
+
+      - name: Coverage gate (verify)
+        run: mvn -B verify -DskipTests -f ai-assistant-server/pom.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ai-assistant-server/target/site/jacoco/
+          retention-days: 14
 
   frontend:
     name: Frontend
@@ -48,14 +65,30 @@ jobs:
         run: npm ci
         working-directory: ai-assistant-ui
 
-      - name: Lint & Type check
+      - name: ESLint
+        run: npm run lint
+        working-directory: ai-assistant-ui
+
+      - name: Prettier format check
+        run: npm run format:check
+        working-directory: ai-assistant-ui
+
+      - name: Type check + Build
         run: npm run build:lib
         working-directory: ai-assistant-ui
 
-      - name: Test
-        run: npm test
+      - name: Test with coverage
+        run: npm run test:coverage
         working-directory: ai-assistant-ui
 
       - name: Build Web Component
         run: npm run build:wc
         working-directory: ai-assistant-ui
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: ai-assistant-ui/coverage/
+          retention-days: 14

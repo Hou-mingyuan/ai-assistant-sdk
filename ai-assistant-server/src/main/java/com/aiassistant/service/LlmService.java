@@ -2,12 +2,15 @@ package com.aiassistant.service;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.TenantContext;
+import com.aiassistant.memory.ConversationMemory;
 import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.spi.ChatInterceptor;
+import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,6 +53,8 @@ public class LlmService {
     private final TokenUsageTracker tokenUsageTracker;
     private final ModelRouter modelRouter;
     private final RagService ragService;
+    private final ConversationMemoryProvider memoryProvider;
+    private final List<ChatInterceptor> interceptors;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final int MAX_TOOL_ROUNDS = 5;
     private final List<String> apiKeys;
@@ -109,6 +114,21 @@ public class LlmService {
                         TokenUsageTracker tokenUsageTracker,
                         ModelRouter modelRouter,
                         RagService ragService) {
+        this(properties, urlFetchService, chatCompletionClient, meterRegistry, toolRegistry,
+                contentFilter, tokenUsageTracker, modelRouter, ragService, null, null);
+    }
+
+    public LlmService(AiAssistantProperties properties,
+                        UrlFetchService urlFetchService,
+                        ChatCompletionClient chatCompletionClient,
+                        MeterRegistry meterRegistry,
+                        ToolRegistry toolRegistry,
+                        ContentFilter contentFilter,
+                        TokenUsageTracker tokenUsageTracker,
+                        ModelRouter modelRouter,
+                        RagService ragService,
+                        ConversationMemoryProvider memoryProvider,
+                        List<ChatInterceptor> interceptors) {
         this.apiKeys = properties.resolveApiKeys();
         if (apiKeys.isEmpty()) {
             throw new IllegalArgumentException("ai-assistant.api-key must be configured");
@@ -122,11 +142,22 @@ public class LlmService {
         this.tokenUsageTracker = tokenUsageTracker;
         this.modelRouter = modelRouter;
         this.ragService = ragService;
+        this.memoryProvider = memoryProvider;
+        this.interceptors = interceptors != null ? interceptors : List.of();
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
-        log.info("AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}, pii={}, rag={}",
+        log.info("AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}, pii={}, rag={}, memory={}, interceptors={}",
                 properties.getProvider(), properties.resolveModel(), timeout, apiKeys.size(),
-                meterRegistry != null, contentFilter != null, ragService != null);
+                meterRegistry != null, contentFilter != null, ragService != null,
+                memoryProvider != null, this.interceptors.size());
+    }
+
+    /**
+     * Get the ConversationMemory for a session, or null if memory is not enabled.
+     */
+    public ConversationMemory getMemory(String sessionId) {
+        if (memoryProvider == null || sessionId == null || sessionId.isBlank()) return null;
+        return memoryProvider.getMemory(sessionId);
     }
 
     private String nextApiKey() {
@@ -193,12 +224,27 @@ public class LlmService {
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
                        String requestModel, String imageData) {
+        return chat(userMessage, history, requestSystemPrompt, requestModel, imageData, null);
+    }
+
+    public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
+                       String requestModel, String imageData, String sessionId) {
         checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        prompt = enrichWithMemory(prompt, sessionId);
         prompt = enrichWithRag(prompt, userMessage);
         int estTokens = estimateTokens(prompt, userMessage, history);
         String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
-        return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
+
+        ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
+                "chat", userMessage, prompt, modelId, TenantContext.tenantId(), history, new java.util.HashMap<>());
+        ctx = runBeforeInterceptors(ctx);
+
+        String result = callLlm(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
+                ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
+        result = runAfterInterceptors(ctx, result);
+        recordToMemory(sessionId, userMessage, result);
+        return result;
     }
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
@@ -229,12 +275,34 @@ public class LlmService {
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
                                    String requestSystemPrompt, String requestModel, String imageData) {
+        return chatStream(userMessage, history, requestSystemPrompt, requestModel, imageData, null);
+    }
+
+    public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
+                                   String requestSystemPrompt, String requestModel, String imageData,
+                                   String sessionId) {
         checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+        prompt = enrichWithMemory(prompt, sessionId);
         prompt = enrichWithRag(prompt, userMessage);
         int estTokens = estimateTokens(prompt, userMessage, history);
         String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
-        return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
+
+        ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
+                "chat", userMessage, prompt, modelId, TenantContext.tenantId(), history, new java.util.HashMap<>());
+        ctx = runBeforeInterceptors(ctx);
+
+        final String finalSessionId = sessionId;
+        final String originalMessage = userMessage;
+        Flux<String> flux = callLlmStream(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
+                ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
+
+        if (memoryProvider != null && finalSessionId != null && !finalSessionId.isBlank()) {
+            StringBuilder fullResponse = new StringBuilder();
+            flux = flux.doOnNext(fullResponse::append)
+                    .doOnComplete(() -> recordToMemory(finalSessionId, originalMessage, fullResponse.toString()));
+        }
+        return flux;
     }
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
@@ -640,6 +708,53 @@ public class LlmService {
         } catch (Exception e) {
             log.debug("Token usage tracking skipped: {}", e.getMessage());
         }
+    }
+
+    private String enrichWithMemory(String systemPrompt, String sessionId) {
+        if (memoryProvider == null || sessionId == null || sessionId.isBlank()) return systemPrompt;
+        try {
+            ConversationMemory memory = memoryProvider.getMemory(sessionId);
+            String memoryPrompt = memory.buildMemoryPrompt();
+            if (memoryPrompt != null && !memoryPrompt.isBlank()) {
+                return systemPrompt + "\n\n" + memoryPrompt;
+            }
+        } catch (Exception e) {
+            log.debug("Memory enrichment skipped: {}", e.getMessage());
+        }
+        return systemPrompt;
+    }
+
+    private void recordToMemory(String sessionId, String userMessage, String assistantMessage) {
+        if (memoryProvider == null || sessionId == null || sessionId.isBlank()) return;
+        try {
+            ConversationMemory memory = memoryProvider.getMemory(sessionId);
+            memory.addUserMessage(userMessage);
+            memory.addAssistantMessage(assistantMessage);
+        } catch (Exception e) {
+            log.debug("Memory recording skipped: {}", e.getMessage());
+        }
+    }
+
+    private ChatInterceptor.ChatContext runBeforeInterceptors(ChatInterceptor.ChatContext ctx) {
+        for (ChatInterceptor interceptor : interceptors) {
+            try {
+                ctx = interceptor.beforeChat(ctx);
+            } catch (Exception e) {
+                log.warn("ChatInterceptor.beforeChat failed: {}", e.getMessage());
+            }
+        }
+        return ctx;
+    }
+
+    private String runAfterInterceptors(ChatInterceptor.ChatContext ctx, String response) {
+        for (ChatInterceptor interceptor : interceptors) {
+            try {
+                response = interceptor.afterChat(ctx, response);
+            } catch (Exception e) {
+                log.warn("ChatInterceptor.afterChat failed: {}", e.getMessage());
+            }
+        }
+        return response;
     }
 
     private String enrichWithRag(String systemPrompt, String userMessage) {

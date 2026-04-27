@@ -30,7 +30,12 @@
     "build:wc": "cross-env BUILD_TARGET=wc vite build",
     "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint 'src/**/*.{ts,vue}'",
+    "lint:fix": "eslint 'src/**/*.{ts,vue}' --fix",
+    "format": "prettier --write 'src/**/*.{ts,vue,css,json}'",
+    "format:check": "prettier --check 'src/**/*.{ts,vue,css,json}'"
   },
   "peerDependencies": {
     "vue": "^3.3.0"
@@ -42,13 +47,20 @@
     "marked-highlight": "^2.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/marked": "^6.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
     "cross-env": "^10.1.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-vue": "^9.0.0",
     "jsdom": "^29.0.2",
+    "prettier": "^3.0.0",
     "terser": "^5.46.1",
     "typescript": "^5.4.0",
+    "typescript-eslint": "^8.0.0",
     "vite": "^5.2.0",
     "vitest": "^2.1.9",
     "vue": "^3.4.0",
