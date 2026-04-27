@@ -45,8 +45,13 @@ public final class ConnectorFactory {
                 rc.setMaskedFieldNames(cfg.resolveMaskedFields());
                 yield rc;
             }
+            case "jdbc" -> {
+                log.warn("JDBC connector '{}' requires a DataSource bean and cannot be created dynamically. " +
+                        "Configure it in application.yml with a Spring DataSource.", cfg.resolveId());
+                yield null;
+            }
             default -> {
-                log.warn("Unknown connector type '{}' for '{}', skipping. Valid types: informat, jdbc, rest",
+                log.warn("Unknown connector type '{}' for '{}', skipping. Valid types: informat, rest (jdbc via Spring config)",
                         type, cfg.resolveId());
                 yield null;
             }
