@@ -60,7 +60,9 @@ public class AgentExecutor {
             } catch (Exception e) {
                 result = new StepResult(i, step, null, e.getMessage(), false);
                 log.warn("Agent step {} failed: tool={} error={}", i, step.toolName(), e.getMessage());
+                results.add(result);
                 if (step.stopOnError()) break;
+                continue;
             }
             results.add(result);
         }
