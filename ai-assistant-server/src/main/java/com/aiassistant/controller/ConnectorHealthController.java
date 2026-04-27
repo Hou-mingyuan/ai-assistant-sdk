@@ -1,5 +1,7 @@
 package com.aiassistant.controller;
 
+import com.aiassistant.config.ConnectorProperties;
+import com.aiassistant.connector.ConnectorFactory;
 import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
 import com.aiassistant.tool.ToolRegistry;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Exposes health status for all registered DataConnectors.
@@ -29,7 +32,7 @@ public class ConnectorHealthController {
     private final ToolRegistry toolRegistry;
 
     public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry) {
-        this.connectors = connectors != null ? new ArrayList<>(connectors) : new ArrayList<>();
+        this.connectors = connectors != null ? new CopyOnWriteArrayList<>(connectors) : new CopyOnWriteArrayList<>();
         this.toolRegistry = toolRegistry;
     }
 
@@ -65,8 +68,14 @@ public class ConnectorHealthController {
     }
 
     @PostMapping("/connectors/register")
-    public Map<String, Object> registerConnector(@org.springframework.web.bind.annotation.RequestBody DataConnector connector) {
-        if (connector == null) return Map.of("success", false, "error", "connector is null");
+    public Map<String, Object> registerConnector(
+            @org.springframework.web.bind.annotation.RequestBody ConnectorProperties config) {
+        if (config == null) return Map.of("success", false, "error", "config is null");
+        DataConnector connector = ConnectorFactory.create(config);
+        if (connector == null) {
+            return Map.of("success", false, "error",
+                    "Failed to create connector from config (type=" + config.getType() + ")");
+        }
         connectors.add(connector);
         if (toolRegistry != null) {
             ConnectorToolRegistrar.register(connector, toolRegistry);

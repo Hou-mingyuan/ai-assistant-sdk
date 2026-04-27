@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Central registry for tools available to the LLM.
@@ -20,7 +21,7 @@ public class ToolRegistry {
 
     private static final Logger log = LoggerFactory.getLogger(ToolRegistry.class);
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Map<String, ToolDefinition> tools = new LinkedHashMap<>();
+    private final Map<String, ToolDefinition> tools = new ConcurrentHashMap<>();
     private volatile ArrayNode cachedToolsArray;
 
     public ToolRegistry(List<ToolDefinition> definitions) {

@@ -137,44 +137,8 @@ public class AiAssistantAutoConfiguration {
         return registry;
     }
 
-    private static final org.slf4j.Logger autoConfigLog =
-            org.slf4j.LoggerFactory.getLogger(AiAssistantAutoConfiguration.class);
-
     private DataConnector createConnectorFromConfig(ConnectorProperties cfg) {
-        String type = cfg.getType() != null ? cfg.getType().toLowerCase(java.util.Locale.ROOT) : "";
-        return switch (type) {
-            case "informat" -> {
-                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
-                        || cfg.getAppId() == null || cfg.getAppId().isBlank()) {
-                    autoConfigLog.warn("Skipping informat connector '{}': baseUrl and appId are required",
-                            cfg.resolveId());
-                    yield null;
-                }
-                InformatConnector ic = new InformatConnector(
-                        cfg.resolveId(), cfg.resolveDisplayName(),
-                        cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
-                        cfg.getTimeoutSeconds());
-                ic.setMaskedFieldNames(cfg.resolveMaskedFields());
-                yield ic;
-            }
-            case "rest" -> {
-                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()) {
-                    autoConfigLog.warn("Skipping REST connector '{}': baseUrl is required", cfg.resolveId());
-                    yield null;
-                }
-                RestApiConnector rc = new RestApiConnector(
-                        cfg.resolveId(), cfg.resolveDisplayName(),
-                        cfg.getBaseUrl(), null, null, null,
-                        cfg.resolveHeaders(), cfg.getTimeoutSeconds());
-                rc.setMaskedFieldNames(cfg.resolveMaskedFields());
-                yield rc;
-            }
-            default -> {
-                autoConfigLog.warn("Unknown connector type '{}' for '{}', skipping. Valid types: informat, jdbc, rest",
-                        type, cfg.resolveId());
-                yield null;
-            }
-        };
+        return com.aiassistant.connector.ConnectorFactory.create(cfg);
     }
 
     @Configuration

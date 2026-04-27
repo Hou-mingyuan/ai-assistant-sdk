@@ -210,51 +210,55 @@ public class InformatConnector implements DataConnector {
 
     private String get(String path) {
         checkCircuit("GET " + path);
-        String result = webClient.get()
-                .uri(path)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError(),
-                        resp -> resp.bodyToMono(String.class)
-                                .map(body -> new RuntimeException(
-                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
-                .onStatus(status -> status.is5xxServerError(),
-                        resp -> resp.bodyToMono(String.class)
-                                .map(body -> new RetryableException(
-                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
-                .bodyToMono(String.class)
-                .retryWhen(retrySpec("GET " + path))
-                .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) {
+        try {
+            String result = webClient.get()
+                    .uri(path)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .map(body -> new RuntimeException(
+                                            "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                    .onStatus(status -> status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .map(body -> new RetryableException(
+                                            "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                    .bodyToMono(String.class)
+                    .retryWhen(retrySpec("GET " + path))
+                    .block(Duration.ofSeconds(timeoutSeconds));
+            if (result == null) throw new RuntimeException("Empty response from Informat GET " + path);
+            circuitBreaker.recordSuccess();
+            return result;
+        } catch (Exception e) {
             circuitBreaker.recordFailure();
-            throw new RuntimeException("Empty response from Informat GET " + path);
+            throw e;
         }
-        circuitBreaker.recordSuccess();
-        return result;
     }
 
     private String post(String path, String jsonBody) {
         checkCircuit("POST " + path);
-        String result = webClient.post()
-                .uri(path)
-                .bodyValue(jsonBody)
-                .retrieve()
-                .onStatus(status -> status.is4xxClientError(),
-                        resp -> resp.bodyToMono(String.class)
-                                .map(body -> new RuntimeException(
-                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
-                .onStatus(status -> status.is5xxServerError(),
-                        resp -> resp.bodyToMono(String.class)
-                                .map(body -> new RetryableException(
-                                        "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
-                .bodyToMono(String.class)
-                .retryWhen(retrySpec("POST " + path))
-                .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) {
+        try {
+            String result = webClient.post()
+                    .uri(path)
+                    .bodyValue(jsonBody)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .map(body -> new RuntimeException(
+                                            "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                    .onStatus(status -> status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class)
+                                    .map(body -> new RetryableException(
+                                            "Informat API " + resp.statusCode() + ": " + truncate(body, 200))))
+                    .bodyToMono(String.class)
+                    .retryWhen(retrySpec("POST " + path))
+                    .block(Duration.ofSeconds(timeoutSeconds));
+            if (result == null) throw new RuntimeException("Empty response from Informat POST " + path);
+            circuitBreaker.recordSuccess();
+            return result;
+        } catch (Exception e) {
             circuitBreaker.recordFailure();
-            throw new RuntimeException("Empty response from Informat POST " + path);
+            throw e;
         }
-        circuitBreaker.recordSuccess();
-        return result;
     }
 
     private Retry retrySpec(String context) {
