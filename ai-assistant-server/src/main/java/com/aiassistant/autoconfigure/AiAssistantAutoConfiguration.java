@@ -219,8 +219,10 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public ConnectorHealthController connectorHealthController(
             ObjectProvider<List<DataConnector>> connectorProvider,
-            ToolRegistry toolRegistry) {
-        return new ConnectorHealthController(connectorProvider.getIfAvailable(), toolRegistry);
+            ToolRegistry toolRegistry,
+            ObjectProvider<com.aiassistant.config.ProviderConnectivityChecker> checkerProvider) {
+        return new ConnectorHealthController(connectorProvider.getIfAvailable(), toolRegistry,
+                checkerProvider.getIfAvailable());
     }
 
     @Bean
@@ -423,5 +425,19 @@ public class AiAssistantAutoConfiguration {
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(1);
         return registration;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.config.ProviderConnectivityChecker providerConnectivityChecker(AiAssistantProperties properties) {
+        return new com.aiassistant.config.ProviderConnectivityChecker(properties);
+    }
+
+    @Bean
+    public ApplicationListener<ApplicationReadyEvent> providerConnectivityCheckOnStartup(
+            com.aiassistant.config.ProviderConnectivityChecker checker) {
+        return event -> {
+            Thread.ofVirtual().name("provider-connectivity-check").start(checker::check);
+        };
     }
 }

@@ -1,6 +1,7 @@
 package com.aiassistant.controller;
 
 import com.aiassistant.config.ConnectorProperties;
+import com.aiassistant.config.ProviderConnectivityChecker;
 import com.aiassistant.connector.ConnectorFactory;
 import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
@@ -18,9 +19,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Exposes health status for all registered DataConnectors.
- * Each connector is probed by calling {@code listModules()}; if it returns
- * without error the connector is reported as UP.
+ * Exposes health status for all registered DataConnectors and AI provider connectivity.
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
@@ -30,10 +29,17 @@ public class ConnectorHealthController {
     private static final Logger log = LoggerFactory.getLogger(ConnectorHealthController.class);
     private final List<DataConnector> connectors;
     private final ToolRegistry toolRegistry;
+    private final ProviderConnectivityChecker connectivityChecker;
 
     public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry) {
+        this(connectors, toolRegistry, null);
+    }
+
+    public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry,
+                                     ProviderConnectivityChecker connectivityChecker) {
         this.connectors = connectors != null ? new CopyOnWriteArrayList<>(connectors) : new CopyOnWriteArrayList<>();
         this.toolRegistry = toolRegistry;
+        this.connectivityChecker = connectivityChecker;
     }
 
     @GetMapping("/health/connectors")
@@ -65,6 +71,37 @@ public class ConnectorHealthController {
                 "status", allUp ? "UP" : "DEGRADED",
                 "connectors", statuses
         );
+    }
+
+    @GetMapping("/health/provider")
+    public Map<String, Object> providerHealth() {
+        if (connectivityChecker == null) {
+            return Map.of("status", "UNKNOWN", "message", "Connectivity checker not available");
+        }
+        ProviderConnectivityChecker.ConnectivityResult result = connectivityChecker.getLastResult();
+        if (result == null) {
+            return Map.of("status", "PENDING", "message", "Connectivity check not yet completed");
+        }
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("status", result.success() ? "UP" : "DOWN");
+        resp.put("provider", result.provider());
+        if (result.success()) {
+            resp.put("maskedKey", result.maskedKey());
+            resp.put("latencyMs", result.latencyMs());
+            resp.put("httpStatus", result.httpStatus());
+        } else {
+            resp.put("error", result.errorMessage());
+        }
+        return resp;
+    }
+
+    @PostMapping("/health/provider/recheck")
+    public Map<String, Object> recheckProvider() {
+        if (connectivityChecker == null) {
+            return Map.of("status", "UNKNOWN", "message", "Connectivity checker not available");
+        }
+        connectivityChecker.check();
+        return providerHealth();
     }
 
     @PostMapping("/connectors/register")
