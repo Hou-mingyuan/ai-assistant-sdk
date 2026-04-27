@@ -200,7 +200,7 @@
             type="button"
             class="ai-search-nav"
             :disabled="totalMatches === 0"
-            aria-label="Previous match"
+            :aria-label="t.searchPrev"
             @click="goPrevMatch"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
@@ -210,7 +210,7 @@
             type="button"
             class="ai-search-nav"
             :disabled="totalMatches === 0"
-            aria-label="Next match"
+            :aria-label="t.searchNext"
             @click="goNextMatch"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
@@ -321,6 +321,8 @@
                 class="ai-msg-feedback"
                 :class="{ active: msg.feedback === 'up' }"
                 :title="t.thumbsUp"
+                :aria-label="t.thumbsUp"
+                :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
                 @click="setFeedback(displayOffset + idx, 'up')"
               >👍</button>
               <button
@@ -328,6 +330,8 @@
                 class="ai-msg-feedback"
                 :class="{ active: msg.feedback === 'down' }"
                 :title="t.thumbsDown"
+                :aria-label="t.thumbsDown"
+                :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
                 @click="setFeedback(displayOffset + idx, 'down')"
               >👎</button>
             </div>
@@ -355,6 +359,7 @@
             v-for="m in modes"
             :key="m.value"
             :class="{ active: mode === m.value }"
+            :aria-pressed="mode === m.value ? 'true' : 'false'"
             @click="setMode(m.value)"
           >{{ m.label }}</button>
           <select v-if="mode === 'translate'" v-model="targetLang" class="ai-lang-select">

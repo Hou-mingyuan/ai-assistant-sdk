@@ -98,6 +98,8 @@ export interface I18nMessages {
   batchExport: string
   stopGenerate: string
   regenerate: string
+  searchPrev: string
+  searchNext: string
 }
 
 const messages: Record<string, I18nMessages> = {
@@ -179,6 +181,8 @@ const messages: Record<string, I18nMessages> = {
     batchExport: 'Export all sessions',
     stopGenerate: 'Stop',
     regenerate: 'Regenerate',
+    searchPrev: 'Previous match',
+    searchNext: 'Next match',
   },
   zh: {
     greeting: '👋 你好！我可以帮你：',
@@ -258,6 +262,8 @@ const messages: Record<string, I18nMessages> = {
     batchExport: '导出全部会话',
     stopGenerate: '停止生成',
     regenerate: '重新生成',
+    searchPrev: '上一个匹配',
+    searchNext: '下一个匹配',
   },
 }
 
@@ -335,6 +341,8 @@ const ja = {
   batchExport: '全セッションをエクスポート',
   stopGenerate: '停止',
   regenerate: '再生成',
+  searchPrev: '前の一致',
+  searchNext: '次の一致',
 }
 
 const ko = {
@@ -411,6 +419,8 @@ const ko = {
   batchExport: '전체 세션 내보내기',
   stopGenerate: '중지',
   regenerate: '재생성',
+  searchPrev: '이전 일치',
+  searchNext: '다음 일치',
 }
 
 messages.ja = ja satisfies I18nMessages

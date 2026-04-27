@@ -1,9 +1,14 @@
 package com.aiassistant.service;
 
 import com.aiassistant.config.AiAssistantProperties;
+import com.aiassistant.config.TenantContext;
 import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
+import com.aiassistant.rag.RagService;
+import com.aiassistant.routing.ModelRouter;
+import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +46,10 @@ public class LlmService {
     private final ChatCompletionClient chatCompletionClient;
     private final MeterRegistry meterRegistry;
     private final ToolRegistry toolRegistry;
+    private final ContentFilter contentFilter;
+    private final TokenUsageTracker tokenUsageTracker;
+    private final ModelRouter modelRouter;
+    private final RagService ragService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final int MAX_TOOL_ROUNDS = 5;
     private final List<String> apiKeys;
@@ -97,7 +106,11 @@ public class LlmService {
                         UrlFetchService urlFetchService,
                         ChatCompletionClient chatCompletionClient,
                         MeterRegistry meterRegistry,
-                        ToolRegistry toolRegistry) {
+                        ToolRegistry toolRegistry,
+                        ContentFilter contentFilter,
+                        TokenUsageTracker tokenUsageTracker,
+                        ModelRouter modelRouter,
+                        RagService ragService) {
         this.apiKeys = properties.resolveApiKeys();
         if (apiKeys.isEmpty()) {
             throw new IllegalArgumentException("ai-assistant.api-key must be configured");
@@ -107,11 +120,15 @@ public class LlmService {
         this.chatCompletionClient = chatCompletionClient;
         this.meterRegistry = meterRegistry;
         this.toolRegistry = toolRegistry;
+        this.contentFilter = contentFilter;
+        this.tokenUsageTracker = tokenUsageTracker;
+        this.modelRouter = modelRouter;
+        this.ragService = ragService;
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
-        log.info("AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}",
+        log.info("AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}, pii={}, rag={}",
                 properties.getProvider(), properties.resolveModel(), timeout, apiKeys.size(),
-                meterRegistry != null);
+                meterRegistry != null, contentFilter != null, ragService != null);
     }
 
     private String nextApiKey() {
@@ -174,8 +191,10 @@ public class LlmService {
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
                        String requestModel, String imageData) {
+        checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        String modelId = properties.resolveEffectiveModel(requestModel);
+        prompt = enrichWithRag(prompt, userMessage);
+        String modelId = resolveModelWithRouter(requestModel, "chat");
         return callLlm(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
@@ -203,8 +222,10 @@ public class LlmService {
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
                                    String requestSystemPrompt, String requestModel, String imageData) {
+        checkQuota();
         String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        String modelId = properties.resolveEffectiveModel(requestModel);
+        prompt = enrichWithRag(prompt, userMessage);
+        String modelId = resolveModelWithRouter(requestModel, "chat");
         return callLlmStream(prompt, prepareUserText(userMessage), history, "chat", modelId, imageData);
     }
 
@@ -242,7 +263,11 @@ public class LlmService {
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         try {
             String rawResponse = chatCompletionClient.completeRaw(body, key);
+            recordTokenUsage(rawResponse, modelId);
             String result = processToolCallingLoop(body, rawResponse, key);
+            if (contentFilter != null) {
+                result = contentFilter.filterOutput(result);
+            }
             if (sample != null) sample.stop(completionTimer(operation, "success"));
             return result;
         } catch (RuntimeException e) {
@@ -330,6 +355,13 @@ public class LlmService {
     private String prepareUserText(String text) {
         if (text == null) {
             return text;
+        }
+        if (contentFilter != null) {
+            var filtered = contentFilter.filterInput(text);
+            text = filtered.text();
+            if (filtered.hasWarnings()) {
+                log.warn("Content filter warnings: {}", filtered.warnings());
+            }
         }
         try {
             return urlFetchService.enrichUserMessage(text);
@@ -513,6 +545,60 @@ public class LlmService {
     private static String truncate(String s, int maxLen) {
         if (s == null) return "";
         return s.length() <= maxLen ? s : s.substring(0, maxLen) + "…";
+    }
+
+    private String resolveModelWithRouter(String requestModel, String operation) {
+        String baseModel = properties.resolveEffectiveModel(requestModel);
+        if (modelRouter == null) return baseModel;
+        try {
+            String tenantId = TenantContext.tenantId();
+            var decision = modelRouter.route(operation, tenantId, 0);
+            if (decision != null && decision.modelId() != null && !decision.modelId().isBlank()) {
+                log.debug("ModelRouter selected: {} (reason: {})", decision.modelId(), decision.reason());
+                return decision.modelId();
+            }
+        } catch (Exception e) {
+            log.debug("ModelRouter fallback to default: {}", e.getMessage());
+        }
+        return baseModel;
+    }
+
+    private void checkQuota() {
+        if (tokenUsageTracker == null) return;
+        String tenantId = TenantContext.tenantId();
+        if (tokenUsageTracker.isQuotaExceeded(tenantId)) {
+            throw new RuntimeException("Token quota exceeded for tenant: " + tenantId);
+        }
+    }
+
+    private void recordTokenUsage(String rawResponse, String modelId) {
+        if (tokenUsageTracker == null) return;
+        try {
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode usage = root.path("usage");
+            if (usage.isMissingNode()) return;
+            int promptTokens = usage.path("prompt_tokens").asInt(0);
+            int completionTokens = usage.path("completion_tokens").asInt(0);
+            if (promptTokens + completionTokens > 0) {
+                String tenantId = TenantContext.tenantId();
+                tokenUsageTracker.recordUsage(tenantId, modelId, promptTokens, completionTokens);
+            }
+        } catch (Exception e) {
+            log.debug("Token usage tracking skipped: {}", e.getMessage());
+        }
+    }
+
+    private String enrichWithRag(String systemPrompt, String userMessage) {
+        if (ragService == null || userMessage == null || userMessage.isBlank()) return systemPrompt;
+        try {
+            String context = ragService.buildContextPrompt(userMessage, "default");
+            if (context != null && !context.isBlank()) {
+                return systemPrompt + "\n\n" + context;
+            }
+        } catch (Exception e) {
+            log.debug("RAG enrichment skipped: {}", e.getMessage());
+        }
+        return systemPrompt;
     }
 
     private Timer streamTimer(String operation, String outcome) {

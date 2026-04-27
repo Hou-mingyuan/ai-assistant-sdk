@@ -172,9 +172,14 @@ public class AiAssistantAutoConfiguration {
                                                  UrlFetchService urlFetchService,
                                                  ChatCompletionClient chatCompletionClient,
                                                  ObjectProvider<io.micrometer.core.instrument.MeterRegistry> meterRegistryProvider,
-                                                 ToolRegistry toolRegistry) {
+                                                 ToolRegistry toolRegistry,
+                                                 com.aiassistant.security.ContentFilter contentFilter,
+                                                 com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+                                                 com.aiassistant.routing.ModelRouter modelRouter,
+                                                 ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider) {
             return new LlmService(properties, urlFetchService, chatCompletionClient,
-                    meterRegistryProvider.getIfAvailable(), toolRegistry);
+                    meterRegistryProvider.getIfAvailable(), toolRegistry,
+                    contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable());
         }
     }
 
@@ -184,9 +189,14 @@ public class AiAssistantAutoConfiguration {
     public LlmService llmServiceWithoutMetrics(AiAssistantProperties properties,
                                                UrlFetchService urlFetchService,
                                                ChatCompletionClient chatCompletionClient,
-                                               ToolRegistry toolRegistry) {
+                                               ToolRegistry toolRegistry,
+                                               com.aiassistant.security.ContentFilter contentFilter,
+                                               com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+                                               com.aiassistant.routing.ModelRouter modelRouter,
+                                               ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider) {
         return new LlmService(properties, urlFetchService, chatCompletionClient,
-                null, toolRegistry);
+                null, toolRegistry,
+                contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable());
     }
 
     @Bean
