@@ -356,11 +356,11 @@ public class AiAssistantProperties {
         return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
             case "openai"                   -> "gpt-5.4-mini";
             case "deepseek"                 -> "deepseek-v4-flash";
-            case "tongyi", "qwen"           -> "qwen-plus";
+            case "tongyi", "qwen"           -> "qwen3.5-plus";
             case "zhipu", "glm"             -> "glm-5.1";
-            case "volcengine", "doubao"     -> "doubao-1.5-pro-32k";
-            case "minimax"                  -> "MiniMax-Text-01";
-            case "kimi", "moonshot"         -> "moonshot-v1-auto";
+            case "volcengine", "doubao"     -> "doubao-seed-2-0-pro-260215";
+            case "minimax"                  -> "MiniMax-M2.7";
+            case "kimi", "moonshot"         -> "kimi-k2.6";
             case "gemini", "google"         -> "gemini-3.1-pro-preview";
             case "siliconflow"              -> "deepseek-ai/DeepSeek-V3";
             case "groq"                     -> "llama-3.3-70b-versatile";

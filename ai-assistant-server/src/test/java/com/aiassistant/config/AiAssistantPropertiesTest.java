@@ -35,7 +35,7 @@ class AiAssistantPropertiesTest {
         assertEquals("gpt-5.4-mini", p.resolveModel());
 
         p.setProvider("volcengine");
-        assertEquals("doubao-1.5-pro-32k", p.resolveModel());
+        assertEquals("doubao-seed-2-0-pro-260215", p.resolveModel());
     }
 
     @Test

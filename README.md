@@ -453,11 +453,11 @@ ai-assistant:
 |----------|--------|---------|-----------------|---------------|
 | OpenAI | `openai` | gpt-5.4-mini | gpt-5.5、gpt-5.5-pro、gpt-5.4、gpt-5.4-pro、gpt-5.4-nano | https://api.openai.com/v1 |
 | DeepSeek | `deepseek` | deepseek-v4-flash | deepseek-v4-pro | https://api.deepseek.com/v1 |
-| 通义千问 | `tongyi` 或 `qwen` | qwen-plus | qwen3-max、qwen3.5-plus、qwen3.5-flash、qwen3.6-plus、qwen3.6-flash | https://dashscope.aliyuncs.com/compatible-mode/v1 |
+| 通义千问 | `tongyi` 或 `qwen` | qwen3.5-plus | qwen3-max、qwen3.5-flash、qwen3.6-plus、qwen3.6-flash | https://dashscope.aliyuncs.com/compatible-mode/v1 |
 | 智谱/GLM | `zhipu` 或 `glm` | glm-5.1 | glm-4.5、glm-4.5-air | https://api.z.ai/api/paas/v4 |
-| 火山引擎/豆包 | `volcengine` 或 `doubao` | doubao-1.5-pro-32k | 需在火山控制台创建推理接入点 | https://ark.cn-beijing.volces.com/api/v3 |
-| MiniMax | `minimax` | MiniMax-Text-01 | | https://api.minimax.chat/v1 |
-| Kimi/月之暗面 | `kimi` 或 `moonshot` | moonshot-v1-auto | moonshot-v1-8k、moonshot-v1-32k、moonshot-v1-128k | https://api.moonshot.cn/v1 |
+| 火山引擎/豆包 | `volcengine` 或 `doubao` | doubao-seed-2-0-pro-260215 | doubao-seed-2-0-lite-260215、doubao-seed-2-0-mini-260215、doubao-seed-2-0-code-preview-260215 | https://ark.cn-beijing.volces.com/api/v3 |
+| MiniMax | `minimax` | MiniMax-M2.7 | MiniMax-M2.7-highspeed、MiniMax-M2.5、MiniMax-Text-01 | https://api.minimax.chat/v1 |
+| Kimi/月之暗面 | `kimi` 或 `moonshot` | kimi-k2.6 | kimi-k2.5、moonshot-v1-auto、moonshot-v1-128k | https://api.moonshot.cn/v1 |
 | Google Gemini | `gemini` 或 `google` | gemini-3.1-pro-preview | gemini-3-flash-preview、gemini-3.1-flash-lite-preview | https://generativelanguage.googleapis.com/v1beta/openai/ |
 | SiliconFlow | `siliconflow` | deepseek-ai/DeepSeek-V3 | 支持多家开源模型 | https://api.siliconflow.cn/v1 |
 | Groq | `groq` | llama-3.3-70b-versatile | | https://api.groq.com/openai/v1 |
