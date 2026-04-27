@@ -52,21 +52,35 @@ public class PromptTemplateController {
 
     @PostMapping("/templates")
     public ResponseEntity<Map<String, String>> createTemplate(@RequestBody Map<String, Object> body) {
-        String name = (String) body.get("name");
-        String template = (String) body.get("template");
-        if (name == null || template == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "name and template are required"));
+        Object rawName = body.get("name");
+        Object rawTemplate = body.get("template");
+        if (!(rawName instanceof String name) || !(rawTemplate instanceof String template)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name and template are required and must be strings"));
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> defaults = (Map<String, String>) body.get("defaults");
+        Map<String, String> defaults = null;
+        Object rawDefaults = body.get("defaults");
+        if (rawDefaults instanceof Map<?, ?> defMap) {
+            defaults = new java.util.LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : defMap.entrySet()) {
+                if (e.getKey() instanceof String k && e.getValue() instanceof String v) {
+                    defaults.put(k, v);
+                }
+            }
+        }
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, String>> examplesRaw = (List<Map<String, String>>) body.get("fewShotExamples");
         List<PromptTemplate.FewShotExample> examples = null;
-        if (examplesRaw != null) {
-            examples = examplesRaw.stream()
-                    .map(m -> new PromptTemplate.FewShotExample(m.get("userInput"), m.get("assistantOutput")))
+        Object rawExamples = body.get("fewShotExamples");
+        if (rawExamples instanceof List<?> exList) {
+            examples = exList.stream()
+                    .filter(Map.class::isInstance)
+                    .map(m -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> map = (Map<String, Object>) m;
+                        String userInput = map.get("userInput") instanceof String s ? s : "";
+                        String assistantOutput = map.get("assistantOutput") instanceof String s ? s : "";
+                        return new PromptTemplate.FewShotExample(userInput, assistantOutput);
+                    })
                     .toList();
         }
 

@@ -1,8 +1,6 @@
 package com.aiassistant.observability;
 
 import com.aiassistant.spi.AssistantCapability;
-import com.aiassistant.spi.ConversationMemoryProvider;
-import com.aiassistant.spi.InMemoryConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
 import io.micrometer.core.instrument.Gauge;
@@ -19,8 +17,7 @@ public class AiAssistantMetrics {
     public AiAssistantMetrics(MeterRegistry registry,
                                List<AssistantCapability> capabilities,
                                ToolRegistry toolRegistry,
-                               TokenUsageTracker tokenUsageTracker,
-                               ConversationMemoryProvider memoryProvider) {
+                               TokenUsageTracker tokenUsageTracker) {
 
         if (capabilities != null) {
             Gauge.builder("aiassistant.capabilities.count", capabilities, List::size)

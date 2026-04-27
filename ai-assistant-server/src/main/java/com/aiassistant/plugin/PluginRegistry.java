@@ -9,8 +9,13 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Manages runtime loading/unloading of plugin JARs.
@@ -26,13 +31,16 @@ public class PluginRegistry {
 
     public PluginRegistry(ToolRegistry toolRegistry, List<AssistantCapability> capabilities) {
         this.toolRegistry = toolRegistry;
-        this.globalCapabilities = capabilities != null ? capabilities : new ArrayList<>();
+        this.globalCapabilities = capabilities != null
+                ? new CopyOnWriteArrayList<>(capabilities)
+                : new CopyOnWriteArrayList<>();
     }
 
     /**
      * Load a plugin JAR at runtime. Discovers ToolDefinition and AssistantCapability via ServiceLoader.
+     * Synchronized to prevent concurrent loading of the same pluginId.
      */
-    public PluginDescriptor loadPlugin(String pluginId, File jarFile) throws Exception {
+    public synchronized PluginDescriptor loadPlugin(String pluginId, File jarFile) throws Exception {
         if (plugins.containsKey(pluginId)) {
             throw new IllegalStateException("Plugin already loaded: " + pluginId);
         }
@@ -72,7 +80,7 @@ public class PluginRegistry {
     /**
      * Unload a plugin and remove its tools/capabilities.
      */
-    public boolean unloadPlugin(String pluginId) {
+    public synchronized boolean unloadPlugin(String pluginId) {
         LoadedPlugin loaded = plugins.remove(pluginId);
         if (loaded == null) return false;
 

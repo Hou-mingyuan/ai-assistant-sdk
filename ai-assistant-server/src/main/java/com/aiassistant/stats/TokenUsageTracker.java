@@ -19,6 +19,7 @@ public class TokenUsageTracker {
 
     private final ConcurrentHashMap<String, TenantUsage> usageByTenant = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> tenantQuotas = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicLong> reservedTokens = new ConcurrentHashMap<>();
 
     public void recordUsage(String tenantId, String model, int promptTokens, int completionTokens) {
         TenantUsage usage = usageByTenant.computeIfAbsent(tenantId, k -> new TenantUsage());
@@ -44,7 +45,35 @@ public class TokenUsageTracker {
         if (quota == null || quota <= 0) return false;
         TenantUsage usage = usageByTenant.get(tenantId);
         if (usage == null) return false;
-        return usage.todayTotal() >= quota;
+        long used = usage.todayTotal();
+        AtomicLong reserved = reservedTokens.get(tenantId);
+        if (reserved != null) used += reserved.get();
+        return used >= quota;
+    }
+
+    /**
+     * Atomically check quota and reserve estimated tokens using CAS.
+     * Prevents concurrent requests from all passing the quota check simultaneously.
+     * Must be paired with {@link #releaseReservation} after the request completes.
+     */
+    public boolean tryReserveQuota(String tenantId, int estimatedTokens) {
+        Long quota = tenantQuotas.get(tenantId);
+        if (quota == null || quota <= 0) return true;
+
+        TenantUsage usage = usageByTenant.get(tenantId);
+        long used = usage != null ? usage.todayTotal() : 0;
+
+        AtomicLong reserved = reservedTokens.computeIfAbsent(tenantId, k -> new AtomicLong());
+        while (true) {
+            long currentReserved = reserved.get();
+            if (used + currentReserved + estimatedTokens > quota) return false;
+            if (reserved.compareAndSet(currentReserved, currentReserved + estimatedTokens)) return true;
+        }
+    }
+
+    public void releaseReservation(String tenantId, int estimatedTokens) {
+        AtomicLong reserved = reservedTokens.get(tenantId);
+        if (reserved != null) reserved.addAndGet(-estimatedTokens);
     }
 
     public long remainingQuota(String tenantId) {

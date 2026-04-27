@@ -89,8 +89,7 @@ public class SseStreamController {
                     return Flux.just(
                             ServerSentEvent.<String>builder()
                                     .event("error")
-                                    .data(e.getMessage() != null ? e.getMessage()
-                                            : "AI service error")
+                                    .data("AI service encountered an error. Please try again.")
                                     .build());
                 });
 

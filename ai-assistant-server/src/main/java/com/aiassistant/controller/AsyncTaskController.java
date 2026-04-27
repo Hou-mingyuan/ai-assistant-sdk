@@ -34,6 +34,7 @@ public class AsyncTaskController {
     private static final int MAX_PENDING_TASKS = 100;
 
     private static final long TASK_TTL_MS = 30 * 60 * 1000L;
+    private static final long PENDING_TIMEOUT_MS = 10 * 60 * 1000L;
 
     private final LlmService llmService;
     private final UsageStats usageStats;
@@ -64,11 +65,12 @@ public class AsyncTaskController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "Too many pending tasks"));
         }
-        String text = (String) body.getOrDefault("text", "");
-        String webhookUrl = (String) body.get("webhookUrl");
-        if (text.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "text is required"));
+        Object rawText = body.getOrDefault("text", "");
+        if (!(rawText instanceof String text) || text.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "text is required and must be a string"));
         }
+        Object rawWebhookUrl = body.get("webhookUrl");
+        String webhookUrl = rawWebhookUrl instanceof String s ? s : null;
 
         String taskId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         TaskEntry entry = new TaskEntry(taskId);
@@ -139,7 +141,14 @@ public class AsyncTaskController {
         long now = System.currentTimeMillis();
         tasks.entrySet().removeIf(e -> {
             TaskEntry t = e.getValue();
-            return !"pending".equals(t.status) && (now - t.createdAt > TASK_TTL_MS);
+            if ("pending".equals(t.status)) {
+                if (now - t.createdAt > PENDING_TIMEOUT_MS) {
+                    t.fail("Task timed out after " + (PENDING_TIMEOUT_MS / 60_000) + " minutes");
+                    return false;
+                }
+                return false;
+            }
+            return now - t.createdAt > TASK_TTL_MS;
         });
     }
 

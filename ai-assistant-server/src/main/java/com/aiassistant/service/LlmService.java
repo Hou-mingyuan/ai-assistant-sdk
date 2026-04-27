@@ -77,7 +77,10 @@ public class LlmService {
             try (var bais = new java.io.ByteArrayInputStream(compressed);
                  var gzis = new java.util.zip.GZIPInputStream(bais)) {
                 return new String(gzis.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            } catch (Exception e) { return ""; }
+            } catch (Exception e) {
+                log.warn("Cache entry decompression failed, treating as cache miss: {}", e.getMessage());
+                return null;
+            }
         }
         static byte[] compress(String text) {
             try (var baos = new java.io.ByteArrayOutputStream();
@@ -185,30 +188,48 @@ public class LlmService {
     }
 
     public String translate(String text, String targetLang) {
-        checkQuota();
-        String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
-                targetLang,
-                "You are a skilled translator. Translate the following into natural, idiomatic "
-                        + targetLang
-                        + " (conversational where appropriate). Output only the translation, no explanation.");
-        String cacheKey = llmCacheKey("translate:" + targetLang, text);
-        LlmCacheEntry cached = llmCache.get(cacheKey);
-        if (cached != null && !cached.isExpired()) return cached.decompress();
-        String modelId = resolveModelWithRouter(null, "translate");
-        String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
-        llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
-        return result;
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
+                    targetLang,
+                    "You are a skilled translator. Translate the following into natural, idiomatic "
+                            + targetLang
+                            + " (conversational where appropriate). Output only the translation, no explanation.");
+            String cacheKey = llmCacheKey("translate:" + targetLang, text);
+            LlmCacheEntry cached = llmCache.get(cacheKey);
+            if (cached != null && !cached.isExpired()) {
+                String hit = cached.decompress();
+                if (hit != null) return hit;
+                llmCache.remove(cacheKey);
+            }
+            String modelId = resolveModelWithRouter(null, "translate");
+            String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
+            llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+            return result;
+        } finally {
+            releaseQuota(tenantId, reserved);
+        }
     }
 
     public String summarize(String text) {
-        checkQuota();
-        String cacheKey = llmCacheKey("summarize", text);
-        LlmCacheEntry cached = llmCache.get(cacheKey);
-        if (cached != null && !cached.isExpired()) return cached.decompress();
-        String modelId = resolveModelWithRouter(null, "summarize");
-        String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null);
-        llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
-        return result;
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String cacheKey = llmCacheKey("summarize", text);
+            LlmCacheEntry cached = llmCache.get(cacheKey);
+            if (cached != null && !cached.isExpired()) {
+                String hit = cached.decompress();
+                if (hit != null) return hit;
+                llmCache.remove(cacheKey);
+            }
+            String modelId = resolveModelWithRouter(null, "summarize");
+            String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null);
+            llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+            return result;
+        } finally {
+            releaseQuota(tenantId, reserved);
+        }
     }
 
     private static String llmCacheKey(String operation, String text) {
@@ -229,22 +250,27 @@ public class LlmService {
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
                        String requestModel, String imageData, String sessionId) {
-        checkQuota();
-        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        prompt = enrichWithMemory(prompt, sessionId);
-        prompt = enrichWithRag(prompt, userMessage);
-        int estTokens = estimateTokens(prompt, userMessage, history);
-        String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+            prompt = enrichWithMemory(prompt, sessionId);
+            prompt = enrichWithRag(prompt, userMessage);
+            int estTokens = estimateTokens(prompt, userMessage, history);
+            String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
-        ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
-                "chat", userMessage, prompt, modelId, TenantContext.tenantId(), history, new java.util.HashMap<>());
-        ctx = runBeforeInterceptors(ctx);
+            ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
+                    "chat", userMessage, prompt, modelId, tenantId, history, new java.util.HashMap<>());
+            ctx = runBeforeInterceptors(ctx);
 
-        String result = callLlm(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
-                ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
-        result = runAfterInterceptors(ctx, result);
-        recordToMemory(sessionId, userMessage, result);
-        return result;
+            String result = callLlm(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
+                    ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
+            result = runAfterInterceptors(ctx, result);
+            recordToMemory(sessionId, userMessage, result);
+            return result;
+        } finally {
+            releaseQuota(tenantId, reserved);
+        }
     }
 
     public String chat(String userMessage, List<ChatRequest.MessageItem> history, String requestSystemPrompt,
@@ -257,20 +283,34 @@ public class LlmService {
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
-        checkQuota();
-        String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
-                targetLang,
-                "You are a skilled translator. Translate the following into natural, idiomatic "
-                        + targetLang
-                        + " (conversational where appropriate). Output only the translation, no explanation.");
-        String modelId = resolveModelWithRouter(null, "translate");
-        return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String systemPrompt = TRANSLATE_PROMPTS.getOrDefault(
+                    targetLang,
+                    "You are a skilled translator. Translate the following into natural, idiomatic "
+                            + targetLang
+                            + " (conversational where appropriate). Output only the translation, no explanation.");
+            String modelId = resolveModelWithRouter(null, "translate");
+            return callLlmStream(systemPrompt, prepareUserText(text), null, "translate", modelId, null)
+                    .doFinally(signal -> releaseQuota(tenantId, reserved));
+        } catch (Exception e) {
+            releaseQuota(tenantId, reserved);
+            throw e;
+        }
     }
 
     public Flux<String> summarizeStream(String text) {
-        checkQuota();
-        String modelId = resolveModelWithRouter(null, "summarize");
-        return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null);
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String modelId = resolveModelWithRouter(null, "summarize");
+            return callLlmStream(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", modelId, null)
+                    .doFinally(signal -> releaseQuota(tenantId, reserved));
+        } catch (Exception e) {
+            releaseQuota(tenantId, reserved);
+            throw e;
+        }
     }
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
@@ -281,28 +321,34 @@ public class LlmService {
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
                                    String requestSystemPrompt, String requestModel, String imageData,
                                    String sessionId) {
-        checkQuota();
-        String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
-        prompt = enrichWithMemory(prompt, sessionId);
-        prompt = enrichWithRag(prompt, userMessage);
-        int estTokens = estimateTokens(prompt, userMessage, history);
-        String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
+        int reserved = checkQuotaAndReserve();
+        String tenantId = TenantContext.tenantId();
+        try {
+            String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+            prompt = enrichWithMemory(prompt, sessionId);
+            prompt = enrichWithRag(prompt, userMessage);
+            int estTokens = estimateTokens(prompt, userMessage, history);
+            String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
-        ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
-                "chat", userMessage, prompt, modelId, TenantContext.tenantId(), history, new java.util.HashMap<>());
-        ctx = runBeforeInterceptors(ctx);
+            ChatInterceptor.ChatContext ctx = new ChatInterceptor.ChatContext(
+                    "chat", userMessage, prompt, modelId, tenantId, history, new java.util.HashMap<>());
+            ctx = runBeforeInterceptors(ctx);
 
-        final String finalSessionId = sessionId;
-        final String originalMessage = userMessage;
-        Flux<String> flux = callLlmStream(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
-                ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
+            final String finalSessionId = sessionId;
+            final String originalMessage = userMessage;
+            Flux<String> flux = callLlmStream(ctx.systemPrompt(), prepareUserText(ctx.userMessage()), history, "chat",
+                    ctx.modelId() != null ? ctx.modelId() : modelId, imageData);
 
-        if (memoryProvider != null && finalSessionId != null && !finalSessionId.isBlank()) {
-            StringBuilder fullResponse = new StringBuilder();
-            flux = flux.doOnNext(fullResponse::append)
-                    .doOnComplete(() -> recordToMemory(finalSessionId, originalMessage, fullResponse.toString()));
+            if (memoryProvider != null && finalSessionId != null && !finalSessionId.isBlank()) {
+                StringBuilder fullResponse = new StringBuilder();
+                flux = flux.doOnNext(fullResponse::append)
+                        .doOnComplete(() -> recordToMemory(finalSessionId, originalMessage, fullResponse.toString()));
+            }
+            return flux.doFinally(signal -> releaseQuota(tenantId, reserved));
+        } catch (Exception e) {
+            releaseQuota(tenantId, reserved);
+            throw e;
         }
-        return flux;
     }
 
     public Flux<String> chatStream(String userMessage, List<ChatRequest.MessageItem> history,
@@ -438,7 +484,9 @@ public class LlmService {
             if (choices.isArray() && !choices.isEmpty()) {
                 return choices.get(0).path("message").path("content").asText("");
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("parseContentFromRaw fallback to raw: {}", e.getMessage());
+        }
         return raw;
     }
 
@@ -694,11 +742,24 @@ public class LlmService {
         return baseModel;
     }
 
-    private void checkQuota() {
-        if (tokenUsageTracker == null) return;
+    /**
+     * Atomically checks quota and reserves estimated tokens.
+     * Returns the reserved token count (0 if no tracker or no quota).
+     * Must be paired with {@link #releaseQuota} after the request completes.
+     */
+    private int checkQuotaAndReserve() {
+        if (tokenUsageTracker == null) return 0;
         String tenantId = TenantContext.tenantId();
-        if (tokenUsageTracker.isQuotaExceeded(tenantId)) {
+        int estimate = properties.getMaxTokens();
+        if (!tokenUsageTracker.tryReserveQuota(tenantId, estimate)) {
             throw new QuotaExceededException("Token quota exceeded for tenant: " + tenantId);
+        }
+        return estimate;
+    }
+
+    private void releaseQuota(String tenantId, int reserved) {
+        if (tokenUsageTracker != null && reserved > 0 && tenantId != null) {
+            tokenUsageTracker.releaseReservation(tenantId, reserved);
         }
     }
 
@@ -752,8 +813,11 @@ public class LlmService {
         for (ChatInterceptor interceptor : interceptors) {
             try {
                 ctx = interceptor.beforeChat(ctx);
+            } catch (SecurityException e) {
+                log.warn("ChatInterceptor.beforeChat rejected request: {}", e.getMessage());
+                throw e;
             } catch (Exception e) {
-                log.warn("ChatInterceptor.beforeChat failed: {}", e.getMessage());
+                log.warn("ChatInterceptor.beforeChat failed ({}): {}", interceptor.getClass().getSimpleName(), e.getMessage());
             }
         }
         return ctx;
@@ -763,8 +827,11 @@ public class LlmService {
         for (ChatInterceptor interceptor : interceptors) {
             try {
                 response = interceptor.afterChat(ctx, response);
+            } catch (SecurityException e) {
+                log.warn("ChatInterceptor.afterChat rejected response: {}", e.getMessage());
+                throw e;
             } catch (Exception e) {
-                log.warn("ChatInterceptor.afterChat failed: {}", e.getMessage());
+                log.warn("ChatInterceptor.afterChat failed ({}): {}", interceptor.getClass().getSimpleName(), e.getMessage());
             }
         }
         return response;

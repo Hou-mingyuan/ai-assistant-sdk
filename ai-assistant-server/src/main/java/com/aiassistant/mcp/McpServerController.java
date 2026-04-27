@@ -48,7 +48,7 @@ public class McpServerController {
         try {
             JsonNode request = mapper.readTree(body);
             String method = request.path("method").asText("");
-            String id = request.has("id") ? request.get("id").asText() : null;
+            JsonNode id = request.has("id") ? request.get("id") : null;
 
             ObjectNode response = switch (method) {
                 case "initialize" -> handleInitialize(request, id);
@@ -65,10 +65,10 @@ public class McpServerController {
         }
     }
 
-    private ObjectNode handleInitialize(JsonNode request, String id) {
+    private ObjectNode handleInitialize(JsonNode request, JsonNode id) {
         ObjectNode resp = mapper.createObjectNode();
         resp.put("jsonrpc", "2.0");
-        if (id != null) resp.put("id", id);
+        if (id != null) resp.set("id", id);
 
         ObjectNode result = resp.putObject("result");
         result.put("protocolVersion", MCP_VERSION);
@@ -82,10 +82,10 @@ public class McpServerController {
         return resp;
     }
 
-    private ObjectNode handleToolsList(String id) {
+    private ObjectNode handleToolsList(JsonNode id) {
         ObjectNode resp = mapper.createObjectNode();
         resp.put("jsonrpc", "2.0");
-        if (id != null) resp.put("id", id);
+        if (id != null) resp.set("id", id);
 
         ObjectNode result = resp.putObject("result");
         ArrayNode tools = result.putArray("tools");
@@ -100,7 +100,7 @@ public class McpServerController {
         return resp;
     }
 
-    private ObjectNode handleToolsCall(JsonNode request, String id) {
+    private ObjectNode handleToolsCall(JsonNode request, JsonNode id) {
         JsonNode params = request.path("params");
         String toolName = params.path("name").asText("");
         JsonNode arguments = params.path("arguments");
@@ -128,7 +128,7 @@ public class McpServerController {
 
             ObjectNode resp = mapper.createObjectNode();
             resp.put("jsonrpc", "2.0");
-            if (id != null) resp.put("id", id);
+            if (id != null) resp.set("id", id);
 
             ObjectNode resultNode = resp.putObject("result");
             ArrayNode content = resultNode.putArray("content");
@@ -143,10 +143,10 @@ public class McpServerController {
         }
     }
 
-    private ObjectNode errorResponse(String id, int code, String message) {
+    private ObjectNode errorResponse(JsonNode id, int code, String message) {
         ObjectNode resp = mapper.createObjectNode();
         resp.put("jsonrpc", "2.0");
-        if (id != null) resp.put("id", id);
+        if (id != null) resp.set("id", id);
         ObjectNode error = resp.putObject("error");
         error.put("code", code);
         error.put("message", message);

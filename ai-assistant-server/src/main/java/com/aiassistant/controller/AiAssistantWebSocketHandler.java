@@ -132,7 +132,7 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                 try {
                     if (session.isOpen()) {
                         String errJson = mapper.writeValueAsString(Map.of("error",
-                                e.getMessage() != null ? e.getMessage() : "unknown error"));
+                                "AI service encountered an error. Please try again."));
                         session.sendMessage(new TextMessage(errJson));
                     }
                 } catch (Exception ex) {
@@ -145,7 +145,7 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
             log.warn("ws handler error", e);
             if (session.isOpen()) {
                 String errJson = mapper.writeValueAsString(Map.of("error",
-                        e.getMessage() != null ? e.getMessage() : "unknown error"));
+                        "AI service encountered an error. Please try again."));
                 session.sendMessage(new TextMessage(errJson));
             }
         }

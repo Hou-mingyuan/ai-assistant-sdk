@@ -107,6 +107,7 @@ public class RateLimitFilter implements Filter {
     private static String inferAction(String path, HttpServletRequest request) {
         if (path.endsWith("/chat")) return "chat";
         if (path.endsWith("/stream")) return "stream";
+        if (path.endsWith("/sse")) return "stream";
         if (path.endsWith("/export")) return "export";
         if (path.endsWith("/url-preview")) return "url-preview";
         if (path.contains("/file/")) return "file";

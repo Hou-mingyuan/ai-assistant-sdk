@@ -521,14 +521,12 @@ public class AiAssistantAutoConfiguration {
                 io.micrometer.core.instrument.MeterRegistry registry,
                 ObjectProvider<List<AssistantCapability>> capabilitiesProvider,
                 ToolRegistry toolRegistry,
-                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
-                ObjectProvider<ConversationMemoryProvider> memoryProvider) {
+                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker) {
             return new com.aiassistant.observability.AiAssistantMetrics(
                     registry,
                     capabilitiesProvider.getIfAvailable(),
                     toolRegistry,
-                    tokenUsageTracker,
-                    memoryProvider.getIfAvailable());
+                    tokenUsageTracker);
         }
     }
 

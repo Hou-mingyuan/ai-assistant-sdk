@@ -7,8 +7,6 @@ import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +21,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}/admin")
 public class AdminDashboardController {
-
-    private static final Logger log = LoggerFactory.getLogger(AdminDashboardController.class);
 
     private final UsageStats usageStats;
     private final TokenUsageTracker tokenTracker;
@@ -129,7 +125,7 @@ public class AdminDashboardController {
         String content = body.get("content");
         String docId = body.get("docId");
         if (content == null || content.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "content is required"));
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "content is required"));
         }
         int chunks = ragService.ingest(namespace, docId != null ? docId : java.util.UUID.randomUUID().toString(),
                 content, Map.of());
