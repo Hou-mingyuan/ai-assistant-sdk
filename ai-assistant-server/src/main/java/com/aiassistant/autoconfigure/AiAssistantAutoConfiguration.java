@@ -137,12 +137,19 @@ public class AiAssistantAutoConfiguration {
         return registry;
     }
 
+    private static final org.slf4j.Logger autoConfigLog =
+            org.slf4j.LoggerFactory.getLogger(AiAssistantAutoConfiguration.class);
+
     private DataConnector createConnectorFromConfig(ConnectorProperties cfg) {
         String type = cfg.getType() != null ? cfg.getType().toLowerCase(java.util.Locale.ROOT) : "";
         return switch (type) {
             case "informat" -> {
                 if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()
-                        || cfg.getAppId() == null || cfg.getAppId().isBlank()) yield null;
+                        || cfg.getAppId() == null || cfg.getAppId().isBlank()) {
+                    autoConfigLog.warn("Skipping informat connector '{}': baseUrl and appId are required",
+                            cfg.resolveId());
+                    yield null;
+                }
                 InformatConnector ic = new InformatConnector(
                         cfg.resolveId(), cfg.resolveDisplayName(),
                         cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
@@ -151,7 +158,10 @@ public class AiAssistantAutoConfiguration {
                 yield ic;
             }
             case "rest" -> {
-                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()) yield null;
+                if (cfg.getBaseUrl() == null || cfg.getBaseUrl().isBlank()) {
+                    autoConfigLog.warn("Skipping REST connector '{}': baseUrl is required", cfg.resolveId());
+                    yield null;
+                }
                 RestApiConnector rc = new RestApiConnector(
                         cfg.resolveId(), cfg.resolveDisplayName(),
                         cfg.getBaseUrl(), null, null, null,
@@ -159,7 +169,11 @@ public class AiAssistantAutoConfiguration {
                 rc.setMaskedFieldNames(cfg.resolveMaskedFields());
                 yield rc;
             }
-            default -> null;
+            default -> {
+                autoConfigLog.warn("Unknown connector type '{}' for '{}', skipping. Valid types: informat, jdbc, rest",
+                        type, cfg.resolveId());
+                yield null;
+            }
         };
     }
 
@@ -240,8 +254,9 @@ public class AiAssistantAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ConnectorHealthController connectorHealthController(
-            ObjectProvider<List<DataConnector>> connectorProvider) {
-        return new ConnectorHealthController(connectorProvider.getIfAvailable());
+            ObjectProvider<List<DataConnector>> connectorProvider,
+            ToolRegistry toolRegistry) {
+        return new ConnectorHealthController(connectorProvider.getIfAvailable(), toolRegistry);
     }
 
     @Bean

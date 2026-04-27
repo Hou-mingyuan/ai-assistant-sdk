@@ -41,7 +41,16 @@ public class ConnectorToolRegistrar {
         registry.register(getSchemaTool(prefix, label, connector, en));
         registry.register(queryDataTool(prefix, label, connector, en));
 
-        log.info("Registered 3 tools for connector '{}' (prefix={}, locale={})", label, prefix, locale);
+        int toolCount = 3;
+        if (connector.supportsWrite()) {
+            registry.register(createRecordTool(prefix, label, connector, en));
+            registry.register(updateRecordTool(prefix, label, connector, en));
+            registry.register(deleteRecordTool(prefix, label, connector, en));
+            toolCount = 6;
+        }
+
+        log.info("Registered {} tools for connector '{}' (prefix={}, locale={}, write={})",
+                toolCount, label, prefix, locale, connector.supportsWrite());
     }
 
     private static ToolDefinition listModulesTool(String prefix, String label,
@@ -218,6 +227,103 @@ public class ConnectorToolRegistrar {
                 queryCache.put(ck, new CacheEntry(json,
                         System.currentTimeMillis() + QUERY_CACHE_TTL_MS));
                 return json;
+            }
+        };
+    }
+
+    private static ToolDefinition createRecordTool(String prefix, String label,
+                                                      DataConnector connector, boolean en) {
+        String name = prefix + "_create_record";
+        String desc = en
+                ? "Create a new record in a table of " + label + ". Provide moduleId and a fields object with field IDs as keys."
+                : "在 " + label + " 的指定数据表中创建一条新记录。提供 moduleId 和包含字段标识符为 key 的 fields 对象。";
+
+        ObjectNode schema = mapper.createObjectNode();
+        schema.put("type", "object");
+        ObjectNode props = schema.putObject("properties");
+        props.putObject("moduleId").put("type", "string").put("description", "数据表标识符");
+        props.putObject("fields").put("type", "object").put("description", "字段键值对");
+        schema.putArray("required").add("moduleId").add("fields");
+
+        return new ToolDefinition() {
+            @Override public String name() { return name; }
+            @Override public String description() { return desc; }
+            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String execute(JsonNode arguments) throws Exception {
+                String moduleId = arguments.path("moduleId").asText("");
+                if (moduleId.isBlank()) return "{\"error\":\"moduleId is required\"}";
+                JsonNode fieldsNode = arguments.path("fields");
+                if (!fieldsNode.isObject()) return "{\"error\":\"fields must be an object\"}";
+                java.util.Map<String, Object> fields = mapper.convertValue(fieldsNode,
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                java.util.Map<String, Object> result = connector.createRecord(moduleId, fields);
+                return mapper.writeValueAsString(java.util.Map.of("success", true, "record", result));
+            }
+        };
+    }
+
+    private static ToolDefinition updateRecordTool(String prefix, String label,
+                                                      DataConnector connector, boolean en) {
+        String name = prefix + "_update_record";
+        String desc = en
+                ? "Update an existing record in " + label + ". Provide moduleId, recordId, and fields to update."
+                : "更新 " + label + " 中的一条已有记录。提供 moduleId、recordId 和要更新的字段。";
+
+        ObjectNode schema = mapper.createObjectNode();
+        schema.put("type", "object");
+        ObjectNode props = schema.putObject("properties");
+        props.putObject("moduleId").put("type", "string").put("description", "数据表标识符");
+        props.putObject("recordId").put("type", "string").put("description", "记录ID");
+        props.putObject("fields").put("type", "object").put("description", "要更新的字段键值对");
+        schema.putArray("required").add("moduleId").add("recordId").add("fields");
+
+        return new ToolDefinition() {
+            @Override public String name() { return name; }
+            @Override public String description() { return desc; }
+            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String execute(JsonNode arguments) throws Exception {
+                String moduleId = arguments.path("moduleId").asText("");
+                String recordId = arguments.path("recordId").asText("");
+                if (moduleId.isBlank()) return "{\"error\":\"moduleId is required\"}";
+                if (recordId.isBlank()) return "{\"error\":\"recordId is required\"}";
+                JsonNode fieldsNode = arguments.path("fields");
+                if (!fieldsNode.isObject()) return "{\"error\":\"fields must be an object\"}";
+                java.util.Map<String, Object> fields = mapper.convertValue(fieldsNode,
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                java.util.Map<String, Object> result = connector.updateRecord(moduleId, recordId, fields);
+                return mapper.writeValueAsString(java.util.Map.of("success", true, "record", result));
+            }
+        };
+    }
+
+    private static ToolDefinition deleteRecordTool(String prefix, String label,
+                                                      DataConnector connector, boolean en) {
+        String name = prefix + "_delete_record";
+        String desc = en
+                ? "Delete a record from a table in " + label + " by its record ID."
+                : "根据 recordId 从 " + label + " 的数据表中删除一条记录。";
+
+        ObjectNode schema = mapper.createObjectNode();
+        schema.put("type", "object");
+        ObjectNode props = schema.putObject("properties");
+        props.putObject("moduleId").put("type", "string").put("description", "数据表标识符");
+        props.putObject("recordId").put("type", "string").put("description", "记录ID");
+        schema.putArray("required").add("moduleId").add("recordId");
+
+        return new ToolDefinition() {
+            @Override public String name() { return name; }
+            @Override public String description() { return desc; }
+            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String execute(JsonNode arguments) throws Exception {
+                String moduleId = arguments.path("moduleId").asText("");
+                String recordId = arguments.path("recordId").asText("");
+                if (moduleId.isBlank()) return "{\"error\":\"moduleId is required\"}";
+                if (recordId.isBlank()) return "{\"error\":\"recordId is required\"}";
+                boolean deleted = connector.deleteRecord(moduleId, recordId);
+                return mapper.writeValueAsString(java.util.Map.of("success", deleted));
             }
         };
     }

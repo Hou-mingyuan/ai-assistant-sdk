@@ -46,6 +46,7 @@ public class InformatConnector implements DataConnector {
     private static final Duration RETRY_MIN_BACKOFF = Duration.ofMillis(500);
     private static final Duration RETRY_MAX_BACKOFF = Duration.ofSeconds(5);
 
+    private final CircuitBreaker circuitBreaker;
     private final ConcurrentHashMap<String, List<ModuleInfo>> moduleCache = new ConcurrentHashMap<>();
     private volatile long moduleCacheExpiry = 0;
     private static final long CACHE_TTL_MS = 300_000; // 5 min
@@ -64,6 +65,7 @@ public class InformatConnector implements DataConnector {
                 .baseUrl(this.baseUrl)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
+        this.circuitBreaker = new CircuitBreaker("informat:" + this.connectorId);
         log.info("InformatConnector initialized: id={}, baseUrl={}, appId={}", this.connectorId, this.baseUrl, appId);
     }
 
@@ -200,7 +202,14 @@ public class InformatConnector implements DataConnector {
                 ? "&token=" + URLEncoder.encode(token, StandardCharsets.UTF_8) : "";
     }
 
+    private void checkCircuit(String op) {
+        if (!circuitBreaker.allowRequest()) {
+            throw new RuntimeException("Circuit breaker OPEN for " + connectorId + " (" + op + "), fast-failing");
+        }
+    }
+
     private String get(String path) {
+        checkCircuit("GET " + path);
         String result = webClient.get()
                 .uri(path)
                 .retrieve()
@@ -215,11 +224,16 @@ public class InformatConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) throw new RuntimeException("Empty response from Informat GET " + path);
+        if (result == null) {
+            circuitBreaker.recordFailure();
+            throw new RuntimeException("Empty response from Informat GET " + path);
+        }
+        circuitBreaker.recordSuccess();
         return result;
     }
 
     private String post(String path, String jsonBody) {
+        checkCircuit("POST " + path);
         String result = webClient.post()
                 .uri(path)
                 .bodyValue(jsonBody)
@@ -235,7 +249,11 @@ public class InformatConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) throw new RuntimeException("Empty response from Informat POST " + path);
+        if (result == null) {
+            circuitBreaker.recordFailure();
+            throw new RuntimeException("Empty response from Informat POST " + path);
+        }
+        circuitBreaker.recordSuccess();
         return result;
     }
 

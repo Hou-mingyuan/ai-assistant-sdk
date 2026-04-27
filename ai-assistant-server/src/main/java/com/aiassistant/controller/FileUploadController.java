@@ -24,6 +24,17 @@ public class FileUploadController {
 
     private static final Logger log = LoggerFactory.getLogger(FileUploadController.class);
 
+    private static final java.util.Set<String> ALLOWED_CONTENT_TYPES = java.util.Set.of(
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/msword",
+            "application/vnd.ms-excel",
+            "text/csv",
+            "text/plain",
+            "text/markdown"
+    );
+
     private final FileParserService fileParserService;
     private final LlmService llmService;
     private final UsageStats usageStats;
@@ -34,10 +45,27 @@ public class FileUploadController {
         this.usageStats = usageStats;
     }
 
+    private String validateFileType(MultipartFile file) {
+        if (file == null || file.isEmpty()) return "File is empty";
+        String contentType = file.getContentType();
+        if (contentType != null && !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            String name = file.getOriginalFilename();
+            if (name != null && (name.endsWith(".pdf") || name.endsWith(".docx") || name.endsWith(".xlsx")
+                    || name.endsWith(".csv") || name.endsWith(".txt") || name.endsWith(".md")
+                    || name.endsWith(".doc") || name.endsWith(".xls"))) {
+                return null;
+            }
+            return "Unsupported file type: " + contentType + ". Allowed: pdf, docx, xlsx, csv, txt";
+        }
+        return null;
+    }
+
     @PostMapping("/file/summarize")
     public ResponseEntity<ChatResponse> summarizeFile(
             @RequestParam("file") MultipartFile file) {
         try {
+            String typeError = validateFileType(file);
+            if (typeError != null) return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
             String text = fileParserService.extractText(file);
             String result = llmService.summarize(text);
             usageStats.recordCall("file_summarize");
@@ -58,6 +86,8 @@ public class FileUploadController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "targetLang", defaultValue = "zh") String targetLang) {
         try {
+            String typeError = validateFileType(file);
+            if (typeError != null) return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
             String text = fileParserService.extractText(file);
             String result = llmService.translate(text, targetLang);
             usageStats.recordCall("file_translate");

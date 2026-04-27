@@ -50,7 +50,7 @@ public class AiAssistantController {
         try {
             String tooLarge = ChatInputLimits.validateTotalChars(request, assistantProperties.getChatMaxTotalChars());
             if (tooLarge != null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(tooLarge));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail("INPUT_TOO_LARGE", tooLarge));
             }
             String action = request.getAction() == null ? "chat" : request.getAction();
             String result = switch (action) {
@@ -66,7 +66,7 @@ public class AiAssistantController {
             usageStats.recordError();
             log.warn("POST /chat failed", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(ChatResponse.fail("AI service error. Check server logs for details."));
+                    .body(ChatResponse.fail("LLM_UNAVAILABLE", "AI service error. Check server logs for details."));
         }
     }
 

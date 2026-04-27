@@ -38,6 +38,7 @@ public class RestApiConnector implements DataConnector {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private java.util.Set<String> maskedFields = java.util.Set.of();
+    private final CircuitBreaker circuitBreaker;
 
     private static final int MAX_RETRIES = 2;
     private static final Duration RETRY_MIN_BACKOFF = Duration.ofMillis(500);
@@ -74,6 +75,7 @@ public class RestApiConnector implements DataConnector {
             headers.forEach(builder::defaultHeader);
         }
         this.webClient = builder.build();
+        this.circuitBreaker = new CircuitBreaker("rest:" + this.connectorId);
 
         log.info("RestApiConnector initialized: id={}, baseUrl={}", this.connectorId, url);
     }
@@ -172,7 +174,14 @@ public class RestApiConnector implements DataConnector {
         }
     }
 
+    private void checkCircuit(String op) {
+        if (!circuitBreaker.allowRequest()) {
+            throw new RuntimeException("Circuit breaker OPEN for " + connectorId + " (" + op + "), fast-failing");
+        }
+    }
+
     private String get(String path) {
+        checkCircuit("GET " + path);
         String result = webClient.get().uri(path)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(),
@@ -186,11 +195,16 @@ public class RestApiConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) throw new RuntimeException("Empty response from REST GET " + path);
+        if (result == null) {
+            circuitBreaker.recordFailure();
+            throw new RuntimeException("Empty response from REST GET " + path);
+        }
+        circuitBreaker.recordSuccess();
         return result;
     }
 
     private String post(String path, String jsonBody) {
+        checkCircuit("POST " + path);
         String result = webClient.post().uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
@@ -205,7 +219,11 @@ public class RestApiConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
-        if (result == null) throw new RuntimeException("Empty response from REST POST " + path);
+        if (result == null) {
+            circuitBreaker.recordFailure();
+            throw new RuntimeException("Empty response from REST POST " + path);
+        }
+        circuitBreaker.recordSuccess();
         return result;
     }
 

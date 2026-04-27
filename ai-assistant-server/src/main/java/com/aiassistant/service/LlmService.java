@@ -57,8 +57,24 @@ public class LlmService {
                     return size() > LLM_CACHE_MAX || eldest.getValue().isExpired();
                 }
             });
-    private record LlmCacheEntry(String result, long expiresAt) {
+    private record LlmCacheEntry(byte[] compressed, long expiresAt) {
         boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
+        String decompress() {
+            try {
+                var bais = new java.io.ByteArrayInputStream(compressed);
+                var gzis = new java.util.zip.GZIPInputStream(bais);
+                return new String(gzis.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception e) { return ""; }
+        }
+        static byte[] compress(String text) {
+            try {
+                var baos = new java.io.ByteArrayOutputStream();
+                var gzos = new java.util.zip.GZIPOutputStream(baos);
+                gzos.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                gzos.close();
+                return baos.toByteArray();
+            } catch (Exception e) { return text.getBytes(java.nio.charset.StandardCharsets.UTF_8); }
+        }
     }
 
     /** 与翻译模式、流式翻译、文件翻译共用：走同一 LLM，强调口语化、地道表达 */
@@ -126,18 +142,18 @@ public class LlmService {
                         + " (conversational where appropriate). Output only the translation, no explanation.");
         String cacheKey = llmCacheKey("translate:" + targetLang, text);
         LlmCacheEntry cached = llmCache.get(cacheKey);
-        if (cached != null && !cached.isExpired()) return cached.result();
+        if (cached != null && !cached.isExpired()) return cached.decompress();
         String result = callLlm(systemPrompt, prepareUserText(text), null, "translate", properties.resolveModel(), null);
-        llmCache.put(cacheKey, new LlmCacheEntry(result, System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+        llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
         return result;
     }
 
     public String summarize(String text) {
         String cacheKey = llmCacheKey("summarize", text);
         LlmCacheEntry cached = llmCache.get(cacheKey);
-        if (cached != null && !cached.isExpired()) return cached.result();
+        if (cached != null && !cached.isExpired()) return cached.decompress();
         String result = callLlm(SUMMARIZE_PROMPT, prepareUserText(text), null, "summarize", properties.resolveModel(), null);
-        llmCache.put(cacheKey, new LlmCacheEntry(result, System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+        llmCache.put(cacheKey, new LlmCacheEntry(LlmCacheEntry.compress(result), System.currentTimeMillis() + LLM_CACHE_TTL_MS));
         return result;
     }
 

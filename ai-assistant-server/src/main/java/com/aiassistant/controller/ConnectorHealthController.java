@@ -1,9 +1,14 @@
 package com.aiassistant.controller;
 
+import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
+import com.aiassistant.tool.ToolRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,9 +26,11 @@ public class ConnectorHealthController {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorHealthController.class);
     private final List<DataConnector> connectors;
+    private final ToolRegistry toolRegistry;
 
-    public ConnectorHealthController(List<DataConnector> connectors) {
-        this.connectors = connectors != null ? connectors : List.of();
+    public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry) {
+        this.connectors = connectors != null ? new ArrayList<>(connectors) : new ArrayList<>();
+        this.toolRegistry = toolRegistry;
     }
 
     @GetMapping("/health/connectors")
@@ -55,5 +62,28 @@ public class ConnectorHealthController {
                 "status", allUp ? "UP" : "DEGRADED",
                 "connectors", statuses
         );
+    }
+
+    @PostMapping("/connectors/register")
+    public Map<String, Object> registerConnector(@org.springframework.web.bind.annotation.RequestBody DataConnector connector) {
+        if (connector == null) return Map.of("success", false, "error", "connector is null");
+        connectors.add(connector);
+        if (toolRegistry != null) {
+            ConnectorToolRegistrar.register(connector, toolRegistry);
+        }
+        log.info("Dynamically registered connector: {}", connector.id());
+        return Map.of("success", true, "connectorId", connector.id());
+    }
+
+    @DeleteMapping("/connectors/{connectorId}")
+    public Map<String, Object> unregisterConnector(@PathVariable String connectorId) {
+        boolean removed = connectors.removeIf(c -> c.id().equals(connectorId));
+        int toolsRemoved = 0;
+        if (removed && toolRegistry != null) {
+            String prefix = connectorId.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase() + "_";
+            toolsRemoved = toolRegistry.unregisterByPrefix(prefix);
+        }
+        log.info("Unregistered connector: {} (found={}, toolsRemoved={})", connectorId, removed, toolsRemoved);
+        return Map.of("success", removed, "connectorId", connectorId, "toolsRemoved", toolsRemoved);
     }
 }

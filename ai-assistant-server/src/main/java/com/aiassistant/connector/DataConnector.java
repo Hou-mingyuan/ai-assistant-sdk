@@ -24,6 +24,24 @@ public interface DataConnector {
     /** Query data from a module / table with optional filters. */
     QueryResult queryData(String moduleId, QueryFilter filter);
 
+    /** Whether this connector supports write operations. */
+    default boolean supportsWrite() { return false; }
+
+    /** Create a new record in the given module. Returns the created record (or at least its id). */
+    default Map<String, Object> createRecord(String moduleId, Map<String, Object> fields) {
+        throw new UnsupportedOperationException("Write not supported by " + id());
+    }
+
+    /** Update an existing record. Returns the updated record (or at least its id). */
+    default Map<String, Object> updateRecord(String moduleId, String recordId, Map<String, Object> fields) {
+        throw new UnsupportedOperationException("Write not supported by " + id());
+    }
+
+    /** Delete a record by id. Returns true if deleted successfully. */
+    default boolean deleteRecord(String moduleId, String recordId) {
+        throw new UnsupportedOperationException("Write not supported by " + id());
+    }
+
     /**
      * Field names (case-insensitive) whose values should be masked before
      * returning to the LLM. Override to provide connector-specific masks.
