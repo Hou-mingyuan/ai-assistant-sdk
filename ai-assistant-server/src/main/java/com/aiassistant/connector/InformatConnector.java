@@ -201,7 +201,7 @@ public class InformatConnector implements DataConnector {
     }
 
     private String get(String path) {
-        return webClient.get()
+        String result = webClient.get()
                 .uri(path)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(),
@@ -215,10 +215,12 @@ public class InformatConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+        if (result == null) throw new RuntimeException("Empty response from Informat GET " + path);
+        return result;
     }
 
     private String post(String path, String jsonBody) {
-        return webClient.post()
+        String result = webClient.post()
                 .uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
@@ -233,6 +235,8 @@ public class InformatConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+        if (result == null) throw new RuntimeException("Empty response from Informat POST " + path);
+        return result;
     }
 
     private Retry retrySpec(String context) {

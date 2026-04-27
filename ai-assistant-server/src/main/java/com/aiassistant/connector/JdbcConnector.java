@@ -222,9 +222,9 @@ public class JdbcConnector implements DataConnector {
             case "ge", ">=" -> { params.add(c.value()); yield col + " >= ?"; }
             case "lt", "<" -> { params.add(c.value()); yield col + " < ?"; }
             case "le", "<=" -> { params.add(c.value()); yield col + " <= ?"; }
-            case "contains", "like" -> { params.add("%" + c.value() + "%"); yield col + " LIKE ?"; }
-            case "startswith" -> { params.add(c.value() + "%"); yield col + " LIKE ?"; }
-            case "endswith" -> { params.add("%" + c.value()); yield col + " LIKE ?"; }
+            case "contains", "like" -> { params.add("%" + escapeLike(c.value()) + "%"); yield col + " LIKE ? ESCAPE '\\'"; }
+            case "startswith" -> { params.add(escapeLike(c.value()) + "%"); yield col + " LIKE ? ESCAPE '\\'"; }
+            case "endswith" -> { params.add("%" + escapeLike(c.value())); yield col + " LIKE ? ESCAPE '\\'"; }
             case "isnull" -> col + " IS NULL";
             case "isnotnull" -> col + " IS NOT NULL";
             case "in" -> {
@@ -235,8 +235,25 @@ public class JdbcConnector implements DataConnector {
                 }
                 yield "1=1";
             }
+            case "between" -> {
+                if (c.value() instanceof List<?> range && range.size() >= 2) {
+                    params.add(range.get(0));
+                    params.add(range.get(1));
+                    yield col + " BETWEEN ? AND ?";
+                }
+                params.add(c.value());
+                yield col + " = ?";
+            }
             default -> { params.add(c.value()); yield col + " = ?"; }
         };
+    }
+
+    private static String escapeLike(Object value) {
+        if (value == null) return "";
+        return String.valueOf(value)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 
     private void appendPagination(StringBuilder sql, List<Object> params, int limit, int offset) {

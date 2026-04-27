@@ -173,7 +173,7 @@ public class RestApiConnector implements DataConnector {
     }
 
     private String get(String path) {
-        return webClient.get().uri(path)
+        String result = webClient.get().uri(path)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(),
                         resp -> resp.bodyToMono(String.class)
@@ -186,10 +186,12 @@ public class RestApiConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("GET " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+        if (result == null) throw new RuntimeException("Empty response from REST GET " + path);
+        return result;
     }
 
     private String post(String path, String jsonBody) {
-        return webClient.post().uri(path)
+        String result = webClient.post().uri(path)
                 .bodyValue(jsonBody)
                 .retrieve()
                 .onStatus(status -> status.is4xxClientError(),
@@ -203,6 +205,8 @@ public class RestApiConnector implements DataConnector {
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("POST " + path))
                 .block(Duration.ofSeconds(timeoutSeconds));
+        if (result == null) throw new RuntimeException("Empty response from REST POST " + path);
+        return result;
     }
 
     private Retry retrySpec(String context) {

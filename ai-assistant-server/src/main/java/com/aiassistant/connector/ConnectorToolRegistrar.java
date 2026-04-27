@@ -50,6 +50,7 @@ public class ConnectorToolRegistrar {
         String desc = en
                 ? "List all available modules/tables in " + label + ". Call this first when the user mentions a business module to find the moduleId."
                 : "列出 " + label + " 中所有可用的数据模块/表。当用户提到某个业务模块时，先调用此工具查找对应的 moduleId。";
+        String emptyHint = en ? "No modules found" : "未找到任何模块";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -62,7 +63,7 @@ public class ConnectorToolRegistrar {
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 List<DataConnector.ModuleInfo> modules = connector.listModules();
-                if (modules.isEmpty()) return "{\"modules\":[],\"hint\":\"未找到任何模块\"}";
+                if (modules.isEmpty()) return "{\"modules\":[],\"hint\":\"" + emptyHint + "\"}";
                 List<Object> list = modules.stream()
                         .map(m -> java.util.Map.of("id", m.id(), "name", m.name(), "type", m.type()))
                         .collect(Collectors.toList());
@@ -268,8 +269,14 @@ public class ConnectorToolRegistrar {
     }
 
     private static void evictExpired() {
+        queryCache.entrySet().removeIf(e -> e.getValue().isExpired());
         if (queryCache.size() > QUERY_CACHE_MAX) {
-            queryCache.entrySet().removeIf(e -> e.getValue().isExpired());
+            queryCache.entrySet().stream()
+                    .sorted(java.util.Comparator.comparingLong(e -> e.getValue().expiresAt()))
+                    .limit(queryCache.size() - QUERY_CACHE_MAX)
+                    .map(java.util.Map.Entry::getKey)
+                    .toList()
+                    .forEach(queryCache::remove);
         }
     }
 
