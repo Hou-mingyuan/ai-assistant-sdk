@@ -285,6 +285,81 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public com.aiassistant.stats.TokenUsageTracker tokenUsageTracker() {
+        return new com.aiassistant.stats.TokenUsageTracker();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.prompt.PromptTemplateRegistry promptTemplateRegistry() {
+        return new com.aiassistant.prompt.PromptTemplateRegistry();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.security.ContentFilter contentFilter(AiAssistantProperties properties) {
+        return new com.aiassistant.security.ContentFilter(properties.isPiiMaskingEnabled(), true);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.routing.ModelRouter modelRouter(AiAssistantProperties properties) {
+        return new com.aiassistant.routing.ModelRouter(properties.resolveModel());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.rag.VectorStore vectorStore() {
+        return new com.aiassistant.rag.InMemoryVectorStore();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "rag-enabled", havingValue = "true")
+    public com.aiassistant.rag.EmbeddingProvider embeddingProvider(AiAssistantProperties properties) {
+        return new com.aiassistant.rag.OpenAiEmbeddingProvider(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "rag-enabled", havingValue = "true")
+    public com.aiassistant.rag.RagService ragService(
+            com.aiassistant.rag.EmbeddingProvider embeddingProvider,
+            com.aiassistant.rag.VectorStore vectorStore) {
+        return new com.aiassistant.rag.RagService(embeddingProvider, vectorStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.agent.AgentExecutor agentExecutor(ToolRegistry toolRegistry) {
+        return new com.aiassistant.agent.AgentExecutor(toolRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.controller.AdminDashboardController adminDashboardController(
+            UsageStats usageStats,
+            com.aiassistant.stats.TokenUsageTracker tokenTracker,
+            ToolRegistry toolRegistry,
+            com.aiassistant.prompt.PromptTemplateRegistry promptRegistry,
+            ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+            com.aiassistant.routing.ModelRouter modelRouter) {
+        com.aiassistant.rag.RagService ragService = ragServiceProvider.getIfAvailable();
+        if (ragService == null) {
+            ragService = new com.aiassistant.rag.RagService(
+                    new com.aiassistant.rag.EmbeddingProvider() {
+                        @Override public float[] embed(String t) { return new float[0]; }
+                        @Override public java.util.List<float[]> embedBatch(java.util.List<String> t) { return java.util.List.of(); }
+                        @Override public int dimensions() { return 0; }
+                    },
+                    new com.aiassistant.rag.InMemoryVectorStore());
+        }
+        return new com.aiassistant.controller.AdminDashboardController(
+                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public com.aiassistant.controller.AsyncTaskController asyncTaskController(LlmService llmService, UsageStats usageStats) {
         return new com.aiassistant.controller.AsyncTaskController(llmService, usageStats);
     }

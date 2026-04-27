@@ -38,6 +38,12 @@ public class AiAssistantProperties {
     private int rateLimit = 0;
     private java.util.Map<String, Integer> rateLimitPerAction;
 
+    // ── Embedding / RAG ─────────────────────────────────────────────
+    private String embeddingModel;
+    private int embeddingDimensions = 1536;
+    private boolean ragEnabled = false;
+    private boolean piiMaskingEnabled = true;
+
     // ── Data Connectors ─────────────────────────────────────────────
     private List<ConnectorProperties> connectors;
 
@@ -261,6 +267,15 @@ public class AiAssistantProperties {
     public void setChatMaxTotalChars(int v) { chat.setMaxTotalChars(v); }
     public int getChatHistoryMaxChars() { return chat.getHistoryMaxChars(); }
     public void setChatHistoryMaxChars(int v) { chat.setHistoryMaxChars(v); }
+
+    public String getEmbeddingModel() { return embeddingModel; }
+    public void setEmbeddingModel(String embeddingModel) { this.embeddingModel = embeddingModel; }
+    public int getEmbeddingDimensions() { return embeddingDimensions; }
+    public void setEmbeddingDimensions(int embeddingDimensions) { this.embeddingDimensions = embeddingDimensions; }
+    public boolean isRagEnabled() { return ragEnabled; }
+    public void setRagEnabled(boolean ragEnabled) { this.ragEnabled = ragEnabled; }
+    public boolean isPiiMaskingEnabled() { return piiMaskingEnabled; }
+    public void setPiiMaskingEnabled(boolean piiMaskingEnabled) { this.piiMaskingEnabled = piiMaskingEnabled; }
 
     public List<ConnectorProperties> getConnectors() { return connectors; }
     public void setConnectors(List<ConnectorProperties> connectors) { this.connectors = connectors; }
