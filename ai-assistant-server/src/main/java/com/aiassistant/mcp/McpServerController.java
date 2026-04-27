@@ -1,6 +1,7 @@
 package com.aiassistant.mcp;
 
 import com.aiassistant.spi.AssistantCapability;
+import com.aiassistant.util.JsonNodeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -120,7 +121,7 @@ public class McpServerController {
                 var it = arguments.fields();
                 while (it.hasNext()) {
                     var entry = it.next();
-                    paramsMap.put(entry.getKey(), nodeToValue(entry.getValue()));
+                    paramsMap.put(entry.getKey(), JsonNodeUtils.nodeToValue(entry.getValue()));
                 }
             }
 
@@ -153,13 +154,4 @@ public class McpServerController {
         return resp;
     }
 
-    private static Object nodeToValue(JsonNode node) {
-        if (node.isTextual()) return node.asText();
-        if (node.isInt()) return node.asInt();
-        if (node.isLong()) return node.asLong();
-        if (node.isDouble()) return node.asDouble();
-        if (node.isBoolean()) return node.asBoolean();
-        if (node.isNull()) return null;
-        return node.toString();
-    }
 }

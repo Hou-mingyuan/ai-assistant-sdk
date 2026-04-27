@@ -56,12 +56,6 @@ public class SessionController {
     }
 
     private String resolveUserId(HttpServletRequest request) {
-        String token = request.getHeader("X-AI-Token");
-        if (token != null && !token.isBlank()) return "token:" + token;
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return "ip:" + xff.split(",")[0].trim();
-        }
-        return "ip:" + request.getRemoteAddr();
+        return com.aiassistant.util.ClientIdentity.resolve(request);
     }
 }

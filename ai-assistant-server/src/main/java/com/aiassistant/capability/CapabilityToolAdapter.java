@@ -3,6 +3,7 @@ package com.aiassistant.capability;
 import com.aiassistant.spi.AssistantCapability;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
+import com.aiassistant.util.JsonNodeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -62,20 +63,10 @@ public class CapabilityToolAdapter {
                 var it = arguments.fields();
                 while (it.hasNext()) {
                     var entry = it.next();
-                    params.put(entry.getKey(), nodeToValue(entry.getValue()));
+                    params.put(entry.getKey(), JsonNodeUtils.nodeToValue(entry.getValue()));
                 }
             }
             return capability.execute(params);
-        }
-
-        private static Object nodeToValue(JsonNode node) {
-            if (node.isTextual()) return node.asText();
-            if (node.isInt()) return node.asInt();
-            if (node.isLong()) return node.asLong();
-            if (node.isDouble()) return node.asDouble();
-            if (node.isBoolean()) return node.asBoolean();
-            if (node.isNull()) return null;
-            return node.toString();
         }
     }
 }

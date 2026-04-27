@@ -27,8 +27,8 @@ public class ContentFilter {
     private static final List<Pattern> INJECTION_PATTERNS = List.of(
             Pattern.compile("(?i)ignore\\s+(all\\s+)?previous\\s+instructions"),
             Pattern.compile("(?i)you\\s+are\\s+now\\s+(a|an)\\s+"),
-            Pattern.compile("(?i)system\\s*prompt\\s*:", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("(?i)jailbreak", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(?i)system\\s*prompt\\s*:"),
+            Pattern.compile("(?i)jailbreak"),
             Pattern.compile("(?i)\\bDAN\\b.*\\bmode\\b")
     );
 
