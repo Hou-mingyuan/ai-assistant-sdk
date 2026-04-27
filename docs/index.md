@@ -2,26 +2,22 @@
 layout: home
 hero:
   name: AI Assistant SDK
-  text: 嵌入式 AI 小助手
-  tagline: 可嵌入任何 Java + Vue 项目，支持翻译、摘要、对话、Vision、Function Calling
+  text: 可嵌入的 AI 助手
+  tagline: Spring Boot Starter + Vue 3 组件库，为任何 Java 项目添加智能对话能力
   actions:
     - theme: brand
       text: 快速开始
-      link: /guide/
+      link: /guide/quick-start
     - theme: alt
       text: API 文档
       link: /api/
 features:
-  - icon: 🌐
-    title: 多模型支持
-    details: 7 家供应商开箱即用，自定义 Provider 可扩展
-  - icon: 🔧
-    title: Function Calling
-    details: LLM 自动调用注册工具，支持多轮循环
-  - icon: 🖼️
-    title: Vision 图片理解
-    details: 粘贴/拖入图片发送给多模态模型分析
-  - icon: 🔌
-    title: 插件系统
-    details: registerPlugin 在 header/footer/右键菜单注册自定义按钮
+  - title: 即插即用
+    details: 一个 Maven 依赖 + 一行配置即可启用，支持 OpenAI / DeepSeek / 通义千问 / GLM 等多种 LLM
+  - title: MCP Server
+    details: 内置 MCP 协议支持，可直接对接织信等低代码平台的 AI Agent
+  - title: 可扩展 SPI
+    details: ChatInterceptor / AssistantCapability / ConversationMemoryProvider 三大扩展点，深度定制
+  - title: 生产就绪
+    details: 内置限流、多租户、Token 配额、A/B 测试、Actuator 健康检查、Docker + Helm 部署
 ---

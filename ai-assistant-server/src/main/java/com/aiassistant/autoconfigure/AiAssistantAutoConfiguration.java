@@ -240,6 +240,20 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public com.aiassistant.controller.PromptTemplateController promptTemplateController(
+            com.aiassistant.prompt.PromptTemplateRegistry registry) {
+        return new com.aiassistant.controller.PromptTemplateController(registry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.controller.SseStreamController sseStreamController(
+            LlmService llmService, UsageStats usageStats, AiAssistantProperties properties) {
+        return new com.aiassistant.controller.SseStreamController(llmService, usageStats, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public ConnectorHealthController connectorHealthController(
             ObjectProvider<List<DataConnector>> connectorProvider,
             ToolRegistry toolRegistry,
@@ -368,7 +382,8 @@ public class AiAssistantAutoConfiguration {
             ToolRegistry toolRegistry,
             com.aiassistant.prompt.PromptTemplateRegistry promptRegistry,
             ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
-            com.aiassistant.routing.ModelRouter modelRouter) {
+            com.aiassistant.routing.ModelRouter modelRouter,
+            ObjectProvider<com.aiassistant.plugin.PluginRegistry> pluginRegistryProvider) {
         com.aiassistant.rag.RagService ragService = ragServiceProvider.getIfAvailable();
         if (ragService == null) {
             ragService = new com.aiassistant.rag.RagService(
@@ -380,7 +395,8 @@ public class AiAssistantAutoConfiguration {
                     new com.aiassistant.rag.InMemoryVectorStore());
         }
         return new com.aiassistant.controller.AdminDashboardController(
-                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter);
+                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter,
+                pluginRegistryProvider.getIfAvailable());
     }
 
     @Bean
@@ -465,6 +481,57 @@ public class AiAssistantAutoConfiguration {
         };
     }
 
+    // ── Security: RBAC ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.security.RbacProvider rbacProvider() {
+        return new com.aiassistant.security.RbacProvider.AllowAll();
+    }
+
+    // ── Event Bus ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.event.AiAssistantEventPublisher aiAssistantEventPublisher(
+            org.springframework.context.ApplicationEventPublisher publisher) {
+        return new com.aiassistant.event.AiAssistantEventPublisher(publisher);
+    }
+
+    // ── Observability: Actuator HealthIndicator + Micrometer gauges ──
+
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
+    static class ActuatorHealthAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(name = "aiAssistantHealthIndicator")
+        public com.aiassistant.observability.AiAssistantHealthIndicator aiAssistantHealthIndicator(
+                AiAssistantProperties properties,
+                com.aiassistant.config.ProviderConnectivityChecker checker) {
+            return new com.aiassistant.observability.AiAssistantHealthIndicator(properties, checker);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnClass(name = "io.micrometer.core.instrument.MeterRegistry")
+    static class AiAssistantMetricsAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(name = "aiAssistantMetrics")
+        public com.aiassistant.observability.AiAssistantMetrics aiAssistantMetrics(
+                io.micrometer.core.instrument.MeterRegistry registry,
+                ObjectProvider<List<AssistantCapability>> capabilitiesProvider,
+                ToolRegistry toolRegistry,
+                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+                ObjectProvider<ConversationMemoryProvider> memoryProvider) {
+            return new com.aiassistant.observability.AiAssistantMetrics(
+                    registry,
+                    capabilitiesProvider.getIfAvailable(),
+                    toolRegistry,
+                    tokenUsageTracker,
+                    memoryProvider.getIfAvailable());
+        }
+    }
+
     // ── SPI: Conversation Memory ──
 
     @Bean
@@ -490,6 +557,36 @@ public class AiAssistantAutoConfiguration {
     public CapabilityController capabilityController(
             ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
         return new CapabilityController(capabilitiesProvider.getIfAvailable());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "capabilityToolAdapter")
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "capabilities-as-tools", havingValue = "true", matchIfMissing = true)
+    public com.aiassistant.capability.CapabilityToolAdapter capabilityToolAdapter(
+            ToolRegistry toolRegistry,
+            ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
+        return new com.aiassistant.capability.CapabilityToolAdapter(
+                toolRegistry, capabilitiesProvider.getIfAvailable());
+    }
+
+    // ── Plugin System ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.plugin.PluginRegistry pluginRegistry(
+            ToolRegistry toolRegistry,
+            ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
+        return new com.aiassistant.plugin.PluginRegistry(toolRegistry, capabilitiesProvider.getIfAvailable());
+    }
+
+    // ── MCP Server ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "mcp-server-enabled", havingValue = "true", matchIfMissing = true)
+    public com.aiassistant.mcp.McpServerController mcpServerController(
+            ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
+        return new com.aiassistant.mcp.McpServerController(capabilitiesProvider.getIfAvailable());
     }
 
     // ── SPI: Redis distributed rate limit (auto-activate when Redis is present) ──

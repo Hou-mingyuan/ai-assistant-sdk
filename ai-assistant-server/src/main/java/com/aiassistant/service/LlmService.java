@@ -334,29 +334,42 @@ public class LlmService {
     private String callLlm(String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history,
                          String operation, String modelId, String imageData) {
         userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
-        ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, modelId, imageData);
-        String key = nextApiKey();
-        Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
-        String rawResponse;
-        try {
-            rawResponse = chatCompletionClient.completeRaw(body, key);
-        } catch (RuntimeException e) {
-            markKeyFailed(key);
-            if (sample != null) sample.stop(completionTimer(operation, "error"));
-            throw e;
-        }
-        try {
-            recordTokenUsage(rawResponse, modelId);
-            String result = processToolCallingLoop(body, rawResponse, key);
-            if (contentFilter != null) {
-                result = contentFilter.filterOutput(result);
+        String currentModel = modelId;
+        RuntimeException lastError = null;
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            ObjectNode body = buildRequestBody(systemPrompt, userMessage, false, history, currentModel, imageData);
+            String key = nextApiKey();
+            Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
+            String rawResponse;
+            try {
+                rawResponse = chatCompletionClient.completeRaw(body, key);
+            } catch (RuntimeException e) {
+                markKeyFailed(key);
+                if (sample != null) sample.stop(completionTimer(operation, "error"));
+                lastError = e;
+                String fallback = modelRouter != null ? modelRouter.nextFallback(currentModel) : null;
+                if (fallback != null) {
+                    log.warn("Model {} failed, falling back to {}: {}", currentModel, fallback, e.getMessage());
+                    currentModel = fallback;
+                    continue;
+                }
+                throw e;
             }
-            if (sample != null) sample.stop(completionTimer(operation, "success"));
-            return result;
-        } catch (RuntimeException e) {
-            if (sample != null) sample.stop(completionTimer(operation, "error"));
-            throw e;
+            try {
+                recordTokenUsage(rawResponse, currentModel);
+                String result = processToolCallingLoop(body, rawResponse, key);
+                if (contentFilter != null) {
+                    result = contentFilter.filterOutput(result);
+                }
+                if (sample != null) sample.stop(completionTimer(operation, "success"));
+                return result;
+            } catch (RuntimeException e) {
+                if (sample != null) sample.stop(completionTimer(operation, "error"));
+                throw e;
+            }
         }
+        throw lastError != null ? lastError : new RuntimeException("All fallback models exhausted");
     }
 
     private String processToolCallingLoop(ObjectNode body, String rawResponse, String apiKey) {

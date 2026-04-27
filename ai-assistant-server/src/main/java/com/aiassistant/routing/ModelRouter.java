@@ -69,6 +69,38 @@ public class ModelRouter {
         return new RoutingDecision(defaultModel, "default", null);
     }
 
+    private final List<String> fallbackChain = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /**
+     * Configure a fallback chain: when the primary model fails, try each in order.
+     * @param modelIds ordered list of model IDs to try on failure
+     */
+    public void setFallbackChain(List<String> modelIds) {
+        fallbackChain.clear();
+        if (modelIds != null) {
+            fallbackChain.addAll(modelIds);
+        }
+        log.info("Fallback chain configured: {}", fallbackChain);
+    }
+
+    /**
+     * Get the next fallback model after the given model fails.
+     * @return next model ID, or null if no more fallbacks
+     */
+    public String nextFallback(String failedModelId) {
+        if (fallbackChain.isEmpty()) return null;
+        int idx = fallbackChain.indexOf(failedModelId);
+        if (idx < 0) {
+            return fallbackChain.isEmpty() ? null : fallbackChain.get(0);
+        }
+        int next = idx + 1;
+        return next < fallbackChain.size() ? fallbackChain.get(next) : null;
+    }
+
+    public List<String> getFallbackChain() {
+        return List.copyOf(fallbackChain);
+    }
+
     public Map<String, ABTestConfig> getActiveABTests() {
         return Map.copyOf(abTests);
     }

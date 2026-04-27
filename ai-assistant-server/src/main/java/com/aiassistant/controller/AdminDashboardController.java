@@ -32,6 +32,7 @@ public class AdminDashboardController {
     private final PromptTemplateRegistry promptRegistry;
     private final RagService ragService;
     private final ModelRouter modelRouter;
+    private final com.aiassistant.plugin.PluginRegistry pluginRegistry;
 
     public AdminDashboardController(UsageStats usageStats,
                                      TokenUsageTracker tokenTracker,
@@ -39,12 +40,23 @@ public class AdminDashboardController {
                                      PromptTemplateRegistry promptRegistry,
                                      RagService ragService,
                                      ModelRouter modelRouter) {
+        this(usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter, null);
+    }
+
+    public AdminDashboardController(UsageStats usageStats,
+                                     TokenUsageTracker tokenTracker,
+                                     ToolRegistry toolRegistry,
+                                     PromptTemplateRegistry promptRegistry,
+                                     RagService ragService,
+                                     ModelRouter modelRouter,
+                                     com.aiassistant.plugin.PluginRegistry pluginRegistry) {
         this.usageStats = usageStats;
         this.tokenTracker = tokenTracker;
         this.toolRegistry = toolRegistry;
         this.promptRegistry = promptRegistry;
         this.ragService = ragService;
         this.modelRouter = modelRouter;
+        this.pluginRegistry = pluginRegistry;
     }
 
     @GetMapping("/overview")
@@ -149,5 +161,54 @@ public class AdminDashboardController {
     @GetMapping("/ab-test")
     public Map<String, ModelRouter.ABTestConfig> listABTests() {
         return modelRouter.getActiveABTests();
+    }
+
+    @PostMapping("/fallback-chain")
+    public ResponseEntity<Map<String, Object>> setFallbackChain(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        java.util.List<String> chain = (java.util.List<String>) body.get("chain");
+        if (chain == null || chain.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "chain list is required"));
+        }
+        modelRouter.setFallbackChain(chain);
+        return ResponseEntity.ok(Map.of("success", true, "chain", chain));
+    }
+
+    @GetMapping("/fallback-chain")
+    public Map<String, Object> getFallbackChain() {
+        return Map.of("chain", modelRouter.getFallbackChain());
+    }
+
+    @GetMapping("/plugins")
+    public Map<String, Object> listPlugins() {
+        if (pluginRegistry == null) return Map.of("plugins", Map.of(), "enabled", false);
+        return Map.of("plugins", pluginRegistry.listPlugins(), "enabled", true);
+    }
+
+    @PostMapping("/plugins/{pluginId}/unload")
+    public ResponseEntity<Map<String, Object>> unloadPlugin(@PathVariable String pluginId) {
+        if (pluginRegistry == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Plugin system not available"));
+        }
+        boolean removed = pluginRegistry.unloadPlugin(pluginId);
+        return ResponseEntity.ok(Map.of("success", removed, "pluginId", pluginId));
+    }
+
+    @GetMapping("/system")
+    public Map<String, Object> systemInfo() {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("javaVersion", System.getProperty("java.version"));
+        info.put("osName", System.getProperty("os.name"));
+        info.put("availableProcessors", Runtime.getRuntime().availableProcessors());
+        info.put("maxMemoryMb", Runtime.getRuntime().maxMemory() / (1024 * 1024));
+        info.put("freeMemoryMb", Runtime.getRuntime().freeMemory() / (1024 * 1024));
+        info.put("totalMemoryMb", Runtime.getRuntime().totalMemory() / (1024 * 1024));
+        info.put("registeredTools", toolRegistry.all().size());
+        info.put("promptTemplates", promptRegistry.all().size());
+        info.put("fallbackChain", modelRouter.getFallbackChain());
+        if (pluginRegistry != null) {
+            info.put("loadedPlugins", pluginRegistry.listPlugins().size());
+        }
+        return info;
     }
 }

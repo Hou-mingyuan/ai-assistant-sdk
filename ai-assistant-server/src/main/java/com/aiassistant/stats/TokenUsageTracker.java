@@ -61,6 +61,17 @@ public class TokenUsageTracker {
         return usage.toSnapshot(tenantId, tenantQuotas.get(tenantId));
     }
 
+    /**
+     * Total tokens consumed across all tenants (all time).
+     */
+    public long getTotalTokens() {
+        long total = 0;
+        for (TenantUsage usage : usageByTenant.values()) {
+            total += usage.totalTokens.get();
+        }
+        return total;
+    }
+
     public Map<String, Object> getGlobalSnapshot() {
         Map<String, Object> result = new LinkedHashMap<>();
         long globalTotal = 0;

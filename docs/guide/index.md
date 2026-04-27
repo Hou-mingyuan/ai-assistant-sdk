@@ -1,40 +1,37 @@
-# 快速开始
+# 介绍
 
-## 后端集成
+AI Assistant SDK 是一个可嵌入的 AI 助手解决方案，包含：
 
-```xml
-<dependency>
-  <groupId>com.aiassistant</groupId>
-  <artifactId>ai-assistant-spring-boot-starter</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
-</dependency>
+- **后端**：Spring Boot Starter（Java 17+），提供对话、翻译、摘要、RAG、Tool Calling 等能力
+- **前端**：Vue 3 组件库，开箱即用的对话界面
+
+## 核心特性
+
+| 特性 | 说明 |
+|------|------|
+| 多 LLM 支持 | OpenAI / DeepSeek / 通义千问 / GLM / Gemini |
+| SSE 流式 | 标准化 ServerSentEvent 端点 |
+| MCP Server | 兼容织信等平台的 MCP 协议 |
+| Function Calling | AssistantCapability 自动注册为 LLM 工具 |
+| 插件系统 | 运行时热加载 JAR 插件 |
+| 多租户 | X-Tenant-Id 隔离 + Token 配额 |
+| 可观测性 | Micrometer + Actuator HealthIndicator |
+| 事件总线 | Spring ApplicationEvent 解耦 |
+| RBAC | 可插拔的权限模型 |
+
+## 架构
+
 ```
-
-```yaml
-ai-assistant:
-  api-key: sk-xxx
-  provider: deepseek
-```
-
-## 前端集成
-
-```bash
-npm install @ai-assistant/vue
-```
-
-```ts
-import AiAssistantPlugin from '@ai-assistant/vue'
-import '@ai-assistant/vue/dist/style.css'
-
-app.use(AiAssistantPlugin, {
-  baseUrl: '/ai-assistant',
-  locale: 'zh',
-  theme: 'auto',
-})
-```
-
-```vue
-<template>
-  <AiAssistant />
-</template>
+┌─────────────┐     ┌──────────────────────────────────────┐
+│  Vue 3 UI   │ ──► │  Spring Boot Starter                 │
+│  Component  │     │  ├── AiAssistantController (REST/SSE)│
+│  Library    │     │  ├── McpServerController (MCP)       │
+└─────────────┘     │  ├── LlmService (core)               │
+                    │  │   ├── ChatCompletionClient         │
+                    │  │   ├── ToolRegistry + Capabilities  │
+                    │  │   ├── ConversationMemory           │
+                    │  │   └── ModelRouter + Fallback       │
+                    │  ├── SPI Extensions                   │
+                    │  └── Admin Dashboard                  │
+                    └──────────────────────────────────────┘
 ```

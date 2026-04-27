@@ -28,16 +28,25 @@ public class PromptTemplate {
     private final String name;
     private final String template;
     private final Map<String, String> defaults;
+    private final List<FewShotExample> fewShotExamples;
 
-    public PromptTemplate(String name, String template, Map<String, String> defaults) {
+    public PromptTemplate(String name, String template, Map<String, String> defaults,
+                           List<FewShotExample> fewShotExamples) {
         this.name = name;
         this.template = template;
         this.defaults = defaults != null ? Map.copyOf(defaults) : Map.of();
+        this.fewShotExamples = fewShotExamples != null ? List.copyOf(fewShotExamples) : List.of();
+    }
+
+    public PromptTemplate(String name, String template, Map<String, String> defaults) {
+        this(name, template, defaults, null);
     }
 
     public PromptTemplate(String name, String template) {
-        this(name, template, null);
+        this(name, template, null, null);
     }
+
+    public record FewShotExample(String userInput, String assistantOutput) {}
 
     /**
      * Render the template with the given variables.
@@ -87,6 +96,24 @@ public class PromptTemplate {
         return render(null);
     }
 
+    /**
+     * Render with few-shot examples appended (if any).
+     */
+    public String renderWithExamples(Map<String, String> variables) {
+        String base = render(variables);
+        if (fewShotExamples.isEmpty()) return base;
+        StringBuilder sb = new StringBuilder(base);
+        sb.append("\n\n以下是示例：\n");
+        for (int i = 0; i < fewShotExamples.size(); i++) {
+            FewShotExample ex = fewShotExamples.get(i);
+            sb.append("用户: ").append(ex.userInput()).append("\n");
+            sb.append("助手: ").append(ex.assistantOutput()).append("\n");
+            if (i < fewShotExamples.size() - 1) sb.append("\n");
+        }
+        return sb.toString().trim();
+    }
+
     public String getName() { return name; }
     public String getTemplate() { return template; }
+    public List<FewShotExample> getFewShotExamples() { return fewShotExamples; }
 }

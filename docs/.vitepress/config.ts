@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: 'AI Assistant SDK',
@@ -7,26 +7,46 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'API', link: '/api/' },
-      { text: 'Changelog', link: '/changelog' },
+      { text: 'GitHub', link: 'https://github.com/Hou-mingyuan/ai-assistant-sdk' },
     ],
     sidebar: {
       '/guide/': [
-        { text: 'Quick Start', link: '/guide/' },
-        { text: 'Backend Setup', link: '/guide/backend' },
-        { text: 'Frontend Setup', link: '/guide/frontend' },
-        { text: 'Configuration', link: '/guide/config' },
-        { text: 'Function Calling', link: '/guide/tools' },
-        { text: 'Plugins', link: '/guide/plugins' },
-        { text: 'Workflows', link: '/guide/workflows' },
+        {
+          text: 'Getting Started',
+          items: [
+            { text: 'Introduction', link: '/guide/' },
+            { text: 'Quick Start', link: '/guide/quick-start' },
+            { text: 'Configuration', link: '/guide/configuration' },
+          ],
+        },
+        {
+          text: 'Features',
+          items: [
+            { text: 'Chat & Streaming', link: '/guide/chat' },
+            { text: 'Function Calling', link: '/guide/function-calling' },
+            { text: 'MCP Server', link: '/guide/mcp-server' },
+            { text: 'Plugin System', link: '/guide/plugins' },
+          ],
+        },
+        {
+          text: 'Deployment',
+          items: [
+            { text: 'Docker', link: '/guide/docker' },
+            { text: 'Kubernetes', link: '/guide/kubernetes' },
+          ],
+        },
       ],
       '/api/': [
-        { text: 'Frontend API', link: '/api/' },
-        { text: 'Backend API', link: '/api/backend' },
-        { text: 'REST Endpoints', link: '/api/rest' },
+        {
+          text: 'REST API',
+          items: [
+            { text: 'Overview', link: '/api/' },
+            { text: 'Chat', link: '/api/chat' },
+            { text: 'Capabilities', link: '/api/capabilities' },
+            { text: 'Admin', link: '/api/admin' },
+          ],
+        },
       ],
     },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/' },
-    ],
   },
-})
+});

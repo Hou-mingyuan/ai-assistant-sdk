@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ai-assistant-sdk
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  hosts:
+    - host: ai-assistant.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  AI_ASSISTANT_PROVIDER: openai
+  AI_ASSISTANT_MODEL: gpt-4o
+
+secrets:
+  apiKey: ""
+
+redis:
+  enabled: true
+  host: redis
+  port: 6379
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80

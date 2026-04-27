@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ai-assistant
+description: AI Assistant SDK Helm Chart for Kubernetes deployment
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
