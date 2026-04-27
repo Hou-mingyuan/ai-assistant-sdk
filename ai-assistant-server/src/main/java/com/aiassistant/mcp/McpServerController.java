@@ -139,7 +139,7 @@ public class McpServerController {
             return resp;
         } catch (Exception e) {
             log.error("MCP tool call failed: {}", toolName, e);
-            return errorResponse(id, -32000, "Tool execution failed: " + e.getMessage());
+            return errorResponse(id, -32000, "Tool execution failed. Check server logs for details.");
         }
     }
 

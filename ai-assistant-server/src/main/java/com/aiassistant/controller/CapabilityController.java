@@ -62,7 +62,7 @@ public class CapabilityController {
         } catch (Exception e) {
             log.error("Capability invocation failed: {} - {}", name, e.getMessage(), e);
             ObjectNode err = objectMapper.createObjectNode();
-            err.put("error", e.getMessage());
+            err.put("error", "Capability invocation failed. Check server logs for details.");
             return ResponseEntity.internalServerError()
                     .contentType(MediaType.APPLICATION_JSON).body(err.toString());
         }

@@ -92,7 +92,7 @@ class CapabilityControllerTest {
         var controller = new CapabilityController(List.of(failCap));
         ResponseEntity<String> resp = controller.invokeCapability("fail", Map.of());
         assertEquals(500, resp.getStatusCode().value());
-        assertTrue(resp.getBody().contains("boom"));
+        assertTrue(resp.getBody().contains("Capability invocation failed"));
     }
 
     @Test
