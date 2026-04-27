@@ -322,14 +322,27 @@ public class AiAssistantProperties {
             return baseUrl;
         }
         return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
-            case "openai" -> "https://api.openai.com/v1";
-            case "deepseek" -> "https://api.deepseek.com/v1";
-            case "tongyi", "qwen" -> "https://dashscope.aliyuncs.com/compatible-mode/v1";
-            case "zhipu" -> "https://open.bigmodel.cn/api/paas/v4";
-            case "volcengine", "doubao" -> "https://ark.cn-beijing.volces.com/api/v3";
-            case "minimax" -> "https://api.minimax.chat/v1";
-            case "kimi", "moonshot" -> "https://api.moonshot.cn/v1";
-            default -> throw new IllegalArgumentException("Unknown provider: " + provider + ". Please set ai-assistant.base-url explicitly.");
+            case "openai"                   -> "https://api.openai.com/v1";
+            case "deepseek"                 -> "https://api.deepseek.com/v1";
+            case "tongyi", "qwen"           -> "https://dashscope.aliyuncs.com/compatible-mode/v1";
+            case "zhipu", "glm"             -> "https://api.z.ai/api/paas/v4";
+            case "volcengine", "doubao"     -> "https://ark.cn-beijing.volces.com/api/v3";
+            case "minimax"                  -> "https://api.minimax.chat/v1";
+            case "kimi", "moonshot"         -> "https://api.moonshot.cn/v1";
+            case "gemini", "google"         -> "https://generativelanguage.googleapis.com/v1beta/openai/";
+            case "siliconflow"              -> "https://api.siliconflow.cn/v1";
+            case "groq"                     -> "https://api.groq.com/openai/v1";
+            case "yi", "lingyiwanwu"        -> "https://api.lingyiwanwu.com/v1";
+            case "spark", "xunfei"          -> "https://spark-api-open.xf-yun.com/v1";
+            case "baichuan"                 -> "https://api.baichuan-ai.com/v1";
+            case "stepfun"                  -> "https://api.stepfun.com/v1";
+            case "hunyuan", "tencent"       -> "https://api.hunyuan.cloud.tencent.com/v1";
+            case "ollama"                   -> "http://localhost:11434/v1";
+            default -> throw new IllegalArgumentException(
+                    "Unknown provider: " + provider + ". Please set ai-assistant.base-url explicitly. " +
+                    "Supported: openai, deepseek, tongyi/qwen, zhipu/glm, volcengine/doubao, minimax, " +
+                    "kimi/moonshot, gemini/google, siliconflow, groq, yi/lingyiwanwu, spark/xunfei, " +
+                    "baichuan, stepfun, hunyuan/tencent, ollama.");
         };
     }
 
@@ -341,14 +354,27 @@ public class AiAssistantProperties {
             return model;
         }
         return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
-            case "openai" -> "gpt-4o-mini";
-            case "deepseek" -> "deepseek-chat";
-            case "tongyi", "qwen" -> "qwen-turbo";
-            case "zhipu" -> "glm-4-flash";
-            case "volcengine", "doubao" -> "doubao-1.5-pro-32k";
-            case "minimax" -> "MiniMax-Text-01";
-            case "kimi", "moonshot" -> "moonshot-v1-8k";
-            default -> throw new IllegalArgumentException("Unknown provider: " + provider + ". Please set ai-assistant.model explicitly.");
+            case "openai"                   -> "gpt-5.4-mini";
+            case "deepseek"                 -> "deepseek-chat";
+            case "tongyi", "qwen"           -> "qwen-plus";
+            case "zhipu", "glm"             -> "glm-5.1";
+            case "volcengine", "doubao"     -> "doubao-1.5-pro-32k";
+            case "minimax"                  -> "MiniMax-Text-01";
+            case "kimi", "moonshot"         -> "moonshot-v1-auto";
+            case "gemini", "google"         -> "gemini-3.1-pro-preview";
+            case "siliconflow"              -> "deepseek-ai/DeepSeek-V3";
+            case "groq"                     -> "llama-3.3-70b-versatile";
+            case "yi", "lingyiwanwu"        -> "yi-lightning";
+            case "spark", "xunfei"          -> "generalv3.5";
+            case "baichuan"                 -> "Baichuan4";
+            case "stepfun"                  -> "step-2-16k";
+            case "hunyuan", "tencent"       -> "hunyuan-pro";
+            case "ollama"                   -> "llama3";
+            default -> throw new IllegalArgumentException(
+                    "Unknown provider: " + provider + ". Please set ai-assistant.model explicitly. " +
+                    "Supported: openai, deepseek, tongyi/qwen, zhipu/glm, volcengine/doubao, minimax, " +
+                    "kimi/moonshot, gemini/google, siliconflow, groq, yi/lingyiwanwu, spark/xunfei, " +
+                    "baichuan, stepfun, hunyuan/tencent, ollama.");
         };
     }
 

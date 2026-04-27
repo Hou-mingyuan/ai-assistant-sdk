@@ -5,7 +5,7 @@
 ## 特性
 
 - 即插即用 — Spring Boot Starter + Vue 插件，引入即用
-- 多模型支持 — 7 家供应商内置（OpenAI / DeepSeek / 通义 / 智谱 / 火山 / MiniMax / Kimi）
+- 多模型支持 — 16 家供应商内置（OpenAI / DeepSeek / 通义 / 智谱 / 火山 / MiniMax / Kimi / Gemini / SiliconFlow / Groq / Yi / 讯飞星火 / 百川 / 阶跃星辰 / 腾讯混元 / Ollama）
 - 一键翻译 — 中/英/日互译（面板内切换模式后输入或粘贴文本）
 - 全文摘要 — 粘贴文本或上传文件（PDF/Word/Excel/CSV）
 - 自由对话 — 多轮上下文记忆，自定义 system prompt
@@ -447,15 +447,28 @@ ai-assistant:
 
 ### 支持的模型
 
+所有 provider 均兼容 OpenAI Chat Completions API 格式（`/v1/chat/completions`），可自由指定 `model` 和 `base-url`。
+
 | Provider | 配置值 | 默认模型 | 默认 API 地址 |
 |----------|--------|---------|---------------|
-| OpenAI | `openai` | gpt-4o-mini | https://api.openai.com/v1 |
+| OpenAI | `openai` | gpt-5.4-mini | https://api.openai.com/v1 |
 | DeepSeek | `deepseek` | deepseek-chat | https://api.deepseek.com/v1 |
-| 通义千问 | `tongyi` 或 `qwen` | qwen-turbo | https://dashscope.aliyuncs.com/compatible-mode/v1 |
-| 智谱 | `zhipu` | glm-4-flash | https://open.bigmodel.cn/api/paas/v4 |
-| 火山引擎/豆包 | `volcengine` 或 `doubao` | 需手动指定 model | https://ark.cn-beijing.volces.com/api/v3 |
+| 通义千问 | `tongyi` 或 `qwen` | qwen-plus | https://dashscope.aliyuncs.com/compatible-mode/v1 |
+| 智谱/GLM | `zhipu` 或 `glm` | glm-5.1 | https://api.z.ai/api/paas/v4 |
+| 火山引擎/豆包 | `volcengine` 或 `doubao` | doubao-1.5-pro-32k | https://ark.cn-beijing.volces.com/api/v3 |
 | MiniMax | `minimax` | MiniMax-Text-01 | https://api.minimax.chat/v1 |
-| Kimi/月之暗面 | `kimi` 或 `moonshot` | moonshot-v1-8k | https://api.moonshot.cn/v1 |
+| Kimi/月之暗面 | `kimi` 或 `moonshot` | moonshot-v1-auto | https://api.moonshot.cn/v1 |
+| Google Gemini | `gemini` 或 `google` | gemini-3.1-pro-preview | https://generativelanguage.googleapis.com/v1beta/openai/ |
+| SiliconFlow | `siliconflow` | deepseek-ai/DeepSeek-V3 | https://api.siliconflow.cn/v1 |
+| Groq | `groq` | llama-3.3-70b-versatile | https://api.groq.com/openai/v1 |
+| 零一万物/Yi | `yi` 或 `lingyiwanwu` | yi-lightning | https://api.lingyiwanwu.com/v1 |
+| 讯飞星火 | `spark` 或 `xunfei` | generalv3.5 | https://spark-api-open.xf-yun.com/v1 |
+| 百川智能 | `baichuan` | Baichuan4 | https://api.baichuan-ai.com/v1 |
+| 阶跃星辰 | `stepfun` | step-2-16k | https://api.stepfun.com/v1 |
+| 腾讯混元 | `hunyuan` 或 `tencent` | hunyuan-pro | https://api.hunyuan.cloud.tencent.com/v1 |
+| Ollama (本地) | `ollama` | llama3 | http://localhost:11434/v1 |
+
+> **注意**：Anthropic Claude 使用独立的 Messages API 格式（非 OpenAI 兼容），不在内置 provider 列表中。如需使用 Claude，可通过 OpenAI 兼容的代理网关（如 one-api、new-api）接入，此时 provider 设为 `openai`，`base-url` 指向代理地址即可。
 
 ---
 
@@ -970,14 +983,23 @@ export default defineConfig({
 
 ### Q: 如何使用自己部署的模型（如 Ollama）
 
-只要模型 API 兼容 OpenAI 格式：
+Ollama 已内置为 provider，直接配置：
+
+```yaml
+ai-assistant:
+  provider: ollama
+  api-key: ollama           # Ollama 不需要真实 key，随便填
+  model: llama3             # 或其他已 pull 的模型名
+```
+
+也可以使用任意 OpenAI 兼容格式的自部署 API：
 
 ```yaml
 ai-assistant:
   provider: openai
-  api-key: ollama           # Ollama 不需要真实 key，随便填
-  base-url: http://localhost:11434/v1
-  model: llama3
+  api-key: any-placeholder
+  base-url: https://your-custom-api.com/v1
+  model: your-model-name
 ```
 
 ### Q: 如何只用后端 API 不用前端组件
