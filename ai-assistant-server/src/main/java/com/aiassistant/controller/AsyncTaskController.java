@@ -1,6 +1,5 @@
 package com.aiassistant.controller;
 
-import com.aiassistant.model.ChatResponse;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.util.UrlFetchSafety;
@@ -16,6 +15,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -32,10 +32,14 @@ public class AsyncTaskController {
     private static final Logger log = LoggerFactory.getLogger(AsyncTaskController.class);
     private static final int MAX_PENDING_TASKS = 100;
 
+    private static final long TASK_TTL_MS = 30 * 60 * 1000L;
+
     private final LlmService llmService;
     private final UsageStats usageStats;
     private final ObjectMapper mapper = new ObjectMapper();
     private final ConcurrentHashMap<String, TaskEntry> tasks = new ConcurrentHashMap<>();
+    private final HttpClient webhookClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5)).build();
     private final ExecutorService executor = Executors.newFixedThreadPool(4, r -> {
         Thread t = new Thread(r, "async-task");
         t.setDaemon(true);
@@ -49,6 +53,7 @@ public class AsyncTaskController {
 
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> submitChat(@RequestBody Map<String, Object> body) {
+        evictExpiredTasks();
         if (tasks.size() >= MAX_PENDING_TASKS) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "Too many pending tasks"));
@@ -89,7 +94,7 @@ public class AsyncTaskController {
         if (entry == null) {
             return ResponseEntity.notFound().build();
         }
-        Map<String, Object> result = new ConcurrentHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("taskId", taskId);
         result.put("status", entry.status);
         if ("completed".equals(entry.status)) result.put("result", entry.result);
@@ -101,7 +106,7 @@ public class AsyncTaskController {
         try {
             URI uri = URI.create(url);
             UrlFetchSafety.validateHttpUrlForServerSideFetch(uri);
-            Map<String, Object> payload = new ConcurrentHashMap<>();
+            Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("taskId", taskId);
             payload.put("status", error == null ? "completed" : "failed");
             if (result != null) payload.put("result", result);
@@ -113,11 +118,19 @@ public class AsyncTaskController {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(payload)))
                     .build();
-            HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.discarding());
+            webhookClient.send(req, HttpResponse.BodyHandlers.discarding());
             log.info("Webhook delivered: taskId={} url={}", taskId, url);
         } catch (Exception e) {
             log.warn("Webhook delivery failed: taskId={} url={} error={}", taskId, url, e.getMessage());
         }
+    }
+
+    private void evictExpiredTasks() {
+        long now = System.currentTimeMillis();
+        tasks.entrySet().removeIf(e -> {
+            TaskEntry t = e.getValue();
+            return !"pending".equals(t.status) && (now - t.createdAt > TASK_TTL_MS);
+        });
     }
 
     private static class TaskEntry {
