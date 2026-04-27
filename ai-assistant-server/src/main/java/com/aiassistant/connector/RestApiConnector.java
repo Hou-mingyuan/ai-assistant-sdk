@@ -181,7 +181,7 @@ public class RestApiConnector implements DataConnector {
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .onStatus(status -> status.is5xxServerError(),
                         resp -> resp.bodyToMono(String.class)
-                                .map(body -> new InformatConnector.RetryableException(
+                                .map(body -> new RetryableException(
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("GET " + path))
@@ -198,7 +198,7 @@ public class RestApiConnector implements DataConnector {
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .onStatus(status -> status.is5xxServerError(),
                         resp -> resp.bodyToMono(String.class)
-                                .map(body -> new InformatConnector.RetryableException(
+                                .map(body -> new RetryableException(
                                         "REST API " + resp.statusCode() + ": " + truncate(body, 200))))
                 .bodyToMono(String.class)
                 .retryWhen(retrySpec("POST " + path))
@@ -208,7 +208,7 @@ public class RestApiConnector implements DataConnector {
     private Retry retrySpec(String context) {
         return Retry.backoff(MAX_RETRIES, RETRY_MIN_BACKOFF)
                 .maxBackoff(RETRY_MAX_BACKOFF)
-                .filter(InformatConnector.RetryableException::isRetryable)
+                .filter(RetryableException::isRetryable)
                 .doBeforeRetry(sig -> log.warn("Retry #{} for {}: {}",
                         sig.totalRetries() + 1, context, sig.failure().getMessage()));
     }

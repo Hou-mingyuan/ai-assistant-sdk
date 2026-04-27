@@ -50,12 +50,13 @@ public class LlmService {
 
     private static final int LLM_CACHE_MAX = 500;
     private static final long LLM_CACHE_TTL_MS = 300_000; // 5 min
-    private final Map<String, LlmCacheEntry> llmCache = new LinkedHashMap<>(16, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, LlmCacheEntry> eldest) {
-            return size() > LLM_CACHE_MAX || eldest.getValue().isExpired();
-        }
-    };
+    private final Map<String, LlmCacheEntry> llmCache = java.util.Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, LlmCacheEntry> eldest) {
+                    return size() > LLM_CACHE_MAX || eldest.getValue().isExpired();
+                }
+            });
     private record LlmCacheEntry(String result, long expiresAt) {
         boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
     }

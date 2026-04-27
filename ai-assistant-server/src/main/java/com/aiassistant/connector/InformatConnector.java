@@ -110,7 +110,8 @@ public class InformatConnector implements DataConnector {
 
     @Override
     public TableSchema getSchema(String moduleId) {
-        String url = "/web0/api/" + appId + "/ai-table-schema?tableId=" + moduleId + andToken();
+        String url = "/web0/api/" + appId + "/ai-table-schema?tableId="
+                + URLEncoder.encode(moduleId, StandardCharsets.UTF_8) + andToken();
         try {
             String body = get(url);
             JsonNode root = mapper.readTree(body);
@@ -240,17 +241,6 @@ public class InformatConnector implements DataConnector {
                 .filter(RetryableException::isRetryable)
                 .doBeforeRetry(sig -> log.warn("Retry #{} for {}: {}",
                         sig.totalRetries() + 1, context, sig.failure().getMessage()));
-    }
-
-    static class RetryableException extends RuntimeException {
-        RetryableException(String message) { super(message); }
-        static boolean isRetryable(Throwable t) {
-            if (t instanceof RetryableException) return true;
-            String name = t.getClass().getName();
-            return name.contains("ConnectException")
-                    || name.contains("SocketTimeoutException")
-                    || name.contains("WebClientRequestException");
-        }
     }
 
     /**
