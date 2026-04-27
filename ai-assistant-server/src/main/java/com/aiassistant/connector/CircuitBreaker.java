@@ -27,7 +27,7 @@ class CircuitBreaker {
     CircuitBreaker(String name, int failureThreshold, long openDurationMs) {
         this.name = name;
         this.failureThreshold = Math.max(1, failureThreshold);
-        this.openDurationMs = Math.max(5_000, openDurationMs);
+        this.openDurationMs = Math.max(100, openDurationMs);
     }
 
     CircuitBreaker(String name) {
