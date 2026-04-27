@@ -1,6 +1,6 @@
 # AI Assistant SDK
 
-可嵌入任何 Java + Vue 项目的 AI 小助手，支持一键翻译、全文摘要、自由对话。
+可嵌入任何 Java + Vue 项目的 AI 小助手，支持一键翻译、全文摘要、自由对话、RAG 知识库、多步 Agent、PII 脱敏、多租户隔离、管理后台。
 
 ## 特性
 
@@ -33,6 +33,20 @@
 - **对话流程编排** — `useWorkflow` 预设多步骤 workflow（如"翻译→摘要→提问"），自动链式执行，支持 `{{input}}` 变量和进度回调
 - **插件系统** — `registerPlugin({ id, label, icon, position, action })` 在 header/footer/右键菜单注册自定义按钮，`PluginContext` 提供对话读写能力
 - **Function Calling（工具调用）** — 实现 `ToolDefinition` 接口注册为 Spring Bean，LLM 自动发现并调用；支持多轮 tool calling 循环（最多 5 轮）
+- **RAG 检索增强** — 内置向量存储（`InMemoryVectorStore`）、嵌入模型调用（`OpenAiEmbeddingProvider`），一键 `rag-enabled=true` 启用知识库检索增强
+- **Admin 管理后台** — `/admin/*` REST API：系统总览、Token 用量与配额管理、服务端 Prompt 模板 CRUD、工具列表、RAG 文档录入与统计、A/B 测试配置
+- **异步任务 API** — `POST /async/chat` 提交异步对话（返回 202 + taskId），轮询获取结果，支持 webhook 回调通知
+- **多租户隔离** — `X-Tenant-Id` 请求头驱动租户上下文，每租户可独立配置模型、限流、连接器权限
+- **PII 脱敏** — 自动识别并掩码手机号、身份证、银行卡、邮箱、IP 地址；Prompt 注入检测预警
+- **智能模型路由** — `ModelRouter` 按任务类型/成本/token 量自动选模型，支持 A/B 测试分流
+- **服务端 Prompt 模板引擎** — 支持 `{{var}}`、`{{#if}}`/`{{#unless}}` 条件，内置 4 套预设模板（通用/客服/数据分析/编程）
+- **ReAct 多步 Agent** — `AgentExecutor` 规划式多步工具调用，支持 stopOnError、执行轨迹记录
+- **Token 用量追踪** — 按租户/日期统计 prompt + completion token 消耗，可设每日配额
+- **对话记忆** — `ConversationMemory` 短期滑动窗口 + 长期事实提取，`buildMemoryPrompt()` 注入系统提示
+- **连接器运维** — 定时健康检查（`ConnectorHealthScheduler`）、熔断器（`CircuitBreaker`）、动态注册/卸载连接器
+- **API 连通性检测** — 启动时自动探测 LLM Provider API 可达性，`/health/provider` 查看状态，支持手动 recheck
+- **SSE GZIP 压缩** — `SseCompressionFilter` 对 `/stream` 端点自动 GZIP 压缩
+- **请求追踪** — `RequestIdFilter` 自动为每个请求添加唯一 ID，便于日志关联
 
 ---
 
@@ -42,10 +56,23 @@
 
 | 组件 | 职责 |
 |------|------|
-| `LlmService` | 业务 prompts、`buildRequestBody`、URL  enrich 后拼入 user 内容 |
+| `LlmService` | 业务 prompts、`buildRequestBody`、URL enrich 后拼入 user 内容 |
 | `ChatCompletionClient` | 与供应商无关的网关：**非流式 / SSE 流** 各一条抽象；默认 Bean 为 `OpenAiCompatibleChatClient`（`POST .../chat/completions`） |
 | `UrlFetchService` | 外网抓取、SSRF 粗检、HTML 缓存与摘要 |
 | `ConversationExportService` | 会话导出 XLSX/DOCX/PDF |
+| `RagService` | RAG 编排：文档分块、embedding、向量检索、上下文注入 |
+| `ContentFilter` | PII 脱敏（手机/身份证/银行卡/邮箱/IP）+ Prompt 注入检测 |
+| `ModelRouter` | 按任务类型/成本/token 路由模型，支持 A/B 测试分流 |
+| `AgentExecutor` | ReAct 多步 Agent：规划式工具调用 + 执行轨迹 |
+| `PromptTemplateRegistry` | 服务端 Prompt 模板注册中心，支持条件渲染 |
+| `TokenUsageTracker` | 按租户/日期追踪 token 用量，配额控制 |
+| `ConversationMemory` | 短期滑动窗口 + 长期事实记忆 |
+| `ProviderConnectivityChecker` | 启动时探测 LLM API 连通性 |
+| `ConnectorHealthScheduler` | 定期探测 DataConnector 健康状态 |
+| `TenantFilter` / `TenantContext` | 多租户请求隔离 |
+| `SseCompressionFilter` | SSE 流式端点 GZIP 压缩 |
+| `AdminDashboardController` | 管理后台 REST API |
+| `AsyncTaskController` | 异步对话任务（202 + 轮询 + webhook） |
 
 宿主只需声明自定义 `ChatCompletionClient` Bean（`@ConditionalOnMissingBean` 已让位），即可接入自建代理、工具调用协议或 RAG 改写后的请求体；若需改 prompt/消息结构，仍可替换 `LlmService`。
 
@@ -123,6 +150,311 @@ public DataConnector myConnector() {
 ```
 
 LLM 对话时自动可用：用户说"查一下订单表"，LLM 会依次调用 `list_modules` → `get_schema` → `query_data`。
+
+---
+
+## RAG 检索增强生成
+
+内置 RAG 栈：文档分块 → 嵌入向量 → 向量存储 → 语义检索 → 上下文注入 LLM。
+
+### 启用
+
+```yaml
+ai-assistant:
+  rag-enabled: true
+  embedding-model: text-embedding-3-small   # 可选，默认 text-embedding-3-small
+  embedding-dimensions: 1536                 # 可选，默认 1536
+```
+
+### 组件
+
+| 组件 | 说明 |
+|------|------|
+| `EmbeddingProvider` | 嵌入模型接口（`embed`、`embedBatch`、`dimensions`） |
+| `OpenAiEmbeddingProvider` | 默认实现，调用 OpenAI 兼容 `/v1/embeddings` 端点 |
+| `VectorStore` | 向量存储接口（`upsert`、`search`、`delete`、`count`） |
+| `InMemoryVectorStore` | 内存向量存储（余弦相似度），适合开发/小型知识库 |
+| `RagService` | RAG 编排：分块（500 字符/50 重叠）→ 嵌入 → 存储 → 检索 Top-5（阈值 0.3） |
+
+### 文档录入
+
+通过 Admin API 录入文档：
+
+```bash
+curl -X POST http://localhost:8080/ai-assistant/admin/rag/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"namespace":"default","content":"你的知识库内容...","docId":"doc-001"}'
+```
+
+查询统计：
+
+```bash
+curl http://localhost:8080/ai-assistant/admin/rag/stats?namespace=default
+```
+
+### 自定义向量存储
+
+实现 `VectorStore` 接口并注册为 Spring Bean（如 Milvus、Pinecone、Qdrant）：
+
+```java
+@Bean
+public VectorStore vectorStore() {
+    return new MilvusVectorStore(milvusClient);
+}
+```
+
+---
+
+## Admin 管理后台 API
+
+路径前缀：`{context-path}/admin`（如 `/ai-assistant/admin`）。配置了 `access-token` 时需携带 `X-AI-Token`。
+
+### 端点列表
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/admin/overview` | 系统总览：调用统计、全局 Token 用量、工具/模板数量、活跃 A/B 测试 |
+| GET | `/admin/tokens` | Token 用量查询（`?tenantId=xxx` 查租户级，不传查全局） |
+| POST | `/admin/tokens/quota` | 设置租户每日 Token 配额（`{"tenantId":"xxx","dailyLimit":100000}`） |
+| GET | `/admin/prompts` | 列出所有已注册的服务端 Prompt 模板 |
+| POST | `/admin/prompts` | 注册新模板（`{"name":"xxx","template":"你是{{role}}..."}`） |
+| GET | `/admin/tools` | 列出所有已注册的 Function Calling 工具 |
+| POST | `/admin/rag/ingest` | 录入 RAG 文档（`{"namespace":"default","content":"...","docId":"doc-001"}`） |
+| GET | `/admin/rag/stats` | RAG 文档统计（`?namespace=default`） |
+| POST | `/admin/ab-test` | 配置 A/B 测试（`{"name":"test1","modelA":"gpt-5.4","modelB":"deepseek-v4-flash","percentA":50}`） |
+| GET | `/admin/ab-test` | 列出活跃的 A/B 测试配置 |
+
+---
+
+## 异步任务 API
+
+适用于长时间运行的对话请求，支持提交后轮询或 webhook 回调。
+
+路径前缀：`{context-path}/async`（如 `/ai-assistant/async`）。
+
+### POST /async/chat — 提交异步对话
+
+```bash
+curl -X POST http://localhost:8080/ai-assistant/async/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text":"分析这篇长文...","webhookUrl":"https://your-server.com/callback"}'
+```
+
+**响应（202 Accepted）：**
+
+```json
+{
+  "taskId": "abc-123",
+  "status": "pending"
+}
+```
+
+### GET /async/{taskId} — 轮询结果
+
+```bash
+curl http://localhost:8080/ai-assistant/async/abc-123
+```
+
+**进行中：** `{"taskId":"abc-123","status":"processing"}`
+
+**完成：** `{"taskId":"abc-123","status":"completed","result":"分析结果..."}`
+
+**失败：** `{"taskId":"abc-123","status":"failed","error":"错误信息"}`
+
+### Webhook 回调
+
+配置 `webhookUrl` 后，任务完成时会 POST 通知到该 URL（带 SSRF 安全校验）。
+
+---
+
+## 多租户支持
+
+通过 `X-Tenant-Id` 请求头实现租户隔离，每个租户可独立配置模型、限流、连接器权限。
+
+### 租户识别优先级
+
+1. `X-Tenant-Id` 请求头（优先）
+2. `X-AI-Token` 请求头（回退，生成 `token:xxx` 作为租户 ID）
+3. 默认 `"default"` 租户
+
+### 租户级功能
+
+| 功能 | 说明 |
+|------|------|
+| Token 配额 | 通过 Admin API 为每个租户设置每日 Token 上限 |
+| 模型路由 | `ModelRouter` 按租户 ID + 任务类型做 A/B 分流 |
+| 用量统计 | `TokenUsageTracker` 按租户隔离统计 |
+
+---
+
+## PII 脱敏与内容安全
+
+### PII 自动脱敏
+
+启用配置：
+
+```yaml
+ai-assistant:
+  pii-masking-enabled: true   # 默认 true
+```
+
+自动检测并替换以下敏感信息：
+
+| 类型 | 识别规则 | 替换为 |
+|------|---------|--------|
+| 中国手机号 | `1[3-9]` + 9 位数字 | `[手机号已脱敏]` |
+| 身份证号 | 17 位数字 + 数字或 X | `[身份证号已脱敏]` |
+| 银行卡号 | 16-19 位连续数字 | `[银行卡号已脱敏]` |
+| 邮箱地址 | 标准邮箱格式 | `[邮箱已脱敏]` |
+| IPv4 地址 | 点分十进制 | `[IP已脱敏]` |
+
+### Prompt 注入检测
+
+自动检测并警告以下注入模式（不阻断，仅日志告警）：
+
+- "ignore previous instructions"
+- "you are now a/an…"
+- "system prompt:"
+- "jailbreak"
+- "DAN mode"
+
+---
+
+## 智能模型路由与 A/B 测试
+
+`ModelRouter` 提供按规则自动选择最优模型的能力，与 `allowed-models` 白名单互补。
+
+### 核心 API
+
+```java
+@Autowired ModelRouter modelRouter;
+
+modelRouter.registerModel(new ModelConfig("gpt-5.4", ModelTier.PREMIUM, 0.03));
+modelRouter.registerModel(new ModelConfig("deepseek-v4-flash", ModelTier.STANDARD, 0.001));
+
+modelRouter.addRule(new RoutingRule("code", "gpt-5.4", 0, Integer.MAX_VALUE));
+modelRouter.addRule(new RoutingRule("chat", "deepseek-v4-flash", 0, 4000));
+
+RoutingDecision decision = modelRouter.route("chat", "tenant-1", 500);
+// decision.model() → "deepseek-v4-flash", decision.reason() → "rule match: chat"
+```
+
+### A/B 测试
+
+通过 Admin API 或代码配置：
+
+```bash
+curl -X POST http://localhost:8080/ai-assistant/admin/ab-test \
+  -d '{"name":"fast-vs-smart","modelA":"gpt-5.4","modelB":"deepseek-v4-flash","percentA":50}'
+```
+
+路由决策基于 `tenantId + taskType` 的稳定哈希，保证同一租户同一任务类型始终分到同一组。
+
+---
+
+## 服务端 Prompt 模板引擎
+
+### 模板语法
+
+- **变量替换**：`{{var}}`
+- **条件渲染**：`{{#if var}}...{{/if}}`、`{{#unless var}}...{{/unless}}`
+- **默认值**：注册时可为变量设默认值
+
+### 内置预设模板
+
+| 名称 | 用途 | 主要变量 |
+|------|------|---------|
+| `general` | 通用 AI 助手 | `{{name}}`（默认 AI助手）、`{{industry}}`、`{{tone}}` |
+| `customer-service` | 客服 | `{{company}}`（默认 我们）、`{{knowledge}}` |
+| `data-analyst` | 数据分析 | `{{domain}}`（默认 业务数据）、`{{constraints}}` |
+| `code-assistant` | 编程助手 | `{{languages}}`（默认 Java, Python, JavaScript）、`{{framework}}`、`{{verbose}}` |
+
+### 使用
+
+通过 Admin API 管理：
+
+```bash
+# 列出所有模板
+curl http://localhost:8080/ai-assistant/admin/prompts
+
+# 注册新模板
+curl -X POST http://localhost:8080/ai-assistant/admin/prompts \
+  -d '{"name":"translator","template":"你是专业的{{domain}}翻译员，风格{{#if tone}}{{tone}}{{/if}}{{#unless tone}}自然流畅{{/unless}}"}'
+```
+
+---
+
+## ReAct 多步 Agent
+
+`AgentExecutor` 提供规划式多步工具调用能力，适合需要多步推理的复杂任务。
+
+### 核心特性
+
+- 定义执行计划（多个步骤），每步指定工具名和参数
+- 支持 `stopOnError`：某步失败时终止后续步骤
+- 完整的执行轨迹记录（`ExecutionTrace`），包含每步的输入、输出、耗时、错误
+
+### 使用方式
+
+```java
+@Autowired AgentExecutor agentExecutor;
+
+List<AgentStep> plan = List.of(
+    new AgentStep("list_modules", Map.of(), false),
+    new AgentStep("get_schema", Map.of("moduleId", "orders"), true),
+    new AgentStep("query_data", Map.of("moduleId", "orders", "limit", 10), true)
+);
+
+ExecutionTrace trace = agentExecutor.execute(plan);
+trace.results().forEach(r -> System.out.println(r.toolName() + " → " + r.output()));
+```
+
+---
+
+## Token 用量追踪与配额
+
+### 功能
+
+- 按租户 + 日期统计 prompt tokens 和 completion tokens
+- 支持设置每日 Token 配额，超额时拒绝请求
+- 通过 Admin API 查询和管理
+
+### API
+
+```bash
+# 查询租户用量
+curl http://localhost:8080/ai-assistant/admin/tokens?tenantId=tenant-1
+
+# 设置配额
+curl -X POST http://localhost:8080/ai-assistant/admin/tokens/quota \
+  -d '{"tenantId":"tenant-1","dailyLimit":100000}'
+```
+
+---
+
+## 连接器运维与健康监控
+
+### 自动健康检查
+
+`ConnectorHealthScheduler` 每 60 秒自动探测所有 DataConnector 的健康状态（调用 `listModules()`），异常时记录为不健康。
+
+### 熔断器
+
+`RestApiConnector` 和 `InformatConnector` 内置 `CircuitBreaker`，连续失败时自动熔断，避免雪崩。
+
+### REST 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/health/connectors` | 所有连接器状态（UP/DOWN）、模块数、延迟 |
+| GET | `/health/provider` | LLM Provider API 连通性（启动时自动检测） |
+| POST | `/health/provider/recheck` | 手动触发 Provider 连通性重检 |
+| POST | `/connectors/register` | 动态注册新连接器（JSON body） |
+| DELETE | `/connectors/{connectorId}` | 卸载连接器及其工具 |
+
+### 启动时 API 连通性检测
+
+应用启动时，`ProviderConnectivityChecker` 自动向配置的 LLM Provider 发送 `GET /models` 请求，验证 API Key 和网络连通性，并在日志中输出格式化的检测结果（API Key 自动脱敏）。
 
 ---
 
@@ -343,6 +675,16 @@ app.use(AiAssistant, {
 | `ai-assistant.export-pdf-unicode-font` | string | `classpath:/fonts/NotoSansSC_400Regular.ttf` | PDF 嵌入 **Noto Sans SC** TrueType（SIL OFL，字源 [expo/google-fonts](https://github.com/expo/google-fonts)）；**PDFBox 3.x 需 glyf 的 .ttf**，不要用常见 CJK **.otf（CFF）**；可改为 `file:///...` 或设 **`""` 清空**以退回 Helvetica（中文变空格） |
 | `ai-assistant.chat-history-max-chars` | int | `48000` | 实际发往 LLM 的 `history` 各条 `content` 累计上限（从**最新**往前保留）；`0` 表示不截断 |
 | `ai-assistant.url-preview-max-images` | int | `10` | `/url-preview` 返回的图片 URL 最大条数（服务端再夹紧到 ≤30） |
+| `ai-assistant.llm-max-retries` | int | `0` | 非流式调用失败重试次数（夹紧 0~5） |
+| `ai-assistant.enable-stats` | boolean | `true` | 是否启用用量统计 |
+| `ai-assistant.rag-enabled` | boolean | `false` | 启用 RAG 检索增强（需配置 embedding 模型） |
+| `ai-assistant.embedding-model` | string | `text-embedding-3-small` | 嵌入模型名称 |
+| `ai-assistant.embedding-dimensions` | int | `1536` | 嵌入向量维度 |
+| `ai-assistant.pii-masking-enabled` | boolean | `true` | 启用 PII 自动脱敏（手机/身份证/银行卡/邮箱/IP） |
+| `ai-assistant.websocket-enabled` | boolean | `false` | 启用 WebSocket 通道 |
+| `ai-assistant.headless-fetch-enabled` | boolean | `false` | 启用 Playwright 无头浏览器抓取（用于 JS 渲染的页面） |
+| `ai-assistant.headless-fetch-timeout-seconds` | int | - | 无头抓取超时（最小 5 秒） |
+| `ai-assistant.rate-limit-per-action` | map | - | 分 action 限流（如 `chat: 30, stream: 20`） |
 
 **完整配置示例：**
 
@@ -827,13 +1169,19 @@ ai-assistant-sdk/
 │   ├── pom.xml
 │   └── src/main/java/com/aiassistant/
 │       ├── autoconfigure/     # 自动装配
-│       ├── config/            # 配置属性 + CORS + 鉴权 + 限流
-│       ├── connector/         # DataConnector 接口 + 内置实现（Informat/JDBC/REST）
-│       ├── controller/        # REST 接口（chat/stream/file/stats/health）
+│       ├── config/            # 配置属性 + CORS + 鉴权 + 限流 + 多租户 + SSE压缩
+│       ├── connector/         # DataConnector 接口 + 内置实现 + 健康调度 + 熔断器
+│       ├── controller/        # REST 接口（chat/stream/file/stats/health/admin/async）
 │       ├── model/             # 请求/响应 POJO
 │       ├── service/           # LlmService、文件解析、URL 抓取；子包 llm（ChatCompletionClient）
 │       ├── tool/              # Function Calling：ToolDefinition / ToolRegistry
-│       └── stats/             # 用量统计
+│       ├── rag/               # RAG：EmbeddingProvider / VectorStore / RagService
+│       ├── agent/             # AgentExecutor 多步执行
+│       ├── memory/            # ConversationMemory 对话记忆
+│       ├── prompt/            # PromptTemplate / PromptTemplateRegistry
+│       ├── routing/           # ModelRouter 模型路由 + A/B 测试
+│       ├── security/          # ContentFilter PII 脱敏 + 注入检测
+│       └── stats/             # 用量统计 + TokenUsageTracker
 ├── ai-assistant-ui/           # Vue 3 npm 包
 │   ├── package.json
 │   └── src/
@@ -1103,14 +1451,19 @@ logging:
 
 ---
 
-## 进一步扩展（未内置完整实现）
+## 进一步扩展方向
 
-| 方向 | 说明 |
-|------|------|
-| **RAG / 知识库** | 需向量库、嵌入模型与 ingestion；建议独立模块，在调用 LLM 前拼接检索片段。 |
-| **工具调用（Function calling）** | 依赖模型 API 的 tools/schema 与执行沙箱；建议自定义 `ChatCompletionClient` 或扩展 `LlmService` 做多轮 tool 循环。 |
-| **多步任务规划** | Agent 状态机，通常与工具调用共同实现。 |
-| **脚注 / 引用** | 需结构化 citation 或来源 URL，前端再渲染参考文献列表。 |
+以下方向已具备基础设施，可按需深化：
+
+| 方向 | 当前状态 | 进一步建议 |
+|------|---------|-----------|
+| **RAG / 知识库** | ✅ 已内置（`RagService` + `InMemoryVectorStore`） | 生产环境替换为 Milvus/Pinecone/Qdrant 等分布式向量库 |
+| **Function Calling** | ✅ 已内置（`ToolDefinition` + `ToolRegistry`，多轮循环） | 添加更多业务工具（如日历、审批、通知） |
+| **多步 Agent** | ✅ 已内置（`AgentExecutor`，ReAct 式） | 接入 LLM 自动规划（当前需手动定义 plan） |
+| **脚注 / 引用** | 需结构化 citation 或来源 URL，前端渲染参考文献列表 |
+| **虚拟滚动** | 前端长对话性能优化，当前最多渲染 60 条 |
+| **分布式限流** | 当前进程内计数；可用 `RedisRateLimitFilter`（已预置）接入 Redis |
+| **分布式会话** | 当前内存存储；可替换为 Redis/DB `SessionStore` 实现 |
 
 ---
 
