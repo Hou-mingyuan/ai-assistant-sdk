@@ -38,7 +38,9 @@ public class TenantFilter implements Filter {
         String tenant = request.getHeader("X-Tenant-Id");
         if (tenant != null && !tenant.isBlank()) return tenant.trim();
         String token = request.getHeader("X-AI-Token");
-        if (token != null && !token.isBlank()) return "token:" + token;
+        if (token != null && !token.isBlank()) {
+            return "token:" + com.aiassistant.util.ClientIdentity.tokenFingerprint(token);
+        }
         return "default";
     }
 }

@@ -32,7 +32,7 @@ ai-assistant:
 | `/ai-assistant/sse` | POST | 标准化 SSE（带事件类型） |
 | `/ai-assistant/health` | GET | 健康检查 |
 | `/ai-assistant/capabilities` | GET | 能力发现 |
-| `/ai-assistant/mcp` | POST | MCP Server 端点 |
+| `/ai-assistant/mcp` | POST | MCP Server 端点，需显式启用 `ai-assistant.mcp-server-enabled=true` |
 | `/ai-assistant/admin/overview` | GET | 管理面板 |
 
 ## 4. 前端集成

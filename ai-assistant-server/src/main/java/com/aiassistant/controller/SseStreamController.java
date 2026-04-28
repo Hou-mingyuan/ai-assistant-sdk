@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -73,6 +74,9 @@ public class SseStreamController {
         };
 
         Flux<ServerSentEvent<String>> sseFlux = rawFlux
+                .onBackpressureBuffer(256, dropped ->
+                        log.warn("SSE backpressure: dropped chunk for slow client"))
+                .timeout(Duration.ofMinutes(5))
                 .map(chunk -> ServerSentEvent.<String>builder()
                         .id(String.valueOf(eventCounter.incrementAndGet()))
                         .event("message")

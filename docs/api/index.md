@@ -17,7 +17,7 @@ AI Assistant SDK 提供以下 REST API 分组：
 
 ## MCP API
 
-- `POST /ai-assistant/mcp` — JSON-RPC MCP 端点
+- `POST /ai-assistant/mcp` — JSON-RPC MCP 端点。生产默认关闭，需显式配置 `ai-assistant.mcp-server-enabled=true`。
   - `initialize` — 握手
   - `tools/list` — 工具发现
   - `tools/call` — 工具调用
