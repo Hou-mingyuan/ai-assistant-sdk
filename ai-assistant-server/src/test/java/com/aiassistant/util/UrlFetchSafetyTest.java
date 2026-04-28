@@ -63,4 +63,40 @@ class UrlFetchSafetyTest {
             UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://100.100.100.100/"))
         );
     }
+
+    @Test
+    void blocksMulticastAndReservedIpv4Ranges() {
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://224.0.0.1/"))
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://255.255.255.255/"))
+        );
+    }
+
+    @Test
+    void blocksDocumentationAndBenchmarkIpv4Ranges() {
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://192.0.2.1/"))
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://198.18.0.1/"))
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://203.0.113.1/"))
+        );
+    }
+
+    @Test
+    void blocksUnsafeIpv6Ranges() {
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://[ff02::1]/"))
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://[2001:db8::1]/"))
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create("http://[::ffff:127.0.0.1]/"))
+        );
+    }
 }

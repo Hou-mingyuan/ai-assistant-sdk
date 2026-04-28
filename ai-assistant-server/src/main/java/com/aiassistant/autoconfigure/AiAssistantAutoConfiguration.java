@@ -647,8 +647,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean
-    public com.aiassistant.webhook.WebhookDelivery webhookDelivery() {
-        return new com.aiassistant.webhook.WebhookDelivery();
+    public com.aiassistant.webhook.WebhookDelivery webhookDelivery(AiAssistantProperties properties) {
+        return new com.aiassistant.webhook.WebhookDelivery(properties);
     }
 
     // ── i18n ──
