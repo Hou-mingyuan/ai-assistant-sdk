@@ -1,21 +1,33 @@
 package com.aiassistant.config;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
+@Validated
 @ConfigurationProperties(prefix = "ai-assistant")
 public class AiAssistantProperties {
 
     // ── LLM Provider ──────────────────────────────────────────────────
+    @NotBlank(message = "ai-assistant.provider must not be blank")
     private String provider = "openai";
     private String apiKey;
     private List<String> apiKeys;
     private String baseUrl;
     private String model;
     private String contextPath = "/ai-assistant";
+    @Min(value = 1, message = "ai-assistant.max-tokens must be >= 1")
+    @Max(value = 128000, message = "ai-assistant.max-tokens must be <= 128000")
     private int maxTokens = 2048;
+    @Min(value = 0, message = "ai-assistant.temperature must be >= 0")
+    @Max(value = 2, message = "ai-assistant.temperature must be <= 2")
     private double temperature = 0.7;
+    @Min(value = 5, message = "ai-assistant.timeout-seconds must be >= 5")
+    @Max(value = 600, message = "ai-assistant.timeout-seconds must be <= 600")
     private int timeoutSeconds = 60;
     /**
      * 非流式 /chat/completions 对瞬时错误额外重试次数（不含首次请求），0 表示不重试。

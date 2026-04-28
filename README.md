@@ -274,7 +274,7 @@ curl http://localhost:8080/ai-assistant/async/abc-123
 ### 租户识别优先级
 
 1. `X-Tenant-Id` 请求头（优先）
-2. `X-AI-Token` 请求头（回退，生成 `token:xxx` 作为租户 ID）
+2. `X-AI-Token` 请求头（回退，生成稳定的 `token:<hash>` 作为租户 ID，不暴露原始 token）
 3. 默认 `"default"` 租户
 
 ### 租户级功能
@@ -682,6 +682,7 @@ app.use(AiAssistant, {
 | `ai-assistant.embedding-dimensions` | int | `1536` | 嵌入向量维度 |
 | `ai-assistant.pii-masking-enabled` | boolean | `true` | 启用 PII 自动脱敏（手机/身份证/银行卡/邮箱/IP） |
 | `ai-assistant.websocket-enabled` | boolean | `false` | 启用 WebSocket 通道 |
+| `ai-assistant.mcp-server-enabled` | boolean | `false` | 启用 MCP JSON-RPC 端点；生产建议只在已配置鉴权和网络隔离时打开 |
 | `ai-assistant.headless-fetch-enabled` | boolean | `false` | 启用 Playwright 无头浏览器抓取（用于 JS 渲染的页面） |
 | `ai-assistant.headless-fetch-timeout-seconds` | int | - | 无头抓取超时（最小 5 秒） |
 | `ai-assistant.rate-limit-per-action` | map | - | 分 action 限流（如 `chat: 30, stream: 20`） |
@@ -1042,8 +1043,8 @@ ai-assistant:
 ```
 
 前端请求方式：
-- Header: `X-AI-Token: my-secret-token`
-- 或 URL 参数: `?token=my-secret-token`
+- REST / SSE / 文件上传 / 导出：使用 Header `X-AI-Token: my-secret-token`
+- WebSocket 兼容 `?token=my-secret-token`；REST 请求不再接受 URL 参数传 Token，避免进入浏览器历史、网关日志或访问日志。
 
 ### API Key 轮询
 

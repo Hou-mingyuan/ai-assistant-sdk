@@ -19,6 +19,7 @@ import com.aiassistant.spi.InMemoryConversationMemoryProvider;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
+import com.aiassistant.controller.BatchController;
 import com.aiassistant.controller.CapabilityController;
 import com.aiassistant.controller.ConnectorHealthController;
 import com.aiassistant.controller.FileUploadController;
@@ -37,6 +38,7 @@ import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
 import com.aiassistant.stats.UsageStats;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -477,7 +479,9 @@ public class AiAssistantAutoConfiguration {
     public ApplicationListener<ApplicationReadyEvent> providerConnectivityCheckOnStartup(
             com.aiassistant.config.ProviderConnectivityChecker checker) {
         return event -> {
-            Thread.ofVirtual().name("provider-connectivity-check").start(checker::check);
+            Thread t = new Thread(checker::check, "provider-connectivity-check");
+            t.setDaemon(true);
+            t.start();
         };
     }
 
@@ -530,7 +534,30 @@ public class AiAssistantAutoConfiguration {
         }
     }
 
-    // ── SPI: Conversation Memory ──
+    // ── SPI: Conversation Memory (Redis > JDBC > InMemory) ──
+
+    @Configuration
+    @ConditionalOnClass(name = "org.springframework.data.redis.core.StringRedisTemplate")
+    static class RedisMemoryAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(ConversationMemoryProvider.class)
+        public ConversationMemoryProvider redisConversationMemoryProvider(
+                org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+            return new com.aiassistant.spi.RedisConversationMemoryProvider(redisTemplate, 20);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnClass(name = "javax.sql.DataSource")
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "memory-storage", havingValue = "jdbc")
+    static class JdbcMemoryAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(ConversationMemoryProvider.class)
+        public ConversationMemoryProvider jdbcConversationMemoryProvider(
+                javax.sql.DataSource dataSource) {
+            return new com.aiassistant.spi.JdbcConversationMemoryProvider(dataSource, 20);
+        }
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -581,10 +608,79 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "mcp-server-enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "mcp-server-enabled", havingValue = "true")
     public com.aiassistant.mcp.McpServerController mcpServerController(
             ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
         return new com.aiassistant.mcp.McpServerController(capabilitiesProvider.getIfAvailable());
+    }
+
+    // ── Resilience4j ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(name = "io.github.resilience4j.circuitbreaker.CircuitBreaker")
+    public com.aiassistant.resilience.ResilientLlmClient resilientLlmClient() {
+        return new com.aiassistant.resilience.ResilientLlmClient();
+    }
+
+    // ── Batch API ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public BatchController batchController(LlmService llmService, UsageStats usageStats) {
+        return new BatchController(llmService, usageStats);
+    }
+
+    // ── Webhook Delivery ──
+
+    @Bean(destroyMethod = "shutdown")
+    @ConditionalOnMissingBean
+    public com.aiassistant.webhook.WebhookDelivery webhookDelivery() {
+        return new com.aiassistant.webhook.WebhookDelivery();
+    }
+
+    // ── i18n ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.i18n.Messages aiAssistantMessages(
+            org.springframework.context.MessageSource messageSource) {
+        return new com.aiassistant.i18n.Messages(messageSource);
+    }
+
+    // ── Audit Logger ──
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.audit.AuditLogger auditLogger() {
+        return new com.aiassistant.audit.AuditLogger();
+    }
+
+    // ── Tracing Filter ──
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public FilterRegistrationBean<com.aiassistant.config.TracingFilter> aiAssistantTracingFilter(
+            AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.TracingFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new com.aiassistant.config.TracingFilter());
+        registration.addUrlPatterns(properties.getContextPath() + "/*");
+        registration.setOrder(-4);
+        return registration;
+    }
+
+    // ── API Versioning ──
+
+    @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "api-versioning", havingValue = "true", matchIfMissing = true)
+    public FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter> aiAssistantApiVersionFilter(
+            AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new com.aiassistant.config.ApiVersionConfig.ApiVersionFilter(properties.getContextPath()));
+        registration.addUrlPatterns(com.aiassistant.config.ApiVersionConfig.V1_PREFIX + properties.getContextPath() + "/*");
+        registration.setOrder(-5);
+        return registration;
     }
 
     // ── SPI: Redis distributed rate limit (auto-activate when Redis is present) ──
@@ -593,6 +689,7 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnClass(name = "org.springframework.data.redis.core.StringRedisTemplate")
     static class RedisRateLimitAutoConfiguration {
         @Bean
+        @ConditionalOnBean(org.springframework.data.redis.core.StringRedisTemplate.class)
         @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
         @ConditionalOnProperty(prefix = "ai-assistant", name = "rate-limit-distributed", havingValue = "true", matchIfMissing = true)
         public FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> aiAssistantRedisRateLimitFilter(

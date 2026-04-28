@@ -16,9 +16,15 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import reactor.core.Disposable;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Optional WebSocket endpoint for streaming chat (alternative to SSE).
@@ -30,10 +36,18 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(AiAssistantWebSocketHandler.class);
     private static final int WS_MAX_TEXT_CHARS = 300_000;
     private static final String SAFE_SESSION_KEY = "safeSendSession";
+    private static final long HEARTBEAT_INTERVAL_MS = 30_000;
+    private static final String HEARTBEAT_KEY = "heartbeatFuture";
     private final LlmService llmService;
     private final UsageStats usageStats;
     private final AiAssistantProperties properties;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final ScheduledExecutorService heartbeatScheduler =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "ws-heartbeat");
+                t.setDaemon(true);
+                return t;
+            });
 
     public AiAssistantWebSocketHandler(LlmService llmService, UsageStats usageStats,
                                        AiAssistantProperties properties) {
@@ -48,6 +62,22 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
         var safe = new ConcurrentWebSocketSessionDecorator(session, 5_000, 512 * 1024);
         session.getAttributes().put(SAFE_SESSION_KEY, safe);
         return safe;
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        ScheduledFuture<?> hb = heartbeatScheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (session.isOpen()) {
+                    session.sendMessage(new org.springframework.web.socket.PingMessage(
+                            ByteBuffer.wrap("hb".getBytes())));
+                }
+            } catch (IOException e) {
+                log.debug("Heartbeat ping failed for session {}: {}", session.getId(), e.getMessage());
+            }
+        }, HEARTBEAT_INTERVAL_MS, HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        session.getAttributes().put(HEARTBEAT_KEY, hb);
+        log.debug("ws connected: {}, heartbeat started", session.getId());
     }
 
     @Override
@@ -153,6 +183,10 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        Object hb = session.getAttributes().get(HEARTBEAT_KEY);
+        if (hb instanceof ScheduledFuture<?> future) {
+            future.cancel(false);
+        }
         Object d = session.getAttributes().get("streamDisposable");
         if (d instanceof Disposable disposable && !disposable.isDisposed()) {
             disposable.dispose();

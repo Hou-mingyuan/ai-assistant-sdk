@@ -1,6 +1,7 @@
 package com.aiassistant.service;
 
 import com.aiassistant.config.AiAssistantProperties;
+import com.aiassistant.util.UrlFetchSafety;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitUntilState;
@@ -8,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.annotation.PreDestroy;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,6 +73,7 @@ public class HeadlessFetchService implements HeadlessFetcher {
                         url != null && url.length() > 80 ? url.substring(0, 80) + "…" : url);
                 return new Result("", "", List.of());
             }
+            validateHeadlessUrl(url);
             ensureBrowser();
             int timeout = (int) Math.min((long) properties.getHeadlessFetchTimeoutSeconds() * 1000, Integer.MAX_VALUE);
             BrowserContext ctx = browser.newContext(new Browser.NewContextOptions()
@@ -79,11 +82,16 @@ public class HeadlessFetchService implements HeadlessFetcher {
                     .setViewportSize(1280, 900)
                     .setLocale("zh-CN"));
             try {
+                installSafetyRoute(ctx);
                 Page page = ctx.newPage();
                 page.setDefaultTimeout(timeout);
-                page.navigate(url, new Page.NavigateOptions()
+                Response response = page.navigate(url, new Page.NavigateOptions()
                         .setWaitUntil(WaitUntilState.DOMCONTENTLOADED)
                         .setTimeout(timeout));
+                if (response != null) {
+                    validateHeadlessUrl(response.url());
+                }
+                validateHeadlessUrl(page.url());
                 try {
                     page.waitForLoadState(LoadState.NETWORKIDLE,
                             new Page.WaitForLoadStateOptions().setTimeout(5000));
@@ -162,6 +170,29 @@ public class HeadlessFetchService implements HeadlessFetcher {
             }
         }
         return images;
+    }
+
+    private void installSafetyRoute(BrowserContext ctx) {
+        if (!properties.isUrlFetchSsrfProtection()) {
+            return;
+        }
+        ctx.route("**/*", route -> {
+            String requestUrl = route.request().url();
+            try {
+                validateHeadlessUrl(requestUrl);
+                route.resume();
+            } catch (Exception e) {
+                log.debug("Headless request blocked by URL safety: {} ({})", requestUrl, e.getMessage());
+                route.abort();
+            }
+        });
+    }
+
+    private void validateHeadlessUrl(String url) {
+        if (!properties.isUrlFetchSsrfProtection()) {
+            return;
+        }
+        UrlFetchSafety.validateHttpUrlForServerSideFetch(URI.create(url));
     }
 
     private volatile boolean browserInstalled = false;
