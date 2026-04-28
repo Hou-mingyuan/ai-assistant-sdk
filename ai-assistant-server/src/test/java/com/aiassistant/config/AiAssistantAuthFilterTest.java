@@ -1,11 +1,9 @@
 package com.aiassistant.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -21,39 +19,50 @@ class AiAssistantAuthFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicBoolean called = new AtomicBoolean(false);
 
-        filter.doFilter(request, response, chain(called));
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> called.set(true));
 
         assertTrue(called.get());
         assertEquals(200, response.getStatus());
     }
 
     @Test
-    void rejectsQueryTokenForRestRequests() throws Exception {
+    void rejectsQueryTokenForRestRequestsByDefault() throws Exception {
         AiAssistantAuthFilter filter = filter();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
         request.setParameter("token", "secret");
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicBoolean called = new AtomicBoolean(false);
 
-        filter.doFilter(request, response, chain(called));
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> called.set(true));
 
         assertEquals(401, response.getStatus());
-        assertEquals(false, called.get());
+        assertFalse(called.get());
+    }
+
+    @Test
+    void allowsQueryTokenOnlyWhenExplicitlyEnabled() throws Exception {
+        AiAssistantProperties properties = securedProperties();
+        properties.setAllowQueryTokenAuth(true);
+        AiAssistantAuthFilter filter = new AiAssistantAuthFilter(properties);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.setParameter("token", "secret");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean(false);
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> called.set(true));
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
     }
 
     private static AiAssistantAuthFilter filter() {
+        return new AiAssistantAuthFilter(securedProperties());
+    }
+
+    private static AiAssistantProperties securedProperties() {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setContextPath("/ai-assistant");
         properties.setAccessToken("secret");
-        return new AiAssistantAuthFilter(properties);
-    }
-
-    private static FilterChain chain(AtomicBoolean called) {
-        return new FilterChain() {
-            @Override
-            public void doFilter(ServletRequest request, ServletResponse response) {
-                called.set(true);
-            }
-        };
+        return properties;
     }
 }

@@ -33,16 +33,23 @@ public class ConnectorHealthController {
     private final List<DataConnector> connectors;
     private final ToolRegistry toolRegistry;
     private final ProviderConnectivityChecker connectivityChecker;
+    private final boolean managementEnabled;
 
     public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry) {
-        this(connectors, toolRegistry, null);
+        this(connectors, toolRegistry, null, false);
     }
 
     public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry,
                                      ProviderConnectivityChecker connectivityChecker) {
+        this(connectors, toolRegistry, connectivityChecker, false);
+    }
+
+    public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry,
+                                     ProviderConnectivityChecker connectivityChecker, boolean managementEnabled) {
         this.connectors = connectors != null ? new CopyOnWriteArrayList<>(connectors) : new CopyOnWriteArrayList<>();
         this.toolRegistry = toolRegistry;
         this.connectivityChecker = connectivityChecker;
+        this.managementEnabled = managementEnabled;
     }
 
     @GetMapping("/health/connectors")
@@ -110,6 +117,13 @@ public class ConnectorHealthController {
     @PostMapping("/connectors/register")
     public Map<String, Object> registerConnector(
             @org.springframework.web.bind.annotation.RequestBody ConnectorProperties config) {
+        if (!managementEnabled) {
+            return Map.of(
+                    "success", false,
+                    "errorCode", "CONNECTOR_MANAGEMENT_DISABLED",
+                    "error", "Connector management is disabled"
+            );
+        }
         if (config == null) return Map.of("success", false, "error", "config is null");
         DataConnector connector = ConnectorFactory.create(config);
         if (connector == null) {
@@ -126,6 +140,13 @@ public class ConnectorHealthController {
 
     @DeleteMapping("/connectors/{connectorId}")
     public Map<String, Object> unregisterConnector(@PathVariable String connectorId) {
+        if (!managementEnabled) {
+            return Map.of(
+                    "success", false,
+                    "errorCode", "CONNECTOR_MANAGEMENT_DISABLED",
+                    "error", "Connector management is disabled"
+            );
+        }
         boolean removed = connectors.removeIf(c -> c.id().equals(connectorId));
         int toolsRemoved = 0;
         if (removed && toolRegistry != null) {

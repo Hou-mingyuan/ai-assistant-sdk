@@ -87,6 +87,16 @@ public class AiAssistantAutoConfiguration {
         return new UrlFetchService(properties);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.config.AiAssistantSecurityPostureAdvisor aiAssistantSecurityPostureAdvisor(
+            AiAssistantProperties properties) {
+        com.aiassistant.config.AiAssistantSecurityPostureAdvisor advisor =
+                new com.aiassistant.config.AiAssistantSecurityPostureAdvisor(properties);
+        advisor.logWarnings();
+        return advisor;
+    }
+
     @Configuration
     @ConditionalOnClass(name = "com.microsoft.playwright.Playwright")
     @ConditionalOnProperty(prefix = "ai-assistant", name = "headless-fetch-enabled", havingValue = "true")
@@ -259,9 +269,10 @@ public class AiAssistantAutoConfiguration {
     public ConnectorHealthController connectorHealthController(
             ObjectProvider<List<DataConnector>> connectorProvider,
             ToolRegistry toolRegistry,
-            ObjectProvider<com.aiassistant.config.ProviderConnectivityChecker> checkerProvider) {
+            ObjectProvider<com.aiassistant.config.ProviderConnectivityChecker> checkerProvider,
+            AiAssistantProperties properties) {
         return new ConnectorHealthController(connectorProvider.getIfAvailable(), toolRegistry,
-                checkerProvider.getIfAvailable());
+                checkerProvider.getIfAvailable(), properties.isConnectorManagementEnabled());
     }
 
     @Bean
@@ -378,6 +389,7 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "admin-enabled", havingValue = "true")
     public com.aiassistant.controller.AdminDashboardController adminDashboardController(
             UsageStats usageStats,
             com.aiassistant.stats.TokenUsageTracker tokenTracker,

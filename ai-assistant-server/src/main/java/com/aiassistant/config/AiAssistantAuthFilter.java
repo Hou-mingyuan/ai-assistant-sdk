@@ -14,11 +14,13 @@ public class AiAssistantAuthFilter implements Filter {
 
     private final String contextPath;
     private final String accessToken;
+    private final boolean allowQueryTokenAuth;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AiAssistantAuthFilter(AiAssistantProperties properties) {
         this.contextPath = properties.getContextPath();
         this.accessToken = properties.getAccessToken();
+        this.allowQueryTokenAuth = properties.isAllowQueryTokenAuth();
     }
 
     @Override
@@ -49,6 +51,9 @@ public class AiAssistantAuthFilter implements Filter {
         }
 
         String token = request.getHeader("X-AI-Token");
+        if (allowQueryTokenAuth && (token == null || token.isBlank())) {
+            token = request.getParameter("token");
+        }
 
         byte[] expected = accessToken.getBytes(StandardCharsets.UTF_8);
         byte[] got = token == null ? null : token.getBytes(StandardCharsets.UTF_8);

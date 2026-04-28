@@ -207,7 +207,8 @@ public VectorStore vectorStore() {
 
 ## Admin 管理后台 API
 
-路径前缀：`{context-path}/admin`（如 `/ai-assistant/admin`）。配置了 `access-token` 时需携带 `X-AI-Token`。
+路径前缀：`{context-path}/admin`（如 `/ai-assistant/admin`）。默认关闭，需显式设置
+`ai-assistant.admin-enabled=true` 才会注册该控制器。配置了 `access-token` 时需携带 `X-AI-Token`。
 
 ### 端点列表
 
@@ -661,6 +662,9 @@ app.use(AiAssistant, {
 | `ai-assistant.client-system-prompt-max-chars` | int | `4000` | 客户端 system prompt 实际生效最大字符，超出截断；`0` 表示不截断（仍受 DTO `@Size` 与总包上限约束） |
 | `ai-assistant.allowed-models` | list | - | **可选**：允许前端在 `/chat`、`/stream` 中传递的 **`model` id 白名单**（多项 YAML 列表）。**不配置或留空**时，**忽略**请求体中的 `model`，始终用 `ai-assistant.model`（或 provider 默认值）；配置后仅**完全匹配**（trim）的项生效，否则回退默认 |
 | `ai-assistant.access-token` | string | - | 接口鉴权 Token（不配=不鉴权） |
+| `ai-assistant.admin-enabled` | boolean | `false` | 是否启用管理后台 API（`{context-path}/admin`），默认关闭以减少暴露面 |
+| `ai-assistant.connector-management-enabled` | boolean | `false` | 是否允许运行时注册/卸载连接器，默认关闭；健康检查接口不受影响 |
+| `ai-assistant.allow-query-token-auth` | boolean | `false` | 是否兼容 URL 查询参数 `token` 鉴权；默认关闭，推荐使用 `X-AI-Token` 请求头 |
 | `ai-assistant.rate-limit` | int | `0` | 每分钟每 IP/Token 请求上限（0=不限） |
 | `ai-assistant.chat-max-total-chars` | int | `300000` | `/chat`、`/stream` 允许的输入总字符：`text` + `history` 各条 `content` 之和（`0`=不限制，生产不建议） |
 | `ai-assistant.url-fetch-enabled` | boolean | `true` | 是否在调用模型前抓取用户消息中 **首个** http(s) URL 的正文 |
@@ -1044,7 +1048,13 @@ ai-assistant:
 
 前端请求方式：
 - REST / SSE / 文件上传 / 导出：使用 Header `X-AI-Token: my-secret-token`
-- WebSocket 兼容 `?token=my-secret-token`；REST 请求不再接受 URL 参数传 Token，避免进入浏览器历史、网关日志或访问日志。
+- WebSocket 兼容 `?token=my-secret-token`。
+
+REST 请求默认不接受 URL 参数传 Token，避免进入浏览器历史、网关日志或访问日志。如需兼容旧 REST 客户端，可显式设置
+`ai-assistant.allow-query-token-auth=true`。
+
+生产环境建议同时配置 `access-token`、明确的 `allowed-origins` 和必要的限流。若启用了
+`admin-enabled`、`connector-management-enabled` 或 `allow-query-token-auth` 等敏感选项，Starter 会在启动时输出安全姿态提示，方便尽早发现高风险配置组合。
 
 ### API Key 轮询
 
@@ -1386,6 +1396,9 @@ curl -H "X-AI-Token: my-secret-token" http://localhost:8080/ai-assistant/chat ..
 ```
 
 或不配置 `access-token` 即无需鉴权。
+
+默认不接受 `?token=...` 查询参数鉴权；如需兼容旧客户端，可显式设置
+`ai-assistant.allow-query-token-auth=true`。
 
 ### Q: 接口返回 429 Too Many Requests
 

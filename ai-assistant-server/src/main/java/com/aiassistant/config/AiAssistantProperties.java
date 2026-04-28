@@ -37,6 +37,9 @@ public class AiAssistantProperties {
     private String allowedOrigins = "*";
     private String accessToken;
     private boolean enableStats = true;
+    private boolean adminEnabled = false;
+    private boolean connectorManagementEnabled = false;
+    private boolean allowQueryTokenAuth = false;
     private String systemPrompt;
     /**
      * 是否接受请求体中的 {@code systemPrompt} 覆盖默认角色提示（仅对话模式；关闭则始终用配置文件）。
@@ -196,6 +199,19 @@ public class AiAssistantProperties {
 
     public boolean isEnableStats() { return enableStats; }
     public void setEnableStats(boolean enableStats) { this.enableStats = enableStats; }
+
+    public boolean isAdminEnabled() { return adminEnabled; }
+    public void setAdminEnabled(boolean adminEnabled) { this.adminEnabled = adminEnabled; }
+
+    public boolean isConnectorManagementEnabled() { return connectorManagementEnabled; }
+    public void setConnectorManagementEnabled(boolean connectorManagementEnabled) {
+        this.connectorManagementEnabled = connectorManagementEnabled;
+    }
+
+    public boolean isAllowQueryTokenAuth() { return allowQueryTokenAuth; }
+    public void setAllowQueryTokenAuth(boolean allowQueryTokenAuth) {
+        this.allowQueryTokenAuth = allowQueryTokenAuth;
+    }
 
     public String getSystemPrompt() { return systemPrompt; }
     public void setSystemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; }
