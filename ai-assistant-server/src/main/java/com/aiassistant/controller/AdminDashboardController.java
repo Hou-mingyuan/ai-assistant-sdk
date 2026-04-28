@@ -11,7 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Admin dashboard REST API for monitoring and managing the AI assistant.
@@ -21,6 +24,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}/admin")
 public class AdminDashboardController {
+
+    private static final Pattern SAFE_ID = Pattern.compile("[A-Za-z0-9_.:-]{1,80}");
 
     private final UsageStats usageStats;
     private final TokenUsageTracker tokenTracker;
@@ -161,10 +166,21 @@ public class AdminDashboardController {
 
     @PostMapping("/fallback-chain")
     public ResponseEntity<Map<String, Object>> setFallbackChain(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        java.util.List<String> chain = (java.util.List<String>) body.get("chain");
-        if (chain == null || chain.isEmpty()) {
+        if (body == null || !(body.get("chain") instanceof List<?> rawChain) || rawChain.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "chain list is required"));
+        }
+        List<String> chain = new ArrayList<>();
+        for (Object item : rawChain) {
+            if (!(item instanceof String modelId) || modelId.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "error", "chain items must be non-blank strings"));
+            }
+            String normalized = modelId.trim();
+            if (!isSafeId(normalized)) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "error", "invalid model id in chain"));
+            }
+            chain.add(normalized);
         }
         modelRouter.setFallbackChain(chain);
         return ResponseEntity.ok(Map.of("success", true, "chain", chain));
@@ -183,6 +199,9 @@ public class AdminDashboardController {
 
     @PostMapping("/plugins/{pluginId}/unload")
     public ResponseEntity<Map<String, Object>> unloadPlugin(@PathVariable String pluginId) {
+        if (!isSafeId(pluginId)) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "invalid pluginId"));
+        }
         if (pluginRegistry == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Plugin system not available"));
         }
@@ -206,5 +225,9 @@ public class AdminDashboardController {
             info.put("loadedPlugins", pluginRegistry.listPlugins().size());
         }
         return info;
+    }
+
+    private boolean isSafeId(String value) {
+        return value != null && SAFE_ID.matcher(value).matches();
     }
 }

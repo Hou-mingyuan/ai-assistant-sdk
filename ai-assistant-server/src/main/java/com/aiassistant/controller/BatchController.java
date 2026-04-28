@@ -35,10 +35,24 @@ public class BatchController {
     @PostMapping
     @Operation(summary = "Submit a batch of chat/translate/summarize requests")
     public ResponseEntity<Map<String, Object>> batchProcess(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> requests = (List<Map<String, Object>>) body.get("requests");
-        if (requests == null || requests.isEmpty()) {
+        if (body == null || !(body.get("requests") instanceof List<?> rawRequests)) {
             return ResponseEntity.badRequest().body(Map.of("error", "requests array is required"));
+        }
+        if (rawRequests.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "requests array is required"));
+        }
+        List<Map<String, Object>> requests = new ArrayList<>();
+        for (Object rawRequest : rawRequests) {
+            if (!(rawRequest instanceof Map<?, ?> requestMap)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "each request must be an object"));
+            }
+            Map<String, Object> normalized = new java.util.LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : requestMap.entrySet()) {
+                if (entry.getKey() instanceof String key) {
+                    normalized.put(key, entry.getValue());
+                }
+            }
+            requests.add(normalized);
         }
         if (requests.size() > MAX_BATCH_SIZE) {
             return ResponseEntity.badRequest().body(Map.of("error", "Max batch size is " + MAX_BATCH_SIZE));
@@ -60,15 +74,23 @@ public class BatchController {
     }
 
     private Map<String, Object> processSingle(int index, Map<String, Object> req) {
-        String action = (String) req.getOrDefault("action", "chat");
-        String text = (String) req.get("text");
-        if (text == null || text.isBlank()) {
+        Object rawAction = req.getOrDefault("action", "chat");
+        if (!(rawAction instanceof String action)) {
+            return Map.of("index", index, "error", "action must be a string");
+        }
+        action = action.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!List.of("chat", "translate", "summarize").contains(action)) {
+            return Map.of("index", index, "error", "unsupported action: " + action);
+        }
+        Object rawText = req.get("text");
+        if (!(rawText instanceof String text) || text.isBlank()) {
             return Map.of("index", index, "error", "text is required");
         }
         try {
             String result = switch (action) {
                 case "translate" -> {
-                    String lang = (String) req.getOrDefault("targetLang", "zh");
+                    Object rawLang = req.getOrDefault("targetLang", "zh");
+                    String lang = rawLang instanceof String s && !s.isBlank() ? s : "zh";
                     yield llmService.translate(text, lang);
                 }
                 case "summarize" -> llmService.summarize(text);

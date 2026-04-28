@@ -8,6 +8,7 @@ import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
+import com.aiassistant.plugin.PluginRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -222,6 +223,52 @@ class AdminDashboardControllerTest {
         Map<String, ModelRouter.ABTestConfig> tests = controller.listABTests();
         assertEquals(1, tests.size());
         assertTrue(tests.containsKey("experiment"));
+    }
+
+    @Test
+    void setFallbackChain_rejectsNonList() {
+        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(Map.of("chain", "bad"));
+
+        assertEquals(400, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
+    }
+
+    @Test
+    void setFallbackChain_rejectsNonStringItems() {
+        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(Map.of("chain", List.of(1)));
+
+        assertEquals(400, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
+    }
+
+    @Test
+    void setFallbackChain_rejectsInvalidModelIds() {
+        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(
+                Map.of("chain", List.of("../model")));
+
+        assertEquals(400, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
+    }
+
+    @Test
+    void setFallbackChain_acceptsSafeModelIds() {
+        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(
+                Map.of("chain", List.of("gpt-5.4-mini", "tenant:model_a")));
+
+        assertEquals(200, resp.getStatusCode().value());
+        assertEquals(List.of("gpt-5.4-mini", "tenant:model_a"), modelRouter.getFallbackChain());
+    }
+
+    @Test
+    void unloadPlugin_rejectsInvalidPluginId() {
+        AdminDashboardController pluginController = new AdminDashboardController(
+                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter,
+                new PluginRegistry(toolRegistry, List.of()));
+
+        ResponseEntity<Map<String, Object>> resp = pluginController.unloadPlugin("../plugin");
+
+        assertEquals(400, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
     }
 
     /**

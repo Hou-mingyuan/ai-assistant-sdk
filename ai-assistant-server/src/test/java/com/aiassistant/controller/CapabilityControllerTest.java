@@ -73,6 +73,21 @@ class CapabilityControllerTest {
     }
 
     @Test
+    void invokeCapability_rejectsInvalidName() {
+        var controller = new CapabilityController(List.of(dummyCap("echo")));
+        ResponseEntity<String> resp = controller.invokeCapability("../echo", Map.of());
+        assertEquals(400, resp.getStatusCode().value());
+        assertTrue(resp.getBody().contains("Invalid capability name"));
+    }
+
+    @Test
+    void invokeCapability_rejectsOverlongName() {
+        var controller = new CapabilityController(List.of(dummyCap("echo")));
+        ResponseEntity<String> resp = controller.invokeCapability("a".repeat(81), Map.of());
+        assertEquals(400, resp.getStatusCode().value());
+    }
+
+    @Test
     void invokeCapability_nullParams_treatedAsEmpty() throws Exception {
         var controller = new CapabilityController(List.of(dummyCap("test")));
         ResponseEntity<String> resp = controller.invokeCapability("test", null);

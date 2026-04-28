@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Exposes assistant capabilities for discovery and invocation.
@@ -22,6 +23,7 @@ import java.util.Map;
 public class CapabilityController {
 
     private static final Logger log = LoggerFactory.getLogger(CapabilityController.class);
+    private static final Pattern SAFE_CAPABILITY_NAME = Pattern.compile("[A-Za-z0-9_.:-]{1,80}");
     private final List<AssistantCapability> capabilities;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -46,6 +48,11 @@ public class CapabilityController {
     public ResponseEntity<String> invokeCapability(
             @PathVariable String name,
             @RequestBody(required = false) Map<String, Object> params) {
+        if (!isSafeCapabilityName(name)) {
+            ObjectNode err = objectMapper.createObjectNode();
+            err.put("error", "Invalid capability name");
+            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(err.toString());
+        }
         AssistantCapability cap = capabilities.stream()
                 .filter(c -> c.name().equals(name))
                 .findFirst()
@@ -66,5 +73,9 @@ public class CapabilityController {
             return ResponseEntity.internalServerError()
                     .contentType(MediaType.APPLICATION_JSON).body(err.toString());
         }
+    }
+
+    private boolean isSafeCapabilityName(String name) {
+        return name != null && SAFE_CAPABILITY_NAME.matcher(name).matches();
     }
 }
