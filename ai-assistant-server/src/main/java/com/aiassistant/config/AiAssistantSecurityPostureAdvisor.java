@@ -13,6 +13,7 @@ public class AiAssistantSecurityPostureAdvisor {
     public static final String ADMIN_WITHOUT_ACCESS_TOKEN = "ADMIN_WITHOUT_ACCESS_TOKEN";
     public static final String CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN =
             "CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN";
+    public static final String MCP_SERVER_WITHOUT_ACCESS_TOKEN = "MCP_SERVER_WITHOUT_ACCESS_TOKEN";
     public static final String QUERY_TOKEN_AUTH_ENABLED = "QUERY_TOKEN_AUTH_ENABLED";
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantSecurityPostureAdvisor.class);
@@ -33,6 +34,9 @@ public class AiAssistantSecurityPostureAdvisor {
         if (properties.isConnectorManagementEnabled() && !hasAccessToken) {
             warnings.add(CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN);
         }
+        if (properties.isMcpServerEnabled() && !hasAccessToken) {
+            warnings.add(MCP_SERVER_WITHOUT_ACCESS_TOKEN);
+        }
         if (properties.isAllowQueryTokenAuth()) {
             warnings.add(QUERY_TOKEN_AUTH_ENABLED);
         }
@@ -48,6 +52,9 @@ public class AiAssistantSecurityPostureAdvisor {
             } else if (CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN.equals(warning)) {
                 log.warn("ai-assistant.connector-management-enabled=true is configured without "
                         + "ai-assistant.access-token. Dynamic connector management should be protected.");
+            } else if (MCP_SERVER_WITHOUT_ACCESS_TOKEN.equals(warning)) {
+                log.warn("ai-assistant.mcp-server-enabled=true is configured without ai-assistant.access-token. "
+                        + "Protect MCP tool discovery and invocation before exposing this endpoint.");
             } else if (QUERY_TOKEN_AUTH_ENABLED.equals(warning)) {
                 log.warn("ai-assistant.allow-query-token-auth=true allows tokens in URLs. "
                         + "Prefer the X-AI-Token header to avoid leaking tokens through logs or browser history.");

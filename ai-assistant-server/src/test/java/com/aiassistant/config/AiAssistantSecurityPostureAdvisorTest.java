@@ -39,6 +39,17 @@ class AiAssistantSecurityPostureAdvisorTest {
     }
 
     @Test
+    void warnsWhenMcpServerIsEnabledWithoutAccessToken() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setMcpServerEnabled(true);
+
+        AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertEquals(List.of(AiAssistantSecurityPostureAdvisor.MCP_SERVER_WITHOUT_ACCESS_TOKEN),
+                advisor.warningCodes());
+    }
+
+    @Test
     void warnsWhenQueryTokenAuthCompatibilityIsEnabled() {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setAccessToken("secret");

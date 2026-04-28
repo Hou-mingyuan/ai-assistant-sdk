@@ -13,5 +13,6 @@ class AiAssistantSecurityDefaultsTest {
         assertFalse(properties.isAdminEnabled());
         assertFalse(properties.isConnectorManagementEnabled());
         assertFalse(properties.isAllowQueryTokenAuth());
+        assertFalse(properties.isMcpServerEnabled());
     }
 }
