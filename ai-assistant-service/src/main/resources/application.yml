@@ -30,12 +30,36 @@ ai-assistant:
   timeout-seconds: ${AI_ASSISTANT_TIMEOUT_SECONDS:60}
   max-tokens: ${AI_ASSISTANT_MAX_TOKENS:2048}
   temperature: ${AI_ASSISTANT_TEMPERATURE:0.7}
+  llm-max-retries: ${AI_ASSISTANT_LLM_MAX_RETRIES:2}
+  allowed-models: ${AI_ASSISTANT_ALLOWED_MODELS:}
+  system-prompt: ${AI_ASSISTANT_SYSTEM_PROMPT:}
+  allow-client-system-prompt: ${AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT:true}
+  client-system-prompt-max-chars: ${AI_ASSISTANT_CLIENT_SYSTEM_PROMPT_MAX_CHARS:4000}
   allow-query-token-auth: ${AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH:false}
   admin-enabled: ${AI_ASSISTANT_ADMIN_ENABLED:false}
   connector-management-enabled: ${AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED:false}
   mcp-server-enabled: ${AI_ASSISTANT_MCP_SERVER_ENABLED:false}
   websocket-enabled: ${AI_ASSISTANT_WEBSOCKET_ENABLED:false}
+  rag-enabled: ${AI_ASSISTANT_RAG_ENABLED:false}
+  embedding-model: ${AI_ASSISTANT_EMBEDDING_MODEL:}
+  embedding-dimensions: ${AI_ASSISTANT_EMBEDDING_DIMENSIONS:1536}
+  pii-masking-enabled: ${AI_ASSISTANT_PII_MASKING_ENABLED:true}
+  headless-fetch-enabled: ${AI_ASSISTANT_HEADLESS_FETCH_ENABLED:false}
+  headless-fetch-timeout-seconds: ${AI_ASSISTANT_HEADLESS_FETCH_TIMEOUT_SECONDS:30}
   url-fetch-enabled: ${AI_ASSISTANT_URL_FETCH_ENABLED:true}
   url-fetch-ssrf-protection: ${AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION:true}
+  url-fetch-max-bytes: ${AI_ASSISTANT_URL_FETCH_MAX_BYTES:524288}
+  url-fetch-timeout-seconds: ${AI_ASSISTANT_URL_FETCH_TIMEOUT_SECONDS:15}
+  url-fetch-max-chars-injected: ${AI_ASSISTANT_URL_FETCH_MAX_CHARS_INJECTED:24000}
+  url-fetch-cache-ttl-seconds: ${AI_ASSISTANT_URL_FETCH_CACHE_TTL_SECONDS:90}
+  url-fetch-cache-max-entries: ${AI_ASSISTANT_URL_FETCH_CACHE_MAX_ENTRIES:32}
+  url-preview-max-summary-chars: ${AI_ASSISTANT_URL_PREVIEW_MAX_SUMMARY_CHARS:900}
+  url-preview-max-images: ${AI_ASSISTANT_URL_PREVIEW_MAX_IMAGES:10}
   file-max-extracted-chars: ${AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS:300000}
+  export-max-messages: ${AI_ASSISTANT_EXPORT_MAX_MESSAGES:2000}
+  export-max-total-chars: ${AI_ASSISTANT_EXPORT_MAX_TOTAL_CHARS:2000000}
+  export-max-image-bytes: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_BYTES:3000000}
   export-max-image-urls: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS:64}
+  export-embed-images: ${AI_ASSISTANT_EXPORT_EMBED_IMAGES:true}
+  chat-max-total-chars: ${AI_ASSISTANT_CHAT_MAX_TOTAL_CHARS:300000}
+  chat-history-max-chars: ${AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS:48000}
