@@ -1,40 +1,94 @@
 replicaCount: 1
 
 image:
-  repository: ai-assistant-sdk
+  repository: ghcr.io/hou-mingyuan/ai-assistant-service
   tag: latest
   pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
   port: 8080
+  targetPort: 8080
 
 ingress:
   enabled: false
   className: nginx
+  annotations: {}
   hosts:
     - host: ai-assistant.local
       paths:
         - path: /
           pathType: Prefix
+  tls: []
 
 resources:
   limits:
     cpu: 1000m
-    memory: 512Mi
+    memory: 768Mi
   requests:
     cpu: 250m
     memory: 256Mi
 
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 100
+  runAsGroup: 101
+  fsGroup: 101
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
+
 env:
   AI_ASSISTANT_PROVIDER: openai
-  AI_ASSISTANT_MODEL: gpt-4o
+  AI_ASSISTANT_BASE_URL: ""
+  AI_ASSISTANT_MODEL: ""
+  AI_ASSISTANT_CONTEXT_PATH: /ai-assistant
+  AI_ASSISTANT_ALLOWED_ORIGINS: "*"
+  AI_ASSISTANT_ACCESS_TOKEN: ""
+  AI_ASSISTANT_RATE_LIMIT: "60"
+  AI_ASSISTANT_TIMEOUT_SECONDS: "60"
+  AI_ASSISTANT_MAX_TOKENS: "2048"
+  AI_ASSISTANT_TEMPERATURE: "0.7"
+  AI_ASSISTANT_LLM_MAX_RETRIES: "2"
+  AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH: "false"
+  AI_ASSISTANT_WEBSOCKET_ENABLED: "false"
+  AI_ASSISTANT_ADMIN_ENABLED: "false"
+  AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED: "false"
+  AI_ASSISTANT_MCP_SERVER_ENABLED: "false"
+  AI_ASSISTANT_URL_FETCH_ENABLED: "true"
+  AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION: "true"
+  AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS: "300000"
+  AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS: "64"
+  AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE: 10MB
+  AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE: 10MB
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+  MANAGEMENT_INFO_ENV_ENABLED: "true"
+  SERVER_PORT: "8080"
+  SERVER_SHUTDOWN: graceful
+  SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE: 20s
+  JAVA_OPTS: -Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError
 
 secrets:
   apiKey: ""
 
 redis:
-  enabled: true
+  enabled: false
   host: redis
   port: 6379
 

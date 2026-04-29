@@ -4,6 +4,7 @@ AI Assistant SDK 是一个可嵌入的 AI 助手解决方案，包含：
 
 - **后端**：Spring Boot Starter（Java 17+），提供对话、翻译、摘要、RAG、Tool Calling 等能力
 - **前端**：Vue 3 组件库，开箱即用的对话界面
+- **独立服务**：可通过 Docker / docker compose 单独部署，适合多个系统共用同一套 AI 能力
 
 ## 核心特性
 
@@ -18,6 +19,7 @@ AI Assistant SDK 是一个可嵌入的 AI 助手解决方案，包含：
 | 可观测性 | Micrometer + Actuator HealthIndicator |
 | 事件总线 | Spring ApplicationEvent 解耦 |
 | RBAC | 可插拔的权限模型 |
+| 独立部署 | Docker Compose + GHCR 镜像 + 健康检查 |
 
 ## 架构
 

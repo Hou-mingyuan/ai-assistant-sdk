@@ -6,7 +6,8 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: 8080
+      targetPort: http
       protocol: TCP
+      name: http
   selector:
     app: ai-assistant

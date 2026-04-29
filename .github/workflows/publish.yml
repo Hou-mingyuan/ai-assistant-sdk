@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ai-assistant-service
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
@@ -42,3 +46,67 @@ jobs:
       - run: mvn -B deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image metadata
+        id: meta-vars
+        shell: bash
+        run: |
+          version="$(awk '
+            /<artifactId>ai-assistant-service<\/artifactId>/ { in_project = 1; next }
+            in_project && /<version>/ {
+              gsub(/.*<version>|<\/version>.*/, "")
+              print
+              exit
+            }
+          ' ai-assistant-service/pom.xml)"
+          if [ -z "${version}" ]; then
+            echo "Failed to resolve ai-assistant-service version" >&2
+            exit 1
+          fi
+          owner_lc="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "owner_lc=${owner_lc}" >> "${GITHUB_OUTPUT}"
+          echo "created=${created}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: docker-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.meta-vars.outputs.owner_lc }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.event.release.tag_name }}
+            type=raw,value=${{ steps.meta-vars.outputs.version }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ steps.meta-vars.outputs.version }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.meta-vars.outputs.created }}

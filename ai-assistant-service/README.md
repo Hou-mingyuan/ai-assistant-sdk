@@ -43,6 +43,30 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
+发布 GitHub Release 后，工作流会构建并推送独立服务镜像到 GHCR：
+
+```text
+ghcr.io/hou-mingyuan/ai-assistant-service
+```
+
+Helm chart 默认也使用这个镜像仓库；如果你使用私有镜像仓库，可以覆盖 `image.repository` 和 `image.tag`。
+
+如果只想拉取已发布镜像运行，不做本地构建，可以使用：
+
+```bash
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+Kubernetes 部署可以使用仓库内 Helm chart：
+
+```bash
+helm upgrade --install ai-assistant ./helm/ai-assistant \
+  --set secrets.apiKey=sk-your-key \
+  --set env.AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
+```
+
+Chart 已包含 Deployment、Service、可选 Ingress 和可选 HPA，探针路径会跟随 `env.AI_ASSISTANT_CONTEXT_PATH`。
+
 可以通过 `.env` 调整宿主机端口、模型请求参数、功能开关和资源限制。例如：
 
 ```env

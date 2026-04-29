@@ -14,12 +14,17 @@ spec:
       labels:
         app: ai-assistant
     spec:
+      securityContext:
+{{ toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: ai-assistant
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+{{ toYaml .Values.securityContext | nindent 12 }}
           ports:
-            - containerPort: 8080
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
           env:
             - name: AI_ASSISTANT_API_KEY
               valueFrom:
@@ -36,17 +41,27 @@ spec:
             - name: SPRING_DATA_REDIS_PORT
               value: {{ .Values.redis.port | quote }}
             {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+{{ toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
-              path: /ai-assistant/health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 15
+              path: {{ printf "%s/health" (default "/ai-assistant" .Values.env.AI_ASSISTANT_CONTEXT_PATH) | quote }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           readinessProbe:
             httpGet:
-              path: /ai-assistant/health
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
+              path: {{ printf "%s/health" (default "/ai-assistant" .Values.env.AI_ASSISTANT_CONTEXT_PATH) | quote }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
