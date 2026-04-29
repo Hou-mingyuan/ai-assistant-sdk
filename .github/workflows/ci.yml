@@ -7,6 +7,31 @@ on:
     branches: [main]
 
 jobs:
+  repository:
+    name: Repository config
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check standalone smoke script syntax
+        run: node --check scripts/smoke-standalone-service.mjs
+
+      - name: Validate docker compose files
+        env:
+          AI_ASSISTANT_API_KEY: ci-placeholder
+          AI_ASSISTANT_ACCESS_TOKEN: ci-token
+          AI_ASSISTANT_ALLOWED_ORIGINS: https://example.com
+        run: |
+          docker compose config >/dev/null
+          docker compose -f docker-compose.ghcr.yml config >/dev/null
+          docker compose -f docker-compose.prod.yml config >/dev/null
+
   backend:
     name: Backend (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
