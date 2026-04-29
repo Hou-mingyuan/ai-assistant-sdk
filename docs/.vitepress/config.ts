@@ -16,6 +16,7 @@ export default defineConfig({
           items: [
             { text: 'Introduction', link: '/guide/' },
             { text: 'Quick Start', link: '/guide/quick-start' },
+            { text: 'Frontend Standalone', link: '/guide/frontend-standalone' },
             { text: 'Configuration', link: '/guide/configuration' },
           ],
         },
@@ -31,7 +32,7 @@ export default defineConfig({
         {
           text: 'Deployment',
           items: [
-            { text: 'Docker', link: '/guide/docker' },
+            { text: 'Standalone Service', link: '/guide/standalone-service' },
             { text: 'Kubernetes', link: '/guide/kubernetes' },
           ],
         },

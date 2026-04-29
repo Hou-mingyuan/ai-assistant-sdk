@@ -6,6 +6,8 @@ AI Assistant SDK 是一个可嵌入的 AI 助手解决方案，包含：
 - **前端**：Vue 3 组件库，开箱即用的对话界面
 - **独立服务**：可通过 Docker / docker compose 单独部署，适合多个系统共用同一套 AI 能力
 
+如果你选择独立服务形态，前端接入可参考：[前端连接独立服务](./frontend-standalone)。
+
 ## 核心特性
 
 | 特性 | 说明 |

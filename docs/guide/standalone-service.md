@@ -12,7 +12,7 @@ copy .env.example .env
 
 至少修改以下配置：
 
-```env
+```text
 AI_ASSISTANT_API_KEY=sk-your-key
 AI_ASSISTANT_PROVIDER=openai
 AI_ASSISTANT_ALLOWED_ORIGINS=http://localhost:5173
@@ -78,7 +78,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 如果要指定镜像标签：
 
-```env
+```text
 AI_ASSISTANT_IMAGE_TAG=latest
 ```
 
@@ -86,7 +86,7 @@ AI_ASSISTANT_IMAGE_TAG=latest
 
 如果 Docker Hub 或 Maven Central 访问不稳定，可以在 `.env` 中配置构建代理。Docker Desktop 下容器访问宿主机代理通常使用 `host.docker.internal`：
 
-```env
+```text
 DOCKER_BUILD_HTTP_PROXY=http://host.docker.internal:7897
 DOCKER_BUILD_HTTPS_PROXY=http://host.docker.internal:7897
 DOCKER_BUILD_NO_PROXY=localhost,127.0.0.1,host.docker.internal
@@ -94,6 +94,8 @@ DOCKER_BUILD_MAVEN_OPTS=-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7
 ```
 
 ## 4. 前端如何连接独立服务
+
+完整前端联调说明见：[前端连接独立服务](./frontend-standalone)。
 
 前端组件的 `baseUrl` 指向独立服务的上下文路径：
 
@@ -115,7 +117,7 @@ app.use(AiAssistant, {
 
 如果前端和服务端不在同一个域名下，需要把前端地址加入 CORS 白名单：
 
-```env
+```text
 AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 ```
 
@@ -131,7 +133,7 @@ X-AI-Token: change-me
 
 推荐配置：
 
-```env
+```text
 AI_ASSISTANT_ACCESS_TOKEN=change-me
 AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
 ```
@@ -144,13 +146,13 @@ AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
 
 默认每个客户端每分钟 60 次请求：
 
-```env
+```text
 AI_ASSISTANT_RATE_LIMIT=60
 ```
 
 设置为 `0` 可以关闭进程内限流：
 
-```env
+```text
 AI_ASSISTANT_RATE_LIMIT=0
 ```
 
@@ -160,20 +162,20 @@ AI_ASSISTANT_RATE_LIMIT=0
 
 服务日志输出到标准输出，由 Docker 或平台侧收集。compose 默认启用日志滚动：
 
-```env
+```text
 AI_ASSISTANT_LOG_MAX_SIZE=10m
 AI_ASSISTANT_LOG_MAX_FILE=3
 ```
 
 默认日志为人类可读的单行文本。生产环境如果接入 ELK、Loki、Datadog 或云日志平台，可以启用结构化 JSON 日志：
 
-```env
+```text
 SPRING_PROFILES_ACTIVE=prod
 ```
 
 也可以只启用日志 JSON profile：
 
-```env
+```text
 SPRING_PROFILES_ACTIVE=json
 ```
 
@@ -203,19 +205,19 @@ GET /actuator/info
 
 默认只暴露 `health,info`：
 
-```env
+```text
 MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info
 ```
 
 如果需要暴露 metrics，建议先通过内网或网关保护：
 
-```env
+```text
 MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
 ```
 
 ## 9. 常用运行参数
 
-```env
+```text
 AI_ASSISTANT_PORT=8080
 SERVER_PORT=8080
 AI_ASSISTANT_CONTEXT_PATH=/ai-assistant

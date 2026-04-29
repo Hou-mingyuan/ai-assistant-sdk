@@ -14,6 +14,9 @@ hero:
     - theme: alt
       text: Docker 部署
       link: /guide/standalone-service
+    - theme: alt
+      text: 前端连接
+      link: /guide/frontend-standalone
 features:
   - title: 即插即用
     details: 一个 Maven 依赖 + 一行配置即可启用，支持 OpenAI / DeepSeek / 通义千问 / GLM 等多种 LLM
