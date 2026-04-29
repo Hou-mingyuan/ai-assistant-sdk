@@ -1238,14 +1238,27 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
+`.env` 可直接控制宿主机端口、服务上下文路径、模型参数、功能开关和资源限制：
+
+```env
+AI_ASSISTANT_PORT=8080
+AI_ASSISTANT_CONTEXT_PATH=/ai-assistant
+AI_ASSISTANT_TIMEOUT_SECONDS=60
+AI_ASSISTANT_MAX_TOKENS=2048
+AI_ASSISTANT_RATE_LIMIT=60
+```
+
 启动后默认地址：
 
 ```text
+http://localhost:8080/ai-assistant/health
 http://localhost:8080/ai-assistant/chat
 http://localhost:8080/ai-assistant/stream
 http://localhost:8080/ai-assistant/export
 http://localhost:8080/actuator/health
 ```
+
+如果修改 `AI_ASSISTANT_CONTEXT_PATH`，前端 `baseUrl` 和健康检查路径需要使用新的上下文路径；Dockerfile 与 `docker-compose.yml` 中的容器健康检查会自动读取该环境变量。
 
 前端组件可以直接指向独立服务：
 
@@ -1262,6 +1275,15 @@ app.use(AiAssistant, {
 AI_ASSISTANT_ACCESS_TOKEN=change-me
 AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 AI_ASSISTANT_RATE_LIMIT=60
+```
+
+如果 Docker Hub 或 Maven Central 访问不稳定，可以在 `.env` 中给构建阶段配置代理。Docker Desktop 下容器访问宿主机代理通常使用 `host.docker.internal`：
+
+```env
+DOCKER_BUILD_HTTP_PROXY=http://host.docker.internal:7897
+DOCKER_BUILD_HTTPS_PROXY=http://host.docker.internal:7897
+DOCKER_BUILD_NO_PROXY=localhost,127.0.0.1,host.docker.internal
+DOCKER_BUILD_MAVEN_OPTS=-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7897 -Dhttps.proxyHost=host.docker.internal -Dhttps.proxyPort=7897
 ```
 
 独立 Docker 服务默认使用进程内会话和限流，便于单容器快速部署；需要 Redis、数据库、多租户连接器或更复杂平台治理时，可以继续基于 starter 自定义一个服务模块或扩展当前 `ai-assistant-service`。

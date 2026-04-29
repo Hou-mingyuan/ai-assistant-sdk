@@ -18,6 +18,7 @@ services:
       - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-openai}
       - AI_ASSISTANT_BASE_URL=${AI_ASSISTANT_BASE_URL:-}
       - AI_ASSISTANT_MODEL=${AI_ASSISTANT_MODEL:-}
+      - AI_ASSISTANT_CONTEXT_PATH=${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}
       - AI_ASSISTANT_ACCESS_TOKEN=${AI_ASSISTANT_ACCESS_TOKEN:-}
       - AI_ASSISTANT_ALLOWED_ORIGINS=${AI_ASSISTANT_ALLOWED_ORIGINS:-*}
       - AI_ASSISTANT_RATE_LIMIT=${AI_ASSISTANT_RATE_LIMIT:-60}
@@ -37,9 +38,14 @@ services:
       - AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=${AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE:-10MB}
       - JAVA_OPTS=${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ai-assistant/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- \"http://localhost:8080$${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}/health\" || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped

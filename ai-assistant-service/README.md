@@ -43,6 +43,7 @@ docker compose up -d --build
 
 ```env
 AI_ASSISTANT_PORT=8080
+AI_ASSISTANT_CONTEXT_PATH=/ai-assistant
 AI_ASSISTANT_TIMEOUT_SECONDS=60
 AI_ASSISTANT_MAX_TOKENS=2048
 AI_ASSISTANT_WEBSOCKET_ENABLED=false
@@ -85,6 +86,10 @@ POST http://localhost:8080/ai-assistant/chat
 POST http://localhost:8080/ai-assistant/stream
 POST http://localhost:8080/ai-assistant/export
 ```
+
+如果修改了 `AI_ASSISTANT_CONTEXT_PATH`，业务接口和容器健康检查会一起切换到新的路径。
+
+默认 compose 配置会以只读容器文件系统运行，并给 `/tmp` 挂载临时内存目录。服务日志输出到标准输出，不需要写入镜像内的应用目录。
 
 生产环境建议至少设置：
 
