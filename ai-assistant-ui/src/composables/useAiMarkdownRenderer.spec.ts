@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { computed } from 'vue';
 import { useAiMarkdownRenderer } from './useAiMarkdownRenderer';
 
@@ -6,7 +6,7 @@ const t = computed(
   () =>
     ({
       copyCode: 'Copy',
-    }) as any,
+    }) as Record<string, string>,
 );
 
 const options = { openCodeInIde: undefined };

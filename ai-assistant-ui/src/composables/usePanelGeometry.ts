@@ -29,7 +29,6 @@ export interface PanelGeometryDeps {
   fabSize: number;
   isOpen: Ref<boolean>;
   saveFabPos: (overrideEdge?: 'none' | 'left' | 'right') => void;
-  clampFabPos: (l: number, t: number) => { left: number; top: number };
   defaultPosition: string;
 }
 
@@ -43,7 +42,7 @@ function getViewportCssSize(): { w: number; h: number } {
 }
 
 export function usePanelGeometry(deps: PanelGeometryDeps) {
-  const { fabLeft, fabTop, fabSize, isOpen, saveFabPos, clampFabPos, defaultPosition } = deps;
+  const { fabLeft, fabTop, fabSize, isOpen, saveFabPos, defaultPosition } = deps;
 
   const panelExpanded = ref(false);
   const panelUserSize = ref<{ w: number; h: number } | null>(null);

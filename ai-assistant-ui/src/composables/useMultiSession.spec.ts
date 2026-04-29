@@ -29,7 +29,7 @@ describe('useMultiSession', () => {
   it('switches session', () => {
     const ms = useMultiSession(STORAGE_KEY);
     const s1 = ms.sessions.value[0];
-    const s2 = ms.createSession();
+    ms.createSession();
     ms.switchSession(s1.id);
     expect(ms.activeSessionId.value).toBe(s1.id);
   });

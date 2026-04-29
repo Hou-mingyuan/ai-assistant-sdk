@@ -93,8 +93,18 @@ const defaultOptions: AiAssistantOptions = {
   selectedModelStorageKey: 'ai-assistant-selected-model',
 };
 
+type AutoMountState = {
+  app: App<Element>;
+  shell: HTMLDivElement;
+};
+
+type AppWithAiAssistantAutoMount = App<Element> & {
+  _aiAssistantAutoMount?: AutoMountState;
+};
+
 export default {
   install(app: App, options: AiAssistantOptions = {}) {
+    const assistantApp = app as AppWithAiAssistantAutoMount;
     const merged = { ...defaultOptions, ...options };
     app.provide('ai-assistant-options', merged);
     app.component('AiAssistant', AiAssistant);
@@ -117,16 +127,16 @@ export default {
         const child = createApp(AiAssistant);
         child.provide('ai-assistant-options', merged);
         child.mount(shell);
-        (app as any)._aiAssistantAutoMount = { app: child, shell };
+        assistantApp._aiAssistantAutoMount = { app: child, shell };
       });
     }
     const origUnmount = app.unmount.bind(app);
     app.unmount = () => {
-      const mount = (app as any)._aiAssistantAutoMount;
+      const mount = assistantApp._aiAssistantAutoMount;
       if (mount) {
         mount.app.unmount();
         mount.shell.remove();
-        delete (app as any)._aiAssistantAutoMount;
+        delete assistantApp._aiAssistantAutoMount;
       }
       origUnmount();
     };

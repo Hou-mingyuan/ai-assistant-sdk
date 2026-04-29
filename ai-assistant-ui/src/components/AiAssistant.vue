@@ -23,9 +23,9 @@
       class="ai-fab"
       :class="{ 'ai-fab-dragging': fabDragging }"
       :style="fabLayoutStyle"
+      :aria-label="t.fabOpen"
       @pointerdown="onFabPointerDown"
       @contextmenu.prevent="onFabContextMenu"
-      :aria-label="t.fabOpen"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
@@ -44,8 +44,8 @@
     >
       <div
         v-if="isOpen"
-        ref="panelRef"
         :id="uid + '-panel'"
+        ref="panelRef"
         class="ai-panel"
         :style="panelStyle"
         role="dialog"
@@ -346,8 +346,10 @@
               </div>
             </template>
             <template v-else>
+              <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
               <div
                 class="ai-bubble"
+                @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
                 v-html="
                   renderBubble(
                     msg.content,
@@ -355,8 +357,8 @@
                     loading && msg.role === 'assistant' && idx === displayedMessages.length - 1,
                   )
                 "
-                @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
               ></div>
+              <!-- eslint-enable vue/no-v-html -->
             </template>
             <div
               v-if="msg.role === 'user' && !loading && editingMsgIdx !== displayOffset + idx"
@@ -472,8 +474,8 @@
             <button
               type="button"
               class="ai-pending-image-remove"
-              @click="clearPendingImage"
               :aria-label="t.removeImage"
+              @click="clearPendingImage"
             >
               &times;
             </button>
@@ -500,9 +502,9 @@
                 type="button"
                 class="ai-upload"
                 :disabled="loading"
-                @click="fileInputRef?.click()"
                 :title="t.uploadFile"
                 :aria-label="t.uploadFile"
+                @click="fileInputRef?.click()"
               >
                 <svg
                   width="18"
@@ -606,8 +608,8 @@
     />
 
     <PersonalizeDialog
-      :open="personalizeOpen"
       v-model="chatSystemPrompt"
+      :open="personalizeOpen"
       :is-dark="isDark"
       :disabled="loading"
       :max-chars="systemPromptMaxInputCharsResolved"
@@ -652,19 +654,12 @@ import ExportToast from './ExportToast.vue';
 import PageSelectionBar from './PageSelectionBar.vue';
 import SessionTabs from './SessionTabs.vue';
 import type { AiAssistantOptions } from '../index';
-import {
-  uploadFile,
-  streamChat,
-  fetchUrlPreview,
-  fetchModels,
-  postServerExport,
-} from '../utils/api';
-import type { ExportFormat } from '../utils/api';
+import { uploadFile, fetchUrlPreview, fetchModels } from '../utils/api';
+import type { ChatPayload } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
-import { usePanelGeometry, RESIZE_ZONES } from '../composables/usePanelGeometry';
-import type { PanelResizeEdge } from '../composables/usePanelGeometry';
+import { usePanelGeometry } from '../composables/usePanelGeometry';
 import { useMsgContextMenu } from '../composables/useMsgContextMenu';
 import { getMessages } from '../utils/i18n';
 import type { Locale } from '../utils/i18n';
@@ -774,7 +769,7 @@ const input = ref('');
 const loading = ref(false);
 let streamAbortController: AbortController | null = null;
 const messages = ref<Message[]>(loadPersistedMessages(!!options.persistHistory));
-const { saveHistory, saveHistoryImmediate, clearStoredHistory } = useChatHistoryPersistence(
+const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
   () => !!options.persistHistory,
 );
@@ -872,9 +867,6 @@ const {
   translateAssistantSelection,
   closeInlineTranslatePopover,
   deleteAssistantAt,
-  MSG_CTX_MENU_W,
-  MSG_CTX_MENU_H,
-  schedulePositionInlineTranslatePopover,
   detachInlinePopLayoutListeners,
 } = msgCtxComposable;
 
@@ -979,7 +971,6 @@ const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`
 
 const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
 
-const EDGE_PEEK = 14;
 const DRAG_CLICK_PX = 8;
 const DOCK_BREAK_PX = 10;
 let winResizeRaf = 0;
@@ -1006,7 +997,6 @@ const panelGeo = usePanelGeometry({
   fabSize: FAB_SIZE,
   isOpen,
   saveFabPos,
-  clampFabPos,
   defaultPosition: options.position || 'bottom-right',
 });
 const {
@@ -1028,10 +1018,7 @@ const {
   onPanelClose,
   onWinResizePanel,
   cleanupGeometry,
-  clampPanelSize,
-  panelUserSize,
   openPanelQuadrant,
-  resolveFabScreenQuadrant,
 } = panelGeo;
 const fabDrag = ref<{
   pointerId: number;
@@ -1234,8 +1221,6 @@ function onFabPointerUp(e: PointerEvent) {
 }
 
 const fabStyle = computed(() => ({ backgroundColor: color.value }));
-/** 球直径一半，与面板局部坐标中的球心偏移一致 */
-const FAB_R = FAB_SIZE / 2;
 const fabLayoutStyle = computed(() => {
   const base = fabStyle.value;
   if (fabLeft.value !== null) {
@@ -1684,7 +1669,7 @@ async function send() {
   }
   clearPendingImage();
 
-  const payload: any = {
+  const payload: ChatPayload = {
     action: mode.value,
     text,
     targetLang: targetLang.value,
@@ -1763,16 +1748,17 @@ async function send() {
       multiSessions.updateActiveTitle(sessionTitle.value);
     }
     emit('response', fullContent);
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
     const currentContent = messages.value[msgIndex]?.content || '';
     if (!currentContent) {
       messages.value[msgIndex] = {
         role: 'assistant',
-        content: `${t.value.errorPrefix}: ${e.message}`,
+        content: `${t.value.errorPrefix}: ${message}`,
       };
     }
-    reportAssistantError('send', String(e?.message ?? e));
-    emit('error', String(e?.message ?? 'Unknown error'));
+    reportAssistantError('send', message);
+    emit('error', message || 'Unknown error');
     scrollToBottom(false);
   } finally {
     streamAbortController = null;
@@ -1807,11 +1793,12 @@ async function processFileUpload(file: File) {
       reportAssistantError('file-upload', res.error || 'Unknown error');
       emit('error', res.error || 'Unknown error');
     }
-  } catch (e: any) {
-    messages.value.push({ role: 'assistant', content: `${t.value.errorPrefix}: ${e.message}` });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    messages.value.push({ role: 'assistant', content: `${t.value.errorPrefix}: ${message}` });
     scrollToBottom(true);
-    reportAssistantError('file-upload', String(e?.message ?? e));
-    emit('error', String(e?.message ?? 'Unknown error'));
+    reportAssistantError('file-upload', message);
+    emit('error', message || 'Unknown error');
   } finally {
     loading.value = false;
     scrollToBottom(false);
