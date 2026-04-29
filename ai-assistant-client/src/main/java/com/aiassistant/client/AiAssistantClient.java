@@ -35,9 +35,9 @@ public class AiAssistantClient {
     private final Duration timeout;
 
     private AiAssistantClient(Builder builder) {
-        this.baseUrl = builder.baseUrl.replaceAll("/+$", "");
-        this.token = builder.token;
-        this.timeout = builder.timeout;
+        this.baseUrl = normalizeBaseUrl(builder.baseUrl);
+        this.token = normalizeToken(builder.token);
+        this.timeout = validateTimeout(builder.timeout);
         this.mapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -80,6 +80,10 @@ public class AiAssistantClient {
 
     public void chatStream(String text, String systemPrompt, String model,
                            Consumer<String> onChunk) throws Exception {
+        if (onChunk == null) {
+            throw new IllegalArgumentException("onChunk is required");
+        }
+
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("text", text);
         body.put("action", "chat");
@@ -168,6 +172,51 @@ public class AiAssistantClient {
             return fallback;
         }
         return body;
+    }
+
+    private static String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            throw new IllegalArgumentException("baseUrl is required");
+        }
+        String trimmed = baseUrl.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("baseUrl is required");
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(trimmed);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("baseUrl must be a valid URI", ex);
+        }
+
+        String scheme = uri.getScheme();
+        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+            throw new IllegalArgumentException("baseUrl must use http or https");
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) {
+            throw new IllegalArgumentException("baseUrl must include a host");
+        }
+
+        return trimmed.replaceAll("/+$", "");
+    }
+
+    private static String normalizeToken(String token) {
+        if (token == null) {
+            return null;
+        }
+        String trimmed = token.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static Duration validateTimeout(Duration timeout) {
+        if (timeout == null) {
+            throw new IllegalArgumentException("timeout is required");
+        }
+        if (timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException("timeout must be positive");
+        }
+        return timeout;
     }
 
     private HttpRequest.Builder buildRequest(String path, Object body) throws Exception {
