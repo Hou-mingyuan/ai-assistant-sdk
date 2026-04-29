@@ -103,10 +103,25 @@ SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=20s
 AI_ASSISTANT_STOP_GRACE_PERIOD=30s
 ```
 
+compose 默认也提供资源和日志保护，避免异常请求或日志量过大拖垮宿主机：
+
+```env
+AI_ASSISTANT_MEMORY_LIMIT=768m
+AI_ASSISTANT_CPUS=1.0
+AI_ASSISTANT_LOG_MAX_SIZE=10m
+AI_ASSISTANT_LOG_MAX_FILE=3
+```
+
 Actuator 默认只暴露 `health,info`。如果需要暴露 `metrics`，建议先通过网关或内网策略保护，再设置：
 
 ```env
 MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
+```
+
+`/actuator/info` 会包含 Maven 构建信息和应用镜像名，便于确认当前容器版本。镜像也会写入 OCI 标签，可通过以下命令查看：
+
+```bash
+docker image inspect ai-assistant-service:local
 ```
 
 生产环境建议至少设置：

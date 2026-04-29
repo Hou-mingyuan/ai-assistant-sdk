@@ -20,6 +20,17 @@ management:
     health:
       probes:
         enabled: true
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: ${MANAGEMENT_INFO_ENV_ENABLED:true}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Standalone AI Assistant service
+    image: ${AI_ASSISTANT_IMAGE_NAME:ai-assistant-service}
 
 ai-assistant:
   provider: ${AI_ASSISTANT_PROVIDER:openai}

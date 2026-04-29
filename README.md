@@ -1260,6 +1260,15 @@ SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=20s
 AI_ASSISTANT_STOP_GRACE_PERIOD=30s
 ```
 
+compose 默认设置了内存、CPU 和日志滚动限制，可通过 `.env` 调整：
+
+```env
+AI_ASSISTANT_MEMORY_LIMIT=768m
+AI_ASSISTANT_CPUS=1.0
+AI_ASSISTANT_LOG_MAX_SIZE=10m
+AI_ASSISTANT_LOG_MAX_FILE=3
+```
+
 启动后默认地址：
 
 ```text
@@ -1303,6 +1312,8 @@ DOCKER_BUILD_MAVEN_OPTS=-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7
 ```env
 MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
 ```
+
+`/actuator/info` 会暴露 Maven 构建信息和应用镜像名，Docker 镜像也会写入 OCI 标签，便于排查当前容器对应的版本、修订号和构建时间。
 
 独立 Docker 服务默认使用进程内会话和限流，便于单容器快速部署；需要 Redis、数据库、多租户连接器或更复杂平台治理时，可以继续基于 starter 自定义一个服务模块或扩展当前 `ai-assistant-service`。
 

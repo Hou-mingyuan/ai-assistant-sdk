@@ -34,8 +34,18 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
+ARG APP_VERSION=1.0.0-SNAPSHOT
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
+
 LABEL maintainer="ai-assistant-sdk"
 LABEL description="Standalone AI Assistant service built from the embeddable SDK"
+LABEL org.opencontainers.image.title="AI Assistant Service"
+LABEL org.opencontainers.image.description="Standalone AI Assistant service built from the embeddable SDK"
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.source="https://github.com/Hou-mingyuan/ai-assistant-sdk"
 
 RUN addgroup -S assistant && adduser -S assistant -G assistant
 
