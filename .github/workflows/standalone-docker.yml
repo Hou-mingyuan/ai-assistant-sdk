@@ -38,6 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Set image metadata
         id: meta
         shell: bash
@@ -77,6 +82,9 @@ jobs:
 
       - name: Smoke test image
         shell: bash
+        env:
+          AI_ASSISTANT_SMOKE_ATTEMPTS: 30
+          AI_ASSISTANT_SMOKE_RETRY_DELAY_MS: 2000
         run: |
           docker run -d \
             --name ai-assistant-service-ci \
@@ -85,17 +93,7 @@ jobs:
             -e AI_ASSISTANT_PROVIDER=ollama \
             ai-assistant-service:ci
 
-          for attempt in {1..30}; do
-            if curl -fsS http://localhost:18080/ai-assistant/health >/tmp/health.json; then
-              cat /tmp/health.json
-              node scripts/smoke-standalone-service.mjs http://localhost:18080/ai-assistant
-              exit 0
-            fi
-            sleep 2
-          done
-
-          docker logs ai-assistant-service-ci
-          exit 1
+          node scripts/smoke-standalone-service.mjs http://localhost:18080/ai-assistant
 
       - name: Clean up container
         if: always()

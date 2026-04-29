@@ -55,8 +55,8 @@ node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant cha
 ghcr.io/hou-mingyuan/ai-assistant-service
 ```
 
-如果仓库配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 也会同步推送 Docker Hub 镜像。
-GHCR 镜像推送完成后，发布流程会再拉取刚发布的镜像并执行烟测，确认远程镜像可运行。
+发布流程会再拉取刚发布的 GHCR 镜像并执行烟测，确认远程镜像可运行。
+如果仓库配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 会在 GHCR 镜像烟测通过后继续推送 Docker Hub 镜像。
 
 Helm chart 默认也使用这个镜像仓库；如果你使用私有镜像仓库，可以覆盖 `image.repository` 和 `image.tag`。
 
