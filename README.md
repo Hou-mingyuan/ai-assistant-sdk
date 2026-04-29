@@ -1299,6 +1299,15 @@ app.use(AiAssistant, {
 })
 ```
 
+Web Component 形态同样可以直接指向独立服务：
+
+```html
+<ai-assistant
+  base-url="http://localhost:8080/ai-assistant"
+  access-token="your-access-token">
+</ai-assistant>
+```
+
 生产环境建议配置：
 
 ```env

@@ -82,6 +82,15 @@ app.use(AiAssistant, {
 })
 ```
 
+如果使用 Web Component 形态，属性同样指向独立服务：
+
+```html
+<ai-assistant
+  base-url="http://localhost:8080/ai-assistant"
+  access-token="change-me">
+</ai-assistant>
+```
+
 如果前端和服务端不在同一个域名下，需要把前端地址加入 CORS 白名单：
 
 ```env
