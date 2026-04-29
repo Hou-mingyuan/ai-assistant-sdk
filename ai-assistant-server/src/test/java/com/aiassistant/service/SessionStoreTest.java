@@ -71,4 +71,49 @@ class SessionStoreTest {
         }
         assertTrue(store.list("u").size() <= 50);
     }
+
+    @Test
+    void createDefensivelyCopiesInput() {
+        SessionData input = new SessionData();
+        input.setTitle("original");
+        SessionData.MessageItem message = new SessionData.MessageItem();
+        message.setRole("user");
+        message.setContent("hello");
+        input.setMessages(List.of(message));
+
+        SessionData created = store.create("u", input);
+        input.setTitle("mutated");
+        message.setContent("changed");
+
+        SessionData stored = store.get("u", created.getId());
+        assertEquals("original", stored.getTitle());
+        assertEquals("hello", stored.getMessages().get(0).getContent());
+    }
+
+    @Test
+    void getReturnsDefensiveCopy() {
+        SessionData input = new SessionData();
+        input.setTitle("original");
+        SessionData created = store.create("u", input);
+
+        SessionData fetched = store.get("u", created.getId());
+        fetched.setTitle("mutated");
+
+        assertEquals("original", store.get("u", created.getId()).getTitle());
+    }
+
+    @Test
+    void updateDefensivelyCopiesMessages() {
+        SessionData created = store.create("u", new SessionData());
+        SessionData.MessageItem message = new SessionData.MessageItem();
+        message.setRole("user");
+        message.setContent("hello");
+        SessionData update = new SessionData();
+        update.setMessages(List.of(message));
+
+        store.update("u", created.getId(), update);
+        message.setContent("changed");
+
+        assertEquals("hello", store.get("u", created.getId()).getMessages().get(0).getContent());
+    }
 }

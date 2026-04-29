@@ -52,19 +52,22 @@ public class InMemorySessionStore implements SessionStore {
                     .min((a, b) -> a.getValue().getUpdatedAt().compareTo(b.getValue().getUpdatedAt()))
                     .ifPresent(e -> sessions.remove(e.getKey()));
         }
+        SessionData stored = copySession(input);
         String id = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        input.setId(id);
-        input.setCreatedAt(Instant.now());
-        input.setUpdatedAt(Instant.now());
-        sessions.put(id, input);
-        return input;
+        Instant now = Instant.now();
+        stored.setId(id);
+        stored.setCreatedAt(now);
+        stored.setUpdatedAt(now);
+        sessions.put(id, stored);
+        return copySession(stored);
     }
 
     @Override
     public SessionData get(String userId, String sessionId) {
         touchUser(userId);
         var sessions = userSessions.get(userId);
-        return sessions != null ? sessions.get(sessionId) : null;
+        SessionData found = sessions != null ? sessions.get(sessionId) : null;
+        return found != null ? copySession(found) : null;
     }
 
     @Override
@@ -74,7 +77,7 @@ public class InMemorySessionStore implements SessionStore {
         if (sessions == null) return List.of();
         List<SessionData> out = new ArrayList<>(sessions.values());
         out.sort((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()));
-        return out;
+        return out.stream().map(this::copySession).toList();
     }
 
     @Override
@@ -82,12 +85,13 @@ public class InMemorySessionStore implements SessionStore {
         touchUser(userId);
         var sessions = userSessions.get(userId);
         if (sessions == null) return null;
-        return sessions.computeIfPresent(sessionId, (id, existing) -> {
+        SessionData updated = sessions.computeIfPresent(sessionId, (id, existing) -> {
             if (input.getTitle() != null) existing.setTitle(input.getTitle());
-            if (input.getMessages() != null) existing.setMessages(input.getMessages());
+            if (input.getMessages() != null) existing.setMessages(copyMessages(input.getMessages()));
             existing.setUpdatedAt(Instant.now());
             return existing;
         });
+        return updated != null ? copySession(updated) : null;
     }
 
     @Override
@@ -95,5 +99,36 @@ public class InMemorySessionStore implements SessionStore {
         touchUser(userId);
         var sessions = userSessions.get(userId);
         return sessions != null && sessions.remove(sessionId) != null;
+    }
+
+    private SessionData copySession(SessionData source) {
+        SessionData copy = new SessionData();
+        if (source == null) {
+            return copy;
+        }
+        copy.setId(source.getId());
+        copy.setTitle(source.getTitle());
+        copy.setMessages(copyMessages(source.getMessages()));
+        copy.setCreatedAt(source.getCreatedAt());
+        copy.setUpdatedAt(source.getUpdatedAt());
+        return copy;
+    }
+
+    private List<SessionData.MessageItem> copyMessages(List<SessionData.MessageItem> messages) {
+        if (messages == null) {
+            return null;
+        }
+        return messages.stream().map(this::copyMessage).toList();
+    }
+
+    private SessionData.MessageItem copyMessage(SessionData.MessageItem source) {
+        SessionData.MessageItem copy = new SessionData.MessageItem();
+        if (source == null) {
+            return copy;
+        }
+        copy.setRole(source.getRole());
+        copy.setContent(source.getContent());
+        copy.setFeedback(source.getFeedback());
+        return copy;
     }
 }
