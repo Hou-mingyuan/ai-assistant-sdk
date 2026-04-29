@@ -226,8 +226,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public FileParserService fileParserService() {
-        return new FileParserService();
+    public FileParserService fileParserService(AiAssistantProperties properties) {
+        return new FileParserService(properties);
     }
 
     @Bean

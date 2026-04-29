@@ -1,5 +1,6 @@
 package com.aiassistant.service;
 
+import com.aiassistant.config.AiAssistantProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,16 @@ public class FileParserService {
     private static final byte[] ZIP_MAGIC = {0x50, 0x4b, 0x03, 0x04};
     private static final byte[] ZIP_MAGIC_EMPTY = {0x50, 0x4b, 0x05, 0x06};
     private static final byte[] OLE_MAGIC = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0};
+
+    private final int maxExtractedChars;
+
+    public FileParserService() {
+        this(new AiAssistantProperties());
+    }
+
+    public FileParserService(AiAssistantProperties properties) {
+        this.maxExtractedChars = properties != null ? properties.getFileMaxExtractedChars() : 300_000;
+    }
 
     public String extractText(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -56,6 +67,7 @@ public class FileParserService {
                                 ? "Cannot determine file type (no extension). Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml"
                                 : "Unsupported file type: " + ext + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
             };
+            text = limitExtractedText(text, filename);
             log.info("Extracted {} characters from {}", text.length(), filename);
             return text;
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -64,6 +76,14 @@ public class FileParserService {
             log.error("Failed to extract text from file: {}", filename, e);
             throw new RuntimeException("Failed to read file: " + e.getMessage(), e);
         }
+    }
+
+    private String limitExtractedText(String text, String filename) {
+        if (text == null || maxExtractedChars <= 0 || text.length() <= maxExtractedChars) {
+            return text;
+        }
+        log.warn("Extracted text from {} exceeded {} characters and was truncated", filename, maxExtractedChars);
+        return text.substring(0, maxExtractedChars);
     }
 
     /**

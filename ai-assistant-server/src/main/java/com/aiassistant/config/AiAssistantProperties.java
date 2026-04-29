@@ -41,6 +41,7 @@ public class AiAssistantProperties {
     private boolean connectorManagementEnabled = false;
     private boolean allowQueryTokenAuth = false;
     private boolean mcpServerEnabled = false;
+    private int fileMaxExtractedChars = 300_000;
     private String systemPrompt;
     /**
      * 是否接受请求体中的 {@code systemPrompt} 覆盖默认角色提示（仅对话模式；关闭则始终用配置文件）。
@@ -217,6 +218,11 @@ public class AiAssistantProperties {
     public boolean isMcpServerEnabled() { return mcpServerEnabled; }
     public void setMcpServerEnabled(boolean mcpServerEnabled) {
         this.mcpServerEnabled = mcpServerEnabled;
+    }
+
+    public int getFileMaxExtractedChars() { return fileMaxExtractedChars; }
+    public void setFileMaxExtractedChars(int fileMaxExtractedChars) {
+        this.fileMaxExtractedChars = Math.max(0, fileMaxExtractedChars);
     }
 
     public String getSystemPrompt() { return systemPrompt; }

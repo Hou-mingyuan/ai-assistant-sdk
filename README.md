@@ -668,6 +668,7 @@ app.use(AiAssistant, {
 | `ai-assistant.mcp-server-enabled` | boolean | `false` | 是否启用 MCP Server 工具发现与调用端点，默认关闭；需要对外开放时建议同时配置 `access-token` |
 | `ai-assistant.rate-limit` | int | `0` | 每分钟每 IP/Token 请求上限（0=不限） |
 | `ai-assistant.chat-max-total-chars` | int | `300000` | `/chat`、`/stream` 允许的输入总字符：`text` + `history` 各条 `content` 之和（`0`=不限制，生产不建议） |
+| `ai-assistant.file-max-extracted-chars` | int | `300000` | 文件上传解析后的最大文本字符数，超出截断；`0` 表示不限制 |
 | `ai-assistant.url-fetch-enabled` | boolean | `true` | 是否在调用模型前抓取用户消息中 **首个** http(s) URL 的正文 |
 | `ai-assistant.url-fetch-max-bytes` | int | `524288` | 单次抓取的 HTML 响应体最大字节（约 512KB） |
 | `ai-assistant.url-fetch-timeout-seconds` | int | `15` | 单次抓取超时（秒） |
