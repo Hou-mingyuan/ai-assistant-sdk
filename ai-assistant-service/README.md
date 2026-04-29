@@ -39,11 +39,41 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
+可以通过 `.env` 调整宿主机端口、模型请求参数、功能开关和资源限制。例如：
+
+```env
+AI_ASSISTANT_PORT=8080
+AI_ASSISTANT_TIMEOUT_SECONDS=60
+AI_ASSISTANT_MAX_TOKENS=2048
+AI_ASSISTANT_WEBSOCKET_ENABLED=false
+AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION=true
+```
+
 如果构建卡在 `docker.io/library/maven` 或 `docker.io/library/eclipse-temurin` 的 metadata/token 拉取阶段，说明当前网络访问 Docker Hub 不稳定。可以先配置 Docker 镜像加速器，或提前拉取基础镜像：
 
 ```bash
 docker pull maven:3.9.11-eclipse-temurin-17
 docker pull eclipse-temurin:17-jre-alpine
+```
+
+如果基础镜像能拉取，但 Maven 依赖下载中断，可以把宿主机代理显式传入 Docker 构建。Docker Desktop 中容器访问宿主机代理时通常使用 `host.docker.internal`：
+
+```bash
+docker build ^
+  --build-arg HTTP_PROXY=http://host.docker.internal:7897 ^
+  --build-arg HTTPS_PROXY=http://host.docker.internal:7897 ^
+  --build-arg http_proxy=http://host.docker.internal:7897 ^
+  --build-arg https_proxy=http://host.docker.internal:7897 ^
+  --build-arg MAVEN_OPTS="-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7897 -Dhttps.proxyHost=host.docker.internal -Dhttps.proxyPort=7897" ^
+  -t ai-assistant-service:local .
+```
+
+使用 docker compose 时，也可以直接在 `.env` 中加入：
+
+```env
+DOCKER_BUILD_HTTP_PROXY=http://host.docker.internal:7897
+DOCKER_BUILD_HTTPS_PROXY=http://host.docker.internal:7897
+DOCKER_BUILD_MAVEN_OPTS=-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7897 -Dhttps.proxyHost=host.docker.internal -Dhttps.proxyPort=7897
 ```
 
 默认接口：
