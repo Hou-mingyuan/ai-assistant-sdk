@@ -38,12 +38,26 @@ curl http://localhost:8080/ai-assistant/health
 curl http://localhost:8080/actuator/health
 ```
 
+本地烟测：
+
+```bash
+node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
+```
+
 ## 2. 使用已发布镜像
 
 发布 GitHub Release 后，镜像会推送到 GHCR：
 
 ```text
 ghcr.io/hou-mingyuan/ai-assistant-service
+```
+
+如果仓库配置了 Docker Hub 凭据，Release 发布时也会同步推送 Docker Hub 镜像。需要配置：
+
+```text
+secrets.DOCKERHUB_USERNAME
+secrets.DOCKERHUB_TOKEN
+vars.DOCKERHUB_REPOSITORY   # 可选，默认 <DOCKERHUB_USERNAME>/ai-assistant-service
 ```
 
 如果不想本地构建，可以把 `docker-compose.yml` 中的镜像改为已发布镜像，并跳过 `build` 配置。
@@ -189,3 +203,19 @@ AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS=48000
 ```
 
 如果修改 `AI_ASSISTANT_CONTEXT_PATH`，前端 `baseUrl` 和健康检查路径都要使用新的路径。
+
+## 10. 本地烟测脚本
+
+仓库提供了一个不依赖额外 npm 包的烟测脚本，用于确认独立服务已启动、Actuator 正常、鉴权配置生效：
+
+```bash
+node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
+```
+
+如果未配置 `AI_ASSISTANT_ACCESS_TOKEN`，可以省略第二个参数：
+
+```bash
+node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant
+```
+
+脚本只检查轻量接口，不会调用真实模型接口。

@@ -1233,12 +1233,19 @@ ai-assistant-sdk/
 独立服务由 `ai-assistant-service` 模块提供，Dockerfile 会先构建 starter，再构建可执行服务 jar。
 镜像使用 Spring Boot layered jar 拆分依赖层和应用层，便于 Docker 缓存和增量推送。
 发布 GitHub Release 后，工作流会推送镜像到 `ghcr.io/hou-mingyuan/ai-assistant-service`。
+如果配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 也会同步推送 Docker Hub 镜像。
 Kubernetes 场景可以使用 `helm/ai-assistant`，Chart 已包含 Deployment、Service、可选 Ingress 和可选 HPA。
 
 ```bash
 copy .env.example .env
 # 编辑 .env，至少填入 AI_ASSISTANT_API_KEY
 docker compose up -d --build
+```
+
+启动后可以执行本地烟测，不会触发真实模型调用：
+
+```bash
+node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
 ```
 
 如果使用已发布 GHCR 镜像，不在本机构建：

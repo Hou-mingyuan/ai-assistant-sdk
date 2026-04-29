@@ -43,11 +43,19 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
+启动后可以执行轻量烟测，确认健康检查、Actuator 和鉴权行为正常：
+
+```bash
+node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
+```
+
 发布 GitHub Release 后，工作流会构建并推送独立服务镜像到 GHCR：
 
 ```text
 ghcr.io/hou-mingyuan/ai-assistant-service
 ```
+
+如果仓库配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 也会同步推送 Docker Hub 镜像。
 
 Helm chart 默认也使用这个镜像仓库；如果你使用私有镜像仓库，可以覆盖 `image.repository` 和 `image.tag`。
 
