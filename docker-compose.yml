@@ -12,8 +12,9 @@ services:
         no_proxy: ${DOCKER_BUILD_NO_PROXY:-localhost,127.0.0.1,host.docker.internal}
         MAVEN_OPTS: ${DOCKER_BUILD_MAVEN_OPTS:-}
     ports:
-      - "${AI_ASSISTANT_PORT:-8080}:8080"
+      - "${AI_ASSISTANT_PORT:-8080}:${SERVER_PORT:-8080}"
     environment:
+      - SERVER_PORT=${SERVER_PORT:-8080}
       - AI_ASSISTANT_API_KEY=${AI_ASSISTANT_API_KEY:-}
       - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-openai}
       - AI_ASSISTANT_BASE_URL=${AI_ASSISTANT_BASE_URL:-}
@@ -61,9 +62,11 @@ services:
       - AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE=${AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE:-10MB}
       - AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=${AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE:-10MB}
       - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
-      - JAVA_OPTS=${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication}
+      - SERVER_SHUTDOWN=${SERVER_SHUTDOWN:-graceful}
+      - SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:-20s}
+      - JAVA_OPTS=${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- \"http://localhost:8080$${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}/health\" || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- \"http://localhost:$${SERVER_PORT:-8080}$${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}/health\" || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -73,4 +76,5 @@ services:
       - /tmp
     security_opt:
       - no-new-privileges:true
+    stop_grace_period: ${AI_ASSISTANT_STOP_GRACE_PERIOD:-30s}
     restart: unless-stopped

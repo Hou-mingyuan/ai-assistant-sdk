@@ -1,9 +1,12 @@
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: ${SERVER_SHUTDOWN:graceful}
 
 spring:
   application:
     name: ai-assistant-service
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:20s}
   servlet:
     multipart:
       max-file-size: ${AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE:10MB}

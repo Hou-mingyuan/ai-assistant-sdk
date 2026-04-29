@@ -43,6 +43,7 @@ docker compose up -d --build
 
 ```env
 AI_ASSISTANT_PORT=8080
+SERVER_PORT=8080
 AI_ASSISTANT_CONTEXT_PATH=/ai-assistant
 AI_ASSISTANT_TIMEOUT_SECONDS=60
 AI_ASSISTANT_MAX_TOKENS=2048
@@ -93,6 +94,14 @@ POST http://localhost:8080/ai-assistant/export
 如果修改了 `AI_ASSISTANT_CONTEXT_PATH`，业务接口和容器健康检查会一起切换到新的路径。
 
 默认 compose 配置会以只读容器文件系统运行，并给 `/tmp` 挂载临时内存目录。服务日志输出到标准输出，不需要写入镜像内的应用目录。
+
+容器默认启用 Spring Boot 优雅停机，并给 Docker 停止流程预留 30 秒窗口，适合滚动更新或手动重启：
+
+```env
+SERVER_SHUTDOWN=graceful
+SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE=20s
+AI_ASSISTANT_STOP_GRACE_PERIOD=30s
+```
 
 Actuator 默认只暴露 `health,info`。如果需要暴露 `metrics`，建议先通过网关或内网策略保护，再设置：
 
