@@ -17,6 +17,7 @@ export default defineConfig({
             { text: 'Introduction', link: '/guide/' },
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Frontend Standalone', link: '/guide/frontend-standalone' },
+            { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Configuration', link: '/guide/configuration' },
           ],
         },
