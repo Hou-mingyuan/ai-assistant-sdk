@@ -50,7 +50,7 @@ jobs:
           node scripts/sync-version.js "${release_version}" --release
           node scripts/check-version-consistency.mjs --release
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
