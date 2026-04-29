@@ -8,6 +8,13 @@ updates:
       time: "09:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      github-actions-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /
@@ -17,6 +24,13 @@ updates:
       time: "09:15"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      docker-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: maven
     directory: /ai-assistant-server
@@ -26,6 +40,13 @@ updates:
       time: "09:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      maven-server-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: maven
     directory: /ai-assistant-service
@@ -35,6 +56,13 @@ updates:
       time: "09:45"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      maven-service-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: maven
     directory: /ai-assistant-client
@@ -44,6 +72,13 @@ updates:
       time: "10:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      maven-client-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /ai-assistant-ui
@@ -53,6 +88,13 @@ updates:
       time: "10:15"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      npm-ui-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
 
   - package-ecosystem: npm
     directory: /docs
@@ -62,3 +104,10 @@ updates:
       time: "10:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    groups:
+      npm-docs-minor-patch:
+        update-types:
+          - minor
+          - patch
+        patterns:
+          - "*"
