@@ -1,0 +1,41 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: ai-assistant-service
+  servlet:
+    multipart:
+      max-file-size: ${AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE:10MB}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ai-assistant:
+  provider: ${AI_ASSISTANT_PROVIDER:openai}
+  api-key: ${AI_ASSISTANT_API_KEY:}
+  base-url: ${AI_ASSISTANT_BASE_URL:}
+  model: ${AI_ASSISTANT_MODEL:}
+  context-path: ${AI_ASSISTANT_CONTEXT_PATH:/ai-assistant}
+  access-token: ${AI_ASSISTANT_ACCESS_TOKEN:}
+  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS:*}
+  rate-limit: ${AI_ASSISTANT_RATE_LIMIT:60}
+  timeout-seconds: ${AI_ASSISTANT_TIMEOUT_SECONDS:60}
+  max-tokens: ${AI_ASSISTANT_MAX_TOKENS:2048}
+  temperature: ${AI_ASSISTANT_TEMPERATURE:0.7}
+  allow-query-token-auth: ${AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH:false}
+  admin-enabled: ${AI_ASSISTANT_ADMIN_ENABLED:false}
+  connector-management-enabled: ${AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED:false}
+  mcp-server-enabled: ${AI_ASSISTANT_MCP_SERVER_ENABLED:false}
+  websocket-enabled: ${AI_ASSISTANT_WEBSOCKET_ENABLED:false}
+  url-fetch-enabled: ${AI_ASSISTANT_URL_FETCH_ENABLED:true}
+  url-fetch-ssrf-protection: ${AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION:true}
+  file-max-extracted-chars: ${AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS:300000}
+  export-max-image-urls: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS:64}

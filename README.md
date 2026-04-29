@@ -1196,6 +1196,9 @@ ai-assistant-sdk/
 │       ├── routing/           # ModelRouter 模型路由 + A/B 测试
 │       ├── security/          # ContentFilter PII 脱敏 + 注入检测
 │       └── stats/             # 用量统计 + TokenUsageTracker
+├── ai-assistant-service/      # 独立 Docker 服务启动器（复用 starter）
+│   ├── pom.xml
+│   └── src/main/
 ├── ai-assistant-ui/           # Vue 3 npm 包
 │   ├── package.json
 │   └── src/
@@ -1213,6 +1216,57 @@ ai-assistant-sdk/
 ---
 
 ## 构建与发布
+
+## 部署形态：SDK 集成与独立 Docker 服务
+
+本项目推荐保留“双形态”：
+
+1. **可集成 SDK / Starter**：已有 Spring Boot 业务后端时，引入 `ai-assistant-spring-boot-starter`，让业务服务自己暴露 `/ai-assistant/*`。
+2. **独立服务 Docker 版**：不想改业务后端、或多个系统想共用同一套 AI 能力时，直接运行 `ai-assistant-service` 镜像。
+
+### 方式一：集成到已有 Spring Boot 后端
+
+业务后端引入 starter，并配置 `ai-assistant.api-key` 后，自动注册 `/ai-assistant/chat`、`/ai-assistant/stream`、`/ai-assistant/export` 等接口。这个方式最适合深度复用业务系统的用户、租户、权限和数据库上下文。
+
+### 方式二：独立 Docker 服务
+
+独立服务由 `ai-assistant-service` 模块提供，Dockerfile 会先构建 starter，再构建可执行服务 jar。
+
+```bash
+copy .env.example .env
+# 编辑 .env，至少填入 AI_ASSISTANT_API_KEY
+docker compose up -d --build
+```
+
+启动后默认地址：
+
+```text
+http://localhost:8080/ai-assistant/chat
+http://localhost:8080/ai-assistant/stream
+http://localhost:8080/ai-assistant/export
+http://localhost:8080/actuator/health
+```
+
+前端组件可以直接指向独立服务：
+
+```ts
+app.use(AiAssistant, {
+  baseUrl: 'http://localhost:8080/ai-assistant',
+  accessToken: 'your-access-token'
+})
+```
+
+生产环境建议配置：
+
+```env
+AI_ASSISTANT_ACCESS_TOKEN=change-me
+AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
+AI_ASSISTANT_RATE_LIMIT=60
+```
+
+独立 Docker 服务默认使用进程内会话和限流，便于单容器快速部署；需要 Redis、数据库、多租户连接器或更复杂平台治理时，可以继续基于 starter 自定义一个服务模块或扩展当前 `ai-assistant-service`。
+
+---
 
 ### 后端
 

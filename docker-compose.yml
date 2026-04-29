@@ -8,20 +8,9 @@ services:
     environment:
       - AI_ASSISTANT_API_KEY=${AI_ASSISTANT_API_KEY}
       - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-openai}
-      - AI_ASSISTANT_MODEL=${AI_ASSISTANT_MODEL:-gpt-4o}
-      - SPRING_PROFILES_ACTIVE=docker
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      - AI_ASSISTANT_BASE_URL=${AI_ASSISTANT_BASE_URL:-}
+      - AI_ASSISTANT_MODEL=${AI_ASSISTANT_MODEL:-}
+      - AI_ASSISTANT_ACCESS_TOKEN=${AI_ASSISTANT_ACCESS_TOKEN:-}
+      - AI_ASSISTANT_ALLOWED_ORIGINS=${AI_ASSISTANT_ALLOWED_ORIGINS:-*}
+      - AI_ASSISTANT_RATE_LIMIT=${AI_ASSISTANT_RATE_LIMIT:-60}
     restart: unless-stopped
