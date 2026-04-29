@@ -16,18 +16,25 @@ jobs:
         working-directory: ai-assistant-ui
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Prepare release version
+        working-directory: .
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          node scripts/sync-version.js "${release_version}" --release
+          node scripts/check-version-consistency.mjs --release
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://npm.pkg.github.com
+          registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run build
-      - run: npm publish
+      - run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-maven:
     runs-on: ubuntu-latest
@@ -36,6 +43,13 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Prepare release version
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          node scripts/sync-version.js "${release_version}" --release
+          node scripts/check-version-consistency.mjs --release
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -59,6 +73,12 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Prepare release version
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          node scripts/sync-version.js "${release_version}" --release
+          node scripts/check-version-consistency.mjs --release
 
       - name: Resolve image metadata
         id: meta-vars
@@ -195,6 +215,13 @@ jobs:
       DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Prepare release version
+        if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          node scripts/sync-version.js "${release_version}" --release
+          node scripts/check-version-consistency.mjs --release
 
       - name: Resolve image metadata
         id: meta-vars

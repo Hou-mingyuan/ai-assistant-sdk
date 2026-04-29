@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const releaseMode = process.argv.includes('--release')
 
 const mavenModules = [
   'ai-assistant-server/pom.xml',
@@ -37,6 +38,10 @@ if (uniqueMavenVersions.size !== 1) {
 
 const mavenVersion = [...uniqueMavenVersions][0]
 const releaseVersion = mavenVersion?.replace(/-SNAPSHOT$/, '')
+
+if (releaseMode && mavenVersion?.endsWith('-SNAPSHOT')) {
+  errors.push(`Maven release version must not end with -SNAPSHOT: ${mavenVersion}`)
+}
 
 for (const [file, version] of npmVersions) {
   if (version !== releaseVersion) {

@@ -8,13 +8,18 @@ function makePlug(id: string, pos: AiPlugin['position'] = 'header'): AiPlugin {
 
 describe('usePluginRegistry', () => {
   let app: ReturnType<typeof createApp>
+  let host: HTMLDivElement
 
   beforeEach(() => {
     app = createApp({ render: () => h('div') })
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    app.mount(host)
   })
 
   afterEach(() => {
     app.unmount()
+    host.remove()
   })
 
   it('registers and retrieves plugins', () => {

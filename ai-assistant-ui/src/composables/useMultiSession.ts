@@ -1,5 +1,5 @@
 /** 多会话标签页管理：创建/切换/删除/分叉会话，localStorage 持久化。 */
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, getCurrentInstance } from 'vue'
 
 export interface SessionEntry {
   id: string
@@ -121,10 +121,13 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     return forked
   }
 
-  onUnmounted(() => {
+  const cleanup = () => {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
     saveSessionsImmediate()
-  })
+  }
+  if (getCurrentInstance()) {
+    onUnmounted(cleanup)
+  }
 
   loadSessions()
 
@@ -139,5 +142,6 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     updateActiveTitle,
     forkFromMessage,
     saveSessions,
+    cleanup,
   }
 }

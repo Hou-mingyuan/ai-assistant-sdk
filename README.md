@@ -543,10 +543,10 @@ cd ai-assistant-server && mvn test
   - 后端：`mvn verify`（跳过集成测试）
 
 - **发布（`.github/workflows/publish.yml`）** — 创建 GitHub Release 时自动触发：
-  - 前端发布到 GitHub Packages（npm）
+  - 前端发布到 npmjs.org（需要配置仓库 Secret：`NPM_TOKEN`）
   - Spring Boot starter 和 Java Client SDK 发布到 GitHub Packages（Maven）
 
-**无需额外配置 Secrets** — 使用内置的 `GITHUB_TOKEN`，仅同仓库/同 org 有权限访问。
+Maven 与 GHCR 使用内置的 `GITHUB_TOKEN`。前端 npm 包发布到 npmjs.org，需要在仓库 Secrets 中配置 `NPM_TOKEN`。
 
 创建 Release 即可自动发布。使用方需在 `.npmrc` 中配置 `@<owner>:registry=https://npm.pkg.github.com`。
 
