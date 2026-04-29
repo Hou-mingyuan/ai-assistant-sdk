@@ -68,6 +68,14 @@ vars.DOCKERHUB_REPOSITORY   # 可选，默认 <DOCKERHUB_USERNAME>/ai-assistant-
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
+生产环境推荐使用带必填项校验的 Compose 模板：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+这个模板会强制要求 `AI_ASSISTANT_API_KEY`、`AI_ASSISTANT_ACCESS_TOKEN` 和 `AI_ASSISTANT_ALLOWED_ORIGINS`，并默认启用 `SPRING_PROFILES_ACTIVE=prod` 结构化 JSON 日志。
+
 如果要指定镜像标签：
 
 ```env

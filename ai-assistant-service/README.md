@@ -65,6 +65,12 @@ Helm chart 默认也使用这个镜像仓库；如果你使用私有镜像仓库
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
+生产环境推荐使用带必填项校验的模板：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
 Kubernetes 部署可以使用仓库内 Helm chart：
 
 ```bash

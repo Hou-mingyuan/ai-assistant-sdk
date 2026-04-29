@@ -1254,6 +1254,12 @@ node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant cha
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
+生产环境推荐使用带必填环境变量校验的模板：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
 `.env` 可直接控制宿主机端口、服务上下文路径、模型参数、功能开关和资源限制：
 
 ```env
