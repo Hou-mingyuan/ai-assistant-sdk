@@ -34,6 +34,16 @@ describe('useAiMarkdownRenderer', () => {
     expect(html).toContain('log');
   });
 
+  it('renders IDE toolbar action when enabled', () => {
+    const { renderContent: renderWithIde } = useAiMarkdownRenderer(t, { openCodeInIde: true });
+
+    const html = renderWithIde('```ts\nconst ok = true\n```', `Copy's <code>`, false);
+
+    expect(html).toContain('ai-code-ide');
+    expect(html).toContain(`aria-label="Copy's <code>"`);
+    expect(html).toContain("Copy's &lt;code&gt;");
+  });
+
   it('returns empty string for whitespace-only input', () => {
     expect(renderContent('   ', 'Copy', false)).toBe('');
     expect(renderContent('', 'Copy', false)).toBe('');
@@ -79,6 +89,18 @@ describe('useAiMarkdownRenderer', () => {
     expect(first).toContain('Hello');
     const second = renderStreamIncremental('Hello world', 'Copy');
     expect(second).toContain('world');
+  });
+
+  it('renderStreamIncremental inserts small appends before the stream caret', () => {
+    resetStreamState();
+    const initial = `${'a'.repeat(80)}\nready`;
+    const first = renderStreamIncremental(initial, 'Copy');
+    expect(first).toContain('ai-stream-caret');
+
+    const second = renderStreamIncremental(`${initial}!`, 'Copy');
+
+    expect(second).toContain('!');
+    expect(second.indexOf('!')).toBeLessThan(second.indexOf('ai-stream-caret'));
   });
 
   it('renderStreamIncremental falls back to full parse on code blocks', () => {
