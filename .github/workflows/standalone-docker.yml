@@ -95,6 +95,16 @@ jobs:
 
           node scripts/smoke-standalone-service.mjs http://localhost:18080/ai-assistant
 
+      - name: Scan image vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ai-assistant-service:ci
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+          exit-code: "0"
+
       - name: Clean up container
         if: always()
         run: docker rm -f ai-assistant-service-ci || true

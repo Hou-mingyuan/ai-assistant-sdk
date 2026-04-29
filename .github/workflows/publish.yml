@@ -157,6 +157,8 @@ jobs:
           labels: ${{ steps.ghcr-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
           build-args: |
             APP_VERSION=${{ steps.meta-vars.outputs.version }}
             VCS_REF=${{ github.sha }}
@@ -220,6 +222,16 @@ jobs:
           AI_ASSISTANT_SMOKE_ATTEMPTS: 30
           AI_ASSISTANT_SMOKE_RETRY_DELAY_MS: 2000
         run: node scripts/smoke-standalone-service.mjs http://localhost:18081/ai-assistant ci-token
+
+      - name: Scan published image vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ steps.image.outputs.image }}
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
 
       - name: Show container logs
         if: failure()
@@ -311,6 +323,8 @@ jobs:
           labels: ${{ steps.dockerhub-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
           build-args: |
             APP_VERSION=${{ steps.meta-vars.outputs.version }}
             VCS_REF=${{ github.sha }}
