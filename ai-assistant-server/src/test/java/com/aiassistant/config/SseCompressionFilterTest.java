@@ -87,4 +87,20 @@ class SseCompressionFilterTest {
         verify(chain).doFilter(req, res);
         verify(res, never()).setHeader(eq("Content-Encoding"), anyString());
     }
+
+    @Test
+    void prefixLookalikePath_ignoresRequest() throws Exception {
+        var filter = new SseCompressionFilter("/ai-assistant");
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(req.getRequestURI()).thenReturn("/ai-assistant2/stream");
+        when(req.getHeader("Accept-Encoding")).thenReturn("gzip");
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+        verify(res, never()).setHeader(eq("Content-Encoding"), anyString());
+    }
 }

@@ -28,14 +28,24 @@ describe('postChat', () => {
     expect(res.error).toContain('500')
   })
 
-  it('sends X-AI-Token header when provided', async () => {
+  it('sends trimmed X-AI-Token header when provided', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ success: true, result: 'ok' }),
     })
-    await postChat('/ai', { action: 'chat', text: 'hi' }, 'my-token')
+    await postChat('/ai', { action: 'chat', text: 'hi' }, '  my-token  ')
     const headers = mockFetch.mock.calls[0][1].headers
     expect(headers['X-AI-Token']).toBe('my-token')
+  })
+
+  it('does not send X-AI-Token header for blank token', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, result: 'ok' }),
+    })
+    await postChat('/ai', { action: 'chat', text: 'hi' }, '   ')
+    const headers = mockFetch.mock.calls[0][1].headers
+    expect(headers['X-AI-Token']).toBeUndefined()
   })
 })
 
@@ -54,6 +64,16 @@ describe('fetchModels', () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' })
     const res = await fetchModels('/ai')
     expect(res.success).toBe(false)
+  })
+
+  it('does not send X-AI-Token header for blank token', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, models: ['gpt-5.4-mini'] }),
+    })
+    await fetchModels('/ai', '   ')
+    const headers = mockFetch.mock.calls[0][1].headers
+    expect(headers['X-AI-Token']).toBeUndefined()
   })
 })
 

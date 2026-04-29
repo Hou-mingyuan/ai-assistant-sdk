@@ -36,19 +36,23 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
         String path = properties.getContextPath() + "/ws";
         String[] origins = properties.getAllowedOrigins().split(",");
         registry.addHandler(handler, path)
-                .addInterceptors(new TokenHandshakeInterceptor(properties.getAccessToken()))
+                .addInterceptors(new TokenHandshakeInterceptor(
+                        properties.getAccessToken(),
+                        properties.isAllowQueryTokenAuth()))
                 .setAllowedOrigins(origins);
     }
 
     /**
-     * Validates X-AI-Token during WebSocket handshake (via query param or header),
+     * Validates X-AI-Token during WebSocket handshake,
      * preventing unauthenticated access to the LLM streaming endpoint.
      */
-    private static class TokenHandshakeInterceptor implements HandshakeInterceptor {
+    static class TokenHandshakeInterceptor implements HandshakeInterceptor {
         private final String expectedToken;
+        private final boolean allowQueryTokenAuth;
 
-        TokenHandshakeInterceptor(String expectedToken) {
+        TokenHandshakeInterceptor(String expectedToken, boolean allowQueryTokenAuth) {
             this.expectedToken = expectedToken;
+            this.allowQueryTokenAuth = allowQueryTokenAuth;
         }
 
         @Override
@@ -58,9 +62,9 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
 
             String token = null;
             if (request instanceof ServletServerHttpRequest servletReq) {
-                token = servletReq.getServletRequest().getParameter("token");
-                if (token == null) {
-                    token = servletReq.getServletRequest().getHeader("X-AI-Token");
+                token = servletReq.getServletRequest().getHeader("X-AI-Token");
+                if (allowQueryTokenAuth && (token == null || token.isBlank())) {
+                    token = servletReq.getServletRequest().getParameter("token");
                 }
             }
 

@@ -23,7 +23,7 @@ public class TenantFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) req;
         String path = request.getRequestURI();
-        if (path.startsWith(contextPath)) {
+        if (RequestPathMatcher.matchesContextPath(path, contextPath)) {
             String tenantId = resolveTenantId(request);
             TenantContext.set(new TenantContext.TenantInfo(tenantId));
         }

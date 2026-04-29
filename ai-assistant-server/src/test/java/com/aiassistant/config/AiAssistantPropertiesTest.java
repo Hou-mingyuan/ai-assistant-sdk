@@ -95,6 +95,16 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void rootContextPathIsRejected() {
+        AiAssistantProperties p = new AiAssistantProperties();
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> p.setContextPath("/"));
+
+        assertTrue(ex.getMessage().contains("root path"));
+    }
+
+    @Test
     void listModelsForClientFallback() {
         AiAssistantProperties p = new AiAssistantProperties();
         p.setProvider("openai");

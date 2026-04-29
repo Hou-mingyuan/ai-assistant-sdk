@@ -55,6 +55,19 @@ class AiAssistantAuthFilterTest {
         assertEquals(200, response.getStatus());
     }
 
+    @Test
+    void ignoresPrefixLookalikePaths() throws Exception {
+        AiAssistantAuthFilter filter = filter();
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant2/chat");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean(false);
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> called.set(true));
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
+    }
+
     private static AiAssistantAuthFilter filter() {
         return new AiAssistantAuthFilter(securedProperties());
     }

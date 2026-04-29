@@ -30,7 +30,7 @@ public class RequestIdFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) req;
         String path = request.getRequestURI();
-        if (!path.startsWith(contextPath)) {
+        if (!RequestPathMatcher.matchesContextPath(path, contextPath)) {
             chain.doFilter(req, res);
             return;
         }

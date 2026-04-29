@@ -442,6 +442,9 @@ public class AiAssistantProperties {
         while (normalized.length() > 1 && normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
+        if ("/".equals(normalized)) {
+            throw new IllegalArgumentException("ai-assistant.context-path must not be root path");
+        }
         return normalized;
     }
 

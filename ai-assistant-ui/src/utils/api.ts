@@ -40,8 +40,14 @@ export interface UrlPreviewResult {
 
 function buildHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['X-AI-Token'] = token
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken
   return headers
+}
+
+function normalizeToken(token?: string): string | undefined {
+  const trimmed = token?.trim()
+  return trimmed ? trimmed : undefined
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000
@@ -73,7 +79,8 @@ export async function postServerExport(
   theme?: 'light' | 'dark',
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['X-AI-Token'] = token
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken
   const body: Record<string, unknown> = { format, title, messages }
   if (theme) body.theme = theme
   const res = await fetch(`${baseUrl}/export`, {
@@ -124,7 +131,8 @@ export async function postServerExport(
 /** Fetch the list of available models from the server. */
 export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
   const headers: Record<string, string> = {}
-  if (token) headers['X-AI-Token'] = token
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken
   const res = await fetch(`${baseUrl}/models`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
@@ -136,7 +144,8 @@ export async function fetchModels(baseUrl: string, token?: string): Promise<Mode
 export async function fetchUrlPreview(baseUrl: string, url: string, token?: string): Promise<UrlPreviewResult> {
   const q = encodeURIComponent(url)
   const headers: Record<string, string> = {}
-  if (token) headers['X-AI-Token'] = token
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken
   const res = await fetch(`${baseUrl}/url-preview?url=${q}`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
@@ -173,7 +182,8 @@ export async function uploadFile(
   }
 
   const headers: Record<string, string> = {}
-  if (token) headers['X-AI-Token'] = token
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken
 
   const endpoint = action === 'translate' ? '/file/translate' : '/file/summarize'
   const res = await fetch(`${baseUrl}${endpoint}`, {

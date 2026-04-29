@@ -31,7 +31,7 @@ public class SseCompressionFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         String path = request.getRequestURI();
 
-        boolean shouldCompress = path.startsWith(contextPath)
+        boolean shouldCompress = RequestPathMatcher.matchesContextPath(path, contextPath)
                 && path.endsWith("/stream")
                 && acceptsGzip(request);
 

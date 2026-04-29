@@ -63,4 +63,18 @@ class RateLimitFilterTest {
         filter.doFilter(req, res, new MockFilterChain());
         assertEquals(200, res.getStatus());
     }
+
+    @Test
+    void ignoresPrefixLookalikePaths() throws Exception {
+        RateLimitFilter filter = new RateLimitFilter(props);
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletRequest req = new MockHttpServletRequest("POST", "/ai-assistant2/chat");
+            req.setRemoteAddr("9.9.9.9");
+            MockHttpServletResponse res = new MockHttpServletResponse();
+
+            filter.doFilter(req, res, new MockFilterChain());
+
+            assertEquals(200, res.getStatus());
+        }
+    }
 }
