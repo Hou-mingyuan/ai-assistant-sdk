@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
 import { useSessionSearch, highlightSearchInHtml } from './useSessionSearch';
 
 vi.mock('vue', async () => {
@@ -12,7 +12,10 @@ vi.mock('vue', async () => {
 });
 
 describe('useSessionSearch', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it('returns all messages when no search query', () => {
     const msgs = ref([
@@ -63,6 +66,70 @@ describe('useSessionSearch', () => {
     expect(s.activeMatchGlobalIdx.value).toBe(0);
   });
 
+  it('renders only the range between first and last match when searching', () => {
+    const msgs = ref([
+      { role: 'user' as const, content: 'first match' },
+      { role: 'assistant' as const, content: 'middle message' },
+      { role: 'user' as const, content: 'second match' },
+      { role: 'assistant' as const, content: 'after range' },
+    ]);
+    const s = useSessionSearch(msgs, ref(false), ref(false), 1);
+
+    s.debouncedSearchQuery.value = 'match';
+
+    expect(s.displayOffset.value).toBe(0);
+    expect(s.displayedMessages.value.map((msg) => msg.content)).toEqual([
+      'first match',
+      'middle message',
+      'second match',
+    ]);
+    expect(s.hiddenOlderCount.value).toBe(0);
+  });
+
+  it('returns empty display state when search has no matches', () => {
+    const msgs = ref([
+      { role: 'user' as const, content: 'hello' },
+      { role: 'assistant' as const, content: 'world' },
+    ]);
+    const s = useSessionSearch(msgs, ref(false), ref(false), 1);
+
+    s.debouncedSearchQuery.value = 'missing';
+
+    expect(s.totalMatches.value).toBe(0);
+    expect(s.activeMatchGlobalIdx.value).toBe(-1);
+    expect(s.displayedMessages.value).toEqual([]);
+    expect(s.hiddenOlderCount.value).toBe(0);
+  });
+
+  it('uses at least one rendered message even when maxRendered is zero', () => {
+    const msgs = ref([
+      { role: 'user' as const, content: 'one' },
+      { role: 'assistant' as const, content: 'two' },
+    ]);
+    const s = useSessionSearch(msgs, ref(false), ref(false), 0);
+
+    expect(s.displayOffset.value).toBe(1);
+    expect(s.displayedMessages.value.map((msg) => msg.content)).toEqual(['two']);
+    expect(s.hiddenOlderCount.value).toBe(1);
+  });
+
+  it('debounces input before updating search query', async () => {
+    vi.useFakeTimers();
+    const msgs = ref([{ role: 'user' as const, content: 'foo' }]);
+    const s = useSessionSearch(msgs, ref(false), ref(true), 60);
+
+    s.currentMatchIdx.value = 3;
+    s.chatSearchInput.value = 'foo';
+    await Promise.resolve();
+
+    vi.advanceTimersByTime(199);
+    expect(s.debouncedSearchQuery.value).toBe('');
+
+    vi.advanceTimersByTime(1);
+    expect(s.debouncedSearchQuery.value).toBe('foo');
+    expect(s.currentMatchIdx.value).toBe(0);
+  });
+
   it('goNextMatch cycles through matches', () => {
     const msgs = ref([
       { role: 'user' as const, content: 'apple' },
@@ -77,6 +144,17 @@ describe('useSessionSearch', () => {
     expect(s.activeMatchGlobalIdx.value).toBe(2);
     s.goNextMatch();
     expect(s.currentMatchIdx.value).toBe(0);
+  });
+
+  it('does not change match index when navigating without matches', () => {
+    const msgs = ref([{ role: 'user' as const, content: 'only message' }]);
+    const s = useSessionSearch(msgs, ref(false), ref(true), 60);
+
+    s.goNextMatch();
+    s.goPrevMatch();
+
+    expect(s.currentMatchIdx.value).toBe(0);
+    expect(s.activeMatchGlobalIdx.value).toBe(-1);
   });
 
   it('goPrevMatch wraps around', () => {
@@ -98,6 +176,28 @@ describe('useSessionSearch', () => {
     s.resetSearch();
     expect(s.totalMatches.value).toBe(0);
     expect(s.currentMatchIdx.value).toBe(0);
+  });
+
+  it('disposeSearch delegates to resetSearch', () => {
+    const msgs = ref([{ role: 'user' as const, content: 'foo bar' }]);
+    const s = useSessionSearch(msgs, ref(false), ref(true), 60);
+    s.chatSearchInput.value = 'foo';
+    s.debouncedSearchQuery.value = 'foo';
+
+    s.disposeSearch();
+
+    expect(s.chatSearchInput.value).toBe('');
+    expect(s.debouncedSearchQuery.value).toBe('');
+  });
+
+  it('requests scrolling when active match changes', () => {
+    const msgs = ref([{ role: 'user' as const, content: 'foo' }]);
+    const s = useSessionSearch(msgs, ref(false), ref(true), 60);
+    s.debouncedSearchQuery.value = 'foo';
+
+    s.goNextMatch();
+
+    expect(nextTick).toHaveBeenCalledOnce();
   });
 });
 
