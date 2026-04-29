@@ -123,7 +123,36 @@ app.use(AiAssistant, {
 
 这种方式下浏览器请求同源路径，跨域问题由 Vite 开发服务器代理处理。
 
-## 6. 常见问题
+## 6. 生产反向代理接入
+
+生产环境更推荐让浏览器访问同源路径，再由 Nginx、Caddy、Ingress 或 API Gateway
+转发到独立服务：
+
+```text
+https://app.example.com/ai-assistant  ->  http://ai-assistant:8080/ai-assistant
+```
+
+前端配置保持为相对路径：
+
+```ts
+app.use(AiAssistant, {
+  baseUrl: '/ai-assistant',
+  accessToken: shortLivedToken,
+})
+```
+
+这种方式的优点是部署迁移时前端不用关心容器内地址，也可以减少跨域配置面。
+代理层如果已经做了统一鉴权，仍建议保留 `AI_ASSISTANT_ACCESS_TOKEN`，
+把它作为服务到服务之间的二次保护。
+
+如果前端和独立服务必须使用不同域名，则服务端至少需要配置：
+
+```text
+AI_ASSISTANT_ALLOWED_ORIGINS=https://app.example.com
+AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
+```
+
+## 7. 常见问题
 
 ### 请求返回 401
 

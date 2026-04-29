@@ -5,7 +5,10 @@
 ## 镜像和版本
 
 - [ ] 使用固定镜像标签，不要在生产发布脚本里依赖浮动的 `latest`。
+- [ ] 记录镜像 digest，部署单或变更单里能追溯到具体不可变镜像。
 - [ ] Release 后确认 GHCR 镜像烟测通过。
+- [ ] Release 工作流里的 Trivy 扫描通过，或者已记录可接受的例外风险。
+- [ ] 如需合规留痕，已保存或能重新查询镜像 SBOM 和 provenance。
 - [ ] 如果同步 Docker Hub，确认已配置 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`。
 - [ ] 记录当前部署的镜像名、标签和 Git commit。
 
@@ -37,6 +40,8 @@
 
 - [ ] 反向代理公开路径和 `AI_ASSISTANT_CONTEXT_PATH` 一致。
 - [ ] SSE 流式接口关闭了代理缓冲。
+- [ ] 前端生产环境优先使用同源 `/ai-assistant` 路径；如果跨域访问，CORS
+      白名单只包含真实前端域名。
 - [ ] 只公开 `/actuator/health` 和 `/actuator/info`，不要开放全部 Actuator 端点。
 - [ ] TLS、域名和前端 `baseUrl` 使用最终用户可访问地址。
 - [ ] 如果模型 API 需要代理，已确认容器内网络能访问代理或模型网关。
@@ -47,6 +52,7 @@
 - [ ] 日志采集平台能按 `requestId`、`traceId`、`tenantId` 检索。
 - [ ] `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info`，除非 metrics 已由内网或网关保护。
 - [ ] 告警系统覆盖容器重启、健康检查失败、上游模型错误率和 429。
+- [ ] 日志脱敏规则覆盖 `X-AI-Token`、模型 API Key、用户上传文件名和上游请求头。
 
 ## 上线前验证
 

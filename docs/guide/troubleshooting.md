@@ -193,6 +193,28 @@ JSON 日志会带 `requestId`、`traceId`、`tenantId` 等字段，便于在 ELK
 
 GHCR 是默认发布目标。Release 发布后，工作流会再拉取刚发布的 GHCR 镜像并执行烟测。
 
+发布镜像还会生成 SBOM、provenance，并执行 Trivy 高危漏洞扫描。如果发布失败，
+先区分失败阶段：
+
+- 构建失败：检查 Dockerfile、Maven 依赖下载和构建代理。
+- 推送失败：检查 `GITHUB_TOKEN` 权限、包权限或 Docker Hub 凭据。
+- 烟测失败：拉取同一个镜像标签，在本地运行
+  `scripts/smoke-standalone-service.mjs` 复现。
+- Trivy 扫描失败：优先升级基础镜像或受影响依赖；如果是不可修复且业务接受的风险，
+  需要在变更记录里说明。
+
+查看远程镜像 digest：
+
+```bash
+docker buildx imagetools inspect ghcr.io/hou-mingyuan/ai-assistant-service:<tag>
+```
+
+本地复扫镜像：
+
+```bash
+trivy image --vuln-type os,library --severity CRITICAL,HIGH ghcr.io/hou-mingyuan/ai-assistant-service:<tag>
+```
+
 如果要同步 Docker Hub，需要配置：
 
 ```text

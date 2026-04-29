@@ -65,6 +65,19 @@ vars.DOCKERHUB_REPOSITORY   # 可选，默认 <DOCKERHUB_USERNAME>/ai-assistant-
 
 Release 发布流程会在 GHCR 推送完成后再次拉取刚发布的镜像，启动容器并执行 `scripts/smoke-standalone-service.mjs`。这个步骤用于确认远程镜像可以被实际拉取和启动，而不仅仅是构建成功。
 
+发布镜像还会随工作流生成 SBOM 和 provenance，并在发布后执行 Trivy
+高危漏洞扫描。建议生产部署记录镜像 digest，而不是只记录标签：
+
+```bash
+docker buildx imagetools inspect ghcr.io/hou-mingyuan/ai-assistant-service:<tag>
+```
+
+如果本地或上线流水线也安装了 Trivy，可以在部署前复扫一次：
+
+```bash
+trivy image --vuln-type os,library --severity CRITICAL,HIGH ghcr.io/hou-mingyuan/ai-assistant-service:<tag>
+```
+
 如果不想本地构建，可以把 `docker-compose.yml` 中的镜像改为已发布镜像，并跳过 `build` 配置。
 
 仓库已提供拉取 GHCR 镜像的一键启动文件：
@@ -272,3 +285,12 @@ deploy/caddy/Caddyfile
 - SSE 流式接口需要关闭代理缓冲，否则前端可能收不到实时输出。
 - 默认只建议暴露 `/actuator/health` 和 `/actuator/info`，不要直接开放全部 Actuator 端点。
 - 如果代理层改了域名或协议，前端 `baseUrl` 要使用最终浏览器可访问的地址。
+
+前端和独立服务部署在同一个域名下时，推荐把助手服务挂到同源子路径，例如：
+
+```text
+https://app.example.com/ai-assistant
+```
+
+这种方式下前端可以把 `baseUrl` 配成 `/ai-assistant`，浏览器不会触发跨域预检，
+生产环境的 CORS 白名单也可以收敛到最终站点域名。
