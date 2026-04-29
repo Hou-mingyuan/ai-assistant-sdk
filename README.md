@@ -544,7 +544,7 @@ cd ai-assistant-server && mvn test
 
 - **发布（`.github/workflows/publish.yml`）** — 创建 GitHub Release 时自动触发：
   - 前端发布到 GitHub Packages（npm）
-  - 后端发布到 GitHub Packages（Maven）
+  - Spring Boot starter 和 Java Client SDK 发布到 GitHub Packages（Maven）
 
 **无需额外配置 Secrets** — 使用内置的 `GITHUB_TOKEN`，仅同仓库/同 org 有权限访问。
 

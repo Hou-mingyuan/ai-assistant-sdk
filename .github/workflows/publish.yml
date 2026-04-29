@@ -31,9 +31,6 @@ jobs:
 
   publish-maven:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ai-assistant-server
     permissions:
       contents: read
       packages: write
@@ -43,7 +40,15 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - run: mvn -B deploy -DskipTests
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+      - name: Publish Spring Boot starter
+        run: mvn -B -f ai-assistant-server/pom.xml deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Java client SDK
+        run: mvn -B -f ai-assistant-client/pom.xml deploy -DskipTests -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
