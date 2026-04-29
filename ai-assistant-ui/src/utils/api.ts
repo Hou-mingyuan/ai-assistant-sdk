@@ -50,6 +50,10 @@ function normalizeToken(token?: string): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
+function apiUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, '')}${path}`
+}
+
 const DEFAULT_TIMEOUT_MS = 60_000
 const FILE_UPLOAD_TIMEOUT_MS = 300_000
 const EXPORT_TIMEOUT_MS = 180_000
@@ -83,7 +87,7 @@ export async function postServerExport(
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken
   const body: Record<string, unknown> = { format, title, messages }
   if (theme) body.theme = theme
-  const res = await fetch(`${baseUrl}/export`, {
+  const res = await fetch(apiUrl(baseUrl, '/export'), {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -133,7 +137,7 @@ export async function fetchModels(baseUrl: string, token?: string): Promise<Mode
   const headers: Record<string, string> = {}
   const normalizedToken = normalizeToken(token)
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken
-  const res = await fetch(`${baseUrl}/models`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
+  const res = await fetch(apiUrl(baseUrl, '/models'), { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
   }
@@ -146,7 +150,10 @@ export async function fetchUrlPreview(baseUrl: string, url: string, token?: stri
   const headers: Record<string, string> = {}
   const normalizedToken = normalizeToken(token)
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken
-  const res = await fetch(`${baseUrl}/url-preview?url=${q}`, { headers, signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS) })
+  const res = await fetch(apiUrl(baseUrl, `/url-preview?url=${q}`), {
+    headers,
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+  })
   if (!res.ok) {
     return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
   }
@@ -155,7 +162,7 @@ export async function fetchUrlPreview(baseUrl: string, url: string, token?: stri
 
 /** Send a synchronous chat/translate/summarize request. */
 export async function postChat(baseUrl: string, payload: ChatPayload, token?: string): Promise<ChatResult> {
-  const res = await fetch(`${baseUrl}/chat`, {
+  const res = await fetch(apiUrl(baseUrl, '/chat'), {
     method: 'POST',
     headers: buildHeaders(token),
     body: JSON.stringify(payload),
@@ -186,7 +193,7 @@ export async function uploadFile(
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken
 
   const endpoint = action === 'translate' ? '/file/translate' : '/file/summarize'
-  const res = await fetch(`${baseUrl}${endpoint}`, {
+  const res = await fetch(apiUrl(baseUrl, endpoint), {
     method: 'POST',
     headers,
     body: formData,
@@ -208,7 +215,7 @@ export async function* streamChat(
   token?: string,
   signal?: AbortSignal,
 ): AsyncGenerator<string> {
-  const res = await fetch(`${baseUrl}/stream`, {
+  const res = await fetch(apiUrl(baseUrl, '/stream'), {
     method: 'POST',
     headers: buildHeaders(token),
     body: JSON.stringify(payload),

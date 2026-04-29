@@ -21,6 +21,17 @@ describe('postChat', () => {
     expect(mockFetch).toHaveBeenCalledOnce()
   })
 
+  it('normalizes trailing slash in baseUrl', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, result: 'hello' }),
+    })
+
+    await postChat('/ai/', { action: 'chat', text: 'hi' })
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/chat')
+  })
+
   it('returns error on non-200', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' })
     const res = await postChat('/ai', { action: 'chat', text: 'hi' })
