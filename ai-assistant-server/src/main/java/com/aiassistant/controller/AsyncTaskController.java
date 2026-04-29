@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.regex.Pattern;
 
 /**
  * Async task submission with optional webhook callback.
@@ -32,6 +33,7 @@ public class AsyncTaskController {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncTaskController.class);
     private static final int MAX_PENDING_TASKS = 100;
+    private static final Pattern TASK_ID_PATTERN = Pattern.compile("[a-f0-9]{16}");
 
     private static final long TASK_TTL_MS = 30 * 60 * 1000L;
     private static final long PENDING_TIMEOUT_MS = 10 * 60 * 1000L;
@@ -61,6 +63,9 @@ public class AsyncTaskController {
     @PostMapping("/chat")
     public ResponseEntity<Map<String, Object>> submitChat(@RequestBody Map<String, Object> body) {
         evictExpiredTasks();
+        if (body == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "request body is required"));
+        }
         if (tasks.size() >= MAX_PENDING_TASKS) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of("error", "Too many pending tasks"));
@@ -70,27 +75,39 @@ public class AsyncTaskController {
             return ResponseEntity.badRequest().body(Map.of("error", "text is required and must be a string"));
         }
         Object rawWebhookUrl = body.get("webhookUrl");
-        String webhookUrl = rawWebhookUrl instanceof String s ? s : null;
+        String webhookUrl = null;
+        if (rawWebhookUrl != null) {
+            if (!(rawWebhookUrl instanceof String s) || s.isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "webhookUrl must be a non-blank http(s) URL"));
+            }
+            try {
+                webhookUrl = validateWebhookUrl(s);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "invalid webhookUrl: " + e.getMessage()));
+            }
+        }
 
         String taskId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         TaskEntry entry = new TaskEntry(taskId);
         tasks.put(taskId, entry);
 
         var tenantInfo = TenantContext.get();
+        final String callbackUrl = webhookUrl;
         executor.submit(() -> {
             if (tenantInfo != null) TenantContext.set(tenantInfo);
             try {
                 String result = llmService.chat(text);
                 entry.complete(result);
                 usageStats.recordCall("async_chat");
-                if (webhookUrl != null) {
-                    sendWebhook(webhookUrl, taskId, result, null);
+                if (callbackUrl != null) {
+                    sendWebhook(callbackUrl, taskId, result, null);
                 }
             } catch (Exception e) {
                 entry.fail(e.getMessage());
                 usageStats.recordError();
-                if (webhookUrl != null) {
-                    sendWebhook(webhookUrl, taskId, null, e.getMessage());
+                if (callbackUrl != null) {
+                    sendWebhook(callbackUrl, taskId, null, e.getMessage());
                 }
             } finally {
                 TenantContext.clear();
@@ -102,6 +119,9 @@ public class AsyncTaskController {
 
     @GetMapping("/{taskId}")
     public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String taskId) {
+        if (taskId == null || !TASK_ID_PATTERN.matcher(taskId).matches()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid taskId"));
+        }
         TaskEntry entry = tasks.get(taskId);
         if (entry == null) {
             return ResponseEntity.notFound().build();
@@ -112,6 +132,16 @@ public class AsyncTaskController {
         if ("completed".equals(entry.status)) result.put("result", entry.result);
         if ("failed".equals(entry.status)) result.put("error", entry.error);
         return ResponseEntity.ok(result);
+    }
+
+    private String validateWebhookUrl(String url) {
+        URI uri = URI.create(url.trim());
+        String scheme = uri.getScheme();
+        if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+            throw new IllegalArgumentException("only http(s) urls are supported");
+        }
+        UrlFetchSafety.validateHttpUrlForServerSideFetch(uri);
+        return uri.toString();
     }
 
     private void sendWebhook(String url, String taskId, String result, String error) {

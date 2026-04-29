@@ -43,9 +43,36 @@ class AsyncTaskControllerTest {
     }
 
     @Test
+    void submitChat_rejectsNullBody() {
+        var resp = controller.submitChat(null);
+        assertEquals(400, resp.getStatusCode().value());
+        verifyNoInteractions(llmService);
+    }
+
+    @Test
+    void submitChat_rejectsNonStringWebhookUrl() {
+        var resp = controller.submitChat(Map.of("text", "hello", "webhookUrl", 123));
+        assertEquals(400, resp.getStatusCode().value());
+        verifyNoInteractions(llmService);
+    }
+
+    @Test
+    void submitChat_rejectsUnsafeWebhookUrlBeforeSchedulingTask() {
+        var resp = controller.submitChat(Map.of("text", "hello", "webhookUrl", "http://127.0.0.1:8080/hook"));
+        assertEquals(400, resp.getStatusCode().value());
+        verifyNoInteractions(llmService);
+    }
+
+    @Test
     void getStatus_returnsNotFound_forUnknownTask() {
-        var resp = controller.getStatus("nonexistent");
+        var resp = controller.getStatus("0123456789abcdef");
         assertEquals(404, resp.getStatusCode().value());
+    }
+
+    @Test
+    void getStatus_rejectsInvalidTaskId() {
+        var resp = controller.getStatus("../bad");
+        assertEquals(400, resp.getStatusCode().value());
     }
 
     @Test
