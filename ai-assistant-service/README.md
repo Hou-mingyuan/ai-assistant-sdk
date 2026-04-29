@@ -94,6 +94,12 @@ POST http://localhost:8080/ai-assistant/export
 
 默认 compose 配置会以只读容器文件系统运行，并给 `/tmp` 挂载临时内存目录。服务日志输出到标准输出，不需要写入镜像内的应用目录。
 
+Actuator 默认只暴露 `health,info`。如果需要暴露 `metrics`，建议先通过网关或内网策略保护，再设置：
+
+```env
+MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
+```
+
 生产环境建议至少设置：
 
 ```env

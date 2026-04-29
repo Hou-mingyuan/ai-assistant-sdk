@@ -1289,6 +1289,12 @@ DOCKER_BUILD_NO_PROXY=localhost,127.0.0.1,host.docker.internal
 DOCKER_BUILD_MAVEN_OPTS=-Dhttp.proxyHost=host.docker.internal -Dhttp.proxyPort=7897 -Dhttps.proxyHost=host.docker.internal -Dhttps.proxyPort=7897
 ```
 
+独立服务的 Actuator 默认只暴露 `health,info`。如果要开放 `metrics`，建议先在网关或内网层保护后再配置：
+
+```env
+MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
+```
+
 独立 Docker 服务默认使用进程内会话和限流，便于单容器快速部署；需要 Redis、数据库、多租户连接器或更复杂平台治理时，可以继续基于 starter 自定义一个服务模块或扩展当前 `ai-assistant-service`。
 
 ---
