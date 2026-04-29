@@ -19,7 +19,7 @@
         <!-- 5.4.1+：缓解 CVE-2025-31672（OOXML / 重复 zip 条目解析） -->
         <apache.poi.version>5.4.1</apache.poi.version>
         <apache.pdfbox.version>3.0.7</apache.pdfbox.version>
-        <playwright.version>1.58.0</playwright.version>
+        <playwright.version>1.59.0</playwright.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
