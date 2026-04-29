@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createApp, defineComponent } from 'vue';
 import { useMultiSession } from './useMultiSession';
 
 const STORAGE_KEY = 'ai-test-sessions';
@@ -139,6 +140,46 @@ describe('useMultiSession', () => {
     ms.cleanup();
 
     expect(localStorage.getItem(STORAGE_KEY)).toContain('saved by cleanup');
+  });
+
+  it('clears a pending debounced save before immediate saves', () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const ms = useMultiSession(STORAGE_KEY);
+
+    ms.updateActiveMessages([{ role: 'assistant', content: 'pending save' }]);
+    ms.createSession();
+    vi.advanceTimersByTime(500);
+
+    expect(setItemSpy).toHaveBeenCalledTimes(2);
+    expect(localStorage.getItem(STORAGE_KEY)).toContain('pending save');
+  });
+
+  it('ignores localStorage write failures during debounced saves', () => {
+    const ms = useMultiSession(STORAGE_KEY);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+
+    ms.updateActiveMessages([{ role: 'assistant', content: 'delayed failure' }]);
+
+    expect(() => vi.advanceTimersByTime(500)).not.toThrow();
+  });
+
+  it('flushes pending saves when used inside a Vue component that unmounts', () => {
+    const Component = defineComponent({
+      setup() {
+        const ms = useMultiSession(STORAGE_KEY);
+        ms.updateActiveMessages([{ role: 'assistant', content: 'saved on unmount' }]);
+        return () => null;
+      },
+    });
+    const container = document.createElement('div');
+    const app = createApp(Component);
+
+    app.mount(container);
+    app.unmount();
+
+    expect(localStorage.getItem(STORAGE_KEY)).toContain('saved on unmount');
   });
 
   it('does nothing when updating without an active session', () => {
