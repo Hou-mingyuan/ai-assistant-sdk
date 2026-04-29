@@ -12,7 +12,7 @@ class UrlFetchSafetyTest {
         assertDoesNotThrow(
                 () ->
                         UrlFetchSafety.validateHttpUrlForServerSideFetch(
-                                URI.create("https://example.com/page")));
+                                URI.create("https://8.8.8.8/page")));
     }
 
     @Test
