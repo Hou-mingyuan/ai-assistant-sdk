@@ -1,6 +1,7 @@
 {
   "name": "@ai-assistant/vue",
   "version": "1.0.0",
+  "type": "module",
   "description": "Embeddable AI assistant widget for Vue 3 - translation, summarization, chat",
   "repository": {
     "type": "git",
@@ -10,18 +11,18 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
   },
-  "main": "dist/ai-assistant.umd.js",
+  "main": "dist/ai-assistant.umd.cjs",
   "module": "dist/ai-assistant.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/ai-assistant.mjs",
-      "require": "./dist/ai-assistant.umd.js",
+      "require": "./dist/ai-assistant.umd.cjs",
       "types": "./dist/index.d.ts"
     },
     "./wc": {
       "import": "./dist/ai-assistant-wc.mjs",
-      "require": "./dist/ai-assistant-wc.umd.js"
+      "require": "./dist/ai-assistant-wc.umd.cjs"
     },
     "./dist/style.css": "./dist/style.css"
   },

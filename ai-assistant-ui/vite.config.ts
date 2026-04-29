@@ -38,12 +38,14 @@ export default defineConfig({
         lib: {
           entry: resolve(__dirname, 'src/web-component.ts'),
           name: 'AiAssistantWC',
-          fileName: 'ai-assistant-wc',
+          fileName: (format) =>
+            format === 'es' ? 'ai-assistant-wc.mjs' : 'ai-assistant-wc.umd.cjs',
         },
         cssCodeSplit: false,
         minify: 'terser',
         rollupOptions: {
           output: {
+            exports: 'named',
             globals: {},
           },
         },
@@ -52,13 +54,14 @@ export default defineConfig({
         lib: {
           entry: resolve(__dirname, 'src/index.ts'),
           name: 'AiAssistant',
-          fileName: 'ai-assistant',
+          fileName: (format) => (format === 'es' ? 'ai-assistant.mjs' : 'ai-assistant.umd.cjs'),
         },
         cssCodeSplit: false,
         minify: 'terser',
         rollupOptions: {
           external: ['vue', 'html2canvas'],
           output: {
+            exports: 'named',
             globals: { vue: 'Vue', html2canvas: 'html2canvas' },
           },
         },
