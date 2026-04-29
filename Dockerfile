@@ -53,7 +53,10 @@ WORKDIR /app
 
 COPY --from=build /workspace/ai-assistant-service/target/ai-assistant-service-*.jar app.jar
 
-RUN chown -R assistant:assistant /app
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher \
+    && rm app.jar \
+    && chown -R assistant:assistant /app
+WORKDIR /app/app
 USER assistant
 
 EXPOSE 8080
@@ -63,4 +66,4 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+E
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
   CMD wget -qO- "http://localhost:${SERVER_PORT:-8080}${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}/health" || exit 1
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -cp \"application:application/BOOT-INF/classes:dependencies/BOOT-INF/lib/*:snapshot-dependencies/BOOT-INF/lib/*\" com.aiassistant.serviceapp.AiAssistantServiceApplication"]

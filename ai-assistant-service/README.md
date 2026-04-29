@@ -2,6 +2,8 @@
 
 `ai-assistant-service` 是独立部署启动器，复用 `ai-assistant-spring-boot-starter`，用于把小助手能力作为单独 HTTP 服务运行。
 
+Docker 镜像会使用 Spring Boot layered jar，把依赖、Spring Boot loader、快照依赖和应用代码拆成独立层，减少代码变更后的镜像重传和重建成本。
+
 适用场景：
 
 - 不想改已有业务后端，只想部署一个统一 AI 助手服务。

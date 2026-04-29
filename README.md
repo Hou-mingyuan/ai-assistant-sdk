@@ -1231,6 +1231,7 @@ ai-assistant-sdk/
 ### 方式二：独立 Docker 服务
 
 独立服务由 `ai-assistant-service` 模块提供，Dockerfile 会先构建 starter，再构建可执行服务 jar。
+镜像使用 Spring Boot layered jar 拆分依赖层和应用层，便于 Docker 缓存和增量推送。
 
 ```bash
 copy .env.example .env
