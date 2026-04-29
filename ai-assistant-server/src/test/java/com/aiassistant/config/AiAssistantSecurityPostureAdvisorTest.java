@@ -13,7 +13,8 @@ class AiAssistantSecurityPostureAdvisorTest {
         AiAssistantSecurityPostureAdvisor advisor =
                 new AiAssistantSecurityPostureAdvisor(new AiAssistantProperties());
 
-        assertTrue(advisor.warningCodes().isEmpty());
+        assertEquals(List.of(AiAssistantSecurityPostureAdvisor.PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN),
+                advisor.warningCodes());
     }
 
     @Test
@@ -23,7 +24,9 @@ class AiAssistantSecurityPostureAdvisorTest {
 
         AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
 
-        assertEquals(List.of(AiAssistantSecurityPostureAdvisor.ADMIN_WITHOUT_ACCESS_TOKEN),
+        assertEquals(List.of(
+                        AiAssistantSecurityPostureAdvisor.ADMIN_WITHOUT_ACCESS_TOKEN,
+                        AiAssistantSecurityPostureAdvisor.PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN),
                 advisor.warningCodes());
     }
 
@@ -34,7 +37,9 @@ class AiAssistantSecurityPostureAdvisorTest {
 
         AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
 
-        assertEquals(List.of(AiAssistantSecurityPostureAdvisor.CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN),
+        assertEquals(List.of(
+                        AiAssistantSecurityPostureAdvisor.CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN,
+                        AiAssistantSecurityPostureAdvisor.PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN),
                 advisor.warningCodes());
     }
 
@@ -45,7 +50,9 @@ class AiAssistantSecurityPostureAdvisorTest {
 
         AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
 
-        assertEquals(List.of(AiAssistantSecurityPostureAdvisor.MCP_SERVER_WITHOUT_ACCESS_TOKEN),
+        assertEquals(List.of(
+                        AiAssistantSecurityPostureAdvisor.MCP_SERVER_WITHOUT_ACCESS_TOKEN,
+                        AiAssistantSecurityPostureAdvisor.PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN),
                 advisor.warningCodes());
     }
 
@@ -59,5 +66,25 @@ class AiAssistantSecurityPostureAdvisorTest {
 
         assertEquals(List.of(AiAssistantSecurityPostureAdvisor.QUERY_TOKEN_AUTH_ENABLED),
                 advisor.warningCodes());
+    }
+
+    @Test
+    void doesNotWarnForWildcardOriginWhenAccessTokenIsSet() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setAccessToken("secret");
+
+        AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertTrue(advisor.warningCodes().isEmpty());
+    }
+
+    @Test
+    void doesNotWarnForExplicitOriginsWithoutAccessToken() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setAllowedOrigins("https://example.com");
+
+        AiAssistantSecurityPostureAdvisor advisor = new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertTrue(advisor.warningCodes().isEmpty());
     }
 }

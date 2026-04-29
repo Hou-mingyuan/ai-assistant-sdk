@@ -15,6 +15,8 @@ public class AiAssistantSecurityPostureAdvisor {
             "CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN";
     public static final String MCP_SERVER_WITHOUT_ACCESS_TOKEN = "MCP_SERVER_WITHOUT_ACCESS_TOKEN";
     public static final String QUERY_TOKEN_AUTH_ENABLED = "QUERY_TOKEN_AUTH_ENABLED";
+    public static final String PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN =
+            "PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN";
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantSecurityPostureAdvisor.class);
 
@@ -40,6 +42,9 @@ public class AiAssistantSecurityPostureAdvisor {
         if (properties.isAllowQueryTokenAuth()) {
             warnings.add(QUERY_TOKEN_AUTH_ENABLED);
         }
+        if (isWildcardOrigin(properties.getAllowedOrigins()) && !hasAccessToken) {
+            warnings.add(PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN);
+        }
 
         return List.copyOf(warnings);
     }
@@ -58,11 +63,18 @@ public class AiAssistantSecurityPostureAdvisor {
             } else if (QUERY_TOKEN_AUTH_ENABLED.equals(warning)) {
                 log.warn("ai-assistant.allow-query-token-auth=true allows tokens in URLs. "
                         + "Prefer the X-AI-Token header to avoid leaking tokens through logs or browser history.");
+            } else if (PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN.equals(warning)) {
+                log.warn("ai-assistant.allowed-origins='*' is configured without ai-assistant.access-token. "
+                        + "Use explicit browser origins and configure X-AI-Token before exposing the service.");
             }
         }
     }
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private boolean isWildcardOrigin(String value) {
+        return value != null && value.trim().equals("*");
     }
 }

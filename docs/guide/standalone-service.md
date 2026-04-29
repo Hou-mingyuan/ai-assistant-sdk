@@ -130,6 +130,8 @@ AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
 
 不要在生产环境开启 query token 鉴权，避免 token 出现在浏览器历史、网关日志或 Referer 中。
 
+服务启动时会检查常见高风险配置组合。如果 `AI_ASSISTANT_ALLOWED_ORIGINS=*` 且没有配置 `AI_ASSISTANT_ACCESS_TOKEN`，日志会输出风险提示。生产环境建议同时使用明确 CORS 白名单和 `X-AI-Token` 鉴权。
+
 ## 6. 限流
 
 默认每个客户端每分钟 60 次请求：
