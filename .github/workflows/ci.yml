@@ -134,6 +134,61 @@ jobs:
           path: ai-assistant-ui/coverage/
           retention-days: 14
 
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    needs: frontend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            ai-assistant-ui/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install UI dependencies
+        run: npm ci
+        working-directory: ai-assistant-ui
+
+      - name: Build UI package for playground
+        run: npm run build:lib
+        working-directory: ai-assistant-ui
+
+      - name: Install E2E dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Run E2E tests
+        run: npm test
+        working-directory: e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-playwright-report
+          path: e2e/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-test-results
+          path: e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
   docs:
     name: Documentation
     runs-on: ubuntu-latest

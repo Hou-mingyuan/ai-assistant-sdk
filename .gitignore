@@ -2,6 +2,8 @@ node_modules/
 dist/
 target/
 coverage/
+e2e/playwright-report/
+e2e/test-results/
 *.class
 *.jar
 *.log

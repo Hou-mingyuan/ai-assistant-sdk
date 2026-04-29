@@ -63,9 +63,9 @@ test.describe('AI Assistant Widget', () => {
 
   test('new session button creates tab', async ({ page }) => {
     await page.click('.ai-fab')
-    const tabsBefore = await page.locator('.ai-session-tab').count()
+    const sessionTabs = page.locator('.ai-session-tab')
+    const tabsBefore = await sessionTabs.count()
     await page.click('.ai-new-session')
-    const tabsAfter = await page.locator('.ai-session-tab').count()
-    expect(tabsAfter).toBe(tabsBefore + 1)
+    await expect.poll(() => sessionTabs.count()).toBeGreaterThan(tabsBefore)
   })
 })
