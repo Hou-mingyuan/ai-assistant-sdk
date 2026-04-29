@@ -34,7 +34,7 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String path = properties.getContextPath() + "/ws";
-        String[] origins = properties.getAllowedOrigins().split(",");
+        String[] origins = properties.resolveAllowedOrigins();
         registry.addHandler(handler, path)
                 .addInterceptors(new TokenHandshakeInterceptor(
                         properties.getAccessToken(),

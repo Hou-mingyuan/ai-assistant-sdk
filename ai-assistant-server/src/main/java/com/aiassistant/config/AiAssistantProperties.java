@@ -199,6 +199,22 @@ public class AiAssistantProperties {
     public String getAllowedOrigins() { return allowedOrigins; }
     public void setAllowedOrigins(String allowedOrigins) { this.allowedOrigins = allowedOrigins; }
 
+    public String[] resolveAllowedOrigins() {
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            return new String[] {"*"};
+        }
+        java.util.LinkedHashSet<String> origins = new java.util.LinkedHashSet<>();
+        for (String origin : allowedOrigins.split(",")) {
+            if (origin != null && !origin.isBlank()) {
+                origins.add(origin.trim());
+            }
+        }
+        if (origins.isEmpty()) {
+            return new String[] {"*"};
+        }
+        return origins.toArray(String[]::new);
+    }
+
     public String getAccessToken() { return accessToken; }
     public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
 

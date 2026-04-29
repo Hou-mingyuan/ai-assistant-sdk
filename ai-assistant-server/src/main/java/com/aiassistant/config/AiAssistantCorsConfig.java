@@ -22,7 +22,7 @@ public class AiAssistantCorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         String pattern = properties.getContextPath() + "/**";
-        String[] origins = properties.getAllowedOrigins().split(",");
+        String[] origins = properties.resolveAllowedOrigins();
         registry.addMapping(pattern)
                 .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

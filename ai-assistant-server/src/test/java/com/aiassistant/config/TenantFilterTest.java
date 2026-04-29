@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,6 +24,34 @@ class TenantFilterTest {
 
         assertTrue(seenTenant[0].startsWith("token:"));
         assertFalse(seenTenant[0].contains("secret-token-value"));
+    }
+
+    @Test
+    void acceptsSafeTenantHeader() throws Exception {
+        TenantFilter filter = new TenantFilter("/ai-assistant");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.addHeader("X-Tenant-Id", "tenant.prod-01");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("tenant.prod-01", seenTenant[0]);
+    }
+
+    @Test
+    void rejectsUnsafeTenantHeader() throws Exception {
+        TenantFilter filter = new TenantFilter("/ai-assistant");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.addHeader("X-Tenant-Id", "tenant\nspoofed");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("default", seenTenant[0]);
     }
 
     @Test

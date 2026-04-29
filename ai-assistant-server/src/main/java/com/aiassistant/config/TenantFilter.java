@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 /**
  * Extracts tenant identity from request headers and populates {@link TenantContext}.
@@ -11,6 +12,8 @@ import java.io.IOException;
  * with your own tenant resolution logic (JWT claims, database lookup, etc.).
  */
 public class TenantFilter implements Filter {
+
+    private static final Pattern SAFE_TENANT_ID = Pattern.compile("[a-zA-Z0-9_.:-]{1,64}");
 
     private final String contextPath;
 
@@ -36,7 +39,13 @@ public class TenantFilter implements Filter {
 
     protected String resolveTenantId(HttpServletRequest request) {
         String tenant = request.getHeader("X-Tenant-Id");
-        if (tenant != null && !tenant.isBlank()) return tenant.trim();
+        if (tenant != null && !tenant.isBlank()) {
+            String normalized = tenant.trim();
+            if (SAFE_TENANT_ID.matcher(normalized).matches()) {
+                return normalized;
+            }
+            return "default";
+        }
         String token = request.getHeader("X-AI-Token");
         if (token != null && !token.isBlank()) {
             return "token:" + com.aiassistant.util.ClientIdentity.tokenFingerprint(token);

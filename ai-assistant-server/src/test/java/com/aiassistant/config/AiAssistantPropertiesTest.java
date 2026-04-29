@@ -87,6 +87,23 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void resolveAllowedOriginsTrimsAndDeduplicates() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setAllowedOrigins(" https://a.example.com,https://b.example.com , https://a.example.com ,, ");
+
+        assertArrayEquals(new String[] {"https://a.example.com", "https://b.example.com"},
+                p.resolveAllowedOrigins());
+    }
+
+    @Test
+    void resolveAllowedOriginsFallsBackToWildcardWhenBlank() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setAllowedOrigins("   ");
+
+        assertArrayEquals(new String[] {"*"}, p.resolveAllowedOrigins());
+    }
+
+    @Test
     void contextPathIsNormalized() {
         AiAssistantProperties p = new AiAssistantProperties();
 
