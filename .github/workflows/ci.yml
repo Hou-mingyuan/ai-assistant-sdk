@@ -22,6 +22,9 @@ jobs:
       - name: Check standalone smoke script syntax
         run: node --check scripts/smoke-standalone-service.mjs
 
+      - name: Check package version consistency
+        run: node scripts/check-version-consistency.mjs
+
       - name: Validate docker compose files
         env:
           AI_ASSISTANT_API_KEY: ci-placeholder

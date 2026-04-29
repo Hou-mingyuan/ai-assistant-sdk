@@ -1,28 +1,58 @@
 #!/usr/bin/env node
 /**
- * Sync version across package.json and pom.xml.
+ * Sync version across npm package files and Maven module POMs.
  * Usage: node scripts/sync-version.js 1.2.3
  */
 const fs = require('fs')
 const path = require('path')
 
 const version = process.argv[2]
-if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
+if (!version || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
   console.error('Usage: node scripts/sync-version.js <version>')
   process.exit(1)
 }
 
-const pkgPath = path.resolve(__dirname, '../ai-assistant-ui/package.json')
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
-pkg.version = version
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
-console.log(`package.json → ${version}`)
+const releaseVersion = version.replace(/-SNAPSHOT$/, '')
+const mavenVersion = version.endsWith('-SNAPSHOT') ? version : `${version}-SNAPSHOT`
 
-const pomPath = path.resolve(__dirname, '../ai-assistant-server/pom.xml')
-let pom = fs.readFileSync(pomPath, 'utf-8')
-pom = pom.replace(
-  /(<artifactId>ai-assistant-spring-boot-starter<\/artifactId>\s*<version>)[^<]+(.*)/,
-  `$1${version}-SNAPSHOT$2`
-)
-fs.writeFileSync(pomPath, pom)
-console.log(`pom.xml → ${version}-SNAPSHOT`)
+syncPackageJson('../ai-assistant-ui/package.json', releaseVersion)
+syncPackageLock('../ai-assistant-ui/package-lock.json', releaseVersion)
+
+syncPomProjectVersion('../ai-assistant-server/pom.xml', mavenVersion)
+syncPomProjectVersion('../ai-assistant-service/pom.xml', mavenVersion)
+syncPomProjectVersion('../ai-assistant-client/pom.xml', mavenVersion)
+
+console.log(`npm packages → ${releaseVersion}`)
+console.log(`Maven modules → ${mavenVersion}`)
+
+function syncPackageJson(relativePath, nextVersion) {
+  const file = path.resolve(__dirname, relativePath)
+  const pkg = JSON.parse(fs.readFileSync(file, 'utf-8'))
+  pkg.version = nextVersion
+  fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`)
+}
+
+function syncPackageLock(relativePath, nextVersion) {
+  const file = path.resolve(__dirname, relativePath)
+  if (!fs.existsSync(file)) return
+  const lock = JSON.parse(fs.readFileSync(file, 'utf-8'))
+  if (lock.version) lock.version = nextVersion
+  if (lock.packages && lock.packages['']) {
+    lock.packages[''].version = nextVersion
+  }
+  fs.writeFileSync(file, `${JSON.stringify(lock, null, 2)}\n`)
+}
+
+function syncPomProjectVersion(relativePath, nextVersion) {
+  const file = path.resolve(__dirname, relativePath)
+  let pom = fs.readFileSync(file, 'utf-8')
+  const parentMatch = pom.match(/<parent>[\s\S]*?<\/parent>/)
+  const parentPlaceholder = '__AI_ASSISTANT_PARENT_POM_BLOCK__'
+  const editablePom = parentMatch ? pom.replace(parentMatch[0], parentPlaceholder) : pom
+  const updatedPom = editablePom.replace(
+    /(<artifactId>[^<]+<\/artifactId>\s*<version>)[^<]+(<\/version>)/,
+    `$1${nextVersion}$2`,
+  )
+  pom = updatedPom.replace(parentPlaceholder, parentMatch?.[0] ?? '')
+  fs.writeFileSync(file, pom)
+}
