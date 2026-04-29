@@ -157,6 +157,20 @@ AI_ASSISTANT_LOG_MAX_SIZE=10m
 AI_ASSISTANT_LOG_MAX_FILE=3
 ```
 
+默认日志为人类可读的单行文本。生产环境如果接入 ELK、Loki、Datadog 或云日志平台，可以启用结构化 JSON 日志：
+
+```env
+SPRING_PROFILES_ACTIVE=prod
+```
+
+也可以只启用日志 JSON profile：
+
+```env
+SPRING_PROFILES_ACTIVE=json
+```
+
+JSON 日志会包含 `service`、`requestId`、`traceId`、`spanId`、`tenantId` 和 `userId` 等字段，方便按请求链路检索。
+
 容器默认只读文件系统运行，`/tmp` 使用临时目录；服务不依赖写入镜像内目录。
 
 ## 8. 健康检查和可观测性

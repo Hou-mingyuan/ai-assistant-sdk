@@ -1321,9 +1321,12 @@ Web Component 形态同样可以直接指向独立服务：
 AI_ASSISTANT_ACCESS_TOKEN=change-me
 AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 AI_ASSISTANT_RATE_LIMIT=60
+SPRING_PROFILES_ACTIVE=prod
 ```
 
 服务启动时会提示常见高风险配置，例如 `AI_ASSISTANT_ALLOWED_ORIGINS=*` 且未配置 `AI_ASSISTANT_ACCESS_TOKEN`。生产环境建议同时使用明确 CORS 白名单和 `X-AI-Token` 鉴权。
+
+`SPRING_PROFILES_ACTIVE=prod` 会启用结构化 JSON 日志，适合 Docker 日志采集、ELK、Loki 和云日志平台；本地调试可以留空，使用默认文本日志。
 
 如果 Docker Hub 或 Maven Central 访问不稳定，可以在 `.env` 中给构建阶段配置代理。Docker Desktop 下容器访问宿主机代理通常使用 `host.docker.internal`：
 

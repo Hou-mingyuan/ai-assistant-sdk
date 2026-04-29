@@ -146,6 +146,7 @@ AI_ASSISTANT_MEMORY_LIMIT=768m
 AI_ASSISTANT_CPUS=1.0
 AI_ASSISTANT_LOG_MAX_SIZE=10m
 AI_ASSISTANT_LOG_MAX_FILE=3
+SPRING_PROFILES_ACTIVE=prod
 ```
 
 Actuator 默认只暴露 `health,info`。如果需要暴露 `metrics`，建议先通过网关或内网策略保护，再设置：
