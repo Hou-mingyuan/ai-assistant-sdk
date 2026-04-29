@@ -15,7 +15,7 @@
     <properties>
         <java.version>17</java.version>
         <!-- 3.4.12：3.4 线缺陷与安全修复累积版，仍要求 Java 17 -->
-        <spring-boot.version>3.4.12</spring-boot.version>
+        <spring-boot.version>4.0.6</spring-boot.version>
         <!-- 5.4.1+：缓解 CVE-2025-31672（OOXML / 重复 zip 条目解析） -->
         <apache.poi.version>5.4.1</apache.poi.version>
         <apache.pdfbox.version>3.0.7</apache.pdfbox.version>
