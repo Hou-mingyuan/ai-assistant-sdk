@@ -177,7 +177,7 @@ public class AiAssistantProperties {
     public void setModel(String model) { this.model = model; }
 
     public String getContextPath() { return contextPath; }
-    public void setContextPath(String contextPath) { this.contextPath = contextPath; }
+    public void setContextPath(String contextPath) { this.contextPath = normalizeContextPath(contextPath); }
 
     public int getMaxTokens() { return maxTokens; }
     public void setMaxTokens(int maxTokens) { this.maxTokens = maxTokens; }
@@ -416,6 +416,20 @@ public class AiAssistantProperties {
                     "kimi/moonshot, gemini/google, siliconflow, groq, yi/lingyiwanwu, spark/xunfei, " +
                     "baichuan, stepfun, hunyuan/tencent, ollama.");
         };
+    }
+
+    private static String normalizeContextPath(String contextPath) {
+        if (contextPath == null || contextPath.isBlank()) {
+            throw new IllegalArgumentException("ai-assistant.context-path must not be blank");
+        }
+        String normalized = contextPath.trim();
+        if (!normalized.startsWith("/")) {
+            normalized = "/" + normalized;
+        }
+        while (normalized.length() > 1 && normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 
 }

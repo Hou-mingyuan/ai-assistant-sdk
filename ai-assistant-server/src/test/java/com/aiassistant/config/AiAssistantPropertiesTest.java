@@ -76,6 +76,25 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void contextPathIsNormalized() {
+        AiAssistantProperties p = new AiAssistantProperties();
+
+        p.setContextPath("ai-assistant/");
+
+        assertEquals("/ai-assistant", p.getContextPath());
+    }
+
+    @Test
+    void blankContextPathIsRejected() {
+        AiAssistantProperties p = new AiAssistantProperties();
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> p.setContextPath("   "));
+
+        assertTrue(ex.getMessage().contains("context-path"));
+    }
+
+    @Test
     void listModelsForClientFallback() {
         AiAssistantProperties p = new AiAssistantProperties();
         p.setProvider("openai");
