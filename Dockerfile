@@ -7,7 +7,12 @@ COPY ai-assistant-service/pom.xml ai-assistant-service/pom.xml
 COPY ai-assistant-server/src ai-assistant-server/src
 COPY ai-assistant-service/src ai-assistant-service/src
 
-RUN mvn -q -f ai-assistant-server/pom.xml -DskipTests install \
+RUN mvn -q -f ai-assistant-server/pom.xml \
+        -DskipTests \
+        -Dspotless.check.skip=true \
+        -Dcheckstyle.skip=true \
+        -Djacoco.skip=true \
+        install \
     && mvn -q -f ai-assistant-service/pom.xml -DskipTests package
 
 FROM eclipse-temurin:17-jre-alpine AS runtime
