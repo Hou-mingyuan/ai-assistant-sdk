@@ -76,6 +76,17 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void exportMaxImageUrlsClamps() {
+        AiAssistantProperties p = new AiAssistantProperties();
+
+        p.setExportMaxImageUrls(2048);
+        assertEquals(1024, p.getExportMaxImageUrls());
+
+        p.setExportMaxImageUrls(-1);
+        assertEquals(0, p.getExportMaxImageUrls());
+    }
+
+    @Test
     void contextPathIsNormalized() {
         AiAssistantProperties p = new AiAssistantProperties();
 

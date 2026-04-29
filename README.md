@@ -678,6 +678,7 @@ app.use(AiAssistant, {
 | `ai-assistant.url-preview-max-summary-chars` | int | `900` | `/url-preview` 返回的页面纯文本摘要最大长度（由 HTML 转文本后截取） |
 | `ai-assistant.export-max-messages` | int | `2000` | `POST /export` 允许的最大消息条数（上限再夹紧到 50000） |
 | `ai-assistant.export-max-total-chars` | int | `2000000` | `POST /export` 所有 `content` 字符总和上限（防爆内存，硬上限 20M） |
+| `ai-assistant.export-max-image-urls` | int | `64` | `POST /export` 中 DOCX/PDF 尝试预取和嵌入的 Markdown 图片 URL 最大数量（服务端再夹紧到 ≤1024；`0` 表示不预取） |
 | `ai-assistant.export-pdf-unicode-font` | string | `classpath:/fonts/NotoSansSC_400Regular.ttf` | PDF 嵌入 **Noto Sans SC** TrueType（SIL OFL，字源 [expo/google-fonts](https://github.com/expo/google-fonts)）；**PDFBox 3.x 需 glyf 的 .ttf**，不要用常见 CJK **.otf（CFF）**；可改为 `file:///...` 或设 **`""` 清空**以退回 Helvetica（中文变空格） |
 | `ai-assistant.chat-history-max-chars` | int | `48000` | 实际发往 LLM 的 `history` 各条 `content` 累计上限（从**最新**往前保留）；`0` 表示不截断 |
 | `ai-assistant.url-preview-max-images` | int | `10` | `/url-preview` 返回的图片 URL 最大条数（服务端再夹紧到 ≤30） |
@@ -924,7 +925,7 @@ SSE 流式输出，参数同 `/chat`。
 
 ### POST /ai-assistant/export
 
-将 **一组消息**导出为 **真 XLSX / DOCX / PDF**；响应头使用纯 ASCII `filename="..."`，减少浏览器「另存为」乱码。嵌入 UI 在助手气泡**右键**里通常只传**单条** `assistant`。**当前 starter 已将 `pdfbox`、`poi-ooxml` 等作为传递依赖**，宿主仅依赖本 artifact 即可用 `/export`（除非你方构建显式排除了 transitive）。若仍出现 **500** 且日志为 **`NoClassDefFoundError`（pdfbox/poi 相关）**，多为旧版 starter 曾将这些依赖标成 optional：请升级或按「文件上传」小节手动补依赖。正文里 `![](http(s)://...)` 会在 DOCX/PDF 尝试拉图（SSRF 校验与体积上限）；`blob:` 等地址无法服务端拉取。
+将 **一组消息**导出为 **真 XLSX / DOCX / PDF**；响应头使用纯 ASCII `filename="..."`，减少浏览器「另存为」乱码。嵌入 UI 在助手气泡**右键**里通常只传**单条** `assistant`。**当前 starter 已将 `pdfbox`、`poi-ooxml` 等作为传递依赖**，宿主仅依赖本 artifact 即可用 `/export`（除非你方构建显式排除了 transitive）。若仍出现 **500** 且日志为 **`NoClassDefFoundError`（pdfbox/poi 相关）**，多为旧版 starter 曾将这些依赖标成 optional：请升级或按「文件上传」小节手动补依赖。正文里 `![](http(s)://...)` 会在 DOCX/PDF 尝试拉图（SSRF 校验、数量上限与体积上限）；`blob:` 等地址无法服务端拉取。
 
 **请求体 JSON：**
 
@@ -1049,8 +1050,8 @@ ai-assistant:
 ```
 
 前端请求方式：
-- REST / SSE / 文件上传 / 导出：使用 Header `X-AI-Token: my-secret-token`
-- WebSocket 兼容 `?token=my-secret-token`。
+- REST / SSE / 文件上传 / 导出 / WebSocket：默认使用 Header `X-AI-Token: my-secret-token`
+- 如需兼容 WebSocket 或旧 REST 客户端的 `?token=my-secret-token`，需显式开启 `ai-assistant.allow-query-token-auth=true`。
 
 REST 请求默认不接受 URL 参数传 Token，避免进入浏览器历史、网关日志或访问日志。如需兼容旧 REST 客户端，可显式设置
 `ai-assistant.allow-query-token-auth=true`。

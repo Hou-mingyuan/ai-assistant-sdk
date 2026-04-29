@@ -118,6 +118,7 @@ public class AiAssistantProperties {
         private int maxTotalChars = 2_000_000;
         private String pdfUnicodeFont = "classpath:/fonts/NotoSansSC_400Regular.ttf";
         private int maxImageBytes = 3_000_000;
+        private int maxImageUrls = 64;
         private boolean embedImages = true;
         public int getMaxMessages() { return maxMessages; }
         public void setMaxMessages(int v) { this.maxMessages = v; }
@@ -127,6 +128,8 @@ public class AiAssistantProperties {
         public void setPdfUnicodeFont(String v) { this.pdfUnicodeFont = v; }
         public int getMaxImageBytes() { return maxImageBytes; }
         public void setMaxImageBytes(int v) { this.maxImageBytes = v; }
+        public int getMaxImageUrls() { return maxImageUrls; }
+        public void setMaxImageUrls(int v) { this.maxImageUrls = Math.max(0, Math.min(v, 1024)); }
         public boolean isEmbedImages() { return embedImages; }
         public void setEmbedImages(boolean v) { this.embedImages = v; }
     }
@@ -299,6 +302,8 @@ public class AiAssistantProperties {
     public void setExportPdfUnicodeFont(String v) { export_.setPdfUnicodeFont(v); }
     public int getExportMaxImageBytes() { return export_.getMaxImageBytes(); }
     public void setExportMaxImageBytes(int v) { export_.setMaxImageBytes(v); }
+    public int getExportMaxImageUrls() { return export_.getMaxImageUrls(); }
+    public void setExportMaxImageUrls(int v) { export_.setMaxImageUrls(v); }
     public boolean isExportEmbedImages() { return export_.isEmbedImages(); }
     public void setExportEmbedImages(boolean v) { export_.setEmbedImages(v); }
 

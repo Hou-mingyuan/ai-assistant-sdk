@@ -403,8 +403,15 @@ public class AssistantExportService {
             return Map.of();
         }
         Set<String> urls = new LinkedHashSet<>();
+        int maxImageUrls = properties.getExportMaxImageUrls();
+        if (maxImageUrls <= 0) {
+            return Map.of();
+        }
         for (ExportRequest.MessageRow m : messages) {
-            ExportMarkdownUrls.collectMarkdownImageUrls(m != null ? m.getContent() : null, urls);
+            ExportMarkdownUrls.collectMarkdownImageUrls(m != null ? m.getContent() : null, urls, maxImageUrls);
+            if (urls.size() >= maxImageUrls) {
+                break;
+            }
         }
         if (urls.isEmpty()) {
             return Map.of();

@@ -351,8 +351,12 @@ public class ExportPdfWriter {
     private Map<String, byte[]> prefetchImages(List<ExportRequest.MessageRow> messages) {
         if (!properties.isExportEmbedImages()) return Map.of();
         Set<String> urls = new LinkedHashSet<>();
-        for (ExportRequest.MessageRow m : messages)
-            ExportMarkdownUrls.collectMarkdownImageUrls(m != null ? m.getContent() : null, urls);
+        int maxImageUrls = properties.getExportMaxImageUrls();
+        if (maxImageUrls <= 0) return Map.of();
+        for (ExportRequest.MessageRow m : messages) {
+            ExportMarkdownUrls.collectMarkdownImageUrls(m != null ? m.getContent() : null, urls, maxImageUrls);
+            if (urls.size() >= maxImageUrls) break;
+        }
         if (urls.isEmpty()) return Map.of();
         ConcurrentHashMap<String, byte[]> out = new ConcurrentHashMap<>();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
