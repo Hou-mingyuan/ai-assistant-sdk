@@ -2,6 +2,8 @@
 
 独立服务模式下，前端不需要再依赖业务后端集成 Starter，只要把助手组件的 `baseUrl` 指向独立服务即可。
 
+如果你需要事件监听、快捷 Prompt、Prompt 模板、代码块 IDE 按钮或 Web Component 的更多交互示例，请继续查看：[前端集成配方](./frontend-recipes)。
+
 ## 1. 服务端先准备好
 
 本地 Docker 服务默认地址：

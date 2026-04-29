@@ -2,6 +2,25 @@
 
 可嵌入任何 Java + Vue 项目的 AI 小助手，支持一键翻译、全文摘要、自由对话、RAG 知识库、多步 Agent、PII 脱敏、多租户隔离、管理后台。
 
+## 先看这里
+
+README 只作为项目总览和常用入口。更完整、可导航的安装、配置、部署和 API 说明请优先查看文档站目录。
+
+| 你想做什么 | 推荐入口 |
+| --- | --- |
+| 5 分钟内跑通 Starter + Vue 组件 | [快速开始](docs/guide/quick-start.md) |
+| 了解所有配置项如何分层启用 | [配置说明](docs/guide/configuration.md) |
+| 在 Starter 集成和独立服务之间做选择 | [部署路径检查清单](docs/guide/deployment-checklists.md) |
+| 不改业务后端，直接运行独立服务 | [独立服务部署](docs/guide/standalone-service.md) |
+| 前端单独连接远程后端服务 | [前端连接独立服务](docs/guide/frontend-standalone.md) |
+| 配置前端事件、快捷 Prompt 和常见交互 | [前端集成配方](docs/guide/frontend-recipes.md) |
+| 维护后端模块边界和扩展点 | [后端架构维护说明](docs/guide/backend-architecture.md) |
+| 对接聊天、流式输出或管理接口 | [API 文档](docs/api/index.md) |
+| 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) |
+| 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
+
+如果你是第一次接入，建议先按“后端 Starter 集成”和“独立服务部署”二选一，不要同时混用两条路径。
+
 ## 特性
 
 - 即插即用 — Spring Boot Starter + Vue 插件，引入即用
@@ -827,136 +846,26 @@ ai-assistant:
 
 ## API 接口文档
 
-### POST /ai-assistant/chat
+README 不再维护完整 API 细节，避免和文档站重复。请优先查看：
 
-同步调用 AI。
+- [API 概览](docs/api/index.md)
+- [REST API 参考](docs/api/reference.md)
+- [Chat API](docs/api/chat.md)
+- [Capabilities API](docs/api/capabilities.md)
+- [Admin API](docs/api/admin.md)
 
-**请求体：**
+常用入口：
 
-```json
-{
-  "action": "translate",
-  "text": "Hello world",
-  "targetLang": "zh"
-}
-```
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `action` | string | 否 | `translate` / `summarize` / `chat`（默认 chat） |
-| `text` | string | 是 | 输入文本 |
-| `targetLang` | string | 否 | 翻译目标语言：`zh` / `en` / `ja`（默认 zh） |
-| `history` | array | 否 | 多轮对话历史（仅 chat），格式 `[{role, content}]` |
-| `systemPrompt` | string | 否 | 仅 **chat**：覆盖服务端默认角色提示；需 `allow-client-system-prompt: true`，长度受 `client-system-prompt-max-chars` 与校验约束 |
-| `model` | string | 否 | 仅 **chat**：模型 id，须在 `allowed-models` 中；未配置白名单时由服务端忽略 |
-
-**响应：**
-
-```json
-{
-  "success": true,
-  "result": "你好世界"
-}
-```
-
-**错误响应：**
-
-```json
-{
-  "success": false,
-  "error": "LLM call failed: ..."
-}
-```
-
-### GET /ai-assistant/models
-
-返回 **`models`**（字符串数组）与 **`defaultModel`**。未配置 `allowed-models` 时仅含当前默认模型一条；配置白名单后返回列表供前端下拉。**鉴权**与 `access-token` 策略同其他接口。
-
-### POST /ai-assistant/stream
-
-SSE 流式输出，参数同 `/chat`。
-
-返回 `text/event-stream`，每个事件是一段文本片段，拼接后即完整结果。
-
-### POST /ai-assistant/file/summarize
-
-上传文件并生成摘要。
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `file` | multipart | 上传的文件 |
-
-支持格式：`.txt` `.md` `.csv` `.pdf` `.docx` `.doc` `.xlsx` `.xls` `.json` `.xml` `.html` `.yml`，最大 10MB。对 **PDF / ZIP 系 Office（docx、xlsx）/ 老版 OLE（doc、xls）** 会做**文件头魔数**校验，扩展名与内容不符将直接拒绝，避免误触发重型解析。
-
-### POST /ai-assistant/file/translate
-
-上传文件并翻译。
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `file` | multipart | 上传的文件 |
-| `targetLang` | string | 目标语言（默认 zh） |
-
-### GET /ai-assistant/url-preview?url=
-
-从指定 **http(s)** 页面提取 **短摘要**（HTML→纯文本后截取，非 LLM 生成）、**og:title / &lt;title&gt;**、以及至多 **N 张**通过安全校验的图片（默认 **10**，配置项 `url-preview-max-images`，服务端硬顶 30；会过滤明显装饰图/分割线等）。优先 **twitter:image / og:image**，再按文档顺序扫 **&lt;img&gt;**。**兼容性**：`imageUrl` 字段仍等于 `imageUrls[0]`。
-
-需与 URL 抓取相同的安全策略；`ai-assistant.url-fetch-enabled: false` 时本接口返回失败。
-
-**成功示例：**
-
-```json
-{
-  "success": true,
-  "title": "Example",
-  "summary": "Lead paragraph …",
-  "imageUrl": "https://example.com/hero.png",
-  "imageUrls": ["https://example.com/hero.png"]
-}
-```
-
-**失败示例：**
-
-```json
-{ "success": false, "error": "no extractable summary or images" }
-```
-
-配置了 `access-token` 时须携带 `X-AI-Token`。
-
-### POST /ai-assistant/export
-
-将 **一组消息**导出为 **真 XLSX / DOCX / PDF**；响应头使用纯 ASCII `filename="..."`，减少浏览器「另存为」乱码。嵌入 UI 在助手气泡**右键**里通常只传**单条** `assistant`。**当前 starter 已将 `pdfbox`、`poi-ooxml` 等作为传递依赖**，宿主仅依赖本 artifact 即可用 `/export`（除非你方构建显式排除了 transitive）。若仍出现 **500** 且日志为 **`NoClassDefFoundError`（pdfbox/poi 相关）**，多为旧版 starter 曾将这些依赖标成 optional：请升级或按「文件上传」小节手动补依赖。正文里 `![](http(s)://...)` 会在 DOCX/PDF 尝试拉图（SSRF 校验、数量上限与体积上限）；`blob:` 等地址无法服务端拉取。
-
-**请求体 JSON：**
-
-```json
-{
-  "format": "xlsx",
-  "title": "AI Assistant",
-  "messages": [{ "role": "user", "content": "hi" }, { "role": "assistant", "content": "hello" }]
-}
-```
-
-`format`：`xlsx` | `docx` | `pdf`。**PDF**：Starter **默认**嵌入 **NotoSansSC_400Regular.ttf**（[expo/google-fonts](https://github.com/expo/google-fonts/tree/main/font-packages/noto-sans-sc)，SIL OFL；**PDFBox 3.x 仅可靠支持 TrueType glyf**）。将 **`export-pdf-unicode-font`** 设为 **`""`** 则退回 Helvetica（中文成空格），或改为 `file:///...` 使用本机 .ttf。字体加载失败会打 WARN 并同样退回 Helvetica，避免整单 500。
-
-配置了 `access-token` 时须携带 `X-AI-Token`。跨域时 Starter 已 **`Access-Control-Expose-Headers: Content-Disposition`**，便于前端 `fetch` 取建议文件名并触发浏览器下载。
-
-### GET /ai-assistant/health
-
-健康检查（不需要鉴权），返回 `{"success":true,"result":"AI Assistant is running"}`。
-
-### GET /ai-assistant/stats
-
-用量统计，返回示例：
-
-```json
-{
-  "totalCalls": 42,
-  "totalErrors": 2,
-  "callsByAction": { "translate": 20, "chat": 15, "summarize": 7 },
-  "callsByDate": { "2026-04-05": 42 }
-}
-```
+| API | 说明 |
+| --- | --- |
+| `POST /ai-assistant/chat` | 同步对话、翻译、摘要。 |
+| `POST /ai-assistant/stream` | SSE 流式输出。 |
+| `POST /ai-assistant/file/summarize` | 上传文件并摘要。 |
+| `POST /ai-assistant/file/translate` | 上传文件并翻译。 |
+| `GET /ai-assistant/url-preview?url=...` | 抓取链接标题、摘要和图片。 |
+| `POST /ai-assistant/export` | 导出 XLSX、DOCX 或 PDF。 |
+| `GET /ai-assistant/health` | 轻量健康检查。 |
+| `GET /ai-assistant/runtime/config` | 不含密钥的运行时配置摘要。 |
 
 ---
 

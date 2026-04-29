@@ -17,6 +17,7 @@ export default defineConfig({
             { text: 'Introduction', link: '/guide/' },
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Frontend Standalone', link: '/guide/frontend-standalone' },
+            { text: 'Frontend Recipes', link: '/guide/frontend-recipes' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Production Checklist', link: '/guide/production-checklist' },
             { text: 'Configuration', link: '/guide/configuration' },
@@ -29,12 +30,14 @@ export default defineConfig({
             { text: 'Function Calling', link: '/guide/function-calling' },
             { text: 'MCP Server', link: '/guide/mcp-server' },
             { text: 'Plugin System', link: '/guide/plugins' },
+            { text: 'Backend Architecture', link: '/guide/backend-architecture' },
           ],
         },
         {
           text: 'Deployment',
           items: [
             { text: 'Standalone Service', link: '/guide/standalone-service' },
+            { text: 'Deployment Checklists', link: '/guide/deployment-checklists' },
             { text: 'Kubernetes', link: '/guide/kubernetes' },
           ],
         },
@@ -44,6 +47,7 @@ export default defineConfig({
           text: 'REST API',
           items: [
             { text: 'Overview', link: '/api/' },
+            { text: 'REST Reference', link: '/api/reference' },
             { text: 'Chat', link: '/api/chat' },
             { text: 'Capabilities', link: '/api/capabilities' },
             { text: 'Admin', link: '/api/admin' },

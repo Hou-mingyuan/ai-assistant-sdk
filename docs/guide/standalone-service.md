@@ -4,6 +4,7 @@
 
 如果部署或联调遇到问题，先参考：[排障手册](./troubleshooting)。
 正式上线前建议按：[生产上线检查清单](./production-checklist) 逐项确认。
+如果你还没有确定应该使用 Starter 集成还是独立服务部署，先看：[部署路径检查清单](./deployment-checklists)。
 
 ## 1. 一键启动
 

@@ -11,6 +11,8 @@ AI Assistant SDK 提供以下 REST API 分组：
 - `GET /ai-assistant/runtime/config` — 不含密钥的运行时配置摘要
 - `GET /ai-assistant/models` — 可用模型列表
 
+完整端点摘要和请求示例见：[REST API 参考](./reference)。
+
 ## 能力 API
 
 - `GET /ai-assistant/capabilities` — 列出所有能力

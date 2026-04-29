@@ -27,13 +27,32 @@
 - [ ] `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false`。
 - [ ] `AI_ASSISTANT_ALLOWED_ORIGINS` 使用明确域名，不使用 `*`。
 - [ ] 管理端、连接器管理和 MCP Server 未暴露，除非已有额外鉴权保护。
+- [ ] 代理、网关和应用日志都不会记录 `X-AI-Token`、模型 API Key 或上游 Authorization 头。
+- [ ] 公开前端包里没有写死长期高权限 Token；如需前端直接传 Token，优先使用短期令牌。
+- [ ] 如果前端和助手服务跨域部署，已确认 `allowed-origins` 中的协议、域名和端口与浏览器地址栏完全一致。
+- [ ] 如果使用 Cookie、统一登录态或网关鉴权，已确认它不会绕过 `X-AI-Token` 或让未授权页面调用助手接口。
+
+## 高风险功能开关
+
+- [ ] `AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION=true`，且没有为了调试内网链接而在生产关闭。
+- [ ] 如果不需要链接正文抓取，已设置 `AI_ASSISTANT_URL_FETCH_ENABLED=false`。
+- [ ] 如果启用链接抓取，已确认 `AI_ASSISTANT_URL_FETCH_MAX_BYTES`、`AI_ASSISTANT_URL_FETCH_TIMEOUT_SECONDS` 和 `AI_ASSISTANT_URL_FETCH_MAX_CHARS_INJECTED` 有明确上限。
+- [ ] `AI_ASSISTANT_HEADLESS_FETCH_ENABLED=false`，除非确实需要抓取 JS 渲染页面，并且运行环境已隔离。
+- [ ] `AI_ASSISTANT_ADMIN_ENABLED=false`，除非管理接口只在受保护网络或网关后开放。
+- [ ] `AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED=false`，除非只有可信管理端可以动态注册或卸载连接器。
+- [ ] `AI_ASSISTANT_MCP_SERVER_ENABLED=false`，除非 MCP 调用方身份、权限和网络边界都已确认。
+- [ ] 如果启用 RAG，已确认知识库录入接口、命名空间、租户隔离和向量存储访问权限。
 
 ## 限流和资源
 
 - [ ] `AI_ASSISTANT_RATE_LIMIT` 已按业务流量设置。
+- [ ] 如果配置了分 action 限流，`chat`、`stream`、`export`、`file` 等重操作都有合理配额。
+- [ ] 多副本部署时，不只依赖进程内限流；已在网关、Redis 或平台层做统一限流。
 - [ ] `AI_ASSISTANT_TIMEOUT_SECONDS` 能覆盖模型响应时间，但不会无限等待。
 - [ ] `AI_ASSISTANT_CHAT_MAX_TOTAL_CHARS` 和 `AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS` 保持默认或有明确上限。
 - [ ] `AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE` 和 `AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE` 已按上传场景设置。
+- [ ] `AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS`、`AI_ASSISTANT_EXPORT_MAX_MESSAGES` 和 `AI_ASSISTANT_EXPORT_MAX_TOTAL_CHARS` 已按业务场景设置。
+- [ ] 如果允许导出图片，`AI_ASSISTANT_EXPORT_MAX_IMAGE_BYTES` 和 `AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS` 有明确上限。
 - [ ] Compose 或平台层已设置内存、CPU 和日志滚动限制。
 
 ## 网络和反向代理
@@ -51,8 +70,19 @@
 - [ ] 生产环境设置 `SPRING_PROFILES_ACTIVE=prod` 或 `json`，启用结构化日志。
 - [ ] 日志采集平台能按 `requestId`、`traceId`、`tenantId` 检索。
 - [ ] `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info`，除非 metrics 已由内网或网关保护。
+- [ ] 如果开放 `metrics`，确认它只在内网、网关鉴权或监控系统网络内可访问。
+- [ ] `/ai-assistant/runtime/config` 只输出不含密钥的摘要，但仍建议只在可信网络或鉴权后访问。
 - [ ] 告警系统覆盖容器重启、健康检查失败、上游模型错误率和 429。
 - [ ] 日志脱敏规则覆盖 `X-AI-Token`、模型 API Key、用户上传文件名和上游请求头。
+- [ ] 已确认模型调用失败时日志只输出响应摘要，不输出完整 Prompt、上传文件正文或密钥。
+
+## Actuator 和健康检查
+
+- [ ] 对外只暴露必要健康检查路径，例如 `/actuator/health`、`/actuator/info` 和 `/ai-assistant/health`。
+- [ ] Kubernetes 或容器平台的 liveness、readiness 路径与实际 `AI_ASSISTANT_CONTEXT_PATH` 一致。
+- [ ] `/actuator/info` 中的镜像名、版本、修订号和构建时间可用于定位当前运行版本。
+- [ ] 不把 `/actuator/env`、`/actuator/configprops`、`/actuator/heapdump` 等敏感端点暴露到公网。
+- [ ] 如果平台统一接管健康检查，仍保留一个轻量业务健康接口用于排查助手上下文路径是否正确。
 
 ## 上线前验证
 
