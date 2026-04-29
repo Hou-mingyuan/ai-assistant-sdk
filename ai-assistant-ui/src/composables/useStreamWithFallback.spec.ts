@@ -127,4 +127,72 @@ describe('useStreamWithFallback', () => {
     expect(chunks).toEqual(['direct ws']);
     expect(mockedStreamChat).not.toHaveBeenCalled();
   });
+
+  it('resets to SSE when direct WS streaming fails', async () => {
+    async function* wsStream(): AsyncGenerator<string> {
+      yield* [];
+      throw new Error('websocket disconnected');
+    }
+    mockedWsStreamChat.mockReturnValue(wsStream());
+
+    const { streamWithFallback, preferredProtocol } = useStreamWithFallback();
+    preferredProtocol.value = 'ws';
+
+    await expect(
+      collectAsync(streamWithFallback('http://test', { action: 'chat', text: 'hi' })),
+    ).rejects.toThrow('websocket disconnected');
+    expect(preferredProtocol.value).toBe('sse');
+  });
+
+  it('falls back to WS when SSE completes without chunks', async () => {
+    async function* emptyStream(): AsyncGenerator<string> {
+      yield* [];
+    }
+    async function* wsStream() {
+      yield 'ws after empty';
+    }
+
+    mockedStreamChat.mockReturnValue(emptyStream());
+    mockedWsStreamChat.mockReturnValue(wsStream());
+
+    const { streamWithFallback, preferredProtocol } = useStreamWithFallback();
+    const chunks = await collectAsync(
+      streamWithFallback('https://api.example.com/chat/ws', { action: 'chat', text: 'hi' }),
+    );
+
+    expect(chunks).toEqual(['ws after empty']);
+    expect(preferredProtocol.value).toBe('sse');
+    expect(mockedWsStreamChat).toHaveBeenCalledWith(
+      'wss://api.example.com/chat/ws',
+      { action: 'chat', text: 'hi' },
+      undefined,
+      undefined,
+    );
+  });
+
+  it('uses an explicit WS URL when provided', async () => {
+    async function* failingStream(): AsyncGenerator<string> {
+      yield* [];
+      throw new TypeError('Network failure');
+    }
+    async function* wsStream() {
+      yield 'explicit ws';
+    }
+
+    mockedStreamChat.mockReturnValue(failingStream());
+    mockedWsStreamChat.mockReturnValue(wsStream());
+
+    const { streamWithFallback } = useStreamWithFallback('ws://custom.example.com/socket');
+    const chunks = await collectAsync(
+      streamWithFallback('https://api.example.com/chat', { action: 'chat', text: 'hi' }),
+    );
+
+    expect(chunks).toEqual(['explicit ws']);
+    expect(mockedWsStreamChat).toHaveBeenCalledWith(
+      'ws://custom.example.com/socket',
+      { action: 'chat', text: 'hi' },
+      undefined,
+      undefined,
+    );
+  });
 });
