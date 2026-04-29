@@ -1263,6 +1263,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 如果需要放到反向代理后面，可以参考 `deploy/nginx/ai-assistant.conf` 和 `deploy/caddy/Caddyfile`。流式接口需要关闭代理缓冲。
 部署或联调遇到问题时，可参考 `docs/guide/troubleshooting.md`。
+正式上线前建议按 `docs/guide/production-checklist.md` 逐项确认。
 
 `.env` 可直接控制宿主机端口、服务上下文路径、模型参数、功能开关和资源限制：
 

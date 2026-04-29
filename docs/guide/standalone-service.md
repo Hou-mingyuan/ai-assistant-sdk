@@ -3,6 +3,7 @@
 除了作为 Spring Boot Starter 集成进业务后端，AI Assistant 也可以作为独立 HTTP 服务部署。这个形态适合多个前端或多个业务系统共用同一套模型配置、鉴权、限流和导出能力。
 
 如果部署或联调遇到问题，先参考：[排障手册](./troubleshooting)。
+正式上线前建议按：[生产上线检查清单](./production-checklist) 逐项确认。
 
 ## 1. 一键启动
 

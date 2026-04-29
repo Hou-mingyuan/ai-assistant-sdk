@@ -8,6 +8,7 @@ AI Assistant SDK 是一个可嵌入的 AI 助手解决方案，包含：
 
 如果你选择独立服务形态，前端接入可参考：[前端连接独立服务](./frontend-standalone)。
 部署或联调遇到问题时，可以直接查看：[排障手册](./troubleshooting)。
+正式上线前建议按：[生产上线检查清单](./production-checklist) 逐项确认。
 
 ## 核心特性
 
