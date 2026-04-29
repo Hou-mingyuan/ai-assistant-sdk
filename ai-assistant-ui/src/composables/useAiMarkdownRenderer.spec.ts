@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { computed } from 'vue';
+import DOMPurify from 'dompurify';
 import { useAiMarkdownRenderer } from './useAiMarkdownRenderer';
 
 const t = computed(
@@ -64,6 +65,20 @@ describe('useAiMarkdownRenderer', () => {
     const first = renderContent('cache test', 'Copy', false);
     const second = renderContent('cache test', 'Copy', false);
     expect(first).toBe(second);
+  });
+
+  it('evicts the oldest non-streaming render when cache reaches capacity', () => {
+    clearRenderCache();
+    const sanitizeSpy = vi.spyOn(DOMPurify, 'sanitize');
+
+    renderContent('cache entry 0', 'Copy', false);
+    for (let i = 1; i <= 250; i += 1) {
+      renderContent(`cache entry ${i}`, 'Copy', false);
+    }
+    const callsBeforeRerender = sanitizeSpy.mock.calls.length;
+    renderContent('cache entry 0', 'Copy', false);
+
+    expect(sanitizeSpy.mock.calls.length).toBe(callsBeforeRerender + 1);
   });
 
   it('does not cache streaming renders', () => {
