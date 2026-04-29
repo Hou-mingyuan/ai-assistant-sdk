@@ -8,6 +8,7 @@ AI Assistant SDK 提供以下 REST API 分组：
 - `POST /ai-assistant/stream` — SSE 流式输出
 - `POST /ai-assistant/sse` — 标准化 SSE（带 event 类型）
 - `GET /ai-assistant/health` — 健康检查
+- `GET /ai-assistant/runtime/config` — 不含密钥的运行时配置摘要
 - `GET /ai-assistant/models` — 可用模型列表
 
 ## 能力 API

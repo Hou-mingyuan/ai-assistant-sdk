@@ -43,7 +43,7 @@ copy .env.example .env
 docker compose up -d --build
 ```
 
-启动后可以执行轻量烟测，确认健康检查、Actuator 和鉴权行为正常：
+启动后可以执行轻量烟测，确认健康检查、Actuator liveness、鉴权行为和运行时配置摘要正常：
 
 ```bash
 node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me

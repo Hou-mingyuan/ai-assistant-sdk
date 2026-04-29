@@ -16,7 +16,13 @@ node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant cha
 node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant
 ```
 
-烟测只访问健康检查、Actuator 和 `/stats`，不会调用真实模型。
+烟测只访问轻量健康检查、Actuator liveness、`/stats` 和运行时配置摘要，不会调用真实模型。
+
+如果需要确认当前服务启用了哪些功能和限制，可以访问不含密钥的运行时配置摘要：
+
+```text
+GET /ai-assistant/runtime/config
+```
 
 ## 2. Docker 镜像拉取不稳定
 

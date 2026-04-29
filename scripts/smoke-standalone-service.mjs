@@ -17,8 +17,8 @@ const checks = [
     validate: body => body?.success === true && body?.status === 'running',
   },
   {
-    name: 'actuator health',
-    url: `${serviceOrigin}/actuator/health`,
+    name: 'actuator liveness',
+    url: `${serviceOrigin}/actuator/health/liveness`,
     expectedStatus: 200,
     validate: body => body?.status === 'UP',
   },
@@ -38,14 +38,29 @@ if (accessToken.trim()) {
       headers: { 'X-AI-Token': accessToken.trim() },
       validate: body => body && typeof body === 'object',
     },
+    {
+      name: 'runtime config with auth',
+      url: `${baseUrl}/runtime/config`,
+      expectedStatus: 200,
+      headers: { 'X-AI-Token': accessToken.trim() },
+      validate: validateRuntimeConfig,
+    },
   )
 } else {
-  checks.push({
-    name: 'stats without auth',
-    url: `${baseUrl}/stats`,
-    expectedStatus: 200,
-    validate: body => body && typeof body === 'object',
-  })
+  checks.push(
+    {
+      name: 'stats without auth',
+      url: `${baseUrl}/stats`,
+      expectedStatus: 200,
+      validate: body => body && typeof body === 'object',
+    },
+    {
+      name: 'runtime config without auth',
+      url: `${baseUrl}/runtime/config`,
+      expectedStatus: 200,
+      validate: validateRuntimeConfig,
+    },
+  )
 }
 
 try {
@@ -102,6 +117,16 @@ async function runSingleCheck(check) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function validateRuntimeConfig(body) {
+  return body?.success === true
+    && body.service
+    && body.security
+    && body.features
+    && body.limits
+    && typeof body.service.contextPath === 'string'
+    && typeof body.security.accessTokenConfigured === 'boolean'
 }
 
 async function fetchWithTimeout(url, options) {

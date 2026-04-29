@@ -23,6 +23,7 @@ import com.aiassistant.controller.BatchController;
 import com.aiassistant.controller.CapabilityController;
 import com.aiassistant.controller.ConnectorHealthController;
 import com.aiassistant.controller.FileUploadController;
+import com.aiassistant.controller.RuntimeConfigController;
 import com.aiassistant.controller.SessionController;
 import com.aiassistant.controller.StatsController;
 import com.aiassistant.service.FileParserService;
@@ -248,6 +249,14 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public StatsController statsController(UsageStats usageStats) {
         return new StatsController(usageStats);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RuntimeConfigController runtimeConfigController(
+            AiAssistantProperties properties,
+            com.aiassistant.config.AiAssistantSecurityPostureAdvisor securityPostureAdvisor) {
+        return new RuntimeConfigController(properties, securityPostureAdvisor);
     }
 
     @Bean

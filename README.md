@@ -1306,6 +1306,12 @@ http://localhost:8080/ai-assistant/export
 http://localhost:8080/actuator/health
 ```
 
+不含密钥的运行时配置摘要：
+
+```text
+http://localhost:8080/ai-assistant/runtime/config
+```
+
 如果修改 `AI_ASSISTANT_CONTEXT_PATH`，前端 `baseUrl` 和健康检查路径需要使用新的上下文路径；Dockerfile 与 `docker-compose.yml` 中的容器健康检查会自动读取该环境变量。
 
 前端组件可以直接指向独立服务：

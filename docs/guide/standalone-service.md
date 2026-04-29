@@ -208,6 +208,12 @@ GET /actuator/health
 GET /actuator/info
 ```
 
+不含密钥的运行时配置摘要：
+
+```text
+GET /ai-assistant/runtime/config
+```
+
 默认只暴露 `health,info`：
 
 ```text
@@ -237,7 +243,7 @@ AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS=48000
 
 ## 10. 本地烟测脚本
 
-仓库提供了一个不依赖额外 npm 包的烟测脚本，用于确认独立服务已启动、Actuator 正常、鉴权配置生效：
+仓库提供了一个不依赖额外 npm 包的烟测脚本，用于确认独立服务已启动、Actuator liveness 正常、鉴权配置和运行时配置摘要生效：
 
 ```bash
 node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
