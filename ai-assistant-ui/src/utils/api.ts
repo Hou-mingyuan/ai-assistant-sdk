@@ -54,6 +54,16 @@ function apiUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, '')}${path}`
 }
 
+function parseSseDataEvent(event: string): string | undefined {
+  const data = event
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.replace(/^data:\s?/, ''))
+    .join('\n')
+    .trim()
+  return data && data !== '[DONE]' ? data : undefined
+}
+
 const DEFAULT_TIMEOUT_MS = 60_000
 const FILE_UPLOAD_TIMEOUT_MS = 300_000
 const EXPORT_TIMEOUT_MS = 180_000
@@ -234,17 +244,21 @@ export async function* streamChat(
   try {
     while (true) {
       const { done, value } = await reader.read()
-      if (done) break
+      if (done) {
+        const trailing = parseSseDataEvent(buffer)
+        if (trailing) yield trailing
+        break
+      }
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 
-      for (const line of lines) {
-        const trimmed = line.replace(/^data:\s*/, '').trim()
-        if (trimmed && trimmed !== '[DONE]') {
-          yield trimmed
-        }
+      let eventEnd = buffer.indexOf('\n\n')
+      while (eventEnd >= 0) {
+        const event = buffer.slice(0, eventEnd)
+        buffer = buffer.slice(eventEnd + 2)
+        const data = parseSseDataEvent(event)
+        if (data) yield data
+        eventEnd = buffer.indexOf('\n\n')
       }
     }
   } finally {

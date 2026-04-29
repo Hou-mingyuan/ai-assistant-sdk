@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
-import { postChat, fetchModels, fetchUrlPreview } from './api'
+import { postChat, fetchModels, fetchUrlPreview, streamChat } from './api'
 
 beforeEach(() => {
   mockFetch.mockReset()
@@ -99,3 +99,47 @@ describe('fetchUrlPreview', () => {
     expect(res.title).toBe('Test')
   })
 })
+
+describe('streamChat', () => {
+  it('parses standard SSE events across chunks', async () => {
+    mockFetch.mockResolvedValueOnce(streamResponse(['data: hel', 'lo\n\n', 'data: [DONE]\n\n']))
+
+    const chunks = []
+    for await (const chunk of streamChat('/ai', { action: 'chat', text: 'hi' })) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toEqual(['hello'])
+  })
+
+  it('parses multiline SSE data events', async () => {
+    mockFetch.mockResolvedValueOnce(streamResponse(['data: hello\r\ndata: world\r\n\r\n']))
+
+    const chunks = []
+    for await (const chunk of streamChat('/ai', { action: 'chat', text: 'hi' })) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toEqual(['hello\nworld'])
+  })
+})
+
+function streamResponse(chunks: string[]) {
+  const encoder = new TextEncoder()
+  let index = 0
+  const reader = {
+    read: vi.fn(() => {
+      if (index >= chunks.length) {
+        return Promise.resolve({ done: true, value: undefined })
+      }
+      return Promise.resolve({ done: false, value: encoder.encode(chunks[index++]) })
+    }),
+    cancel: vi.fn(() => Promise.resolve()),
+  }
+  return {
+    ok: true,
+    body: {
+      getReader: () => reader,
+    },
+  }
+}
