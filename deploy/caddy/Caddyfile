@@ -1,0 +1,20 @@
+assistant.example.com {
+    encode zstd gzip
+
+    @assistant path /ai-assistant/*
+    reverse_proxy @assistant 127.0.0.1:8080 {
+        header_up X-Request-Id {http.request.uuid}
+        header_up X-Forwarded-Proto {scheme}
+        flush_interval -1
+        transport http {
+            read_timeout 120s
+            write_timeout 120s
+        }
+    }
+
+    @actuator_health path /actuator/health /actuator/info
+    reverse_proxy @actuator_health 127.0.0.1:8080
+
+    @actuator_other path /actuator/*
+    respond @actuator_other 404
+}

@@ -56,6 +56,7 @@ ghcr.io/hou-mingyuan/ai-assistant-service
 ```
 
 如果仓库配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 也会同步推送 Docker Hub 镜像。
+GHCR 镜像推送完成后，发布流程会再拉取刚发布的镜像并执行烟测，确认远程镜像可运行。
 
 Helm chart 默认也使用这个镜像仓库；如果你使用私有镜像仓库，可以覆盖 `image.repository` 和 `image.tag`。
 
@@ -69,6 +70,13 @@ docker compose -f docker-compose.ghcr.yml up -d
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
+```
+
+反向代理示例见仓库根目录：
+
+```text
+deploy/nginx/ai-assistant.conf
+deploy/caddy/Caddyfile
 ```
 
 Kubernetes 部署可以使用仓库内 Helm chart：

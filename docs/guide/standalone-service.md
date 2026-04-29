@@ -60,6 +60,8 @@ secrets.DOCKERHUB_TOKEN
 vars.DOCKERHUB_REPOSITORY   # 可选，默认 <DOCKERHUB_USERNAME>/ai-assistant-service
 ```
 
+Release 发布流程会在 GHCR 推送完成后再次拉取刚发布的镜像，启动容器并执行 `scripts/smoke-standalone-service.mjs`。这个步骤用于确认远程镜像可以被实际拉取和启动，而不仅仅是构建成功。
+
 如果不想本地构建，可以把 `docker-compose.yml` 中的镜像改为已发布镜像，并跳过 `build` 配置。
 
 仓库已提供拉取 GHCR 镜像的一键启动文件：
@@ -245,3 +247,19 @@ node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant
 ```
 
 脚本只检查轻量接口，不会调用真实模型接口。
+
+## 11. 反向代理
+
+生产环境通常会把独立服务放在 Nginx、Caddy、Ingress 或 API Gateway 后面。仓库提供了两个可复制的起点：
+
+```text
+deploy/nginx/ai-assistant.conf
+deploy/caddy/Caddyfile
+```
+
+注意事项：
+
+- 公开路径需要和 `AI_ASSISTANT_CONTEXT_PATH` 保持一致，默认是 `/ai-assistant`。
+- SSE 流式接口需要关闭代理缓冲，否则前端可能收不到实时输出。
+- 默认只建议暴露 `/actuator/health` 和 `/actuator/info`，不要直接开放全部 Actuator 端点。
+- 如果代理层改了域名或协议，前端 `baseUrl` 要使用最终浏览器可访问的地址。

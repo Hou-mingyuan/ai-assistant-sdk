@@ -142,6 +142,73 @@ jobs:
             VCS_REF=${{ github.sha }}
             BUILD_DATE=${{ steps.meta-vars.outputs.created }}
 
+  smoke-published-image:
+    name: Smoke test published GHCR image
+    runs-on: ubuntu-latest
+    needs: publish-docker
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve GHCR image
+        id: image
+        shell: bash
+        run: |
+          owner_lc="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          image="${REGISTRY}/${owner_lc}/${IMAGE_NAME}:${GITHUB_REF_NAME}"
+          echo "image=${image}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull published image
+        run: |
+          for attempt in {1..12}; do
+            if docker pull "${{ steps.image.outputs.image }}"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Run published image
+        run: |
+          docker run -d \
+            --name ai-assistant-service-published \
+            --read-only \
+            --tmpfs /tmp \
+            --security-opt no-new-privileges:true \
+            -p 18081:8080 \
+            -e AI_ASSISTANT_API_KEY=ci-placeholder \
+            -e AI_ASSISTANT_PROVIDER=ollama \
+            -e AI_ASSISTANT_ACCESS_TOKEN=ci-token \
+            "${{ steps.image.outputs.image }}"
+
+      - name: Smoke test published image
+        env:
+          AI_ASSISTANT_SMOKE_ATTEMPTS: 30
+          AI_ASSISTANT_SMOKE_RETRY_DELAY_MS: 2000
+        run: node scripts/smoke-standalone-service.mjs http://localhost:18081/ai-assistant ci-token
+
+      - name: Show container logs
+        if: failure()
+        run: docker logs ai-assistant-service-published || true
+
+      - name: Clean up container
+        if: always()
+        run: docker rm -f ai-assistant-service-published || true
+
       - name: Build and push Docker Hub image
         if: ${{ env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
         uses: docker/build-push-action@v6

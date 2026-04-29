@@ -1234,6 +1234,7 @@ ai-assistant-sdk/
 镜像使用 Spring Boot layered jar 拆分依赖层和应用层，便于 Docker 缓存和增量推送。
 发布 GitHub Release 后，工作流会推送镜像到 `ghcr.io/hou-mingyuan/ai-assistant-service`。
 如果配置了 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 和可选的 `DOCKERHUB_REPOSITORY`，Release 也会同步推送 Docker Hub 镜像。
+GHCR 镜像推送完成后，发布流程会再拉取刚发布的镜像并执行烟测，确认远程镜像可运行。
 Kubernetes 场景可以使用 `helm/ai-assistant`，Chart 已包含 Deployment、Service、可选 Ingress 和可选 HPA。
 
 ```bash
@@ -1259,6 +1260,8 @@ docker compose -f docker-compose.ghcr.yml up -d
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
+
+如果需要放到反向代理后面，可以参考 `deploy/nginx/ai-assistant.conf` 和 `deploy/caddy/Caddyfile`。流式接口需要关闭代理缓冲。
 
 `.env` 可直接控制宿主机端口、服务上下文路径、模型参数、功能开关和资源限制：
 
