@@ -23,16 +23,17 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileUploadController {
 
     private static final Logger log = LoggerFactory.getLogger(FileUploadController.class);
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-    private static final java.util.Set<String> ALLOWED_CONTENT_TYPES = java.util.Set.of(
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/msword",
-            "application/vnd.ms-excel",
-            "text/csv",
-            "text/plain",
-            "text/markdown"
+    private static final java.util.Map<String, java.util.Set<String>> ALLOWED_TYPES_BY_EXTENSION = java.util.Map.of(
+            ".pdf", java.util.Set.of("application/pdf"),
+            ".docx", java.util.Set.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+            ".xlsx", java.util.Set.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            ".doc", java.util.Set.of("application/msword"),
+            ".xls", java.util.Set.of("application/vnd.ms-excel"),
+            ".csv", java.util.Set.of("text/csv", "text/plain", "application/vnd.ms-excel"),
+            ".txt", java.util.Set.of("text/plain"),
+            ".md", java.util.Set.of("text/markdown", "text/plain", "application/octet-stream")
     );
 
     private final FileParserService fileParserService;
@@ -47,17 +48,38 @@ public class FileUploadController {
 
     private String validateFileType(MultipartFile file) {
         if (file == null || file.isEmpty()) return "File is empty";
-        String contentType = file.getContentType();
-        if (contentType != null && !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            String name = file.getOriginalFilename();
-            if (name != null && (name.endsWith(".pdf") || name.endsWith(".docx") || name.endsWith(".xlsx")
-                    || name.endsWith(".csv") || name.endsWith(".txt") || name.endsWith(".md")
-                    || name.endsWith(".doc") || name.endsWith(".xls"))) {
-                return null;
-            }
-            return "Unsupported file type: " + contentType + ". Allowed: pdf, docx, xlsx, csv, txt";
+        if (file.getSize() > MAX_FILE_SIZE) return "File size exceeds 10MB limit";
+
+        String name = file.getOriginalFilename();
+        String ext = extensionOf(name);
+        java.util.Set<String> allowedTypes = ALLOWED_TYPES_BY_EXTENSION.get(ext);
+        if (allowedTypes == null) {
+            return "Unsupported file extension. Allowed: pdf, docx, xlsx, doc, xls, csv, txt, md";
+        }
+
+        String contentType = normalizeContentType(file.getContentType());
+        if (contentType != null && !allowedTypes.contains(contentType)) {
+            return "File content type does not match extension";
         }
         return null;
+    }
+
+    private String extensionOf(String name) {
+        if (name == null || name.isBlank()) {
+            return "";
+        }
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 ? name.substring(dot).toLowerCase(java.util.Locale.ROOT) : "";
+    }
+
+    private String normalizeContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return null;
+        }
+        int semicolon = contentType.indexOf(';');
+        String normalized = semicolon >= 0 ? contentType.substring(0, semicolon) : contentType;
+        normalized = normalized.trim().toLowerCase(java.util.Locale.ROOT);
+        return normalized.isBlank() ? null : normalized;
     }
 
     @PostMapping("/file/summarize")
