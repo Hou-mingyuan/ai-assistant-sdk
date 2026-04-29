@@ -1,12 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockFetch = vi.fn();
+const mockCreateObjectURL = vi.fn(() => 'blob:test-url');
+const mockRevokeObjectURL = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
+Object.defineProperty(URL, 'createObjectURL', {
+  configurable: true,
+  value: mockCreateObjectURL,
+});
+Object.defineProperty(URL, 'revokeObjectURL', {
+  configurable: true,
+  value: mockRevokeObjectURL,
+});
 
-import { postChat, fetchModels, fetchUrlPreview, streamChat, uploadFile } from './api';
+import {
+  postChat,
+  fetchModels,
+  fetchUrlPreview,
+  streamChat,
+  uploadFile,
+  postServerExport,
+} from './api';
 
 beforeEach(() => {
   mockFetch.mockReset();
+  mockCreateObjectURL.mockClear();
+  mockRevokeObjectURL.mockClear();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('postChat', () => {
@@ -173,6 +194,97 @@ describe('uploadFile', () => {
   });
 });
 
+describe('postServerExport', () => {
+  it('downloads exported file with quoted content-disposition filename', async () => {
+    vi.useFakeTimers();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const progress = vi.fn();
+    const blob = new Blob(['xlsx'], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    mockFetch.mockResolvedValueOnce(exportResponse(blob, 'attachment; filename="chat.xlsx"'));
+
+    const res = await postServerExport(
+      '/ai/',
+      'xlsx',
+      'Chat Export',
+      [{ role: 'assistant', content: 'hello' }],
+      '  export-token  ',
+      progress,
+    );
+    const request = mockFetch.mock.calls[0][1];
+    const body = JSON.parse(request.body);
+
+    expect(res.ok).toBe(true);
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/export');
+    expect(request.method).toBe('POST');
+    expect(request.headers['X-AI-Token']).toBe('export-token');
+    expect(body).toEqual({
+      format: 'xlsx',
+      title: 'Chat Export',
+      messages: [{ role: 'assistant', content: 'hello' }],
+    });
+    expect(progress.mock.calls.map(([phase]) => phase)).toEqual(['response', 'download']);
+    expect(mockCreateObjectURL).toHaveBeenCalledWith(blob);
+    expect(clickSpy).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(60_000);
+    expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:test-url');
+  });
+
+  it('decodes filename star header and sends theme when provided', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce(
+      exportResponse(new Blob(['docx']), "attachment; filename*=UTF-8''%E5%AF%B9%E8%AF%9D.docx"),
+    );
+
+    const res = await postServerExport(
+      '/ai',
+      'docx',
+      '对话',
+      [{ role: 'user', content: '你好' }],
+      undefined,
+      undefined,
+      'dark',
+    );
+    const request = mockFetch.mock.calls[0][1];
+    const body = JSON.parse(request.body);
+    const anchor = clickSpy.mock.instances[0] as HTMLAnchorElement;
+
+    expect(res.ok).toBe(true);
+    expect(request.headers['X-AI-Token']).toBeUndefined();
+    expect(body.theme).toBe('dark');
+    expect(anchor.download).toBe('对话.docx');
+  });
+
+  it('converts pdf blob to octet-stream before download', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce(
+      exportResponse(new Blob(['pdf'], { type: 'application/pdf' }), null),
+    );
+
+    const res = await postServerExport('/ai', 'pdf', 'PDF', []);
+    const downloadedBlob = mockCreateObjectURL.mock.calls[0][0] as Blob;
+
+    expect(res.ok).toBe(true);
+    expect(downloadedBlob.type).toBe('application/octet-stream');
+  });
+
+  it('returns server error text when export fails', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      text: () => Promise.resolve('export failed'),
+    });
+
+    const res = await postServerExport('/ai', 'xlsx', 'Export', []);
+
+    expect(res).toEqual({ ok: false, error: 'export failed' });
+    expect(mockCreateObjectURL).not.toHaveBeenCalled();
+  });
+});
+
 describe('streamChat', () => {
   it('parses standard SSE events across chunks', async () => {
     mockFetch.mockResolvedValueOnce(streamResponse(['data: hel', 'lo\n\n', 'data: [DONE]\n\n']));
@@ -258,6 +370,17 @@ function streamResponse(chunks: string[]) {
     ok: true,
     body: {
       getReader: () => reader,
+    },
+  };
+}
+
+function exportResponse(blob: Blob, contentDisposition: string | null) {
+  return {
+    ok: true,
+    blob: () => Promise.resolve(blob),
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === 'content-disposition' ? contentDisposition : null,
     },
   };
 }
