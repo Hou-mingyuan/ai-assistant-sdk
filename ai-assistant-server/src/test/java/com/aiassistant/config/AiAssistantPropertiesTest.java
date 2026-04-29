@@ -104,6 +104,28 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void listModelsForClientSanitizesConfiguredModels() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setProvider("openai");
+        p.setAllowedModels(java.util.Arrays.asList(" gpt-5.4 ", "", null, "gpt-5.4-mini", "gpt-5.4"));
+
+        List<String> models = p.listModelsForClient();
+
+        assertEquals(List.of("gpt-5.4", "gpt-5.4-mini"), models);
+    }
+
+    @Test
+    void listModelsForClientFallsBackWhenConfiguredModelsAreBlank() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setProvider("openai");
+        p.setAllowedModels(java.util.Arrays.asList("", "   ", null));
+
+        List<String> models = p.listModelsForClient();
+
+        assertEquals(List.of("gpt-5.4-mini"), models);
+    }
+
+    @Test
     void resolveNewProviders() {
         AiAssistantProperties p = new AiAssistantProperties();
 

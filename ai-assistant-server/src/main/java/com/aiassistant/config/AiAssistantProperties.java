@@ -351,7 +351,20 @@ public class AiAssistantProperties {
         if (allowed == null || allowed.isEmpty()) {
             return java.util.List.of(def);
         }
-        return java.util.List.copyOf(allowed);
+        java.util.ArrayList<String> models = new java.util.ArrayList<>();
+        for (String model : allowed) {
+            if (model == null || model.isBlank()) {
+                continue;
+            }
+            String normalized = model.trim();
+            if (!models.contains(normalized)) {
+                models.add(normalized);
+            }
+        }
+        if (models.isEmpty()) {
+            return java.util.List.of(def);
+        }
+        return java.util.List.copyOf(models);
     }
 
     /**
