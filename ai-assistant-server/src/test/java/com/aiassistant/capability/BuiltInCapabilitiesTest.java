@@ -1,14 +1,13 @@
 package com.aiassistant.capability;
 
-import com.aiassistant.spi.AssistantCapability;
-import com.aiassistant.service.LlmService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import com.aiassistant.service.LlmService;
+import com.aiassistant.spi.AssistantCapability;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class BuiltInCapabilitiesTest {
 

@@ -5,16 +5,13 @@ import com.aiassistant.prompt.PromptTemplateRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
-/**
- * REST API for prompt template management: list, get, create, render.
- */
+/** REST API for prompt template management: list, get, create, render. */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
 public class PromptTemplateController {
@@ -51,11 +48,13 @@ public class PromptTemplateController {
     }
 
     @PostMapping("/templates")
-    public ResponseEntity<Map<String, String>> createTemplate(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, String>> createTemplate(
+            @RequestBody Map<String, Object> body) {
         Object rawName = body.get("name");
         Object rawTemplate = body.get("template");
         if (!(rawName instanceof String name) || !(rawTemplate instanceof String template)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "name and template are required and must be strings"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "name and template are required and must be strings"));
         }
 
         Map<String, String> defaults = null;
@@ -72,16 +71,23 @@ public class PromptTemplateController {
         List<PromptTemplate.FewShotExample> examples = null;
         Object rawExamples = body.get("fewShotExamples");
         if (rawExamples instanceof List<?> exList) {
-            examples = exList.stream()
-                    .filter(Map.class::isInstance)
-                    .map(m -> {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> map = (Map<String, Object>) m;
-                        String userInput = map.get("userInput") instanceof String s ? s : "";
-                        String assistantOutput = map.get("assistantOutput") instanceof String s ? s : "";
-                        return new PromptTemplate.FewShotExample(userInput, assistantOutput);
-                    })
-                    .toList();
+            examples =
+                    exList.stream()
+                            .filter(Map.class::isInstance)
+                            .map(
+                                    m -> {
+                                        @SuppressWarnings("unchecked")
+                                        Map<String, Object> map = (Map<String, Object>) m;
+                                        String userInput =
+                                                map.get("userInput") instanceof String s ? s : "";
+                                        String assistantOutput =
+                                                map.get("assistantOutput") instanceof String s
+                                                        ? s
+                                                        : "";
+                                        return new PromptTemplate.FewShotExample(
+                                                userInput, assistantOutput);
+                                    })
+                            .toList();
         }
 
         registry.register(new PromptTemplate(name, template, defaults, examples));

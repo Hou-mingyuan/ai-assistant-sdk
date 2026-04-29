@@ -3,15 +3,14 @@ package com.aiassistant.config;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.MDC;
-
 import java.io.IOException;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.slf4j.MDC;
 
 /**
- * 为每个请求生成唯一 requestId，写入 SLF4J MDC 和响应头 {@code X-Request-Id}。
- * logback pattern 中使用 {@code %X{requestId}} 即可在日志中输出。
+ * 为每个请求生成唯一 requestId，写入 SLF4J MDC 和响应头 {@code X-Request-Id}。 logback pattern 中使用 {@code
+ * %X{requestId}} 即可在日志中输出。
  */
 public class RequestIdFilter implements Filter {
 
@@ -36,8 +35,10 @@ public class RequestIdFilter implements Filter {
         }
         String incoming = request.getHeader(HEADER);
         String requestId;
-        if (incoming != null && !incoming.isBlank()
-                && incoming.length() <= 64 && SAFE_ID.matcher(incoming.trim()).matches()) {
+        if (incoming != null
+                && !incoming.isBlank()
+                && incoming.length() <= 64
+                && SAFE_ID.matcher(incoming.trim()).matches()) {
             requestId = incoming.trim();
         } else {
             requestId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);

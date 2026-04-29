@@ -17,22 +17,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { I18nMessages } from '../utils/i18n'
+import { ref } from 'vue';
+import type { I18nMessages } from '../utils/i18n';
 
 defineProps<{
-  show: boolean
-  x: number
-  y: number
-  text: string
-  loading: boolean
-  error: string
-  color: string
-  isDark: boolean
-  t: I18nMessages
-}>()
+  show: boolean;
+  x: number;
+  y: number;
+  text: string;
+  loading: boolean;
+  error: string;
+  color: string;
+  isDark: boolean;
+  t: I18nMessages;
+}>();
 
-const popRef = ref<HTMLElement | null>(null)
+const popRef = ref<HTMLElement | null>(null);
 
-defineExpose({ popRef })
+defineExpose({ popRef });
 </script>

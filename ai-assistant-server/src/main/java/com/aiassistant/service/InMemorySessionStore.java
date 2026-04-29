@@ -1,7 +1,6 @@
 package com.aiassistant.service;
 
 import com.aiassistant.model.SessionData;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -11,9 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * In-memory {@link SessionStore} with per-user LRU eviction and TTL-based cleanup.
- */
+/** In-memory {@link SessionStore} with per-user LRU eviction and TTL-based cleanup. */
 public class InMemorySessionStore implements SessionStore {
 
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SessionData>> userSessions =
@@ -49,7 +46,11 @@ public class InMemorySessionStore implements SessionStore {
         var sessions = userSessions.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
         if (sessions.size() >= MAX_SESSIONS_PER_USER) {
             sessions.entrySet().stream()
-                    .min((a, b) -> a.getValue().getUpdatedAt().compareTo(b.getValue().getUpdatedAt()))
+                    .min(
+                            (a, b) ->
+                                    a.getValue()
+                                            .getUpdatedAt()
+                                            .compareTo(b.getValue().getUpdatedAt()))
                     .ifPresent(e -> sessions.remove(e.getKey()));
         }
         SessionData stored = copySession(input);
@@ -85,12 +86,16 @@ public class InMemorySessionStore implements SessionStore {
         touchUser(userId);
         var sessions = userSessions.get(userId);
         if (sessions == null) return null;
-        SessionData updated = sessions.computeIfPresent(sessionId, (id, existing) -> {
-            if (input.getTitle() != null) existing.setTitle(input.getTitle());
-            if (input.getMessages() != null) existing.setMessages(copyMessages(input.getMessages()));
-            existing.setUpdatedAt(Instant.now());
-            return existing;
-        });
+        SessionData updated =
+                sessions.computeIfPresent(
+                        sessionId,
+                        (id, existing) -> {
+                            if (input.getTitle() != null) existing.setTitle(input.getTitle());
+                            if (input.getMessages() != null)
+                                existing.setMessages(copyMessages(input.getMessages()));
+                            existing.setUpdatedAt(Instant.now());
+                            return existing;
+                        });
         return updated != null ? copySession(updated) : null;
     }
 

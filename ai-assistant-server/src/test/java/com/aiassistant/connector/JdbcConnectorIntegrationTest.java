@@ -1,15 +1,14 @@
 package com.aiassistant.connector;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 class JdbcConnectorIntegrationTest {
 
@@ -23,13 +22,15 @@ class JdbcConnectorIntegrationTest {
         dataSource.setPassword("");
 
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE orders (id INT PRIMARY KEY, order_no VARCHAR(50), amount DECIMAL(10,2), status VARCHAR(20))");
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(
+                    "CREATE TABLE orders (id INT PRIMARY KEY, order_no VARCHAR(50), amount DECIMAL(10,2), status VARCHAR(20))");
             stmt.execute("INSERT INTO orders VALUES (1, 'PO-001', 1500.00, 'completed')");
             stmt.execute("INSERT INTO orders VALUES (2, 'PO-002', 3200.50, 'pending')");
             stmt.execute("INSERT INTO orders VALUES (3, 'PO-003', 800.00, 'completed')");
 
-            stmt.execute("CREATE TABLE products (id INT PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2))");
+            stmt.execute(
+                    "CREATE TABLE products (id INT PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2))");
             stmt.execute("INSERT INTO products VALUES (1, 'Widget', 29.99)");
         }
     }
@@ -37,7 +38,7 @@ class JdbcConnectorIntegrationTest {
     @AfterAll
     static void tearDown() throws Exception {
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS orders");
             stmt.execute("DROP TABLE IF EXISTS products");
         }
@@ -55,7 +56,8 @@ class JdbcConnectorIntegrationTest {
 
     @Test
     void listModules_respectsAllowedTables() {
-        JdbcConnector connector = new JdbcConnector("test", "TestDB", dataSource, Set.of("orders"), null);
+        JdbcConnector connector =
+                new JdbcConnector("test", "TestDB", dataSource, Set.of("orders"), null);
         List<DataConnector.ModuleInfo> modules = connector.listModules();
 
         assertEquals(1, modules.size());
@@ -109,7 +111,8 @@ class JdbcConnectorIntegrationTest {
 
     @Test
     void queryData_rejectsDisallowedTable() {
-        JdbcConnector connector = new JdbcConnector("test", "TestDB", dataSource, Set.of("products"), null);
+        JdbcConnector connector =
+                new JdbcConnector("test", "TestDB", dataSource, Set.of("products"), null);
         var filter = new DataConnector.QueryFilter(List.of(), 1, 20, List.of());
         DataConnector.QueryResult result = connector.queryData("ORDERS", filter);
 
@@ -122,7 +125,8 @@ class JdbcConnectorIntegrationTest {
         JdbcConnector connector = new JdbcConnector("test", "TestDB", dataSource, Set.of(), null);
         var filter = new DataConnector.QueryFilter(List.of(), 1, 20, List.of());
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> connector.queryData("orders; DROP TABLE users--", filter));
     }
 

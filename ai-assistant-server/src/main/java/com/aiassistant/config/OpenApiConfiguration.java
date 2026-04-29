@@ -17,16 +17,20 @@ public class OpenApiConfiguration {
     @Bean
     public OpenAPI aiAssistantOpenApi() {
         return new OpenAPI()
-                .info(new Info()
-                        .title("AI Assistant SDK API")
-                        .version("1.0.0")
-                        .description("Embeddable AI assistant REST API - chat, translate, summarize, RAG, tool-calling, multi-tenant")
-                        .license(new License().name("MIT"))
-                        .contact(new Contact().name("AI Assistant Team")))
+                .info(
+                        new Info()
+                                .title("AI Assistant SDK API")
+                                .version("1.0.0")
+                                .description(
+                                        "Embeddable AI assistant REST API - chat, translate, summarize, RAG, tool-calling, multi-tenant")
+                                .license(new License().name("MIT"))
+                                .contact(new Contact().name("AI Assistant Team")))
                 .addSecurityItem(new SecurityRequirement().addList("X-AI-Token"))
-                .schemaRequirement("X-AI-Token", new SecurityScheme()
-                        .type(SecurityScheme.Type.APIKEY)
-                        .in(SecurityScheme.In.HEADER)
-                        .name("X-AI-Token"));
+                .schemaRequirement(
+                        "X-AI-Token",
+                        new SecurityScheme()
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER)
+                                .name("X-AI-Token"));
     }
 }

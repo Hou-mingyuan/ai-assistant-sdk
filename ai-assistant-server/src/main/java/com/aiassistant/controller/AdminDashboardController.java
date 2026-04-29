@@ -7,19 +7,18 @@ import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolRegistry;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.LinkedHashMap;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
- * Admin dashboard REST API for monitoring and managing the AI assistant.
- * Provides endpoints for usage stats, token tracking, prompt management,
- * knowledge base operations, and A/B test configuration.
+ * Admin dashboard REST API for monitoring and managing the AI assistant. Provides endpoints for
+ * usage stats, token tracking, prompt management, knowledge base operations, and A/B test
+ * configuration.
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}/admin")
@@ -35,22 +34,24 @@ public class AdminDashboardController {
     private final ModelRouter modelRouter;
     private final com.aiassistant.plugin.PluginRegistry pluginRegistry;
 
-    public AdminDashboardController(UsageStats usageStats,
-                                     TokenUsageTracker tokenTracker,
-                                     ToolRegistry toolRegistry,
-                                     PromptTemplateRegistry promptRegistry,
-                                     RagService ragService,
-                                     ModelRouter modelRouter) {
+    public AdminDashboardController(
+            UsageStats usageStats,
+            TokenUsageTracker tokenTracker,
+            ToolRegistry toolRegistry,
+            PromptTemplateRegistry promptRegistry,
+            RagService ragService,
+            ModelRouter modelRouter) {
         this(usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter, null);
     }
 
-    public AdminDashboardController(UsageStats usageStats,
-                                     TokenUsageTracker tokenTracker,
-                                     ToolRegistry toolRegistry,
-                                     PromptTemplateRegistry promptRegistry,
-                                     RagService ragService,
-                                     ModelRouter modelRouter,
-                                     com.aiassistant.plugin.PluginRegistry pluginRegistry) {
+    public AdminDashboardController(
+            UsageStats usageStats,
+            TokenUsageTracker tokenTracker,
+            ToolRegistry toolRegistry,
+            PromptTemplateRegistry promptRegistry,
+            RagService ragService,
+            ModelRouter modelRouter,
+            com.aiassistant.plugin.PluginRegistry pluginRegistry) {
         this.usageStats = usageStats;
         this.tokenTracker = tokenTracker;
         this.toolRegistry = toolRegistry;
@@ -83,25 +84,33 @@ public class AdminDashboardController {
     public ResponseEntity<Map<String, Object>> setQuota(@RequestBody Map<String, Object> body) {
         String tenantId = (String) body.get("tenantId");
         if (tenantId == null || tenantId.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "tenantId is required"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "tenantId is required"));
         }
         Object rawLimit = body.getOrDefault("dailyLimit", 0);
         if (!(rawLimit instanceof Number)) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "dailyLimit must be a number"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "dailyLimit must be a number"));
         }
         long limit = ((Number) rawLimit).longValue();
         if (limit < 0) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "dailyLimit must be >= 0"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "dailyLimit must be >= 0"));
         }
         tokenTracker.setQuota(tenantId, limit);
-        return ResponseEntity.ok(Map.of("success", true, "tenantId", tenantId, "dailyLimit", limit));
+        return ResponseEntity.ok(
+                Map.of("success", true, "tenantId", tenantId, "dailyLimit", limit));
     }
 
     @GetMapping("/prompts")
     public Map<String, Object> listPrompts() {
         Map<String, Object> result = new LinkedHashMap<>();
-        promptRegistry.all().forEach((name, tpl) ->
-                result.put(name, Map.of("name", name, "template", tpl.getTemplate())));
+        promptRegistry
+                .all()
+                .forEach(
+                        (name, tpl) ->
+                                result.put(
+                                        name, Map.of("name", name, "template", tpl.getTemplate())));
         return result;
     }
 
@@ -110,7 +119,8 @@ public class AdminDashboardController {
         String name = body.get("name");
         String template = body.get("template");
         if (name == null || template == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "name and template required"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "name and template required"));
         }
         promptRegistry.register(new PromptTemplate(name, template));
         return ResponseEntity.ok(Map.of("success", true, "name", name));
@@ -119,21 +129,32 @@ public class AdminDashboardController {
     @GetMapping("/tools")
     public Map<String, Object> listTools() {
         Map<String, Object> result = new LinkedHashMap<>();
-        toolRegistry.all().forEach((name, tool) ->
-                result.put(name, Map.of("name", name, "description", tool.description())));
+        toolRegistry
+                .all()
+                .forEach(
+                        (name, tool) ->
+                                result.put(
+                                        name,
+                                        Map.of("name", name, "description", tool.description())));
         return result;
     }
 
     @PostMapping("/rag/ingest")
-    public ResponseEntity<Map<String, Object>> ingestDocument(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, Object>> ingestDocument(
+            @RequestBody Map<String, String> body) {
         String namespace = body.getOrDefault("namespace", "default");
         String content = body.get("content");
         String docId = body.get("docId");
         if (content == null || content.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "content is required"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "content is required"));
         }
-        int chunks = ragService.ingest(namespace, docId != null ? docId : java.util.UUID.randomUUID().toString(),
-                content, Map.of());
+        int chunks =
+                ragService.ingest(
+                        namespace,
+                        docId != null ? docId : java.util.UUID.randomUUID().toString(),
+                        content,
+                        Map.of());
         return ResponseEntity.ok(Map.of("success", true, "namespace", namespace, "chunks", chunks));
     }
 
@@ -143,17 +164,20 @@ public class AdminDashboardController {
     }
 
     @PostMapping("/ab-test")
-    public ResponseEntity<Map<String, Object>> configureABTest(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<Map<String, Object>> configureABTest(
+            @RequestBody Map<String, Object> body) {
         String name = body.get("name") instanceof String s ? s : null;
         String modelA = body.get("modelA") instanceof String s ? s : null;
         String modelB = body.get("modelB") instanceof String s ? s : null;
         if (name == null || modelA == null || modelB == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "name, modelA, modelB are required"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "name, modelA, modelB are required"));
         }
         Object rawPercent = body.getOrDefault("percentA", 50);
         int percentA = rawPercent instanceof Number n ? n.intValue() : 50;
         if (percentA < 0 || percentA > 100) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "percentA must be 0-100"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "percentA must be 0-100"));
         }
         modelRouter.configureABTest(name, modelA, modelB, percentA);
         return ResponseEntity.ok(Map.of("success", true, "test", name));
@@ -165,15 +189,24 @@ public class AdminDashboardController {
     }
 
     @PostMapping("/fallback-chain")
-    public ResponseEntity<Map<String, Object>> setFallbackChain(@RequestBody Map<String, Object> body) {
-        if (body == null || !(body.get("chain") instanceof List<?> rawChain) || rawChain.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "chain list is required"));
+    public ResponseEntity<Map<String, Object>> setFallbackChain(
+            @RequestBody Map<String, Object> body) {
+        if (body == null
+                || !(body.get("chain") instanceof List<?> rawChain)
+                || rawChain.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "chain list is required"));
         }
         List<String> chain = new ArrayList<>();
         for (Object item : rawChain) {
             if (!(item instanceof String modelId) || modelId.isBlank()) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "error", "chain items must be non-blank strings"));
+                        .body(
+                                Map.of(
+                                        "success",
+                                        false,
+                                        "error",
+                                        "chain items must be non-blank strings"));
             }
             String normalized = modelId.trim();
             if (!isSafeId(normalized)) {
@@ -200,10 +233,12 @@ public class AdminDashboardController {
     @PostMapping("/plugins/{pluginId}/unload")
     public ResponseEntity<Map<String, Object>> unloadPlugin(@PathVariable String pluginId) {
         if (!isSafeId(pluginId)) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "invalid pluginId"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "invalid pluginId"));
         }
         if (pluginRegistry == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Plugin system not available"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "error", "Plugin system not available"));
         }
         boolean removed = pluginRegistry.unloadPlugin(pluginId);
         return ResponseEntity.ok(Map.of("success", removed, "pluginId", pluginId));

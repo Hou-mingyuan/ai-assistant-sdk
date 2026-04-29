@@ -1,10 +1,9 @@
 package com.aiassistant.prompt;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class PromptTemplateRegistryTest {
 
@@ -68,7 +67,8 @@ class PromptTemplateRegistryTest {
     @Test
     void all_returnsUnmodifiable() {
         var registry = new PromptTemplateRegistry();
-        assertThrows(UnsupportedOperationException.class, () ->
-                registry.all().put("hack", new PromptTemplate("hack", "bad")));
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> registry.all().put("hack", new PromptTemplate("hack", "bad")));
     }
 }

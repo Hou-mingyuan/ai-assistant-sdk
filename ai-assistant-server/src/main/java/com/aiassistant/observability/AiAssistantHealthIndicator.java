@@ -6,16 +6,16 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 
 /**
- * Actuator health indicator for the AI assistant.
- * Reports provider reachability and basic configuration status.
+ * Actuator health indicator for the AI assistant. Reports provider reachability and basic
+ * configuration status.
  */
 public class AiAssistantHealthIndicator implements HealthIndicator {
 
     private final AiAssistantProperties properties;
     private final ProviderConnectivityChecker connectivityChecker;
 
-    public AiAssistantHealthIndicator(AiAssistantProperties properties,
-                                       ProviderConnectivityChecker connectivityChecker) {
+    public AiAssistantHealthIndicator(
+            AiAssistantProperties properties, ProviderConnectivityChecker connectivityChecker) {
         this.properties = properties;
         this.connectivityChecker = connectivityChecker;
     }

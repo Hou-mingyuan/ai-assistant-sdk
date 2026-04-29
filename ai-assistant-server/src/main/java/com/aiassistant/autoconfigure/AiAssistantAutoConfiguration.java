@@ -9,14 +9,7 @@ import com.aiassistant.config.ConnectorProperties;
 import com.aiassistant.config.RateLimitFilter;
 import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
-import com.aiassistant.connector.InformatConnector;
 import com.aiassistant.connector.JdbcConnector;
-import com.aiassistant.connector.RestApiConnector;
-import com.aiassistant.spi.AssistantCapability;
-import com.aiassistant.spi.ChatInterceptor;
-import com.aiassistant.spi.ConversationMemoryProvider;
-import com.aiassistant.spi.InMemoryConversationMemoryProvider;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
 import com.aiassistant.controller.BatchController;
@@ -26,38 +19,42 @@ import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.RuntimeConfigController;
 import com.aiassistant.controller.SessionController;
 import com.aiassistant.controller.StatsController;
-import com.aiassistant.service.FileParserService;
 import com.aiassistant.service.AssistantExportService;
-import com.aiassistant.service.SessionStore;
+import com.aiassistant.service.FileParserService;
 import com.aiassistant.service.LlmService;
+import com.aiassistant.service.SessionStore;
 import com.aiassistant.service.UrlFetchService;
+import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
+import com.aiassistant.spi.AssistantCapability;
+import com.aiassistant.spi.ChatInterceptor;
+import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.spi.InMemoryConversationMemoryProvider;
+import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
 import java.util.ArrayList;
 import java.util.List;
-import com.aiassistant.service.llm.ChatCompletionClient;
-import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
-import com.aiassistant.stats.UsageStats;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Spring Boot 自动配置：当 {@code ai-assistant.api-key} 或 {@code ai-assistant.api-keys} 任一存在
- * 且 classpath 含 WebClient 时激活。
- * 所有 Bean 均标记 {@code @ConditionalOnMissingBean}，宿主可替换任意组件。
+ * Spring Boot 自动配置：当 {@code ai-assistant.api-key} 或 {@code ai-assistant.api-keys} 任一存在 且 classpath
+ * 含 WebClient 时激活。 所有 Bean 均标记 {@code @ConditionalOnMissingBean}，宿主可替换任意组件。
  */
 @Configuration
 @EnableConfigurationProperties(AiAssistantProperties.class)
@@ -66,7 +63,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class AiAssistantAutoConfiguration {
 
     static class ApiKeyConfigured extends AnyNestedCondition {
-        ApiKeyConfigured() { super(ConfigurationPhase.PARSE_CONFIGURATION); }
+        ApiKeyConfigured() {
+            super(ConfigurationPhase.PARSE_CONFIGURATION);
+        }
 
         @ConditionalOnProperty(prefix = "ai-assistant", name = "api-key")
         static class HasApiKey {}
@@ -90,8 +89,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public com.aiassistant.config.AiAssistantSecurityPostureAdvisor aiAssistantSecurityPostureAdvisor(
-            AiAssistantProperties properties) {
+    public com.aiassistant.config.AiAssistantSecurityPostureAdvisor
+            aiAssistantSecurityPostureAdvisor(AiAssistantProperties properties) {
         com.aiassistant.config.AiAssistantSecurityPostureAdvisor advisor =
                 new com.aiassistant.config.AiAssistantSecurityPostureAdvisor(properties);
         advisor.logWarnings();
@@ -100,7 +99,10 @@ public class AiAssistantAutoConfiguration {
 
     @Configuration
     @ConditionalOnClass(name = "com.microsoft.playwright.Playwright")
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "headless-fetch-enabled", havingValue = "true")
+    @ConditionalOnProperty(
+            prefix = "ai-assistant",
+            name = "headless-fetch-enabled",
+            havingValue = "true")
     static class HeadlessFetchAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean(name = "headlessFetchService")
@@ -126,9 +128,10 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ToolRegistry toolRegistry(ObjectProvider<List<ToolDefinition>> toolDefs,
-                                     ObjectProvider<List<DataConnector>> connectorProvider,
-                                     AiAssistantProperties properties) {
+    public ToolRegistry toolRegistry(
+            ObjectProvider<List<ToolDefinition>> toolDefs,
+            ObjectProvider<List<DataConnector>> connectorProvider,
+            AiAssistantProperties properties) {
         List<ToolDefinition> defs = toolDefs.getIfAvailable();
         ToolRegistry registry = new ToolRegistry(defs != null ? defs : List.of());
 
@@ -171,15 +174,20 @@ public class AiAssistantAutoConfiguration {
                 AiAssistantProperties properties) {
             List<ConnectorProperties> cfgs = properties.getConnectors();
             if (cfgs == null) return null;
-            ConnectorProperties jdbcCfg = cfgs.stream()
-                    .filter(c -> "jdbc".equalsIgnoreCase(c.getType()))
-                    .findFirst().orElse(null);
+            ConnectorProperties jdbcCfg =
+                    cfgs.stream()
+                            .filter(c -> "jdbc".equalsIgnoreCase(c.getType()))
+                            .findFirst()
+                            .orElse(null);
             if (jdbcCfg == null) return null;
             javax.sql.DataSource ds = dataSourceProvider.getIfAvailable();
             if (ds == null) return null;
             return new JdbcConnector(
-                    jdbcCfg.resolveId(), jdbcCfg.resolveDisplayName(),
-                    ds, jdbcCfg.resolveAllowedTables(), jdbcCfg.getSchema());
+                    jdbcCfg.resolveId(),
+                    jdbcCfg.resolveDisplayName(),
+                    ds,
+                    jdbcCfg.resolveAllowedTables(),
+                    jdbcCfg.getSchema());
         }
     }
 
@@ -188,41 +196,59 @@ public class AiAssistantAutoConfiguration {
     static class MicrometerLlmServiceConfiguration {
         @Bean
         @ConditionalOnMissingBean(LlmService.class)
-        public LlmService llmServiceWithMetrics(AiAssistantProperties properties,
-                                                 UrlFetchService urlFetchService,
-                                                 ChatCompletionClient chatCompletionClient,
-                                                 ObjectProvider<io.micrometer.core.instrument.MeterRegistry> meterRegistryProvider,
-                                                 ToolRegistry toolRegistry,
-                                                 com.aiassistant.security.ContentFilter contentFilter,
-                                                 com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
-                                                 com.aiassistant.routing.ModelRouter modelRouter,
-                                                 ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
-                                                 ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
-                                                 ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
-            return new LlmService(properties, urlFetchService, chatCompletionClient,
-                    meterRegistryProvider.getIfAvailable(), toolRegistry,
-                    contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable(),
-                    memoryProviderProvider.getIfAvailable(), interceptorsProvider.getIfAvailable());
+        public LlmService llmServiceWithMetrics(
+                AiAssistantProperties properties,
+                UrlFetchService urlFetchService,
+                ChatCompletionClient chatCompletionClient,
+                ObjectProvider<io.micrometer.core.instrument.MeterRegistry> meterRegistryProvider,
+                ToolRegistry toolRegistry,
+                com.aiassistant.security.ContentFilter contentFilter,
+                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+                com.aiassistant.routing.ModelRouter modelRouter,
+                ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+                ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
+                ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
+            return new LlmService(
+                    properties,
+                    urlFetchService,
+                    chatCompletionClient,
+                    meterRegistryProvider.getIfAvailable(),
+                    toolRegistry,
+                    contentFilter,
+                    tokenUsageTracker,
+                    modelRouter,
+                    ragServiceProvider.getIfAvailable(),
+                    memoryProviderProvider.getIfAvailable(),
+                    interceptorsProvider.getIfAvailable());
         }
     }
 
     @Bean
     @ConditionalOnMissingBean(LlmService.class)
     @ConditionalOnMissingClass("io.micrometer.core.instrument.MeterRegistry")
-    public LlmService llmServiceWithoutMetrics(AiAssistantProperties properties,
-                                               UrlFetchService urlFetchService,
-                                               ChatCompletionClient chatCompletionClient,
-                                               ToolRegistry toolRegistry,
-                                               com.aiassistant.security.ContentFilter contentFilter,
-                                               com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
-                                               com.aiassistant.routing.ModelRouter modelRouter,
-                                               ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
-                                               ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
-                                               ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
-        return new LlmService(properties, urlFetchService, chatCompletionClient,
-                null, toolRegistry,
-                contentFilter, tokenUsageTracker, modelRouter, ragServiceProvider.getIfAvailable(),
-                memoryProviderProvider.getIfAvailable(), interceptorsProvider.getIfAvailable());
+    public LlmService llmServiceWithoutMetrics(
+            AiAssistantProperties properties,
+            UrlFetchService urlFetchService,
+            ChatCompletionClient chatCompletionClient,
+            ToolRegistry toolRegistry,
+            com.aiassistant.security.ContentFilter contentFilter,
+            com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+            com.aiassistant.routing.ModelRouter modelRouter,
+            ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+            ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
+            ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
+        return new LlmService(
+                properties,
+                urlFetchService,
+                chatCompletionClient,
+                null,
+                toolRegistry,
+                contentFilter,
+                tokenUsageTracker,
+                modelRouter,
+                ragServiceProvider.getIfAvailable(),
+                memoryProviderProvider.getIfAvailable(),
+                interceptorsProvider.getIfAvailable());
     }
 
     @Bean
@@ -239,10 +265,13 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AiAssistantController aiAssistantController(LlmService llmService, UsageStats usageStats,
-                                                       UrlFetchService urlFetchService,
-                                                       AiAssistantProperties assistantProperties) {
-        return new AiAssistantController(llmService, usageStats, urlFetchService, assistantProperties);
+    public AiAssistantController aiAssistantController(
+            LlmService llmService,
+            UsageStats usageStats,
+            UrlFetchService urlFetchService,
+            AiAssistantProperties assistantProperties) {
+        return new AiAssistantController(
+                llmService, usageStats, urlFetchService, assistantProperties);
     }
 
     @Bean
@@ -270,7 +299,8 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public com.aiassistant.controller.SseStreamController sseStreamController(
             LlmService llmService, UsageStats usageStats, AiAssistantProperties properties) {
-        return new com.aiassistant.controller.SseStreamController(llmService, usageStats, properties);
+        return new com.aiassistant.controller.SseStreamController(
+                llmService, usageStats, properties);
     }
 
     @Bean
@@ -280,13 +310,17 @@ public class AiAssistantAutoConfiguration {
             ToolRegistry toolRegistry,
             ObjectProvider<com.aiassistant.config.ProviderConnectivityChecker> checkerProvider,
             AiAssistantProperties properties) {
-        return new ConnectorHealthController(connectorProvider.getIfAvailable(), toolRegistry,
-                checkerProvider.getIfAvailable(), properties.isConnectorManagementEnabled());
+        return new ConnectorHealthController(
+                connectorProvider.getIfAvailable(),
+                toolRegistry,
+                checkerProvider.getIfAvailable(),
+                properties.isConnectorManagementEnabled());
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public FileUploadController fileUploadController(FileParserService fileParserService, LlmService llmService, UsageStats usageStats) {
+    public FileUploadController fileUploadController(
+            FileParserService fileParserService, LlmService llmService, UsageStats usageStats) {
         return new FileUploadController(fileParserService, llmService, usageStats);
     }
 
@@ -298,7 +332,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AssistantExportController assistantExportController(AssistantExportService exportService) {
+    public AssistantExportController assistantExportController(
+            AssistantExportService exportService) {
         return new AssistantExportController(exportService);
     }
 
@@ -327,13 +362,17 @@ public class AiAssistantAutoConfiguration {
 
     @Configuration
     @ConditionalOnClass(name = "org.springframework.web.socket.handler.TextWebSocketHandler")
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "websocket-enabled", havingValue = "true")
+    @ConditionalOnProperty(
+            prefix = "ai-assistant",
+            name = "websocket-enabled",
+            havingValue = "true")
     static class WebSocketAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean(name = "aiAssistantWebSocketHandler")
         public com.aiassistant.controller.AiAssistantWebSocketHandler aiAssistantWebSocketHandler(
                 LlmService llmService, UsageStats usageStats, AiAssistantProperties properties) {
-            return new com.aiassistant.controller.AiAssistantWebSocketHandler(llmService, usageStats, properties);
+            return new com.aiassistant.controller.AiAssistantWebSocketHandler(
+                    llmService, usageStats, properties);
         }
     }
 
@@ -377,7 +416,8 @@ public class AiAssistantAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "ai-assistant", name = "rag-enabled", havingValue = "true")
-    public com.aiassistant.rag.EmbeddingProvider embeddingProvider(AiAssistantProperties properties) {
+    public com.aiassistant.rag.EmbeddingProvider embeddingProvider(
+            AiAssistantProperties properties) {
         return new com.aiassistant.rag.OpenAiEmbeddingProvider(properties);
     }
 
@@ -409,22 +449,41 @@ public class AiAssistantAutoConfiguration {
             ObjectProvider<com.aiassistant.plugin.PluginRegistry> pluginRegistryProvider) {
         com.aiassistant.rag.RagService ragService = ragServiceProvider.getIfAvailable();
         if (ragService == null) {
-            ragService = new com.aiassistant.rag.RagService(
-                    new com.aiassistant.rag.EmbeddingProvider() {
-                        @Override public float[] embed(String t) { return new float[0]; }
-                        @Override public java.util.List<float[]> embedBatch(java.util.List<String> t) { return java.util.List.of(); }
-                        @Override public int dimensions() { return 0; }
-                    },
-                    new com.aiassistant.rag.InMemoryVectorStore());
+            ragService =
+                    new com.aiassistant.rag.RagService(
+                            new com.aiassistant.rag.EmbeddingProvider() {
+                                @Override
+                                public float[] embed(String t) {
+                                    return new float[0];
+                                }
+
+                                @Override
+                                public java.util.List<float[]> embedBatch(
+                                        java.util.List<String> t) {
+                                    return java.util.List.of();
+                                }
+
+                                @Override
+                                public int dimensions() {
+                                    return 0;
+                                }
+                            },
+                            new com.aiassistant.rag.InMemoryVectorStore());
         }
         return new com.aiassistant.controller.AdminDashboardController(
-                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter,
+                usageStats,
+                tokenTracker,
+                toolRegistry,
+                promptRegistry,
+                ragService,
+                modelRouter,
                 pluginRegistryProvider.getIfAvailable());
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public com.aiassistant.controller.AsyncTaskController asyncTaskController(LlmService llmService, UsageStats usageStats) {
+    public com.aiassistant.controller.AsyncTaskController asyncTaskController(
+            LlmService llmService, UsageStats usageStats) {
         return new com.aiassistant.controller.AsyncTaskController(llmService, usageStats);
     }
 
@@ -432,17 +491,21 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public com.aiassistant.connector.ConnectorHealthScheduler connectorHealthScheduler(
             ObjectProvider<List<DataConnector>> connectorProvider) {
-        var sched = new com.aiassistant.connector.ConnectorHealthScheduler(
-                connectorProvider.getIfAvailable(), 60_000);
+        var sched =
+                new com.aiassistant.connector.ConnectorHealthScheduler(
+                        connectorProvider.getIfAvailable(), 60_000);
         sched.start();
         return sched;
     }
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<com.aiassistant.config.TenantFilter> aiAssistantTenantFilter(AiAssistantProperties properties) {
-        FilterRegistrationBean<com.aiassistant.config.TenantFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new com.aiassistant.config.TenantFilter(properties.getContextPath()));
+    public FilterRegistrationBean<com.aiassistant.config.TenantFilter> aiAssistantTenantFilter(
+            AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.TenantFilter> registration =
+                new FilterRegistrationBean<>();
+        registration.setFilter(
+                new com.aiassistant.config.TenantFilter(properties.getContextPath()));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(-2);
         return registration;
@@ -450,9 +513,12 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter> aiAssistantSseCompressionFilter(AiAssistantProperties properties) {
-        FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new com.aiassistant.config.SseCompressionFilter(properties.getContextPath()));
+    public FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter>
+            aiAssistantSseCompressionFilter(AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.SseCompressionFilter> registration =
+                new FilterRegistrationBean<>();
+        registration.setFilter(
+                new com.aiassistant.config.SseCompressionFilter(properties.getContextPath()));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(-3);
         return registration;
@@ -460,9 +526,12 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<com.aiassistant.config.RequestIdFilter> aiAssistantRequestIdFilter(AiAssistantProperties properties) {
-        FilterRegistrationBean<com.aiassistant.config.RequestIdFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new com.aiassistant.config.RequestIdFilter(properties.getContextPath()));
+    public FilterRegistrationBean<com.aiassistant.config.RequestIdFilter>
+            aiAssistantRequestIdFilter(AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.RequestIdFilter> registration =
+                new FilterRegistrationBean<>();
+        registration.setFilter(
+                new com.aiassistant.config.RequestIdFilter(properties.getContextPath()));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(-1);
         return registration;
@@ -471,7 +540,8 @@ public class AiAssistantAutoConfiguration {
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     @ConditionalOnMissingClass("org.springframework.data.redis.core.StringRedisTemplate")
-    public FilterRegistrationBean<RateLimitFilter> aiAssistantRateLimitFilter(AiAssistantProperties properties) {
+    public FilterRegistrationBean<RateLimitFilter> aiAssistantRateLimitFilter(
+            AiAssistantProperties properties) {
         FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RateLimitFilter(properties));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
@@ -482,7 +552,8 @@ public class AiAssistantAutoConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "ai-assistant", name = "access-token")
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<AiAssistantAuthFilter> aiAssistantAuthFilter(AiAssistantProperties properties) {
+    public FilterRegistrationBean<AiAssistantAuthFilter> aiAssistantAuthFilter(
+            AiAssistantProperties properties) {
         FilterRegistrationBean<AiAssistantAuthFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new AiAssistantAuthFilter(properties));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
@@ -492,7 +563,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public com.aiassistant.config.ProviderConnectivityChecker providerConnectivityChecker(AiAssistantProperties properties) {
+    public com.aiassistant.config.ProviderConnectivityChecker providerConnectivityChecker(
+            AiAssistantProperties properties) {
         return new com.aiassistant.config.ProviderConnectivityChecker(properties);
     }
 
@@ -533,7 +605,8 @@ public class AiAssistantAutoConfiguration {
         public com.aiassistant.observability.AiAssistantHealthIndicator aiAssistantHealthIndicator(
                 AiAssistantProperties properties,
                 com.aiassistant.config.ProviderConnectivityChecker checker) {
-            return new com.aiassistant.observability.AiAssistantHealthIndicator(properties, checker);
+            return new com.aiassistant.observability.AiAssistantHealthIndicator(
+                    properties, checker);
         }
     }
 
@@ -607,7 +680,11 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "capabilityToolAdapter")
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "capabilities-as-tools", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(
+            prefix = "ai-assistant",
+            name = "capabilities-as-tools",
+            havingValue = "true",
+            matchIfMissing = true)
     public com.aiassistant.capability.CapabilityToolAdapter capabilityToolAdapter(
             ToolRegistry toolRegistry,
             ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
@@ -622,14 +699,18 @@ public class AiAssistantAutoConfiguration {
     public com.aiassistant.plugin.PluginRegistry pluginRegistry(
             ToolRegistry toolRegistry,
             ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
-        return new com.aiassistant.plugin.PluginRegistry(toolRegistry, capabilitiesProvider.getIfAvailable());
+        return new com.aiassistant.plugin.PluginRegistry(
+                toolRegistry, capabilitiesProvider.getIfAvailable());
     }
 
     // ── MCP Server ──
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "mcp-server-enabled", havingValue = "true")
+    @ConditionalOnProperty(
+            prefix = "ai-assistant",
+            name = "mcp-server-enabled",
+            havingValue = "true")
     public com.aiassistant.mcp.McpServerController mcpServerController(
             ObjectProvider<List<AssistantCapability>> capabilitiesProvider) {
         return new com.aiassistant.mcp.McpServerController(capabilitiesProvider.getIfAvailable());
@@ -656,7 +737,8 @@ public class AiAssistantAutoConfiguration {
 
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean
-    public com.aiassistant.webhook.WebhookDelivery webhookDelivery(AiAssistantProperties properties) {
+    public com.aiassistant.webhook.WebhookDelivery webhookDelivery(
+            AiAssistantProperties properties) {
         return new com.aiassistant.webhook.WebhookDelivery(properties);
     }
 
@@ -683,7 +765,8 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     public FilterRegistrationBean<com.aiassistant.config.TracingFilter> aiAssistantTracingFilter(
             AiAssistantProperties properties) {
-        FilterRegistrationBean<com.aiassistant.config.TracingFilter> registration = new FilterRegistrationBean<>();
+        FilterRegistrationBean<com.aiassistant.config.TracingFilter> registration =
+                new FilterRegistrationBean<>();
         registration.setFilter(new com.aiassistant.config.TracingFilter());
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(-4);
@@ -694,12 +777,22 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    @ConditionalOnProperty(prefix = "ai-assistant", name = "api-versioning", havingValue = "true", matchIfMissing = true)
-    public FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter> aiAssistantApiVersionFilter(
-            AiAssistantProperties properties) {
-        FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new com.aiassistant.config.ApiVersionConfig.ApiVersionFilter(properties.getContextPath()));
-        registration.addUrlPatterns(com.aiassistant.config.ApiVersionConfig.V1_PREFIX + properties.getContextPath() + "/*");
+    @ConditionalOnProperty(
+            prefix = "ai-assistant",
+            name = "api-versioning",
+            havingValue = "true",
+            matchIfMissing = true)
+    public FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter>
+            aiAssistantApiVersionFilter(AiAssistantProperties properties) {
+        FilterRegistrationBean<com.aiassistant.config.ApiVersionConfig.ApiVersionFilter>
+                registration = new FilterRegistrationBean<>();
+        registration.setFilter(
+                new com.aiassistant.config.ApiVersionConfig.ApiVersionFilter(
+                        properties.getContextPath()));
+        registration.addUrlPatterns(
+                com.aiassistant.config.ApiVersionConfig.V1_PREFIX
+                        + properties.getContextPath()
+                        + "/*");
         registration.setOrder(-5);
         return registration;
     }
@@ -712,12 +805,19 @@ public class AiAssistantAutoConfiguration {
         @Bean
         @ConditionalOnBean(org.springframework.data.redis.core.StringRedisTemplate.class)
         @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-        @ConditionalOnProperty(prefix = "ai-assistant", name = "rate-limit-distributed", havingValue = "true", matchIfMissing = true)
-        public FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> aiAssistantRedisRateLimitFilter(
-                AiAssistantProperties properties,
-                org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
-            FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> registration = new FilterRegistrationBean<>();
-            registration.setFilter(new com.aiassistant.config.RedisRateLimitFilter(properties, redisTemplate));
+        @ConditionalOnProperty(
+                prefix = "ai-assistant",
+                name = "rate-limit-distributed",
+                havingValue = "true",
+                matchIfMissing = true)
+        public FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter>
+                aiAssistantRedisRateLimitFilter(
+                        AiAssistantProperties properties,
+                        org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+            FilterRegistrationBean<com.aiassistant.config.RedisRateLimitFilter> registration =
+                    new FilterRegistrationBean<>();
+            registration.setFilter(
+                    new com.aiassistant.config.RedisRateLimitFilter(properties, redisTemplate));
             registration.addUrlPatterns(properties.getContextPath() + "/*");
             registration.setOrder(0);
             return registration;

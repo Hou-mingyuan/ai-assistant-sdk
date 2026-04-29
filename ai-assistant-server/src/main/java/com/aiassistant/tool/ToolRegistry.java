@@ -4,18 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Central registry for tools available to the LLM.
- * Auto-populated from all {@link ToolDefinition} beans; also supports programmatic registration.
+ * Central registry for tools available to the LLM. Auto-populated from all {@link ToolDefinition}
+ * beans; also supports programmatic registration.
  */
 public class ToolRegistry {
 
@@ -45,9 +43,8 @@ public class ToolRegistry {
     }
 
     public int unregisterByPrefix(String prefix) {
-        List<String> toRemove = tools.keySet().stream()
-                .filter(name -> name.startsWith(prefix))
-                .toList();
+        List<String> toRemove =
+                tools.keySet().stream().filter(name -> name.startsWith(prefix)).toList();
         toRemove.forEach(tools::remove);
         if (!toRemove.isEmpty()) cachedToolsArray = null;
         return toRemove.size();
@@ -66,8 +63,8 @@ public class ToolRegistry {
     }
 
     /**
-     * Build the OpenAI-compatible "tools" array for the request body.
-     * Result is cached and invalidated on register/unregister.
+     * Build the OpenAI-compatible "tools" array for the request body. Result is cached and
+     * invalidated on register/unregister.
      */
     public ArrayNode toOpenAiToolsArray() {
         ArrayNode cached = cachedToolsArray;
@@ -92,8 +89,8 @@ public class ToolRegistry {
     }
 
     /**
-     * Execute a tool by name with the given arguments JSON.
-     * Logs structured audit info: tool name, args size, result size, and latency.
+     * Execute a tool by name with the given arguments JSON. Logs structured audit info: tool name,
+     * args size, result size, and latency.
      */
     public String execute(String toolName, JsonNode arguments) throws Exception {
         ToolDefinition tool = tools.get(toolName);
@@ -104,7 +101,8 @@ public class ToolRegistry {
         try {
             String result = tool.execute(arguments);
             long elapsed = System.currentTimeMillis() - start;
-            log.info("tool.call name={} argsSize={} resultSize={} latencyMs={} status=ok",
+            log.info(
+                    "tool.call name={} argsSize={} resultSize={} latencyMs={} status=ok",
                     toolName,
                     arguments != null ? arguments.toString().length() : 0,
                     result != null ? result.length() : 0,
@@ -112,7 +110,8 @@ public class ToolRegistry {
             return result;
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - start;
-            log.warn("tool.call name={} argsSize={} latencyMs={} status=error error={}",
+            log.warn(
+                    "tool.call name={} argsSize={} latencyMs={} status=error error={}",
                     toolName,
                     arguments != null ? arguments.toString().length() : 0,
                     elapsed,

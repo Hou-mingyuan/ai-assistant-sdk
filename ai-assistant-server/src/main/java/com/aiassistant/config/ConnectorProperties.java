@@ -2,7 +2,9 @@ package com.aiassistant.config;
 
 /**
  * Configuration for a single data connector instance.
- * <p>YAML example:</p>
+ *
+ * <p>YAML example:
+ *
  * <pre>
  * ai-assistant:
  *   connectors:
@@ -19,59 +21,124 @@ public class ConnectorProperties {
 
     /** Connector type: "informat", "jdbc", "rest". */
     private String type = "informat";
+
     /** Unique connector instance id (defaults to type). */
     private String id;
+
     /** Human-readable name shown to the LLM. */
     private String displayName;
+
     /** Base URL for the data source API (informat / rest). */
     private String baseUrl;
+
     /** Application ID (for Informat-type connectors). */
     private String appId;
+
     /** Authentication token for the data source (informat / rest). */
     private String token;
+
     /** Request timeout in seconds. */
     private int timeoutSeconds = 30;
+
     /** Restrict exposed tables (jdbc), comma-separated. Empty = all. */
     private String tables;
+
     /** Database schema to inspect (jdbc). Null = default. */
     private String schema;
+
     /** Extra headers as key=value pairs, comma-separated (rest). */
     private String headers;
+
     /** Sensitive field names to mask before sending to LLM, comma-separated. */
     private String maskedFields;
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public String getType() {
+        return type;
+    }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
-    public String getDisplayName() { return displayName; }
-    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public String getId() {
+        return id;
+    }
 
-    public String getBaseUrl() { return baseUrl; }
-    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getAppId() { return appId; }
-    public void setAppId(String appId) { this.appId = appId; }
+    public String getDisplayName() {
+        return displayName;
+    }
 
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
-    public int getTimeoutSeconds() { return timeoutSeconds; }
-    public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
+    public String getBaseUrl() {
+        return baseUrl;
+    }
 
-    public String getTables() { return tables; }
-    public void setTables(String tables) { this.tables = tables; }
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
 
-    public String getSchema() { return schema; }
-    public void setSchema(String schema) { this.schema = schema; }
+    public String getAppId() {
+        return appId;
+    }
 
-    public String getHeaders() { return headers; }
-    public void setHeaders(String headers) { this.headers = headers; }
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
 
-    public String getMaskedFields() { return maskedFields; }
-    public void setMaskedFields(String maskedFields) { this.maskedFields = maskedFields; }
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public int getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
+
+    public void setTimeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public String getTables() {
+        return tables;
+    }
+
+    public void setTables(String tables) {
+        this.tables = tables;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public String getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(String headers) {
+        this.headers = headers;
+    }
+
+    public String getMaskedFields() {
+        return maskedFields;
+    }
+
+    public void setMaskedFields(String maskedFields) {
+        this.maskedFields = maskedFields;
+    }
 
     public java.util.Set<String> resolveMaskedFields() {
         if (maskedFields == null || maskedFields.isBlank()) return java.util.Set.of();

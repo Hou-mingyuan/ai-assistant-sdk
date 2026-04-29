@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 defineProps<{
-  text: string
-  color: string
-  isDark: boolean
-}>()
+  text: string;
+  color: string;
+  isDark: boolean;
+}>();
 </script>

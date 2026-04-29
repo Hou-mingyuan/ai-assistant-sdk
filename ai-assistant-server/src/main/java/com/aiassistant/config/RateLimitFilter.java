@@ -4,19 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
  * Per-IP / per-token sliding-window rate limiter.
+ *
  * <p>Client identity is resolved as: (1) {@code X-AI-Token} header if present; (2) first IP in
- * {@code X-Forwarded-For} header if present; (3) {@code request.getRemoteAddr()} fallback.</p>
+ * {@code X-Forwarded-For} header if present; (3) {@code request.getRemoteAddr()} fallback.
+ *
  * <p><b>Deployment note:</b> {@code X-Forwarded-For} can be spoofed if the application is directly
- * exposed without a trusted reverse proxy. In production, deploy behind a proxy (Nginx / ALB / etc.)
- * that overwrites {@code X-Forwarded-For}.</p>
+ * exposed without a trusted reverse proxy. In production, deploy behind a proxy (Nginx / ALB /
+ * etc.) that overwrites {@code X-Forwarded-For}.
  */
 public class RateLimitFilter implements Filter {
 
@@ -33,7 +33,8 @@ public class RateLimitFilter implements Filter {
         this.properties = properties;
     }
 
-    private final java.util.concurrent.atomic.AtomicLong lastCleanup = new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
+    private final java.util.concurrent.atomic.AtomicLong lastCleanup =
+            new java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis());
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
@@ -41,7 +42,9 @@ public class RateLimitFilter implements Filter {
 
         cleanupIfNeeded();
 
-        boolean hasPerAction = properties.getRateLimitPerAction() != null && !properties.getRateLimitPerAction().isEmpty();
+        boolean hasPerAction =
+                properties.getRateLimitPerAction() != null
+                        && !properties.getRateLimitPerAction().isEmpty();
         if (maxRequestsPerMinute <= 0 && !hasPerAction) {
             chain.doFilter(req, res);
             return;
@@ -82,8 +85,13 @@ public class RateLimitFilter implements Filter {
                 HttpServletResponse response = (HttpServletResponse) res;
                 response.setStatus(429);
                 response.setContentType("application/json;charset=UTF-8");
-                objectMapper.writeValue(response.getOutputStream(),
-                        Map.of("success", false, "error", "Too many concurrent clients. Try again later."));
+                objectMapper.writeValue(
+                        response.getOutputStream(),
+                        Map.of(
+                                "success",
+                                false,
+                                "error",
+                                "Too many concurrent clients. Try again later."));
                 return;
             }
         }
@@ -98,8 +106,17 @@ public class RateLimitFilter implements Filter {
         if (!ar.allowed()) {
             response.setStatus(429);
             response.setContentType("application/json;charset=UTF-8");
-            objectMapper.writeValue(response.getOutputStream(),
-                    Map.of("success", false, "error", "Rate limit exceeded for " + action + ". Max " + effectiveLimit + " requests/min."));
+            objectMapper.writeValue(
+                    response.getOutputStream(),
+                    Map.of(
+                            "success",
+                            false,
+                            "error",
+                            "Rate limit exceeded for "
+                                    + action
+                                    + ". Max "
+                                    + effectiveLimit
+                                    + " requests/min."));
             return;
         }
 

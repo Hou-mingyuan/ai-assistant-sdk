@@ -1,10 +1,9 @@
 package com.aiassistant.config;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class AiAssistantPropertiesTest {
 
@@ -89,9 +88,11 @@ class AiAssistantPropertiesTest {
     @Test
     void resolveAllowedOriginsTrimsAndDeduplicates() {
         AiAssistantProperties p = new AiAssistantProperties();
-        p.setAllowedOrigins(" https://a.example.com,https://b.example.com , https://a.example.com ,, ");
+        p.setAllowedOrigins(
+                " https://a.example.com,https://b.example.com , https://a.example.com ,, ");
 
-        assertArrayEquals(new String[] {"https://a.example.com", "https://b.example.com"},
+        assertArrayEquals(
+                new String[] {"https://a.example.com", "https://b.example.com"},
                 p.resolveAllowedOrigins());
     }
 
@@ -116,8 +117,8 @@ class AiAssistantPropertiesTest {
     void blankContextPathIsRejected() {
         AiAssistantProperties p = new AiAssistantProperties();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> p.setContextPath("   "));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> p.setContextPath("   "));
 
         assertTrue(ex.getMessage().contains("context-path"));
     }
@@ -126,8 +127,8 @@ class AiAssistantPropertiesTest {
     void rootContextPathIsRejected() {
         AiAssistantProperties p = new AiAssistantProperties();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> p.setContextPath("/"));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> p.setContextPath("/"));
 
         assertTrue(ex.getMessage().contains("root path"));
     }
@@ -145,7 +146,8 @@ class AiAssistantPropertiesTest {
     void listModelsForClientSanitizesConfiguredModels() {
         AiAssistantProperties p = new AiAssistantProperties();
         p.setProvider("openai");
-        p.setAllowedModels(java.util.Arrays.asList(" gpt-5.4 ", "", null, "gpt-5.4-mini", "gpt-5.4"));
+        p.setAllowedModels(
+                java.util.Arrays.asList(" gpt-5.4 ", "", null, "gpt-5.4-mini", "gpt-5.4"));
 
         List<String> models = p.listModelsForClient();
 

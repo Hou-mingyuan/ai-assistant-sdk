@@ -40,10 +40,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint 'src/**/*.{ts,vue}'",
-    "lint:fix": "eslint 'src/**/*.{ts,vue}' --fix",
-    "format": "prettier --write 'src/**/*.{ts,vue,css,json}'",
-    "format:check": "prettier --check 'src/**/*.{ts,vue,css,json}'"
+    "lint": "eslint \"src/**/*.{ts,vue}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,vue}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,vue,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,vue,css,json}\""
   },
   "peerDependencies": {
     "vue": "^3.3.0"

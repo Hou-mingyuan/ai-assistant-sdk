@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Wraps LLM API calls with Resilience4j retry (exponential backoff) and circuit breaker.
- * Usage: wrap any LLM supplier with {@code execute()} for automatic retry + fallback.
+ * Wraps LLM API calls with Resilience4j retry (exponential backoff) and circuit breaker. Usage:
+ * wrap any LLM supplier with {@code execute()} for automatic retry + fallback.
  */
 public class ResilientLlmClient {
 
@@ -24,45 +24,60 @@ public class ResilientLlmClient {
         this(3, Duration.ofSeconds(2), 50, Duration.ofSeconds(30));
     }
 
-    public ResilientLlmClient(int maxRetries, Duration waitDuration,
-                               int failureRateThreshold, Duration circuitBreakerWait) {
-        this.retry = Retry.of("llm-retry", RetryConfig.custom()
-                .maxAttempts(maxRetries)
-                .waitDuration(waitDuration)
-                .intervalFunction(attempt -> waitDuration.toMillis() * (1L << (attempt - 1)))
-                .retryOnException(this::isRetryable)
-                .build());
+    public ResilientLlmClient(
+            int maxRetries,
+            Duration waitDuration,
+            int failureRateThreshold,
+            Duration circuitBreakerWait) {
+        this.retry =
+                Retry.of(
+                        "llm-retry",
+                        RetryConfig.custom()
+                                .maxAttempts(maxRetries)
+                                .waitDuration(waitDuration)
+                                .intervalFunction(
+                                        attempt -> waitDuration.toMillis() * (1L << (attempt - 1)))
+                                .retryOnException(this::isRetryable)
+                                .build());
 
-        this.circuitBreaker = CircuitBreaker.of("llm-circuit", CircuitBreakerConfig.custom()
-                .failureRateThreshold(failureRateThreshold)
-                .waitDurationInOpenState(circuitBreakerWait)
-                .slidingWindowSize(10)
-                .minimumNumberOfCalls(5)
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .build());
+        this.circuitBreaker =
+                CircuitBreaker.of(
+                        "llm-circuit",
+                        CircuitBreakerConfig.custom()
+                                .failureRateThreshold(failureRateThreshold)
+                                .waitDurationInOpenState(circuitBreakerWait)
+                                .slidingWindowSize(10)
+                                .minimumNumberOfCalls(5)
+                                .permittedNumberOfCallsInHalfOpenState(3)
+                                .build());
 
         retry.getEventPublisher()
-                .onRetry(event -> log.warn("LLM call retry #{}: {}", event.getNumberOfRetryAttempts(),
-                        event.getLastThrowable().getMessage()));
+                .onRetry(
+                        event ->
+                                log.warn(
+                                        "LLM call retry #{}: {}",
+                                        event.getNumberOfRetryAttempts(),
+                                        event.getLastThrowable().getMessage()));
 
-        circuitBreaker.getEventPublisher()
-                .onStateTransition(event -> log.info("LLM circuit breaker: {} -> {}",
-                        event.getStateTransition().getFromState(),
-                        event.getStateTransition().getToState()));
+        circuitBreaker
+                .getEventPublisher()
+                .onStateTransition(
+                        event ->
+                                log.info(
+                                        "LLM circuit breaker: {} -> {}",
+                                        event.getStateTransition().getFromState(),
+                                        event.getStateTransition().getToState()));
     }
 
-    /**
-     * Execute a supplier with retry + circuit breaker protection.
-     */
+    /** Execute a supplier with retry + circuit breaker protection. */
     public <T> T execute(Supplier<T> supplier) {
-        Supplier<T> decorated = CircuitBreaker.decorateSupplier(circuitBreaker,
-                Retry.decorateSupplier(retry, supplier));
+        Supplier<T> decorated =
+                CircuitBreaker.decorateSupplier(
+                        circuitBreaker, Retry.decorateSupplier(retry, supplier));
         return decorated.get();
     }
 
-    /**
-     * Execute with a fallback when all retries and circuit breaker fail.
-     */
+    /** Execute with a fallback when all retries and circuit breaker fail. */
     public <T> T executeWithFallback(Supplier<T> supplier, Supplier<T> fallback) {
         try {
             return execute(supplier);

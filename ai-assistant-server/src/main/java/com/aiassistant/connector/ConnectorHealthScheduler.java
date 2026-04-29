@@ -1,17 +1,14 @@
 package com.aiassistant.connector;
 
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.*;
-
 /**
- * Periodically probes all registered {@link DataConnector} instances
- * and maintains an availability set. Unhealthy connectors are temporarily
- * excluded from tool registration until they recover.
+ * Periodically probes all registered {@link DataConnector} instances and maintains an availability
+ * set. Unhealthy connectors are temporarily excluded from tool registration until they recover.
  */
 public class ConnectorHealthScheduler {
 
@@ -25,16 +22,21 @@ public class ConnectorHealthScheduler {
     public ConnectorHealthScheduler(List<DataConnector> connectors, long intervalMs) {
         this.connectors = connectors != null ? connectors : List.of();
         this.intervalMs = Math.max(30_000, intervalMs);
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "connector-health");
-            t.setDaemon(true);
-            return t;
-        });
+        this.scheduler =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            Thread t = new Thread(r, "connector-health");
+                            t.setDaemon(true);
+                            return t;
+                        });
     }
 
     public void start() {
         scheduler.scheduleAtFixedRate(this::probe, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
-        log.info("ConnectorHealthScheduler started: interval={}ms, connectors={}", intervalMs, connectors.size());
+        log.info(
+                "ConnectorHealthScheduler started: interval={}ms, connectors={}",
+                intervalMs,
+                connectors.size());
     }
 
     public void stop() {

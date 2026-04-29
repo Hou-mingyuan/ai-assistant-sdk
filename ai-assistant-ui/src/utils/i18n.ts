@@ -1,109 +1,109 @@
-export type Locale = 'en' | 'zh' | 'ja' | 'ko'
+export type Locale = 'en' | 'zh' | 'ja' | 'ko';
 
 export interface I18nMessages {
-  greeting: string
-  translate: string
-  summarize: string
-  chat: string
-  placeholder: Record<'translate' | 'summarize' | 'chat', string>
-  newline: string
-  uploadFile: string
+  greeting: string;
+  translate: string;
+  summarize: string;
+  chat: string;
+  placeholder: Record<'translate' | 'summarize' | 'chat', string>;
+  newline: string;
+  uploadFile: string;
   /** 输入区发送按钮 */
-  send: string
-  clear: string
-  title: string
+  send: string;
+  clear: string;
+  title: string;
   /** 悬浮球右键：贴边 */
-  fabDockLeft: string
-  fabDockRight: string
-  fabUndock: string
+  fabDockLeft: string;
+  fabDockRight: string;
+  fabUndock: string;
   /** 悬浮球右键：隐藏直至刷新页面 */
-  fabHideUntilRefresh: string
+  fabHideUntilRefresh: string;
   /** 代码块复制按钮 */
-  copyCode: string
-  codeCopied: string
-  noResponse: string
+  copyCode: string;
+  codeCopied: string;
+  noResponse: string;
   /** 错误前缀，后接技术信息 */
-  errorPrefix: string
+  errorPrefix: string;
   /** 读屏：流式生成中 */
-  replying: string
+  replying: string;
   /** 折叠早期消息：{n} 为数量 */
-  showEarlierTemplate: string
-  closePanel: string
+  showEarlierTemplate: string;
+  closePanel: string;
   /** 标题栏：放大对话面板 */
-  expandPanel: string
+  expandPanel: string;
   /** 标题栏：恢复默认面板尺寸 */
-  shrinkPanel: string
+  shrinkPanel: string;
   /** 右下角：拖拽调整面板大小 */
-  resizePanel: string
+  resizePanel: string;
   /** 助手气泡：链接预览自动插图前的说明 */
-  urlPreviewImagesNote: string
+  urlPreviewImagesNote: string;
   /** 悬浮球 aria-label */
-  fabOpen: string
+  fabOpen: string;
   /** 导出会话 */
-  export: string
-  exportMarkdown: string
-  exportCsv: string
+  export: string;
+  exportMarkdown: string;
+  exportCsv: string;
   /** 打开打印对话框，另存为 PDF */
-  exportPrintPdf: string
-  exportRoleUser: string
-  exportRoleAssistant: string
-  exportAssistantOnlyMd: string
-  exportCopyMarkdown: string
-  exportJson: string
-  searchMessages: string
+  exportPrintPdf: string;
+  exportRoleUser: string;
+  exportRoleAssistant: string;
+  exportAssistantOnlyMd: string;
+  exportCopyMarkdown: string;
+  exportJson: string;
+  searchMessages: string;
   /** 对话模式：个性化（system prompt） */
-  personalizeTitle: string
-  personalizePlaceholder: string
-  personalizeDone: string
+  personalizeTitle: string;
+  personalizePlaceholder: string;
+  personalizeDone: string;
   /** 字数统计，占位 {cur} {max} */
-  personalizeCharCount: string
-  systemPromptPlaceholder: string
+  personalizeCharCount: string;
+  systemPromptPlaceholder: string;
   /** 对话模型下拉读屏 */
-  modelLabel: string
+  modelLabel: string;
   /** 模型列表未加载或为空时的占位 */
-  modelsListEmpty: string
-  openInIde: string
-  exportServerXlsx: string
-  exportServerDocx: string
-  exportServerPdf: string
+  modelsListEmpty: string;
+  openInIde: string;
+  exportServerXlsx: string;
+  exportServerDocx: string;
+  exportServerPdf: string;
   /** 助手气泡右键 */
-  msgCtxCopy: string
-  msgCtxDelete: string
-  msgCtxTranslate: string
+  msgCtxCopy: string;
+  msgCtxDelete: string;
+  msgCtxTranslate: string;
   /** 需先选中气泡内文字 */
-  msgCtxNeedSelection: string
-  msgCtxExportDocx: string
-  msgCtxExportPdf: string
-  msgCtxExportXlsx: string
+  msgCtxNeedSelection: string;
+  msgCtxExportDocx: string;
+  msgCtxExportPdf: string;
+  msgCtxExportXlsx: string;
   /** 服务端导出：请求进行中 */
-  exportPreparing: string
+  exportPreparing: string;
   /** 服务端导出：HTTP 已通，正在读 body */
-  exportReceiving: string
+  exportReceiving: string;
   /** 服务端导出：即将触发浏览器下载 */
-  exportStartingDownload: string
+  exportStartingDownload: string;
   /** 服务端导出：已开始下载（保存框即将出现） */
-  exportDownloadStarted: string
+  exportDownloadStarted: string;
   /** 页面选中文本浮层：发起对话 */
-  pageSelAsk: string
-  dropFileHere: string
-  ttsPlay: string
-  ttsStop: string
-  thumbsUp: string
-  thumbsDown: string
-  micStart: string
-  micStop: string
-  newSession: string
-  msgCtxFork: string
-  msgCtxEdit: string
-  batchExport: string
-  stopGenerate: string
-  regenerate: string
-  searchPrev: string
-  searchNext: string
-  pendingImage: string
-  removeImage: string
-  chatSessions: string
-  closeSession: string
+  pageSelAsk: string;
+  dropFileHere: string;
+  ttsPlay: string;
+  ttsStop: string;
+  thumbsUp: string;
+  thumbsDown: string;
+  micStart: string;
+  micStop: string;
+  newSession: string;
+  msgCtxFork: string;
+  msgCtxEdit: string;
+  batchExport: string;
+  stopGenerate: string;
+  regenerate: string;
+  searchPrev: string;
+  searchNext: string;
+  pendingImage: string;
+  removeImage: string;
+  chatSessions: string;
+  closeSession: string;
 }
 
 const messages: Record<string, I18nMessages> = {
@@ -221,8 +221,7 @@ const messages: Record<string, I18nMessages> = {
     expandPanel: '全屏',
     shrinkPanel: '退出全屏',
     resizePanel: '拖动右下角调整大小',
-    urlPreviewImagesNote:
-      '以下图片来自链接页面的自动提取，仅作对照参考，未经模型排序或验证。',
+    urlPreviewImagesNote: '以下图片来自链接页面的自动提取，仅作对照参考，未经模型排序或验证。',
     fabOpen: '打开 AI 助手',
     export: '导出',
     exportMarkdown: 'Markdown（.md）',
@@ -277,7 +276,7 @@ const messages: Record<string, I18nMessages> = {
     chatSessions: '会话列表',
     closeSession: '关闭',
   },
-}
+};
 
 const ja = {
   ...messages.en,
@@ -285,7 +284,11 @@ const ja = {
   translate: '🌐 翻訳',
   summarize: '📝 要約',
   chat: '💬 チャット',
-  placeholder: { translate: '翻訳するテキストを貼り付け...', summarize: '要約するテキストを貼り付け...', chat: '何でも聞いてください...' },
+  placeholder: {
+    translate: '翻訳するテキストを貼り付け...',
+    summarize: '要約するテキストを貼り付け...',
+    chat: '何でも聞いてください...',
+  },
   newline: 'Shift+Enterで改行',
   uploadFile: 'ファイルをアップロード',
   send: '送信',
@@ -305,7 +308,8 @@ const ja = {
   expandPanel: '全画面',
   shrinkPanel: '全画面解除',
   resizePanel: 'ドラッグしてリサイズ',
-  urlPreviewImagesNote: '以下の画像はリンクページから自動抽出されたもので、参考用です。モデルによる検証はされていません。',
+  urlPreviewImagesNote:
+    '以下の画像はリンクページから自動抽出されたもので、参考用です。モデルによる検証はされていません。',
   fabOpen: 'AIアシスタントを開く',
   export: 'エクスポート',
   exportMarkdown: 'Markdown（.md）',
@@ -359,7 +363,7 @@ const ja = {
   removeImage: '画像を削除',
   chatSessions: 'チャットセッション',
   closeSession: '閉じる',
-}
+};
 
 const ko = {
   ...messages.en,
@@ -367,7 +371,11 @@ const ko = {
   translate: '🌐 번역',
   summarize: '📝 요약',
   chat: '💬 채팅',
-  placeholder: { translate: '번역할 텍스트를 붙여넣기...', summarize: '요약할 텍스트를 붙여넣기...', chat: '무엇이든 물어보세요...' },
+  placeholder: {
+    translate: '번역할 텍스트를 붙여넣기...',
+    summarize: '요약할 텍스트를 붙여넣기...',
+    chat: '무엇이든 물어보세요...',
+  },
   newline: 'Shift+Enter로 줄바꿈',
   uploadFile: '파일 업로드',
   send: '전송',
@@ -387,7 +395,8 @@ const ko = {
   expandPanel: '전체화면',
   shrinkPanel: '전체화면 해제',
   resizePanel: '드래그하여 크기 조절',
-  urlPreviewImagesNote: '아래 이미지는 링크된 페이지에서 자동 추출된 것으로 참고용입니다. 모델의 검증을 거치지 않았습니다.',
+  urlPreviewImagesNote:
+    '아래 이미지는 링크된 페이지에서 자동 추출된 것으로 참고용입니다. 모델의 검증을 거치지 않았습니다.',
   fabOpen: 'AI 어시스턴트 열기',
   export: '내보내기',
   exportMarkdown: 'Markdown (.md)',
@@ -441,11 +450,11 @@ const ko = {
   removeImage: '이미지 제거',
   chatSessions: '채팅 세션',
   closeSession: '닫기',
-}
+};
 
-messages.ja = ja satisfies I18nMessages
-messages.ko = ko satisfies I18nMessages
+messages.ja = ja satisfies I18nMessages;
+messages.ko = ko satisfies I18nMessages;
 
 export function getMessages(locale: Locale): I18nMessages {
-  return (messages as Record<string, I18nMessages>)[locale] || messages.en
+  return (messages as Record<string, I18nMessages>)[locale] || messages.en;
 }

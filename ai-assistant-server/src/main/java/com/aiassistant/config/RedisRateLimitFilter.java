@@ -4,16 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 /**
- * Redis-backed sliding-window rate limiter, drop-in replacement for the in-memory {@link RateLimitFilter}.
- * <p>Uses a Lua script for atomic increment + TTL, supporting multi-instance deployment.</p>
+ * Redis-backed sliding-window rate limiter, drop-in replacement for the in-memory {@link
+ * RateLimitFilter}.
+ *
+ * <p>Uses a Lua script for atomic increment + TTL, supporting multi-instance deployment.
  *
  * <pre>{@code
  * @Bean
@@ -29,13 +30,13 @@ import java.util.Map;
 public class RedisRateLimitFilter implements Filter {
 
     private static final String LUA_SCRIPT =
-            "local key = KEYS[1] " +
-            "local limit = tonumber(ARGV[1]) " +
-            "local window = tonumber(ARGV[2]) " +
-            "local current = redis.call('INCR', key) " +
-            "if current == 1 then redis.call('EXPIRE', key, window) end " +
-            "if current > limit then return 0 end " +
-            "return 1";
+            "local key = KEYS[1] "
+                    + "local limit = tonumber(ARGV[1]) "
+                    + "local window = tonumber(ARGV[2]) "
+                    + "local current = redis.call('INCR', key) "
+                    + "if current == 1 then redis.call('EXPIRE', key, window) end "
+                    + "if current > limit then return 0 end "
+                    + "return 1";
 
     private final String contextPath;
     private final AiAssistantProperties properties;
@@ -43,7 +44,8 @@ public class RedisRateLimitFilter implements Filter {
     private final DefaultRedisScript<Long> script;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public RedisRateLimitFilter(AiAssistantProperties properties, StringRedisTemplate redisTemplate) {
+    public RedisRateLimitFilter(
+            AiAssistantProperties properties, StringRedisTemplate redisTemplate) {
         this.contextPath = properties.getContextPath();
         this.properties = properties;
         this.redis = redisTemplate;
@@ -76,14 +78,23 @@ public class RedisRateLimitFilter implements Filter {
             return;
         }
         String clientKey = "ai-rl:" + getClientKey(request) + ":" + action;
-        Long allowed = redis.execute(script, List.of(clientKey), String.valueOf(effectiveLimit), "60");
+        Long allowed =
+                redis.execute(script, List.of(clientKey), String.valueOf(effectiveLimit), "60");
         if (allowed == null || allowed == 0) {
             HttpServletResponse response = (HttpServletResponse) res;
             response.setStatus(429);
             response.setContentType("application/json;charset=UTF-8");
-            objectMapper.writeValue(response.getOutputStream(),
-                    Map.of("success", false, "error",
-                            "Rate limit exceeded for " + action + ". Max " + effectiveLimit + " requests/min."));
+            objectMapper.writeValue(
+                    response.getOutputStream(),
+                    Map.of(
+                            "success",
+                            false,
+                            "error",
+                            "Rate limit exceeded for "
+                                    + action
+                                    + ". Max "
+                                    + effectiveLimit
+                                    + " requests/min."));
             return;
         }
         chain.doFilter(req, res);

@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Structured audit logger. Logs audit events as JSON to a dedicated logger category.
- * Also keeps a rolling in-memory buffer for dashboard/admin queries.
+ * Structured audit logger. Logs audit events as JSON to a dedicated logger category. Also keeps a
+ * rolling in-memory buffer for dashboard/admin queries.
  */
 public class AuditLogger {
 
@@ -39,11 +39,25 @@ public class AuditLogger {
         }
     }
 
-    public void log(String action, String userId, String sessionId,
-                    String tenantId, String sourceIp, Map<String, Object> details,
-                    long durationMs, boolean success) {
-        log(new AuditEvent(action, userId, sessionId, tenantId, sourceIp,
-                details, durationMs, success));
+    public void log(
+            String action,
+            String userId,
+            String sessionId,
+            String tenantId,
+            String sourceIp,
+            Map<String, Object> details,
+            long durationMs,
+            boolean success) {
+        log(
+                new AuditEvent(
+                        action,
+                        userId,
+                        sessionId,
+                        tenantId,
+                        sourceIp,
+                        details,
+                        durationMs,
+                        success));
     }
 
     public List<AuditEvent> getRecentEvents(int limit) {

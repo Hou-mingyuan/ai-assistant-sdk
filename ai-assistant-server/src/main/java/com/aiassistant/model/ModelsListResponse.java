@@ -2,9 +2,7 @@ package com.aiassistant.model;
 
 import java.util.List;
 
-/**
- * GET /models：可供前端下拉的模型 id 列表（已由服务端白名单约束）。
- */
+/** GET /models：可供前端下拉的模型 id 列表（已由服务端白名单约束）。 */
 public class ModelsListResponse {
 
     private boolean success = true;

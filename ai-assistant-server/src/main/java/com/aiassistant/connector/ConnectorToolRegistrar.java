@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,14 +13,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Bridges {@link DataConnector} instances into the {@link ToolRegistry} system.
- * For each connector, registers three Function Calling tools:
+ * Bridges {@link DataConnector} instances into the {@link ToolRegistry} system. For each connector,
+ * registers three Function Calling tools:
+ *
  * <ul>
- *   <li>{prefix}_list_modules – discover available modules/tables</li>
- *   <li>{prefix}_get_schema – inspect table structure</li>
- *   <li>{prefix}_query_data – query records with filters</li>
+ *   <li>{prefix}_list_modules – discover available modules/tables
+ *   <li>{prefix}_get_schema – inspect table structure
+ *   <li>{prefix}_query_data – query records with filters
  * </ul>
  */
 public class ConnectorToolRegistrar {
@@ -54,16 +54,24 @@ public class ConnectorToolRegistrar {
             toolCount = 6;
         }
 
-        log.info("Registered {} tools for connector '{}' (prefix={}, locale={}, write={})",
-                toolCount, label, prefix, locale, connector.supportsWrite());
+        log.info(
+                "Registered {} tools for connector '{}' (prefix={}, locale={}, write={})",
+                toolCount,
+                label,
+                prefix,
+                locale,
+                connector.supportsWrite());
     }
 
-    private static ToolDefinition listModulesTool(String prefix, String label,
-                                                     DataConnector connector, boolean en) {
+    private static ToolDefinition listModulesTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_list_modules";
-        String desc = en
-                ? "List all available modules/tables in " + label + ". Call this first when the user mentions a business module to find the moduleId."
-                : "列出 " + label + " 中所有可用的数据模块/表。当用户提到某个业务模块时，先调用此工具查找对应的 moduleId。";
+        String desc =
+                en
+                        ? "List all available modules/tables in "
+                                + label
+                                + ". Call this first when the user mentions a business module to find the moduleId."
+                        : "列出 " + label + " 中所有可用的数据模块/表。当用户提到某个业务模块时，先调用此工具查找对应的 moduleId。";
         String emptyHint = en ? "No modules found" : "未找到任何模块";
 
         ObjectNode schema = mapper.createObjectNode();
@@ -71,27 +79,50 @@ public class ConnectorToolRegistrar {
         schema.putObject("properties");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 List<DataConnector.ModuleInfo> modules = connector.listModules();
                 if (modules.isEmpty()) return "{\"modules\":[],\"hint\":\"" + emptyHint + "\"}";
-                List<Object> list = modules.stream()
-                        .map(m -> java.util.Map.of("id", m.id(), "name", m.name(), "type", m.type()))
-                        .collect(Collectors.toList());
-                return mapper.writeValueAsString(java.util.Map.of("modules", list, "total", list.size()));
+                List<Object> list =
+                        modules.stream()
+                                .map(
+                                        m ->
+                                                java.util.Map.of(
+                                                        "id", m.id(), "name", m.name(), "type",
+                                                        m.type()))
+                                .collect(Collectors.toList());
+                return mapper.writeValueAsString(
+                        java.util.Map.of("modules", list, "total", list.size()));
             }
         };
     }
 
-    private static ToolDefinition getSchemaTool(String prefix, String label,
-                                                   DataConnector connector, boolean en) {
+    private static ToolDefinition getSchemaTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_get_schema";
-        String desc = en
-                ? "Get the field schema (field names, IDs, types) of a specific table in " + label + ". Must be called before query_data to understand the table structure."
-                : "获取 " + label + " 中指定数据表的字段结构（字段名称、标识符、类型）。在查询数据之前必须先调用此工具了解表结构，以便构造正确的过滤条件。";
+        String desc =
+                en
+                        ? "Get the field schema (field names, IDs, types) of a specific table in "
+                                + label
+                                + ". Must be called before query_data to understand the table structure."
+                        : "获取 "
+                                + label
+                                + " 中指定数据表的字段结构（字段名称、标识符、类型）。在查询数据之前必须先调用此工具了解表结构，以便构造正确的过滤条件。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -103,32 +134,54 @@ public class ConnectorToolRegistrar {
         required.add("moduleId");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 String moduleId = arguments.path("moduleId").asText("");
                 if (moduleId.isBlank()) return "{\"error\":\"moduleId is required\"}";
                 DataConnector.TableSchema ts = connector.getSchema(moduleId);
-                List<Object> fields = ts.fields().stream()
-                        .map(f -> java.util.Map.of("id", f.id(), "name", f.name(), "type", f.type()))
-                        .collect(Collectors.toList());
-                return mapper.writeValueAsString(java.util.Map.of(
-                        "moduleId", ts.moduleId(),
-                        "moduleName", ts.moduleName(),
-                        "fields", fields
-                ));
+                List<Object> fields =
+                        ts.fields().stream()
+                                .map(
+                                        f ->
+                                                java.util.Map.of(
+                                                        "id", f.id(), "name", f.name(), "type",
+                                                        f.type()))
+                                .collect(Collectors.toList());
+                return mapper.writeValueAsString(
+                        java.util.Map.of(
+                                "moduleId", ts.moduleId(),
+                                "moduleName", ts.moduleName(),
+                                "fields", fields));
             }
         };
     }
 
-    private static ToolDefinition queryDataTool(String prefix, String label,
-                                                   DataConnector connector, boolean en) {
+    private static ToolDefinition queryDataTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_query_data";
-        String desc = en
-                ? "Query records from a table in " + label + ". Supports field filtering (eq, gt, contains, etc.), sorting, and pagination. Use get_schema first to learn the field structure."
-                : "从 " + label + " 的指定数据表中查询记录。支持字段过滤（等于、大于、包含等）、排序和分页。先用 get_schema 获取字段结构，再用正确的 fieldId 构造条件。";
+        String desc =
+                en
+                        ? "Query records from a table in "
+                                + label
+                                + ". Supports field filtering (eq, gt, contains, etc.), sorting, and pagination. Use get_schema first to learn the field structure."
+                        : "从 "
+                                + label
+                                + " 的指定数据表中查询记录。支持字段过滤（等于、大于、包含等）、排序和分页。先用 get_schema 获取字段结构，再用正确的 fieldId 构造条件。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -145,8 +198,12 @@ public class ConnectorToolRegistrar {
         condItem.put("type", "object");
         ObjectNode condProps = condItem.putObject("properties");
         condProps.putObject("fieldId").put("type", "string").put("description", "字段标识符");
-        condProps.putObject("operator").put("type", "string")
-                .put("description", "比较方式: eq/ne/gt/ge/lt/le/contains/startswith/in/between/isnull/isnotnull");
+        condProps
+                .putObject("operator")
+                .put("type", "string")
+                .put(
+                        "description",
+                        "比较方式: eq/ne/gt/ge/lt/le/contains/startswith/in/between/isnull/isnotnull");
         condProps.putObject("value").put("description", "比较值");
 
         ObjectNode pageProp = props.putObject("pageSize");
@@ -170,9 +227,21 @@ public class ConnectorToolRegistrar {
         required.add("moduleId");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 String moduleId = arguments.path("moduleId").asText("");
@@ -182,11 +251,11 @@ public class ConnectorToolRegistrar {
                 JsonNode condsNode = arguments.path("conditions");
                 if (condsNode.isArray()) {
                     for (JsonNode c : condsNode) {
-                        conditions.add(new DataConnector.QueryFilter.Condition(
-                                c.path("fieldId").asText(""),
-                                c.path("operator").asText("eq"),
-                                parseValue(c.path("value"))
-                        ));
+                        conditions.add(
+                                new DataConnector.QueryFilter.Condition(
+                                        c.path("fieldId").asText(""),
+                                        c.path("operator").asText("eq"),
+                                        parseValue(c.path("value"))));
                     }
                 }
 
@@ -194,18 +263,18 @@ public class ConnectorToolRegistrar {
                 JsonNode orderNode = arguments.path("orderByList");
                 if (orderNode.isArray()) {
                     for (JsonNode o : orderNode) {
-                        orderBy.add(new DataConnector.QueryFilter.OrderBy(
-                                o.path("fieldId").asText(""),
-                                o.path("direction").asText("asc")
-                        ));
+                        orderBy.add(
+                                new DataConnector.QueryFilter.OrderBy(
+                                        o.path("fieldId").asText(""),
+                                        o.path("direction").asText("asc")));
                     }
                 }
 
                 int pageSize = arguments.path("pageSize").asInt(20);
                 int pageIndex = arguments.path("pageIndex").asInt(1);
 
-                DataConnector.QueryFilter filter = new DataConnector.QueryFilter(
-                        conditions, pageIndex, pageSize, orderBy);
+                DataConnector.QueryFilter filter =
+                        new DataConnector.QueryFilter(conditions, pageIndex, pageSize, orderBy);
 
                 String ck = cacheKey(connector.id(), moduleId, filter);
                 CacheEntry cached = queryCache.get(ck);
@@ -221,27 +290,31 @@ public class ConnectorToolRegistrar {
                     records = maskRecords(records, masked);
                 }
 
-                String json = mapper.writeValueAsString(java.util.Map.of(
-                        "records", records,
-                        "total", result.total(),
-                        "pageIndex", result.pageIndex(),
-                        "pageSize", result.pageSize()
-                ));
+                String json =
+                        mapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "records", records,
+                                        "total", result.total(),
+                                        "pageIndex", result.pageIndex(),
+                                        "pageSize", result.pageSize()));
 
                 evictExpired();
-                queryCache.put(ck, new CacheEntry(json,
-                        System.currentTimeMillis() + QUERY_CACHE_TTL_MS));
+                queryCache.put(
+                        ck, new CacheEntry(json, System.currentTimeMillis() + QUERY_CACHE_TTL_MS));
                 return json;
             }
         };
     }
 
-    private static ToolDefinition createRecordTool(String prefix, String label,
-                                                      DataConnector connector, boolean en) {
+    private static ToolDefinition createRecordTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_create_record";
-        String desc = en
-                ? "Create a new record in a table of " + label + ". Provide moduleId and a fields object with field IDs as keys."
-                : "在 " + label + " 的指定数据表中创建一条新记录。提供 moduleId 和包含字段标识符为 key 的 fields 对象。";
+        String desc =
+                en
+                        ? "Create a new record in a table of "
+                                + label
+                                + ". Provide moduleId and a fields object with field IDs as keys."
+                        : "在 " + label + " 的指定数据表中创建一条新记录。提供 moduleId 和包含字段标识符为 key 的 fields 对象。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -251,29 +324,47 @@ public class ConnectorToolRegistrar {
         schema.putArray("required").add("moduleId").add("fields");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 String moduleId = arguments.path("moduleId").asText("");
                 if (moduleId.isBlank()) return "{\"error\":\"moduleId is required\"}";
                 JsonNode fieldsNode = arguments.path("fields");
                 if (!fieldsNode.isObject()) return "{\"error\":\"fields must be an object\"}";
-                java.util.Map<String, Object> fields = mapper.convertValue(fieldsNode,
-                        new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                java.util.Map<String, Object> fields =
+                        mapper.convertValue(
+                                fieldsNode,
+                                new com.fasterxml.jackson.core.type.TypeReference<>() {});
                 java.util.Map<String, Object> result = connector.createRecord(moduleId, fields);
-                return mapper.writeValueAsString(java.util.Map.of("success", true, "record", result));
+                return mapper.writeValueAsString(
+                        java.util.Map.of("success", true, "record", result));
             }
         };
     }
 
-    private static ToolDefinition updateRecordTool(String prefix, String label,
-                                                      DataConnector connector, boolean en) {
+    private static ToolDefinition updateRecordTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_update_record";
-        String desc = en
-                ? "Update an existing record in " + label + ". Provide moduleId, recordId, and fields to update."
-                : "更新 " + label + " 中的一条已有记录。提供 moduleId、recordId 和要更新的字段。";
+        String desc =
+                en
+                        ? "Update an existing record in "
+                                + label
+                                + ". Provide moduleId, recordId, and fields to update."
+                        : "更新 " + label + " 中的一条已有记录。提供 moduleId、recordId 和要更新的字段。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -284,9 +375,21 @@ public class ConnectorToolRegistrar {
         schema.putArray("required").add("moduleId").add("recordId").add("fields");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 String moduleId = arguments.path("moduleId").asText("");
@@ -295,20 +398,25 @@ public class ConnectorToolRegistrar {
                 if (recordId.isBlank()) return "{\"error\":\"recordId is required\"}";
                 JsonNode fieldsNode = arguments.path("fields");
                 if (!fieldsNode.isObject()) return "{\"error\":\"fields must be an object\"}";
-                java.util.Map<String, Object> fields = mapper.convertValue(fieldsNode,
-                        new com.fasterxml.jackson.core.type.TypeReference<>() {});
-                java.util.Map<String, Object> result = connector.updateRecord(moduleId, recordId, fields);
-                return mapper.writeValueAsString(java.util.Map.of("success", true, "record", result));
+                java.util.Map<String, Object> fields =
+                        mapper.convertValue(
+                                fieldsNode,
+                                new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                java.util.Map<String, Object> result =
+                        connector.updateRecord(moduleId, recordId, fields);
+                return mapper.writeValueAsString(
+                        java.util.Map.of("success", true, "record", result));
             }
         };
     }
 
-    private static ToolDefinition deleteRecordTool(String prefix, String label,
-                                                      DataConnector connector, boolean en) {
+    private static ToolDefinition deleteRecordTool(
+            String prefix, String label, DataConnector connector, boolean en) {
         String name = prefix + "_delete_record";
-        String desc = en
-                ? "Delete a record from a table in " + label + " by its record ID."
-                : "根据 recordId 从 " + label + " 的数据表中删除一条记录。";
+        String desc =
+                en
+                        ? "Delete a record from a table in " + label + " by its record ID."
+                        : "根据 recordId 从 " + label + " 的数据表中删除一条记录。";
 
         ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
@@ -318,9 +426,21 @@ public class ConnectorToolRegistrar {
         schema.putArray("required").add("moduleId").add("recordId");
 
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return desc; }
-            @Override public JsonNode parametersSchema() { return schema; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return desc;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return schema;
+            }
+
             @Override
             public String execute(JsonNode arguments) throws Exception {
                 String moduleId = arguments.path("moduleId").asText("");
@@ -369,14 +489,24 @@ public class ConnectorToolRegistrar {
             new java.util.concurrent.ConcurrentHashMap<>();
 
     private record CacheEntry(String json, long expiresAt) {
-        boolean isExpired() { return System.currentTimeMillis() > expiresAt; }
+        boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
     }
 
-    private static String cacheKey(String connectorId, String moduleId,
-                                   DataConnector.QueryFilter filter) {
-        return connectorId + "|" + moduleId + "|" + filter.pageIndex()
-                + "|" + filter.pageSize() + "|" + filter.conditions()
-                + "|" + filter.orderByList();
+    private static String cacheKey(
+            String connectorId, String moduleId, DataConnector.QueryFilter filter) {
+        return connectorId
+                + "|"
+                + moduleId
+                + "|"
+                + filter.pageIndex()
+                + "|"
+                + filter.pageSize()
+                + "|"
+                + filter.conditions()
+                + "|"
+                + filter.orderByList();
     }
 
     private static void evictExpired() {

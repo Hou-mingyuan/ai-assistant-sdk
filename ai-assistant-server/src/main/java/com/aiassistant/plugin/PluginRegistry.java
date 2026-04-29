@@ -3,9 +3,6 @@ package com.aiassistant.plugin;
 import com.aiassistant.spi.AssistantCapability;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,11 +13,12 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Manages runtime loading/unloading of plugin JARs.
- * Plugins can contribute {@link ToolDefinition} and {@link AssistantCapability}
- * implementations discovered via {@link ServiceLoader}.
+ * Manages runtime loading/unloading of plugin JARs. Plugins can contribute {@link ToolDefinition}
+ * and {@link AssistantCapability} implementations discovered via {@link ServiceLoader}.
  */
 public class PluginRegistry {
 
@@ -31,16 +29,18 @@ public class PluginRegistry {
 
     public PluginRegistry(ToolRegistry toolRegistry, List<AssistantCapability> capabilities) {
         this.toolRegistry = toolRegistry;
-        this.globalCapabilities = capabilities != null
-                ? new CopyOnWriteArrayList<>(capabilities)
-                : new CopyOnWriteArrayList<>();
+        this.globalCapabilities =
+                capabilities != null
+                        ? new CopyOnWriteArrayList<>(capabilities)
+                        : new CopyOnWriteArrayList<>();
     }
 
     /**
-     * Load a plugin JAR at runtime. Discovers ToolDefinition and AssistantCapability via ServiceLoader.
-     * Synchronized to prevent concurrent loading of the same pluginId.
+     * Load a plugin JAR at runtime. Discovers ToolDefinition and AssistantCapability via
+     * ServiceLoader. Synchronized to prevent concurrent loading of the same pluginId.
      */
-    public synchronized PluginDescriptor loadPlugin(String pluginId, File jarFile) throws Exception {
+    public synchronized PluginDescriptor loadPlugin(String pluginId, File jarFile)
+            throws Exception {
         if (plugins.containsKey(pluginId)) {
             throw new IllegalStateException("Plugin already loaded: " + pluginId);
         }
@@ -49,37 +49,49 @@ public class PluginRegistry {
         }
 
         URL jarUrl = jarFile.toURI().toURL();
-        URLClassLoader classLoader = new URLClassLoader(new URL[]{jarUrl}, getClass().getClassLoader());
+        URLClassLoader classLoader =
+                new URLClassLoader(new URL[] {jarUrl}, getClass().getClassLoader());
 
         List<ToolDefinition> tools = new ArrayList<>();
-        ServiceLoader.load(ToolDefinition.class, classLoader).forEach(tool -> {
-            toolRegistry.register(tool);
-            tools.add(tool);
-            log.info("Plugin [{}] registered tool: {}", pluginId, tool.name());
-        });
+        ServiceLoader.load(ToolDefinition.class, classLoader)
+                .forEach(
+                        tool -> {
+                            toolRegistry.register(tool);
+                            tools.add(tool);
+                            log.info("Plugin [{}] registered tool: {}", pluginId, tool.name());
+                        });
 
         List<AssistantCapability> caps = new ArrayList<>();
-        ServiceLoader.load(AssistantCapability.class, classLoader).forEach(cap -> {
-            globalCapabilities.add(cap);
-            caps.add(cap);
-            log.info("Plugin [{}] registered capability: {}", pluginId, cap.name());
-        });
+        ServiceLoader.load(AssistantCapability.class, classLoader)
+                .forEach(
+                        cap -> {
+                            globalCapabilities.add(cap);
+                            caps.add(cap);
+                            log.info("Plugin [{}] registered capability: {}", pluginId, cap.name());
+                        });
 
         List<String> capNames = new ArrayList<>();
         tools.forEach(t -> capNames.add("tool:" + t.name()));
         caps.forEach(c -> capNames.add("capability:" + c.name()));
 
-        PluginDescriptor descriptor = new PluginDescriptor(pluginId, jarFile.getName(), "1.0.0",
-                "Loaded from " + jarFile.getAbsolutePath(), capNames);
+        PluginDescriptor descriptor =
+                new PluginDescriptor(
+                        pluginId,
+                        jarFile.getName(),
+                        "1.0.0",
+                        "Loaded from " + jarFile.getAbsolutePath(),
+                        capNames);
 
         plugins.put(pluginId, new LoadedPlugin(descriptor, classLoader, tools, caps));
-        log.info("Plugin loaded: {} with {} tools and {} capabilities", pluginId, tools.size(), caps.size());
+        log.info(
+                "Plugin loaded: {} with {} tools and {} capabilities",
+                pluginId,
+                tools.size(),
+                caps.size());
         return descriptor;
     }
 
-    /**
-     * Unload a plugin and remove its tools/capabilities.
-     */
+    /** Unload a plugin and remove its tools/capabilities. */
     public synchronized boolean unloadPlugin(String pluginId) {
         LoadedPlugin loaded = plugins.remove(pluginId);
         if (loaded == null) return false;
@@ -113,6 +125,5 @@ public class PluginRegistry {
             PluginDescriptor descriptor,
             URLClassLoader classLoader,
             List<ToolDefinition> tools,
-            List<AssistantCapability> capabilities
-    ) {}
+            List<AssistantCapability> capabilities) {}
 }

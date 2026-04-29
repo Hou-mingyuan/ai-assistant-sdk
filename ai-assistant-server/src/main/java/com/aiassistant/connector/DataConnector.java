@@ -25,7 +25,9 @@ public interface DataConnector {
     QueryResult queryData(String moduleId, QueryFilter filter);
 
     /** Whether this connector supports write operations. */
-    default boolean supportsWrite() { return false; }
+    default boolean supportsWrite() {
+        return false;
+    }
 
     /** Create a new record in the given module. Returns the created record (or at least its id). */
     default Map<String, Object> createRecord(String moduleId, Map<String, Object> fields) {
@@ -33,7 +35,8 @@ public interface DataConnector {
     }
 
     /** Update an existing record. Returns the updated record (or at least its id). */
-    default Map<String, Object> updateRecord(String moduleId, String recordId, Map<String, Object> fields) {
+    default Map<String, Object> updateRecord(
+            String moduleId, String recordId, Map<String, Object> fields) {
         throw new UnsupportedOperationException("Write not supported by " + id());
     }
 
@@ -43,10 +46,12 @@ public interface DataConnector {
     }
 
     /**
-     * Field names (case-insensitive) whose values should be masked before
-     * returning to the LLM. Override to provide connector-specific masks.
+     * Field names (case-insensitive) whose values should be masked before returning to the LLM.
+     * Override to provide connector-specific masks.
      */
-    default java.util.Set<String> maskedFieldNames() { return java.util.Set.of(); }
+    default java.util.Set<String> maskedFieldNames() {
+        return java.util.Set.of();
+    }
 
     // ── Value objects ──────────────────────────────────────────────────
 
@@ -57,11 +62,7 @@ public interface DataConnector {
     record FieldInfo(String id, String name, String type) {}
 
     record QueryFilter(
-            List<Condition> conditions,
-            int pageIndex,
-            int pageSize,
-            List<OrderBy> orderByList
-    ) {
+            List<Condition> conditions, int pageIndex, int pageSize, List<OrderBy> orderByList) {
         public QueryFilter {
             if (pageIndex <= 0) pageIndex = 1;
             if (pageSize <= 0) pageSize = 20;
@@ -69,13 +70,9 @@ public interface DataConnector {
         }
 
         public record Condition(String fieldId, String operator, Object value) {}
+
         public record OrderBy(String fieldId, String direction) {}
     }
 
-    record QueryResult(
-            List<Map<String, Object>> records,
-            int total,
-            int pageIndex,
-            int pageSize
-    ) {}
+    record QueryResult(List<Map<String, Object>> records, int total, int pageIndex, int pageSize) {}
 }

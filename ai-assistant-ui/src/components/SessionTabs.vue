@@ -22,27 +22,32 @@
         @click.stop="$emit('delete', s.id)"
         @keydown.enter.stop="$emit('delete', s.id)"
         @keydown.space.prevent.stop="$emit('delete', s.id)"
-      >&times;</button>
+      >
+        &times;
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { SessionEntry } from '../composables/useMultiSession'
+import type { SessionEntry } from '../composables/useMultiSession';
 
-withDefaults(defineProps<{
-  sessions: SessionEntry[]
-  activeId: string
-  newLabel: string
-  tabListLabel?: string
-  closeLabel?: string
-}>(), {
-  tabListLabel: 'Chat sessions',
-  closeLabel: 'Close',
-})
+withDefaults(
+  defineProps<{
+    sessions: SessionEntry[];
+    activeId: string;
+    newLabel: string;
+    tabListLabel?: string;
+    closeLabel?: string;
+  }>(),
+  {
+    tabListLabel: 'Chat sessions',
+    closeLabel: 'Close',
+  },
+);
 
 defineEmits<{
-  (e: 'switch', id: string): void
-  (e: 'delete', id: string): void
-}>()
+  (e: 'switch', id: string): void;
+  (e: 'delete', id: string): void;
+}>();
 </script>

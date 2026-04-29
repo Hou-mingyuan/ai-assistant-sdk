@@ -1,17 +1,16 @@
 package com.aiassistant.stats;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Tracks token usage per tenant/model/day for cost control and billing.
- * Thread-safe; designed for multi-tenant deployments.
+ * Tracks token usage per tenant/model/day for cost control and billing. Thread-safe; designed for
+ * multi-tenant deployments.
  */
 public class TokenUsageTracker {
 
@@ -26,9 +25,7 @@ public class TokenUsageTracker {
         usage.record(model, promptTokens, completionTokens);
     }
 
-    /**
-     * Set a daily token quota for a tenant. 0 = unlimited.
-     */
+    /** Set a daily token quota for a tenant. 0 = unlimited. */
     public void setQuota(String tenantId, long dailyTokenLimit) {
         if (dailyTokenLimit > 0) {
             tenantQuotas.put(tenantId, dailyTokenLimit);
@@ -37,9 +34,7 @@ public class TokenUsageTracker {
         }
     }
 
-    /**
-     * Check if the tenant has exceeded their daily quota.
-     */
+    /** Check if the tenant has exceeded their daily quota. */
     public boolean isQuotaExceeded(String tenantId) {
         Long quota = tenantQuotas.get(tenantId);
         if (quota == null || quota <= 0) return false;
@@ -52,9 +47,9 @@ public class TokenUsageTracker {
     }
 
     /**
-     * Atomically check quota and reserve estimated tokens using CAS.
-     * Prevents concurrent requests from all passing the quota check simultaneously.
-     * Must be paired with {@link #releaseReservation} after the request completes.
+     * Atomically check quota and reserve estimated tokens using CAS. Prevents concurrent requests
+     * from all passing the quota check simultaneously. Must be paired with {@link
+     * #releaseReservation} after the request completes.
      */
     public boolean tryReserveQuota(String tenantId, int estimatedTokens) {
         Long quota = tenantQuotas.get(tenantId);
@@ -67,7 +62,8 @@ public class TokenUsageTracker {
         while (true) {
             long currentReserved = reserved.get();
             if (used + currentReserved + estimatedTokens > quota) return false;
-            if (reserved.compareAndSet(currentReserved, currentReserved + estimatedTokens)) return true;
+            if (reserved.compareAndSet(currentReserved, currentReserved + estimatedTokens))
+                return true;
         }
     }
 
@@ -90,9 +86,7 @@ public class TokenUsageTracker {
         return usage.toSnapshot(tenantId, tenantQuotas.get(tenantId));
     }
 
-    /**
-     * Total tokens consumed across all tenants (all time).
-     */
+    /** Total tokens consumed across all tenants (all time). */
     public long getTotalTokens() {
         long total = 0;
         for (TenantUsage usage : usageByTenant.values()) {
@@ -105,7 +99,8 @@ public class TokenUsageTracker {
         Map<String, Object> result = new LinkedHashMap<>();
         long globalTotal = 0;
         for (Map.Entry<String, TenantUsage> entry : usageByTenant.entrySet()) {
-            Map<String, Object> tenantSnap = entry.getValue().toSnapshot(entry.getKey(), tenantQuotas.get(entry.getKey()));
+            Map<String, Object> tenantSnap =
+                    entry.getValue().toSnapshot(entry.getKey(), tenantQuotas.get(entry.getKey()));
             result.put(entry.getKey(), tenantSnap);
             globalTotal += entry.getValue().totalTokens.get();
         }
@@ -128,10 +123,15 @@ public class TokenUsageTracker {
             totalCompletionTokens.addAndGet(completionTokens);
             totalCalls.incrementAndGet();
             tokensByModel.computeIfAbsent(model, k -> new AtomicLong()).addAndGet(total);
-            tokensByDate.computeIfAbsent(LocalDate.now().toString(), k -> new AtomicLong()).addAndGet(total);
+            tokensByDate
+                    .computeIfAbsent(LocalDate.now().toString(), k -> new AtomicLong())
+                    .addAndGet(total);
 
             if (tokensByDate.size() > 90) {
-                tokensByDate.keySet().stream().sorted().limit(tokensByDate.size() - 90).forEach(tokensByDate::remove);
+                tokensByDate.keySet().stream()
+                        .sorted()
+                        .limit(tokensByDate.size() - 90)
+                        .forEach(tokensByDate::remove);
             }
         }
 

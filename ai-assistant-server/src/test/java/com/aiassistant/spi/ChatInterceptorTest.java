@@ -1,12 +1,10 @@
 package com.aiassistant.spi;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ChatInterceptorTest {
 
@@ -60,12 +58,14 @@ class ChatInterceptorTest {
 
     @Test
     void customInterceptor_modifiesMessage() {
-        ChatInterceptor upper = new ChatInterceptor() {
-            @Override
-            public ChatInterceptor.ChatContext beforeChat(ChatInterceptor.ChatContext context) {
-                return context.withUserMessage(context.userMessage().toUpperCase());
-            }
-        };
+        ChatInterceptor upper =
+                new ChatInterceptor() {
+                    @Override
+                    public ChatInterceptor.ChatContext beforeChat(
+                            ChatInterceptor.ChatContext context) {
+                        return context.withUserMessage(context.userMessage().toUpperCase());
+                    }
+                };
         var ctx = newCtx("hello world");
         var result = upper.beforeChat(ctx);
         assertEquals("HELLO WORLD", result.userMessage());
@@ -73,12 +73,13 @@ class ChatInterceptorTest {
 
     @Test
     void customInterceptor_modifiesResponse() {
-        ChatInterceptor censor = new ChatInterceptor() {
-            @Override
-            public String afterChat(ChatInterceptor.ChatContext context, String response) {
-                return response.replaceAll("(?i)bad", "***");
-            }
-        };
+        ChatInterceptor censor =
+                new ChatInterceptor() {
+                    @Override
+                    public String afterChat(ChatInterceptor.ChatContext context, String response) {
+                        return response.replaceAll("(?i)bad", "***");
+                    }
+                };
         assertEquals("this is ***", censor.afterChat(newCtx("x"), "this is bad"));
     }
 

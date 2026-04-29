@@ -1,8 +1,8 @@
-import { ref } from 'vue'
-import { streamChat, type ChatPayload } from '../utils/api'
-import { wsStreamChat } from '../utils/wsChat'
+import { ref } from 'vue';
+import { streamChat, type ChatPayload } from '../utils/api';
+import { wsStreamChat } from '../utils/wsChat';
 
-type Protocol = 'sse' | 'ws'
+type Protocol = 'sse' | 'ws';
 
 /**
  * SSE 优先，连接级失败后自动降级到 WebSocket。
@@ -10,30 +10,32 @@ type Protocol = 'sse' | 'ws'
  * @param explicitWsUrl 可选：显式指定 WS 端点 URL，省略时从 baseUrl 推导
  */
 export function useStreamWithFallback(explicitWsUrl?: string) {
-  const preferredProtocol = ref<Protocol>('sse')
+  const preferredProtocol = ref<Protocol>('sse');
 
   function deriveWsUrl(baseUrl: string): string {
-    if (explicitWsUrl) return explicitWsUrl
-    const u = new URL(baseUrl, window.location.href)
-    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:'
+    if (explicitWsUrl) return explicitWsUrl;
+    const u = new URL(baseUrl, window.location.href);
+    u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
     if (!u.pathname.endsWith('/ws')) {
-      u.pathname = u.pathname.replace(/\/?$/, '/ws')
+      u.pathname = u.pathname.replace(/\/?$/, '/ws');
     }
-    return u.toString()
+    return u.toString();
   }
 
-  let sseFailCount = 0
-  const SSE_RETRY_THRESHOLD = 3
+  let sseFailCount = 0;
+  const SSE_RETRY_THRESHOLD = 3;
 
   function isConnectionError(e: unknown): boolean {
-    if (!(e instanceof Error)) return false
-    if (e.name === 'AbortError') return false
-    const msg = e.message.toLowerCase()
-    return msg.includes('failed to fetch') ||
+    if (!(e instanceof Error)) return false;
+    if (e.name === 'AbortError') return false;
+    const msg = e.message.toLowerCase();
+    return (
+      msg.includes('failed to fetch') ||
       msg.includes('network') ||
       e instanceof TypeError ||
       msg.includes('connection') ||
       /^http\s+5\d\d/.test(msg)
+    );
   }
 
   async function* streamWithFallback(
@@ -44,35 +46,35 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
   ): AsyncGenerator<string> {
     if (preferredProtocol.value === 'ws') {
       try {
-        yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal)
-        return
+        yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal);
+        return;
       } catch (e) {
-        preferredProtocol.value = 'sse'
-        sseFailCount = 0
-        throw e
+        preferredProtocol.value = 'sse';
+        sseFailCount = 0;
+        throw e;
       }
     }
 
     try {
-      let gotChunk = false
+      let gotChunk = false;
       for await (const chunk of streamChat(baseUrl, payload, token, signal)) {
-        gotChunk = true
-        yield chunk
+        gotChunk = true;
+        yield chunk;
       }
       if (gotChunk) {
-        sseFailCount = 0
-        return
+        sseFailCount = 0;
+        return;
       }
     } catch (e) {
-      if (!isConnectionError(e)) throw e
+      if (!isConnectionError(e)) throw e;
     }
 
-    sseFailCount++
+    sseFailCount++;
     if (sseFailCount >= SSE_RETRY_THRESHOLD) {
-      preferredProtocol.value = 'ws'
+      preferredProtocol.value = 'ws';
     }
-    yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal)
+    yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal);
   }
 
-  return { preferredProtocol, streamWithFallback }
+  return { preferredProtocol, streamWithFallback };
 }

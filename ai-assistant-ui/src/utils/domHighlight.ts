@@ -2,80 +2,80 @@
  * Highlights a DOM element on the page temporarily (e.g., when AI references it).
  * Adds a pulsing outline and scrolls into view.
  */
-const HIGHLIGHT_CLASS = 'ai-dom-highlight'
-const HIGHLIGHT_DURATION = 3000
-let activeHighlights: { el: HTMLElement; timer: ReturnType<typeof setTimeout> }[] = []
+const HIGHLIGHT_CLASS = 'ai-dom-highlight';
+const HIGHLIGHT_DURATION = 3000;
+let activeHighlights: { el: HTMLElement; timer: ReturnType<typeof setTimeout> }[] = [];
 
 export function highlightElement(selector: string, duration = HIGHLIGHT_DURATION): boolean {
-  const el = document.querySelector(selector) as HTMLElement | null
-  if (!el) return false
+  const el = document.querySelector(selector) as HTMLElement | null;
+  if (!el) return false;
 
-  clearHighlights()
+  clearHighlights();
 
-  el.classList.add(HIGHLIGHT_CLASS)
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.classList.add(HIGHLIGHT_CLASS);
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   const timer = setTimeout(() => {
-    el.classList.remove(HIGHLIGHT_CLASS)
-    activeHighlights = activeHighlights.filter(h => h.el !== el)
-  }, duration)
+    el.classList.remove(HIGHLIGHT_CLASS);
+    activeHighlights = activeHighlights.filter((h) => h.el !== el);
+  }, duration);
 
-  activeHighlights.push({ el, timer })
-  return true
+  activeHighlights.push({ el, timer });
+  return true;
 }
 
 export function highlightByText(text: string, duration = HIGHLIGHT_DURATION): boolean {
-  if (!text || text.length < 4) return false
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-  const needle = text.toLowerCase().trim()
-  let node: Node | null
+  if (!text || text.length < 4) return false;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const needle = text.toLowerCase().trim();
+  let node: Node | null;
   while ((node = walker.nextNode())) {
-    const content = node.textContent?.toLowerCase() || ''
+    const content = node.textContent?.toLowerCase() || '';
     if (content.includes(needle)) {
-      const parent = node.parentElement
+      const parent = node.parentElement;
       if (parent && !parent.closest('.ai-assistant-wrapper')) {
-        return highlightElement(getUniqueSelector(parent), duration)
+        return highlightElement(getUniqueSelector(parent), duration);
       }
     }
   }
-  return false
+  return false;
 }
 
 export function clearHighlights(): void {
   for (const h of activeHighlights) {
-    h.el.classList.remove(HIGHLIGHT_CLASS)
-    clearTimeout(h.timer)
+    h.el.classList.remove(HIGHLIGHT_CLASS);
+    clearTimeout(h.timer);
   }
-  activeHighlights = []
+  activeHighlights = [];
 }
 
 function getUniqueSelector(el: HTMLElement): string {
-  if (el.id) return `#${CSS.escape(el.id)}`
-  const path: string[] = []
-  let current: HTMLElement | null = el
+  if (el.id) return `#${CSS.escape(el.id)}`;
+  const path: string[] = [];
+  let current: HTMLElement | null = el;
   while (current && current !== document.body) {
-    let seg = current.tagName.toLowerCase()
+    let seg = current.tagName.toLowerCase();
     if (current.id) {
-      path.unshift(`#${CSS.escape(current.id)}`)
-      break
+      path.unshift(`#${CSS.escape(current.id)}`);
+      break;
     }
-    const parent = current.parentElement
+    const parent = current.parentElement;
     if (parent) {
-      const siblings = Array.from(parent.children).filter(c => c.tagName === current!.tagName)
+      const siblings = Array.from(parent.children).filter((c) => c.tagName === current!.tagName);
       if (siblings.length > 1) {
-        seg += `:nth-of-type(${siblings.indexOf(current) + 1})`
+        seg += `:nth-of-type(${siblings.indexOf(current) + 1})`;
       }
     }
-    path.unshift(seg)
-    current = current.parentElement
+    path.unshift(seg);
+    current = current.parentElement;
   }
-  return path.join(' > ')
+  return path.join(' > ');
 }
 
 export function injectHighlightStyles(): void {
-  if (document.querySelector('[data-ai-highlight-styles]')) return
-  const style = document.createElement('style')
-  style.setAttribute('data-ai-highlight-styles', '')
+  if (document.querySelector('[data-ai-highlight-styles]')) return;
+  const style = document.createElement('style');
+  style.setAttribute('data-ai-highlight-styles', '');
   style.textContent = `
     .${HIGHLIGHT_CLASS} {
       outline: 3px solid #6366f1 !important;
@@ -87,6 +87,6 @@ export function injectHighlightStyles(): void {
       0%, 100% { outline-color: #6366f1; }
       50% { outline-color: #818cf8; }
     }
-  `
-  document.head.appendChild(style)
+  `;
+  document.head.appendChild(style);
 }

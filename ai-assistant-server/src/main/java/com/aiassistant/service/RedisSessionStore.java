@@ -1,29 +1,27 @@
 package com.aiassistant.service;
 
 import com.aiassistant.model.SessionData;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * Redis-backed session store. Replaces the default in-memory {@link SessionStore}.
- * <p>Each user's sessions are stored as a Redis Hash: key = {@code ai-session:{userId}},
- * field = sessionId, value = JSON-serialized {@link SessionData}.</p>
  *
- * <p>Usage: declare this bean in your configuration and it will take priority over the
- * default {@code @ConditionalOnMissingBean} in-memory store.</p>
+ * <p>Each user's sessions are stored as a Redis Hash: key = {@code ai-session:{userId}}, field =
+ * sessionId, value = JSON-serialized {@link SessionData}.
+ *
+ * <p>Usage: declare this bean in your configuration and it will take priority over the default
+ * {@code @ConditionalOnMissingBean} in-memory store.
  *
  * <pre>{@code
  * @Bean

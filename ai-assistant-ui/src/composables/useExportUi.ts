@@ -1,29 +1,29 @@
-import { ref } from 'vue'
+import { ref } from 'vue';
 
 /** 服务端导出：忙状态 + 简短 Toast */
 export function useExportUi() {
-  const exportServerBusy = ref(false)
-  const exportToastText = ref('')
-  let exportToastClearTimer: ReturnType<typeof setTimeout> | null = null
+  const exportServerBusy = ref(false);
+  const exportToastText = ref('');
+  let exportToastClearTimer: ReturnType<typeof setTimeout> | null = null;
 
   function setExportToast(msg: string, clearAfterMs: number) {
     if (exportToastClearTimer != null) {
-      clearTimeout(exportToastClearTimer)
-      exportToastClearTimer = null
+      clearTimeout(exportToastClearTimer);
+      exportToastClearTimer = null;
     }
-    exportToastText.value = msg
+    exportToastText.value = msg;
     if (clearAfterMs > 0) {
       exportToastClearTimer = setTimeout(() => {
-        exportToastText.value = ''
-        exportToastClearTimer = null
-      }, clearAfterMs)
+        exportToastText.value = '';
+        exportToastClearTimer = null;
+      }, clearAfterMs);
     }
   }
 
   function disposeExportToast() {
     if (exportToastClearTimer != null) {
-      clearTimeout(exportToastClearTimer)
-      exportToastClearTimer = null
+      clearTimeout(exportToastClearTimer);
+      exportToastClearTimer = null;
     }
   }
 
@@ -32,5 +32,5 @@ export function useExportUi() {
     exportToastText,
     setExportToast,
     disposeExportToast,
-  }
+  };
 }

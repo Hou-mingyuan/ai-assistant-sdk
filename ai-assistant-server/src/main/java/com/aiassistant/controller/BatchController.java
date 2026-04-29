@@ -44,7 +44,8 @@ public class BatchController {
         List<Map<String, Object>> requests = new ArrayList<>();
         for (Object rawRequest : rawRequests) {
             if (!(rawRequest instanceof Map<?, ?> requestMap)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "each request must be an object"));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "each request must be an object"));
             }
             Map<String, Object> normalized = new java.util.LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : requestMap.entrySet()) {
@@ -55,7 +56,8 @@ public class BatchController {
             requests.add(normalized);
         }
         if (requests.size() > MAX_BATCH_SIZE) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Max batch size is " + MAX_BATCH_SIZE));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Max batch size is " + MAX_BATCH_SIZE));
         }
 
         List<CompletableFuture<Map<String, Object>>> futures = new ArrayList<>();
@@ -65,9 +67,7 @@ public class BatchController {
             futures.add(CompletableFuture.supplyAsync(() -> processSingle(idx, req)));
         }
 
-        List<Map<String, Object>> results = futures.stream()
-                .map(CompletableFuture::join)
-                .toList();
+        List<Map<String, Object>> results = futures.stream().map(CompletableFuture::join).toList();
 
         usageStats.recordCall("batch");
         return ResponseEntity.ok(Map.of("results", results, "count", results.size()));
@@ -87,15 +87,16 @@ public class BatchController {
             return Map.of("index", index, "error", "text is required");
         }
         try {
-            String result = switch (action) {
-                case "translate" -> {
-                    Object rawLang = req.getOrDefault("targetLang", "zh");
-                    String lang = rawLang instanceof String s && !s.isBlank() ? s : "zh";
-                    yield llmService.translate(text, lang);
-                }
-                case "summarize" -> llmService.summarize(text);
-                default -> llmService.chat(text, null, null, null);
-            };
+            String result =
+                    switch (action) {
+                        case "translate" -> {
+                            Object rawLang = req.getOrDefault("targetLang", "zh");
+                            String lang = rawLang instanceof String s && !s.isBlank() ? s : "zh";
+                            yield llmService.translate(text, lang);
+                        }
+                        case "summarize" -> llmService.summarize(text);
+                        default -> llmService.chat(text, null, null, null);
+                    };
             return Map.of("index", index, "result", result, "action", action);
         } catch (Exception e) {
             log.warn("Batch item {} failed: {}", index, e.getMessage());

@@ -21,7 +21,9 @@
             class="ai-personalize-close"
             :aria-label="t.closePanel"
             @click="$emit('close')"
-          >&times;</button>
+          >
+            &times;
+          </button>
         </div>
         <p class="ai-personalize-desc">{{ t.systemPromptPlaceholder }}</p>
         <textarea
@@ -36,10 +38,16 @@
           @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
         />
         <div class="ai-personalize-meta" aria-live="polite">
-          {{ t.personalizeCharCount.replace('{cur}', String(modelValue.length)).replace('{max}', String(maxChars)) }}
+          {{
+            t.personalizeCharCount
+              .replace('{cur}', String(modelValue.length))
+              .replace('{max}', String(maxChars))
+          }}
         </div>
         <div class="ai-personalize-actions">
-          <button type="button" class="ai-personalize-done" @click="$emit('close')">{{ t.personalizeDone }}</button>
+          <button type="button" class="ai-personalize-done" @click="$emit('close')">
+            {{ t.personalizeDone }}
+          </button>
         </div>
       </div>
     </div>
@@ -47,27 +55,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import type { I18nMessages } from '../utils/i18n'
+import { ref, watch, nextTick } from 'vue';
+import type { I18nMessages } from '../utils/i18n';
 
 const props = defineProps<{
-  open: boolean
-  modelValue: string
-  isDark: boolean
-  disabled: boolean
-  maxChars: number
-  t: I18nMessages
-}>()
+  open: boolean;
+  modelValue: string;
+  isDark: boolean;
+  disabled: boolean;
+  maxChars: number;
+  t: I18nMessages;
+}>();
 
 defineEmits<{
-  (e: 'close'): void
-  (e: 'update:modelValue', value: string): void
-}>()
+  (e: 'close'): void;
+  (e: 'update:modelValue', value: string): void;
+}>();
 
-const titleId = 'ai-assistant-personalize-title'
-const taRef = ref<HTMLTextAreaElement>()
+const titleId = 'ai-assistant-personalize-title';
+const taRef = ref<HTMLTextAreaElement>();
 
-watch(() => props.open, (v) => {
-  if (v) nextTick(() => taRef.value?.focus())
-})
+watch(
+  () => props.open,
+  (v) => {
+    if (v) nextTick(() => taRef.value?.focus());
+  },
+);
 </script>

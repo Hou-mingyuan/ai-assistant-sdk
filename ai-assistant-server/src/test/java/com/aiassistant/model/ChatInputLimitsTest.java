@@ -1,11 +1,10 @@
 package com.aiassistant.model;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class ChatInputLimitsTest {
 
@@ -20,7 +19,9 @@ class ChatInputLimitsTest {
     void validateTotalCharsExceeds() {
         ChatRequest req = new ChatRequest();
         req.setText("abcd");
-        assertEquals("Input too large: 4 characters (max 2)", ChatInputLimits.validateTotalChars(req, 2));
+        assertEquals(
+                "Input too large: 4 characters (max 2)",
+                ChatInputLimits.validateTotalChars(req, 2));
     }
 
     @Test
@@ -29,7 +30,9 @@ class ChatInputLimitsTest {
         req.setText("ab");
         req.setSystemPrompt("xy");
         assertNull(ChatInputLimits.validateTotalChars(req, 10));
-        assertEquals("Input too large: 4 characters (max 3)", ChatInputLimits.validateTotalChars(req, 3));
+        assertEquals(
+                "Input too large: 4 characters (max 3)",
+                ChatInputLimits.validateTotalChars(req, 3));
     }
 
     @Test
@@ -39,7 +42,9 @@ class ChatInputLimitsTest {
         req.setModel("mmm");
         assertNull(ChatInputLimits.validateTotalChars(req, 10));
         assertNull(ChatInputLimits.validateTotalChars(req, 2));
-        assertEquals("Input too large: 2 characters (max 1)", ChatInputLimits.validateTotalChars(req, 1));
+        assertEquals(
+                "Input too large: 2 characters (max 1)",
+                ChatInputLimits.validateTotalChars(req, 1));
     }
 
     @Test

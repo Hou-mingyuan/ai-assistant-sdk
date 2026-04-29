@@ -1,14 +1,13 @@
 package com.aiassistant.connector;
 
 import com.aiassistant.config.ConnectorProperties;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Locale;
-
 /**
- * Creates {@link DataConnector} instances from {@link ConnectorProperties} configuration.
- * Shared between auto-configuration and runtime dynamic registration.
+ * Creates {@link DataConnector} instances from {@link ConnectorProperties} configuration. Shared
+ * between auto-configuration and runtime dynamic registration.
  */
 public final class ConnectorFactory {
 
@@ -22,14 +21,19 @@ public final class ConnectorFactory {
         return switch (type) {
             case "informat" -> {
                 if (isBlank(cfg.getBaseUrl()) || isBlank(cfg.getAppId())) {
-                    log.warn("Skipping informat connector '{}': baseUrl and appId are required",
+                    log.warn(
+                            "Skipping informat connector '{}': baseUrl and appId are required",
                             cfg.resolveId());
                     yield null;
                 }
-                InformatConnector ic = new InformatConnector(
-                        cfg.resolveId(), cfg.resolveDisplayName(),
-                        cfg.getBaseUrl(), cfg.getAppId(), cfg.getToken(),
-                        cfg.getTimeoutSeconds());
+                InformatConnector ic =
+                        new InformatConnector(
+                                cfg.resolveId(),
+                                cfg.resolveDisplayName(),
+                                cfg.getBaseUrl(),
+                                cfg.getAppId(),
+                                cfg.getToken(),
+                                cfg.getTimeoutSeconds());
                 ic.setMaskedFieldNames(cfg.resolveMaskedFields());
                 yield ic;
             }
@@ -38,21 +42,31 @@ public final class ConnectorFactory {
                     log.warn("Skipping REST connector '{}': baseUrl is required", cfg.resolveId());
                     yield null;
                 }
-                RestApiConnector rc = new RestApiConnector(
-                        cfg.resolveId(), cfg.resolveDisplayName(),
-                        cfg.getBaseUrl(), null, null, null,
-                        cfg.resolveHeaders(), cfg.getTimeoutSeconds());
+                RestApiConnector rc =
+                        new RestApiConnector(
+                                cfg.resolveId(),
+                                cfg.resolveDisplayName(),
+                                cfg.getBaseUrl(),
+                                null,
+                                null,
+                                null,
+                                cfg.resolveHeaders(),
+                                cfg.getTimeoutSeconds());
                 rc.setMaskedFieldNames(cfg.resolveMaskedFields());
                 yield rc;
             }
             case "jdbc" -> {
-                log.warn("JDBC connector '{}' requires a DataSource bean and cannot be created dynamically. " +
-                        "Configure it in application.yml with a Spring DataSource.", cfg.resolveId());
+                log.warn(
+                        "JDBC connector '{}' requires a DataSource bean and cannot be created dynamically. "
+                                + "Configure it in application.yml with a Spring DataSource.",
+                        cfg.resolveId());
                 yield null;
             }
             default -> {
-                log.warn("Unknown connector type '{}' for '{}', skipping. Valid types: informat, rest (jdbc via Spring config)",
-                        type, cfg.resolveId());
+                log.warn(
+                        "Unknown connector type '{}' for '{}', skipping. Valid types: informat, rest (jdbc via Spring config)",
+                        type,
+                        cfg.resolveId());
                 yield null;
             }
         };

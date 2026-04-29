@@ -11,8 +11,9 @@ class ConnectorHealthControllerTest {
 
     @Test
     void dynamicConnectorRegistrationIsDisabledByDefault() {
-        ConnectorHealthController controller = new ConnectorHealthController(
-                java.util.List.of(), new ToolRegistry(java.util.List.of()));
+        ConnectorHealthController controller =
+                new ConnectorHealthController(
+                        java.util.List.of(), new ToolRegistry(java.util.List.of()));
 
         Map<String, Object> result = controller.registerConnector(new ConnectorProperties());
 
@@ -22,8 +23,9 @@ class ConnectorHealthControllerTest {
 
     @Test
     void dynamicConnectorUnregistrationIsDisabledByDefault() {
-        ConnectorHealthController controller = new ConnectorHealthController(
-                java.util.List.of(), new ToolRegistry(java.util.List.of()));
+        ConnectorHealthController controller =
+                new ConnectorHealthController(
+                        java.util.List.of(), new ToolRegistry(java.util.List.of()));
 
         Map<String, Object> result = controller.unregisterConnector("demo");
 

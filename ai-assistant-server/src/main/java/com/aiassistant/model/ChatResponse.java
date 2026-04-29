@@ -1,8 +1,6 @@
 package com.aiassistant.model;
 
-/**
- * 统一 API 响应体：{@code success}=true 时结果在 {@code result}，否则错误信息在 {@code error}。
- */
+/** 统一 API 响应体：{@code success}=true 时结果在 {@code result}，否则错误信息在 {@code error}。 */
 public class ChatResponse {
 
     private boolean success;
@@ -32,15 +30,35 @@ public class ChatResponse {
         return r;
     }
 
-    public boolean isSuccess() { return success; }
-    public void setSuccess(boolean success) { this.success = success; }
+    public boolean isSuccess() {
+        return success;
+    }
 
-    public String getResult() { return result; }
-    public void setResult(String result) { this.result = result; }
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
 
-    public String getError() { return error; }
-    public void setError(String error) { this.error = error; }
+    public String getResult() {
+        return result;
+    }
 
-    public String getErrorCode() { return errorCode; }
-    public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
+    }
 }

@@ -3,6 +3,14 @@ package com.aiassistant.service.llm;
 import com.aiassistant.config.AiAssistantProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.netty.channel.ChannelOption;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -16,20 +24,12 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
-import reactor.util.retry.Retry;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.netty.channel.ChannelOption;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
+import reactor.util.retry.Retry;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.springframework.beans.factory.DisposableBean {
+public class OpenAiCompatibleChatClient
+        implements ChatCompletionClient, org.springframework.beans.factory.DisposableBean {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleChatClient.class);
 
@@ -44,25 +44,33 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.spr
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        this.timeout = Duration.ofSeconds(Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)));
+        this.timeout =
+                Duration.ofSeconds(Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)));
         this.maxRetries = Math.max(0, Math.min(5, properties.getLlmMaxRetries()));
-        int codecBytes = Math.min(32 * 1024 * 1024, Math.max(4 * 1024 * 1024, properties.getChatMaxTotalChars() * 4));
-        ExchangeStrategies strategies = ExchangeStrategies.builder()
-                .codecs(c -> c.defaultCodecs().maxInMemorySize(codecBytes))
-                .build();
+        int codecBytes =
+                Math.min(
+                        32 * 1024 * 1024,
+                        Math.max(4 * 1024 * 1024, properties.getChatMaxTotalChars() * 4));
+        ExchangeStrategies strategies =
+                ExchangeStrategies.builder()
+                        .codecs(c -> c.defaultCodecs().maxInMemorySize(codecBytes))
+                        .build();
         int connectMs = Math.min(60_000, Math.max(5_000, properties.getTimeoutSeconds() * 250));
-        this.connectionProvider = ConnectionProvider.builder("llm-chat-completions")
-                .maxConnections(64)
-                .pendingAcquireMaxCount(256)
-                .build();
-        HttpClient reactorHttpClient = HttpClient.create(connectionProvider)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs);
-        this.webClient = WebClient.builder()
-                .baseUrl(base)
-                .clientConnector(new ReactorClientHttpConnector(reactorHttpClient))
-                .exchangeStrategies(strategies)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
+        this.connectionProvider =
+                ConnectionProvider.builder("llm-chat-completions")
+                        .maxConnections(64)
+                        .pendingAcquireMaxCount(256)
+                        .build();
+        HttpClient reactorHttpClient =
+                HttpClient.create(connectionProvider)
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs);
+        this.webClient =
+                WebClient.builder()
+                        .baseUrl(base)
+                        .clientConnector(new ReactorClientHttpConnector(reactorHttpClient))
+                        .exchangeStrategies(strategies)
+                        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .build();
     }
 
     @Override
@@ -75,21 +83,27 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.spr
     public String completeRaw(ObjectNode requestBody, String apiKey) {
         for (int attempt = 0; ; attempt++) {
             try {
-                String body = webClient.post()
-                        .uri("/chat/completions")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(timeout)
-                        .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
-                        .block();
+                String body =
+                        webClient
+                                .post()
+                                .uri("/chat/completions")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                                .bodyValue(requestBody)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .timeout(timeout)
+                                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                .block();
                 return body != null ? body : "";
             } catch (IllegalStateException e) {
                 throw e;
             } catch (WebClientResponseException e) {
                 int code = e.getStatusCode().value();
-                log.warn("chat completion raw HTTP {} (try {}/{})", code, attempt + 1, maxRetries + 1);
+                log.warn(
+                        "chat completion raw HTTP {} (try {}/{})",
+                        code,
+                        attempt + 1,
+                        maxRetries + 1);
                 if (attempt < maxRetries && isRetriableStatus(code)) {
                     sleepBackoff(attempt);
                     continue;
@@ -109,22 +123,28 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.spr
     public String complete(ObjectNode requestBody, String apiKey) {
         for (int attempt = 0; ; attempt++) {
             try {
-                String body = webClient.post()
-                        .uri("/chat/completions")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .timeout(timeout)
-                        .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
-                        .block();
+                String body =
+                        webClient
+                                .post()
+                                .uri("/chat/completions")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                                .bodyValue(requestBody)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .timeout(timeout)
+                                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                                .block();
                 return parseNonStreamContent(body);
             } catch (IllegalStateException e) {
                 throw e;
             } catch (WebClientResponseException e) {
                 int code = e.getStatusCode().value();
-                log.warn("chat completion HTTP {} (try {}/{}): {}",
-                        code, attempt + 1, maxRetries + 1, truncateForLog(e.getResponseBodyAsString()));
+                log.warn(
+                        "chat completion HTTP {} (try {}/{}): {}",
+                        code,
+                        attempt + 1,
+                        maxRetries + 1,
+                        truncateForLog(e.getResponseBodyAsString()));
                 if (attempt < maxRetries && isRetriableStatus(code)) {
                     sleepBackoff(attempt);
                     continue;
@@ -132,8 +152,11 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.spr
                 throw new IllegalStateException("LLM error: HTTP " + code, e);
             } catch (Exception e) {
                 if (attempt < maxRetries && isRetriableNetwork(e)) {
-                    log.warn("chat completion transient error (try {}/{}): {}",
-                            attempt + 1, maxRetries + 1, e.toString());
+                    log.warn(
+                            "chat completion transient error (try {}/{}): {}",
+                            attempt + 1,
+                            maxRetries + 1,
+                            e.toString());
                     sleepBackoff(attempt);
                     continue;
                 }
@@ -178,43 +201,56 @@ public class OpenAiCompatibleChatClient implements ChatCompletionClient, org.spr
 
     @Override
     public Flux<String> completeStream(ObjectNode requestBody, String apiKey) {
-        return Flux.defer(() -> {
-            AtomicBoolean emittedChunk = new AtomicBoolean(false);
-            Flux<String> lines = streamEventLines(requestBody, apiKey)
-                    .doOnNext(s -> {
-                        if (s != null && !s.isBlank()) {
-                            emittedChunk.set(true);
-                        }
-                    })
-                    .timeout(timeout);
-            if (maxRetries <= 0) {
-                return lines;
-            }
-            return lines.retryWhen(Retry.backoff(maxRetries, Duration.ofMillis(200))
-                    .maxBackoff(Duration.ofSeconds(10))
-                    .filter(err -> !emittedChunk.get() && isRetriableStreamError(Exceptions.unwrap(err)))
-                    .jitter(0.1)
-                    .doBeforeRetry(sig -> log.warn("LLM stream retry (no text chunks yet): {}", sig.failure())));
-        });
+        return Flux.defer(
+                () -> {
+                    AtomicBoolean emittedChunk = new AtomicBoolean(false);
+                    Flux<String> lines =
+                            streamEventLines(requestBody, apiKey)
+                                    .doOnNext(
+                                            s -> {
+                                                if (s != null && !s.isBlank()) {
+                                                    emittedChunk.set(true);
+                                                }
+                                            })
+                                    .timeout(timeout);
+                    if (maxRetries <= 0) {
+                        return lines;
+                    }
+                    return lines.retryWhen(
+                            Retry.backoff(maxRetries, Duration.ofMillis(200))
+                                    .maxBackoff(Duration.ofSeconds(10))
+                                    .filter(
+                                            err ->
+                                                    !emittedChunk.get()
+                                                            && isRetriableStreamError(
+                                                                    Exceptions.unwrap(err)))
+                                    .jitter(0.1)
+                                    .doBeforeRetry(
+                                            sig ->
+                                                    log.warn(
+                                                            "LLM stream retry (no text chunks yet): {}",
+                                                            sig.failure())));
+                });
     }
 
     private Flux<String> streamEventLines(ObjectNode requestBody, String apiKey) {
-        return webClient.post()
+        return webClient
+                .post()
                 .uri("/chat/completions")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {
-                })
-                .flatMapSequential(evt -> {
-                    String data = evt.data();
-                    if (data == null || data.isBlank() || "[DONE]".equals(data.strip())) {
-                        return Flux.empty();
-                    }
-                    List<String> deltas = parseStreamDeltas(data);
-                    return Flux.fromIterable(deltas);
-                });
+                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .flatMapSequential(
+                        evt -> {
+                            String data = evt.data();
+                            if (data == null || data.isBlank() || "[DONE]".equals(data.strip())) {
+                                return Flux.empty();
+                            }
+                            List<String> deltas = parseStreamDeltas(data);
+                            return Flux.fromIterable(deltas);
+                        });
     }
 
     private boolean isRetriableStreamError(Throwable e) {

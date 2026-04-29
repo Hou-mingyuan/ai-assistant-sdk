@@ -1,9 +1,9 @@
 package com.aiassistant.routing;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ModelRouterTest {
 
@@ -12,8 +12,11 @@ class ModelRouterTest {
     @BeforeEach
     void setUp() {
         router = new ModelRouter("gpt-4o-mini");
-        router.registerModel(new ModelRouter.ModelConfig("gpt-4o-mini", ModelRouter.ModelTier.LIGHT, 0.15, 128000));
-        router.registerModel(new ModelRouter.ModelConfig("gpt-4o", ModelRouter.ModelTier.PREMIUM, 5.0, 128000));
+        router.registerModel(
+                new ModelRouter.ModelConfig(
+                        "gpt-4o-mini", ModelRouter.ModelTier.LIGHT, 0.15, 128000));
+        router.registerModel(
+                new ModelRouter.ModelConfig("gpt-4o", ModelRouter.ModelTier.PREMIUM, 5.0, 128000));
     }
 
     @Test

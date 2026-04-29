@@ -14,41 +14,50 @@ import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.aot.hint.TypeReference;
 
 /**
- * GraalVM Native Image runtime hints.
- * Registers reflection, resources, and proxy hints needed for native compilation.
+ * GraalVM Native Image runtime hints. Registers reflection, resources, and proxy hints needed for
+ * native compilation.
  */
 public class AiAssistantRuntimeHints implements RuntimeHintsRegistrar {
 
     @Override
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
         hints.reflection()
-                .registerType(AiAssistantProperties.class,
+                .registerType(
+                        AiAssistantProperties.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS,
                         MemberCategory.DECLARED_FIELDS)
-                .registerType(AiAssistantProperties.UrlFetchProperties.class,
+                .registerType(
+                        AiAssistantProperties.UrlFetchProperties.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(AiAssistantProperties.ExportProperties.class,
+                .registerType(
+                        AiAssistantProperties.ExportProperties.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(AiAssistantProperties.ChatProperties.class,
+                .registerType(
+                        AiAssistantProperties.ChatProperties.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(ChatRequest.class,
+                .registerType(
+                        ChatRequest.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS,
                         MemberCategory.DECLARED_FIELDS)
-                .registerType(ChatRequest.MessageItem.class,
+                .registerType(
+                        ChatRequest.MessageItem.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(ChatResponse.class,
+                .registerType(
+                        ChatResponse.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(ConversationMemory.class,
+                .registerType(
+                        ConversationMemory.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS)
-                .registerType(ConversationMemory.MemoryEntry.class,
+                .registerType(
+                        ConversationMemory.MemoryEntry.class,
                         MemberCategory.INVOKE_PUBLIC_CONSTRUCTORS,
                         MemberCategory.INVOKE_PUBLIC_METHODS);
 

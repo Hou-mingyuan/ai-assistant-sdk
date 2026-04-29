@@ -1,9 +1,5 @@
 package com.aiassistant.connector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -21,11 +17,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * DataConnector backed by a JDBC DataSource.
- * Auto-discovers tables and columns via {@link DatabaseMetaData} and queries data
- * with parameterized SQL to prevent injection.
+ * DataConnector backed by a JDBC DataSource. Auto-discovers tables and columns via {@link
+ * DatabaseMetaData} and queries data with parameterized SQL to prevent injection.
  */
 public class JdbcConnector implements DataConnector {
 
@@ -49,12 +47,16 @@ public class JdbcConnector implements DataConnector {
     /**
      * @param connectorId unique id
      * @param displayName human label for LLM
-     * @param dataSource  JDBC data source
+     * @param dataSource JDBC data source
      * @param allowedTables if non-empty, only expose these tables (case-insensitive); empty = all
-     * @param schema      database schema to inspect (null = default)
+     * @param schema database schema to inspect (null = default)
      */
-    public JdbcConnector(String connectorId, String displayName, DataSource dataSource,
-                         Set<String> allowedTables, String schema) {
+    public JdbcConnector(
+            String connectorId,
+            String displayName,
+            DataSource dataSource,
+            Set<String> allowedTables,
+            String schema) {
         this.connectorId = connectorId != null ? connectorId : "db";
         this.displayName = displayName != null ? displayName : "Database";
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource must not be null");
@@ -63,12 +65,22 @@ public class JdbcConnector implements DataConnector {
         for (String t : raw) lower.add(t.toLowerCase(Locale.ROOT));
         this.allowedTablesLower = Set.copyOf(lower);
         this.schema = schema;
-        log.info("JdbcConnector initialized: id={}, schema={}, allowedTables={}",
-                this.connectorId, schema, this.allowedTablesLower.isEmpty() ? "ALL" : this.allowedTablesLower);
+        log.info(
+                "JdbcConnector initialized: id={}, schema={}, allowedTables={}",
+                this.connectorId,
+                schema,
+                this.allowedTablesLower.isEmpty() ? "ALL" : this.allowedTablesLower);
     }
 
-    @Override public String id() { return connectorId; }
-    @Override public String displayName() { return displayName; }
+    @Override
+    public String id() {
+        return connectorId;
+    }
+
+    @Override
+    public String displayName() {
+        return displayName;
+    }
 
     @Override
     public List<ModuleInfo> listModules() {
@@ -78,11 +90,12 @@ public class JdbcConnector implements DataConnector {
         List<ModuleInfo> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection()) {
             DatabaseMetaData meta = conn.getMetaData();
-            try (ResultSet rs = meta.getTables(null, schema, "%", new String[]{"TABLE", "VIEW"})) {
+            try (ResultSet rs = meta.getTables(null, schema, "%", new String[] {"TABLE", "VIEW"})) {
                 while (rs.next()) {
                     String tableName = rs.getString("TABLE_NAME");
                     String tableType = rs.getString("TABLE_TYPE");
-                    if (!allowedTablesLower.isEmpty() && !allowedTablesLower.contains(tableName.toLowerCase(Locale.ROOT))) {
+                    if (!allowedTablesLower.isEmpty()
+                            && !allowedTablesLower.contains(tableName.toLowerCase(Locale.ROOT))) {
                         continue;
                     }
                     String remarks = rs.getString("REMARKS");
@@ -162,7 +175,9 @@ public class JdbcConnector implements DataConnector {
             sql.append(" ORDER BY ");
             List<String> orders = new ArrayList<>();
             for (QueryFilter.OrderBy ob : filter.orderByList()) {
-                orders.add(quoteIdentifier(ob.fieldId()) + ("desc".equalsIgnoreCase(ob.direction()) ? " DESC" : " ASC"));
+                orders.add(
+                        quoteIdentifier(ob.fieldId())
+                                + ("desc".equalsIgnoreCase(ob.direction()) ? " DESC" : " ASC"));
             }
             sql.append(String.join(", ", orders));
         }
@@ -170,7 +185,8 @@ public class JdbcConnector implements DataConnector {
         int offset = (filter.pageIndex() - 1) * filter.pageSize();
         appendPagination(sql, params, filter.pageSize(), offset);
 
-        StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM ").append(quoteIdentifier(moduleId));
+        StringBuilder countSql =
+                new StringBuilder("SELECT COUNT(*) FROM ").append(quoteIdentifier(moduleId));
         List<Object> countParams = new ArrayList<>();
         if (filter.conditions() != null && !filter.conditions().isEmpty()) {
             countSql.append(" WHERE ");
@@ -229,15 +245,42 @@ public class JdbcConnector implements DataConnector {
         String col = quoteIdentifier(c.fieldId());
         String op = c.operator() != null ? c.operator().toLowerCase(Locale.ROOT) : "eq";
         return switch (op) {
-            case "eq", "=", "==" -> { params.add(c.value()); yield col + " = ?"; }
-            case "ne", "!=", "<>" -> { params.add(c.value()); yield col + " <> ?"; }
-            case "gt", ">" -> { params.add(c.value()); yield col + " > ?"; }
-            case "ge", ">=" -> { params.add(c.value()); yield col + " >= ?"; }
-            case "lt", "<" -> { params.add(c.value()); yield col + " < ?"; }
-            case "le", "<=" -> { params.add(c.value()); yield col + " <= ?"; }
-            case "contains", "like" -> { params.add("%" + escapeLike(c.value()) + "%"); yield col + " LIKE ? ESCAPE '\\'"; }
-            case "startswith" -> { params.add(escapeLike(c.value()) + "%"); yield col + " LIKE ? ESCAPE '\\'"; }
-            case "endswith" -> { params.add("%" + escapeLike(c.value())); yield col + " LIKE ? ESCAPE '\\'"; }
+            case "eq", "=", "==" -> {
+                params.add(c.value());
+                yield col + " = ?";
+            }
+            case "ne", "!=", "<>" -> {
+                params.add(c.value());
+                yield col + " <> ?";
+            }
+            case "gt", ">" -> {
+                params.add(c.value());
+                yield col + " > ?";
+            }
+            case "ge", ">=" -> {
+                params.add(c.value());
+                yield col + " >= ?";
+            }
+            case "lt", "<" -> {
+                params.add(c.value());
+                yield col + " < ?";
+            }
+            case "le", "<=" -> {
+                params.add(c.value());
+                yield col + " <= ?";
+            }
+            case "contains", "like" -> {
+                params.add("%" + escapeLike(c.value()) + "%");
+                yield col + " LIKE ? ESCAPE '\\'";
+            }
+            case "startswith" -> {
+                params.add(escapeLike(c.value()) + "%");
+                yield col + " LIKE ? ESCAPE '\\'";
+            }
+            case "endswith" -> {
+                params.add("%" + escapeLike(c.value()));
+                yield col + " LIKE ? ESCAPE '\\'";
+            }
             case "isnull" -> col + " IS NULL";
             case "isnotnull" -> col + " IS NOT NULL";
             case "in" -> {
@@ -257,16 +300,16 @@ public class JdbcConnector implements DataConnector {
                 params.add(c.value());
                 yield col + " = ?";
             }
-            default -> { params.add(c.value()); yield col + " = ?"; }
+            default -> {
+                params.add(c.value());
+                yield col + " = ?";
+            }
         };
     }
 
     private static String escapeLike(Object value) {
         if (value == null) return "";
-        return String.valueOf(value)
-                .replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_");
+        return String.valueOf(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private void appendPagination(StringBuilder sql, List<Object> params, int limit, int offset) {
@@ -292,7 +335,9 @@ public class JdbcConnector implements DataConnector {
         if (dialect != null) return dialect;
         try (Connection conn = dataSource.getConnection()) {
             String product = conn.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
-            if (product.contains("oracle") || product.contains("sql server") || product.contains("microsoft")) {
+            if (product.contains("oracle")
+                    || product.contains("sql server")
+                    || product.contains("microsoft")) {
                 dialect = PaginationDialect.OFFSET_FETCH;
             } else {
                 dialect = PaginationDialect.LIMIT_OFFSET;
@@ -313,9 +358,8 @@ public class JdbcConnector implements DataConnector {
             java.util.regex.Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,127}$");
 
     /**
-     * Validates and quotes a SQL identifier. Rejects names that contain
-     * anything beyond alphanumerics and underscores to prevent injection
-     * even if quoting is somehow bypassed.
+     * Validates and quotes a SQL identifier. Rejects names that contain anything beyond
+     * alphanumerics and underscores to prevent injection even if quoting is somehow bypassed.
      */
     private static String quoteIdentifier(String name) {
         if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {

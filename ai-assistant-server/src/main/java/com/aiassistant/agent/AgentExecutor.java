@@ -3,19 +3,16 @@ package com.aiassistant.agent;
 import com.aiassistant.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
- * Multi-step agent executor implementing a ReAct-style loop.
- * The agent can plan, execute tools, observe results, and iterate
- * until it reaches a final answer or hits the max rounds limit.
+ * Multi-step agent executor implementing a ReAct-style loop. The agent can plan, execute tools,
+ * observe results, and iterate until it reaches a final answer or hits the max rounds limit.
  *
- * Execution trace is maintained for auditability and debugging.
+ * <p>Execution trace is maintained for auditability and debugging.
  */
 public class AgentExecutor {
 
@@ -36,8 +33,8 @@ public class AgentExecutor {
     }
 
     /**
-     * Execute a plan (list of steps), each step may invoke a tool.
-     * Returns a complete execution trace.
+     * Execute a plan (list of steps), each step may invoke a tool. Returns a complete execution
+     * trace.
      */
     public ExecutionTrace execute(List<AgentStep> plan) {
         List<StepResult> results = new ArrayList<>();
@@ -48,9 +45,10 @@ public class AgentExecutor {
             StepResult result;
             try {
                 if (step.toolName() != null && !step.toolName().isBlank()) {
-                    JsonNode args = step.arguments() != null
-                            ? mapper.readTree(step.arguments())
-                            : mapper.createObjectNode();
+                    JsonNode args =
+                            step.arguments() != null
+                                    ? mapper.readTree(step.arguments())
+                                    : mapper.createObjectNode();
                     String output = toolRegistry.execute(step.toolName(), args);
                     result = new StepResult(i, step, output, null, true);
                     log.info("Agent step {} completed: tool={}", i, step.toolName());
@@ -59,7 +57,11 @@ public class AgentExecutor {
                 }
             } catch (Exception e) {
                 result = new StepResult(i, step, null, e.getMessage(), false);
-                log.warn("Agent step {} failed: tool={} error={}", i, step.toolName(), e.getMessage());
+                log.warn(
+                        "Agent step {} failed: tool={} error={}",
+                        i,
+                        step.toolName(),
+                        e.getMessage());
                 results.add(result);
                 if (step.stopOnError()) break;
                 continue;
@@ -71,37 +73,23 @@ public class AgentExecutor {
         return new ExecutionTrace(results, elapsed);
     }
 
-    /**
-     * Execute a single tool call directly (used by LlmService function calling loop).
-     */
+    /** Execute a single tool call directly (used by LlmService function calling loop). */
     public String executeTool(String toolName, String argumentsJson) throws Exception {
         JsonNode args = mapper.readTree(argumentsJson);
         return toolRegistry.execute(toolName, args);
     }
 
     public record AgentStep(
-            String description,
-            String toolName,
-            String arguments,
-            boolean stopOnError
-    ) {
+            String description, String toolName, String arguments, boolean stopOnError) {
         public AgentStep(String description, String toolName, String arguments) {
             this(description, toolName, arguments, false);
         }
     }
 
     public record StepResult(
-            int index,
-            AgentStep step,
-            String output,
-            String error,
-            boolean success
-    ) {}
+            int index, AgentStep step, String output, String error, boolean success) {}
 
-    public record ExecutionTrace(
-            List<StepResult> steps,
-            long totalElapsedMs
-    ) {
+    public record ExecutionTrace(List<StepResult> steps, long totalElapsedMs) {
         public boolean allSucceeded() {
             return steps.stream().allMatch(StepResult::success);
         }

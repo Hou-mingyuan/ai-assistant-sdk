@@ -4,9 +4,7 @@ import java.util.Locale;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 
-/**
- * Thin wrapper around Spring's MessageSource for convenient access throughout the SDK.
- */
+/** Thin wrapper around Spring's MessageSource for convenient access throughout the SDK. */
 public class Messages {
 
     private final MessageSource messageSource;

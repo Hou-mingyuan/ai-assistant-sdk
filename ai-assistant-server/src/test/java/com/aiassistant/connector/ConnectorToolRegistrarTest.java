@@ -1,16 +1,15 @@
 package com.aiassistant.connector;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class ConnectorToolRegistrarTest {
 
@@ -118,9 +117,7 @@ class ConnectorToolRegistrarTest {
         assertTrue(tool.description().contains("生产管理系统"));
     }
 
-    /**
-     * Stub DataConnector for testing.
-     */
+    /** Stub DataConnector for testing. */
     static class StubConnector implements DataConnector {
         private final String id;
         private final String name;
@@ -130,32 +127,48 @@ class ConnectorToolRegistrarTest {
             this.name = name;
         }
 
-        @Override public String id() { return id; }
-        @Override public String displayName() { return name; }
+        @Override
+        public String id() {
+            return id;
+        }
+
+        @Override
+        public String displayName() {
+            return name;
+        }
 
         @Override
         public List<ModuleInfo> listModules() {
             return List.of(
                     new ModuleInfo("orders", "订单管理", "Table"),
-                    new ModuleInfo("products", "产品管理", "Table")
-            );
+                    new ModuleInfo("products", "产品管理", "Table"));
         }
 
         @Override
         public TableSchema getSchema(String moduleId) {
-            return new TableSchema(moduleId, moduleId, List.of(
-                    new FieldInfo("order_no", "订单编号", "SingleText"),
-                    new FieldInfo("amount", "金额", "Number"),
-                    new FieldInfo("create_time", "创建时间", "Date")
-            ));
+            return new TableSchema(
+                    moduleId,
+                    moduleId,
+                    List.of(
+                            new FieldInfo("order_no", "订单编号", "SingleText"),
+                            new FieldInfo("amount", "金额", "Number"),
+                            new FieldInfo("create_time", "创建时间", "Date")));
         }
 
         @Override
         public QueryResult queryData(String moduleId, QueryFilter filter) {
             return new QueryResult(
-                    List.of(Map.of("order_no", "PO-001", "amount", 1500, "create_time", "2024-01-15")),
-                    1, filter.pageIndex(), filter.pageSize()
-            );
+                    List.of(
+                            Map.of(
+                                    "order_no",
+                                    "PO-001",
+                                    "amount",
+                                    1500,
+                                    "create_time",
+                                    "2024-01-15")),
+                    1,
+                    filter.pageIndex(),
+                    filter.pageSize());
         }
     }
 }

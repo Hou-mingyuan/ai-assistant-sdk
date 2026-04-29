@@ -1,11 +1,10 @@
 package com.aiassistant.config;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 class TenantContextTest {
 
@@ -53,10 +52,12 @@ class TenantContextTest {
     void threadIsolation() throws InterruptedException {
         TenantContext.set(new TenantContext.TenantInfo("main"));
 
-        Thread other = new Thread(() -> {
-            assertNull(TenantContext.get());
-            assertEquals("default", TenantContext.tenantId());
-        });
+        Thread other =
+                new Thread(
+                        () -> {
+                            assertNull(TenantContext.get());
+                            assertEquals("default", TenantContext.tenantId());
+                        });
         other.start();
         other.join();
 

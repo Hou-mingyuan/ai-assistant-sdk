@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class AiAssistantRestExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ChatResponse> handleInvalidRequestBody(MethodArgumentNotValidException ex) {
-        String msg = ex.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(FieldError::getDefaultMessage)
-                .orElse("Invalid request");
+    public ResponseEntity<ChatResponse> handleInvalidRequestBody(
+            MethodArgumentNotValidException ex) {
+        String msg =
+                ex.getBindingResult().getFieldErrors().stream()
+                        .findFirst()
+                        .map(FieldError::getDefaultMessage)
+                        .orElse("Invalid request");
         return ResponseEntity.badRequest().body(ChatResponse.fail(msg));
     }
 }

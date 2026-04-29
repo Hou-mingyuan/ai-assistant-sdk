@@ -3,9 +3,7 @@ package com.aiassistant.model;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * GET /url-preview 响应体：页面标题、纯文本摘要、og/正文主图 URL 列表。
- */
+/** GET /url-preview 响应体：页面标题、纯文本摘要、og/正文主图 URL 列表。 */
 public class UrlPreviewResponse {
 
     private boolean success;
@@ -15,7 +13,8 @@ public class UrlPreviewResponse {
     private List<String> imageUrls;
     private String error;
 
-    public static UrlPreviewResponse ok(String title, String summary, String imageUrl, List<String> imageUrls) {
+    public static UrlPreviewResponse ok(
+            String title, String summary, String imageUrl, List<String> imageUrls) {
         UrlPreviewResponse r = new UrlPreviewResponse();
         r.success = true;
         r.title = title;

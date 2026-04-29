@@ -1,14 +1,13 @@
 package com.aiassistant.spi;
 
-import com.aiassistant.memory.ConversationMemory;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import com.aiassistant.memory.ConversationMemory;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class InMemoryConversationMemoryProviderTest {
 
@@ -103,18 +102,19 @@ class InMemoryConversationMemoryProviderTest {
 
         for (int t = 0; t < threads; t++) {
             final int threadId = t;
-            pool.submit(() -> {
-                try {
-                    for (int i = 0; i < opsPerThread; i++) {
-                        String sid = "t" + threadId + "-s" + i;
-                        provider.getMemory(sid);
-                        provider.hasMemory(sid);
-                        if (i % 3 == 0) provider.removeMemory(sid);
-                    }
-                } finally {
-                    latch.countDown();
-                }
-            });
+            pool.submit(
+                    () -> {
+                        try {
+                            for (int i = 0; i < opsPerThread; i++) {
+                                String sid = "t" + threadId + "-s" + i;
+                                provider.getMemory(sid);
+                                provider.hasMemory(sid);
+                                if (i % 3 == 0) provider.removeMemory(sid);
+                            }
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
         }
 
         assertTrue(latch.await(10, TimeUnit.SECONDS));

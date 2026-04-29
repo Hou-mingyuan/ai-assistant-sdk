@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -61,8 +60,13 @@ public class AiAssistantAuthFilter implements Filter {
             HttpServletResponse response = (HttpServletResponse) res;
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            objectMapper.writeValue(response.getOutputStream(),
-                    Map.of("success", false, "error", "Unauthorized: invalid or missing X-AI-Token header"));
+            objectMapper.writeValue(
+                    response.getOutputStream(),
+                    Map.of(
+                            "success",
+                            false,
+                            "error",
+                            "Unauthorized: invalid or missing X-AI-Token header"));
             return;
         }
 

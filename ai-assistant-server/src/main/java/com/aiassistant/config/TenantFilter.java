@@ -2,14 +2,13 @@ package com.aiassistant.config;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.io.IOException;
 import java.util.regex.Pattern;
 
 /**
- * Extracts tenant identity from request headers and populates {@link TenantContext}.
- * Override the {@code resolveTenantId} method or replace this bean to integrate
- * with your own tenant resolution logic (JWT claims, database lookup, etc.).
+ * Extracts tenant identity from request headers and populates {@link TenantContext}. Override the
+ * {@code resolveTenantId} method or replace this bean to integrate with your own tenant resolution
+ * logic (JWT claims, database lookup, etc.).
  */
 public class TenantFilter implements Filter {
 

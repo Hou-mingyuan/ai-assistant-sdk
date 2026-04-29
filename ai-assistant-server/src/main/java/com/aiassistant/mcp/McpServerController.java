@@ -6,26 +6,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
- * MCP (Model Context Protocol) Server endpoint.
- * Exposes assistant capabilities as MCP tools, compatible with
- * platforms like 织信 (Informat) that support MCP Client connections.
+ * MCP (Model Context Protocol) Server endpoint. Exposes assistant capabilities as MCP tools,
+ * compatible with platforms like 织信 (Informat) that support MCP Client connections.
  *
  * <p>Implements the JSON-RPC based MCP protocol with methods:
+ *
  * <ul>
- *   <li>tools/list — discover available tools</li>
- *   <li>tools/call — invoke a tool</li>
- *   <li>initialize — server handshake</li>
+ *   <li>tools/list — discover available tools
+ *   <li>tools/call — invoke a tool
+ *   <li>initialize — server handshake
  * </ul>
  */
 @RestController
@@ -51,14 +50,17 @@ public class McpServerController {
             String method = request.path("method").asText("");
             JsonNode id = request.has("id") ? request.get("id") : null;
 
-            ObjectNode response = switch (method) {
-                case "initialize" -> handleInitialize(request, id);
-                case "tools/list" -> handleToolsList(id);
-                case "tools/call" -> handleToolsCall(request, id);
-                default -> errorResponse(id, -32601, "Method not found: " + method);
-            };
+            ObjectNode response =
+                    switch (method) {
+                        case "initialize" -> handleInitialize(request, id);
+                        case "tools/list" -> handleToolsList(id);
+                        case "tools/call" -> handleToolsCall(request, id);
+                        default -> errorResponse(id, -32601, "Method not found: " + method);
+                    };
 
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response.toString());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response.toString());
         } catch (Exception e) {
             log.error("MCP request failed", e);
             ObjectNode err = errorResponse(null, -32700, "Parse error: " + e.getMessage());
@@ -106,10 +108,11 @@ public class McpServerController {
         String toolName = params.path("name").asText("");
         JsonNode arguments = params.path("arguments");
 
-        AssistantCapability cap = capabilities.stream()
-                .filter(c -> c.name().equals(toolName))
-                .findFirst()
-                .orElse(null);
+        AssistantCapability cap =
+                capabilities.stream()
+                        .filter(c -> c.name().equals(toolName))
+                        .findFirst()
+                        .orElse(null);
 
         if (cap == null) {
             return errorResponse(id, -32602, "Unknown tool: " + toolName);
@@ -140,7 +143,8 @@ public class McpServerController {
             return resp;
         } catch (Exception e) {
             log.error("MCP tool call failed: {}", toolName, e);
-            return errorResponse(id, -32000, "Tool execution failed. Check server logs for details.");
+            return errorResponse(
+                    id, -32000, "Tool execution failed. Check server logs for details.");
         }
     }
 
@@ -153,5 +157,4 @@ public class McpServerController {
         error.put("message", message);
         return resp;
     }
-
 }

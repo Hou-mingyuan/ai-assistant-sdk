@@ -14,8 +14,12 @@ class FileParserServiceTest {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setFileMaxExtractedChars(5);
         FileParserService parser = new FileParserService(properties);
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "notes.txt", "text/plain", "hello world".getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "notes.txt",
+                        "text/plain",
+                        "hello world".getBytes(StandardCharsets.UTF_8));
 
         String text = parser.extractText(file);
 
@@ -27,8 +31,12 @@ class FileParserServiceTest {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setFileMaxExtractedChars(0);
         FileParserService parser = new FileParserService(properties);
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "notes.txt", "text/plain", "hello world".getBytes(StandardCharsets.UTF_8));
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "notes.txt",
+                        "text/plain",
+                        "hello world".getBytes(StandardCharsets.UTF_8));
 
         String text = parser.extractText(file);
 

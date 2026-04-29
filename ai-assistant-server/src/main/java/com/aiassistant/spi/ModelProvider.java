@@ -5,9 +5,8 @@ import java.util.Map;
 import reactor.core.publisher.Flux;
 
 /**
- * SPI for pluggable LLM model providers.
- * Implement this interface to add support for Claude, Gemini, local models, etc.
- * Default implementation uses OpenAI-compatible API.
+ * SPI for pluggable LLM model providers. Implement this interface to add support for Claude,
+ * Gemini, local models, etc. Default implementation uses OpenAI-compatible API.
  */
 public interface ModelProvider {
 
@@ -38,8 +37,7 @@ public interface ModelProvider {
             int maxTokens,
             double temperature,
             String apiKey,
-            Map<String, Object> extraParams
-    ) {
+            Map<String, Object> extraParams) {
         public record Message(String role, String content) {}
     }
 }

@@ -1,31 +1,29 @@
 package com.aiassistant.controller;
 
+import com.aiassistant.config.TenantContext;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.util.UrlFetchSafety;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import com.aiassistant.config.TenantContext;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 /**
- * Async task submission with optional webhook callback.
- * Supports long-running operations (file summarize, batch translate)
- * without holding the HTTP connection open.
+ * Async task submission with optional webhook callback. Supports long-running operations (file
+ * summarize, batch translate) without holding the HTTP connection open.
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}/async")
@@ -42,13 +40,16 @@ public class AsyncTaskController {
     private final UsageStats usageStats;
     private final ObjectMapper mapper = new ObjectMapper();
     private final ConcurrentHashMap<String, TaskEntry> tasks = new ConcurrentHashMap<>();
-    private final HttpClient webhookClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5)).build();
-    private final ExecutorService executor = Executors.newFixedThreadPool(4, r -> {
-        Thread t = new Thread(r, "async-task");
-        t.setDaemon(true);
-        return t;
-    });
+    private final HttpClient webhookClient =
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    private final ExecutorService executor =
+            Executors.newFixedThreadPool(
+                    4,
+                    r -> {
+                        Thread t = new Thread(r, "async-task");
+                        t.setDaemon(true);
+                        return t;
+                    });
 
     public AsyncTaskController(LlmService llmService, UsageStats usageStats) {
         this.llmService = llmService;
@@ -72,7 +73,8 @@ public class AsyncTaskController {
         }
         Object rawText = body.getOrDefault("text", "");
         if (!(rawText instanceof String text) || text.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "text is required and must be a string"));
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "text is required and must be a string"));
         }
         Object rawWebhookUrl = body.get("webhookUrl");
         String webhookUrl = null;
@@ -84,7 +86,8 @@ public class AsyncTaskController {
             try {
                 webhookUrl = validateWebhookUrl(s);
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body(Map.of("error", "invalid webhookUrl: " + e.getMessage()));
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "invalid webhookUrl: " + e.getMessage()));
             }
         }
 
@@ -94,25 +97,26 @@ public class AsyncTaskController {
 
         var tenantInfo = TenantContext.get();
         final String callbackUrl = webhookUrl;
-        executor.submit(() -> {
-            if (tenantInfo != null) TenantContext.set(tenantInfo);
-            try {
-                String result = llmService.chat(text);
-                entry.complete(result);
-                usageStats.recordCall("async_chat");
-                if (callbackUrl != null) {
-                    sendWebhook(callbackUrl, taskId, result, null);
-                }
-            } catch (Exception e) {
-                entry.fail(e.getMessage());
-                usageStats.recordError();
-                if (callbackUrl != null) {
-                    sendWebhook(callbackUrl, taskId, null, e.getMessage());
-                }
-            } finally {
-                TenantContext.clear();
-            }
-        });
+        executor.submit(
+                () -> {
+                    if (tenantInfo != null) TenantContext.set(tenantInfo);
+                    try {
+                        String result = llmService.chat(text);
+                        entry.complete(result);
+                        usageStats.recordCall("async_chat");
+                        if (callbackUrl != null) {
+                            sendWebhook(callbackUrl, taskId, result, null);
+                        }
+                    } catch (Exception e) {
+                        entry.fail(e.getMessage());
+                        usageStats.recordError();
+                        if (callbackUrl != null) {
+                            sendWebhook(callbackUrl, taskId, null, e.getMessage());
+                        }
+                    } finally {
+                        TenantContext.clear();
+                    }
+                });
 
         return ResponseEntity.accepted().body(Map.of("taskId", taskId, "status", "pending"));
     }
@@ -137,7 +141,8 @@ public class AsyncTaskController {
     private String validateWebhookUrl(String url) {
         URI uri = URI.create(url.trim());
         String scheme = uri.getScheme();
-        if (scheme == null || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+        if (scheme == null
+                || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
             throw new IllegalArgumentException("only http(s) urls are supported");
         }
         UrlFetchSafety.validateHttpUrlForServerSideFetch(uri);
@@ -154,32 +159,44 @@ public class AsyncTaskController {
             if (result != null) payload.put("result", result);
             if (error != null) payload.put("error", error);
 
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .timeout(Duration.ofSeconds(10))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(payload)))
-                    .build();
+            HttpRequest req =
+                    HttpRequest.newBuilder()
+                            .uri(uri)
+                            .timeout(Duration.ofSeconds(10))
+                            .header("Content-Type", "application/json")
+                            .POST(
+                                    HttpRequest.BodyPublishers.ofString(
+                                            mapper.writeValueAsString(payload)))
+                            .build();
             webhookClient.send(req, HttpResponse.BodyHandlers.discarding());
             log.info("Webhook delivered: taskId={} url={}", taskId, url);
         } catch (Exception e) {
-            log.warn("Webhook delivery failed: taskId={} url={} error={}", taskId, url, e.getMessage());
+            log.warn(
+                    "Webhook delivery failed: taskId={} url={} error={}",
+                    taskId,
+                    url,
+                    e.getMessage());
         }
     }
 
     private void evictExpiredTasks() {
         long now = System.currentTimeMillis();
-        tasks.entrySet().removeIf(e -> {
-            TaskEntry t = e.getValue();
-            if ("pending".equals(t.status)) {
-                if (now - t.createdAt > PENDING_TIMEOUT_MS) {
-                    t.fail("Task timed out after " + (PENDING_TIMEOUT_MS / 60_000) + " minutes");
-                    return false;
-                }
-                return false;
-            }
-            return now - t.createdAt > TASK_TTL_MS;
-        });
+        tasks.entrySet()
+                .removeIf(
+                        e -> {
+                            TaskEntry t = e.getValue();
+                            if ("pending".equals(t.status)) {
+                                if (now - t.createdAt > PENDING_TIMEOUT_MS) {
+                                    t.fail(
+                                            "Task timed out after "
+                                                    + (PENDING_TIMEOUT_MS / 60_000)
+                                                    + " minutes");
+                                    return false;
+                                }
+                                return false;
+                            }
+                            return now - t.createdAt > TASK_TTL_MS;
+                        });
     }
 
     private static class TaskEntry {
@@ -189,7 +206,9 @@ public class AsyncTaskController {
         volatile String error;
         final long createdAt = System.currentTimeMillis();
 
-        TaskEntry(String id) { this.id = id; }
+        TaskEntry(String id) {
+            this.id = id;
+        }
 
         void complete(String result) {
             this.result = result;

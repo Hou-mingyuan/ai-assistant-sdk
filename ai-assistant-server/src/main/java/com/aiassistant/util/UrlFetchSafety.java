@@ -6,14 +6,10 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Locale;
 
-/**
- * 服务端出站 HTTP 请求的 SSRF 基线校验。在发起请求前对主机名做 DNS 解析并拦截常见内网/元数据目标。
- * 无法防御高级 DNS 重绑定；重定向目标需由调用方逐跳调用本校验。
- */
+/** 服务端出站 HTTP 请求的 SSRF 基线校验。在发起请求前对主机名做 DNS 解析并拦截常见内网/元数据目标。 无法防御高级 DNS 重绑定；重定向目标需由调用方逐跳调用本校验。 */
 public final class UrlFetchSafety {
 
-    private UrlFetchSafety() {
-    }
+    private UrlFetchSafety() {}
 
     public static void validateHttpUrlForServerSideFetch(URI uri) {
         if (uri == null) {
@@ -50,7 +46,9 @@ public final class UrlFetchSafety {
     }
 
     private static boolean isDisallowedTarget(InetAddress a) {
-        if (a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isLinkLocalAddress()
+        if (a.isLoopbackAddress()
+                || a.isAnyLocalAddress()
+                || a.isLinkLocalAddress()
                 || a.isMulticastAddress()) {
             return true;
         }
@@ -73,10 +71,11 @@ public final class UrlFetchSafety {
             if ((hi & 0xfe00) == 0xfc00) {
                 return true;
             }
-            int prefix32 = ((b[0] & 0xff) << 24)
-                    | ((b[1] & 0xff) << 16)
-                    | ((b[2] & 0xff) << 8)
-                    | (b[3] & 0xff);
+            int prefix32 =
+                    ((b[0] & 0xff) << 24)
+                            | ((b[1] & 0xff) << 16)
+                            | ((b[2] & 0xff) << 8)
+                            | (b[3] & 0xff);
             if (prefix32 == 0x20010db8) {
                 return true;
             }

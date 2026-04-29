@@ -5,29 +5,12 @@ import com.aiassistant.export.ExportHttpUrls;
 import com.aiassistant.export.ExportImageSniff;
 import com.aiassistant.export.ExportMarkdownPatterns;
 import com.aiassistant.export.ExportMarkdownUrls;
-import com.aiassistant.export.ExportTextLayout;
 import com.aiassistant.export.ExportPdfWriter;
+import com.aiassistant.export.ExportTextLayout;
 import com.aiassistant.export.ExportXlsxWriter;
 import com.aiassistant.export.PreparedExport;
 import com.aiassistant.model.ExportRequest;
 import com.aiassistant.util.UrlFetchSafety;
-
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.apache.poi.util.Units;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-
-import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,9 +20,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -52,17 +32,28 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
+import org.apache.poi.util.Units;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 /**
  * Exports chat sessions to XLSX, DOCX, or PDF.
- * <p>Handles Markdown rendering (headings, code blocks, lists, inline bold/code),
- * HTTP image embedding with SSRF protection, and CJK-aware PDF text wrapping.</p>
+ *
+ * <p>Handles Markdown rendering (headings, code blocks, lists, inline bold/code), HTTP image
+ * embedding with SSRF protection, and CJK-aware PDF text wrapping.
  */
 public class AssistantExportService {
 
     private static final ExecutorService EXPORT_IMAGE_POOL =
-            Executors.newFixedThreadPool(4, r -> { Thread t = new Thread(r, "ai-export-img"); t.setDaemon(true); return t; });
+            Executors.newFixedThreadPool(
+                    4,
+                    r -> {
+                        Thread t = new Thread(r, "ai-export-img");
+                        t.setDaemon(true);
+                        return t;
+                    });
     private static final ThreadLocal<Map<String, byte[]>> EXPORT_IMAGE_CACHE = new ThreadLocal<>();
 
     private final AiAssistantProperties properties;
@@ -80,10 +71,11 @@ public class AssistantExportService {
             synchronized (this) {
                 c = exportHttpClient;
                 if (c == null) {
-                    c = HttpClient.newBuilder()
-                            .followRedirects(HttpClient.Redirect.NEVER)
-                            .connectTimeout(Duration.ofSeconds(10))
-                            .build();
+                    c =
+                            HttpClient.newBuilder()
+                                    .followRedirects(HttpClient.Redirect.NEVER)
+                                    .connectTimeout(Duration.ofSeconds(10))
+                                    .build();
                     exportHttpClient = c;
                 }
             }
@@ -120,17 +112,34 @@ public class AssistantExportService {
         if (total > maxChars) {
             throw new IllegalArgumentException("messages exceed size limit");
         }
-        String title = req.getTitle() != null && !req.getTitle().isBlank() ? req.getTitle().trim() : "export";
+        String title =
+                req.getTitle() != null && !req.getTitle().isBlank()
+                        ? req.getTitle().trim()
+                        : "export";
         String baseName = ExportTextLayout.sanitizeFileStem(title);
         boolean dark = req.isDarkTheme();
         return switch (fmt) {
-            case "xlsx" -> new PreparedExport(fmt,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    baseName + ".xlsx", List.copyOf(messages), dark);
-            case "docx" -> new PreparedExport(fmt,
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    baseName + ".docx", List.copyOf(messages), dark);
-            default -> new PreparedExport("pdf", "application/pdf", baseName + ".pdf", List.copyOf(messages), dark);
+            case "xlsx" ->
+                    new PreparedExport(
+                            fmt,
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            baseName + ".xlsx",
+                            List.copyOf(messages),
+                            dark);
+            case "docx" ->
+                    new PreparedExport(
+                            fmt,
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            baseName + ".docx",
+                            List.copyOf(messages),
+                            dark);
+            default ->
+                    new PreparedExport(
+                            "pdf",
+                            "application/pdf",
+                            baseName + ".pdf",
+                            List.copyOf(messages),
+                            dark);
         };
     }
 
@@ -156,7 +165,8 @@ public class AssistantExportService {
         }
     }
 
-    private void writeDocx(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark) throws Exception {
+    private void writeDocx(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark)
+            throws Exception {
         try (XWPFDocument d = new XWPFDocument()) {
             for (ExportRequest.MessageRow m : messages) {
                 String role = m != null && m.getRole() != null ? m.getRole() : "";
@@ -166,7 +176,8 @@ public class AssistantExportService {
                 r0.setBold(true);
                 r0.setText("[" + role + "]");
                 if (dark) r0.setColor("6366F1");
-                appendMarkdownDocx(d, ExportTextLayout.hardWrapLongPhysicalLinesPreserveMdImages(content, 54));
+                appendMarkdownDocx(
+                        d, ExportTextLayout.hardWrapLongPhysicalLinesPreserveMdImages(content, 54));
                 d.createParagraph();
             }
             d.write(out);
@@ -239,7 +250,9 @@ public class AssistantExportService {
                 continue;
             }
             Matcher loneImg = ExportMarkdownPatterns.MD_IMAGE.matcher(trimmed);
-            if (loneImg.matches() && trimmed.indexOf('!') == 0 && trimmed.lastIndexOf(')') == trimmed.length() - 1) {
+            if (loneImg.matches()
+                    && trimmed.indexOf('!') == 0
+                    && trimmed.lastIndexOf(')') == trimmed.length() - 1) {
                 XWPFParagraph picP = d.createParagraph();
                 embedOrFallbackDocx(d, picP, loneImg.group(2).trim());
                 i++;
@@ -263,12 +276,13 @@ public class AssistantExportService {
         }
         if (textStyle >= 1 && textStyle <= 6) {
             r.setBold(true);
-            r.setFontSize(switch (textStyle) {
-                case 1 -> 20;
-                case 2 -> 18;
-                case 3 -> 16;
-                default -> 14;
-            });
+            r.setFontSize(
+                    switch (textStyle) {
+                        case 1 -> 20;
+                        case 2 -> 18;
+                        case 3 -> 16;
+                        default -> 14;
+                    });
         }
     }
 
@@ -278,12 +292,14 @@ public class AssistantExportService {
         XWPFRun r = p.createRun();
         r.setFontFamily("Courier New");
         r.setFontSize(9);
-        String body = ExportTextLayout.hardWrapLongPhysicalLines(code.replace("\t", "    "), 96).trim();
+        String body =
+                ExportTextLayout.hardWrapLongPhysicalLines(code.replace("\t", "    "), 96).trim();
         r.setText(body.isEmpty() ? " " : body);
     }
 
     /** Word：内联 **粗体**、`代码`，与前端 Markdown 观感接近 */
-    private void appendRichDocxInParagraph(XWPFParagraph p, String text, int textStyle) throws Exception {
+    private void appendRichDocxInParagraph(XWPFParagraph p, String text, int textStyle)
+            throws Exception {
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -342,7 +358,8 @@ public class AssistantExportService {
         }
     }
 
-    private void appendInlineImagesDocx(XWPFDocument d, XWPFParagraph p, String line, int textStyle) throws Exception {
+    private void appendInlineImagesDocx(XWPFDocument d, XWPFParagraph p, String line, int textStyle)
+            throws Exception {
         Matcher m = ExportMarkdownPatterns.MD_IMAGE.matcher(line);
         int last = 0;
         if (!m.find()) {
@@ -394,7 +411,8 @@ public class AssistantExportService {
         }
     }
 
-    private void writePdf(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark) throws Exception {
+    private void writePdf(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark)
+            throws Exception {
         new ExportPdfWriter(properties).write(messages, out, dark);
     }
 
@@ -408,7 +426,8 @@ public class AssistantExportService {
             return Map.of();
         }
         for (ExportRequest.MessageRow m : messages) {
-            ExportMarkdownUrls.collectMarkdownImageUrls(m != null ? m.getContent() : null, urls, maxImageUrls);
+            ExportMarkdownUrls.collectMarkdownImageUrls(
+                    m != null ? m.getContent() : null, urls, maxImageUrls);
             if (urls.size() >= maxImageUrls) {
                 break;
             }
@@ -419,12 +438,15 @@ public class AssistantExportService {
         ConcurrentHashMap<String, byte[]> out = new ConcurrentHashMap<>();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (String u : urls) {
-            futures.add(CompletableFuture.runAsync(() -> {
-                byte[] b = fetchImageBytes(u);
-                if (b != null && b.length > 0) {
-                    out.put(u, b);
-                }
-            }, EXPORT_IMAGE_POOL));
+            futures.add(
+                    CompletableFuture.runAsync(
+                            () -> {
+                                byte[] b = fetchImageBytes(u);
+                                if (b != null && b.length > 0) {
+                                    out.put(u, b);
+                                }
+                            },
+                            EXPORT_IMAGE_POOL));
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         return out;
@@ -458,14 +480,20 @@ public class AssistantExportService {
         Duration timeout = Duration.ofSeconds(Math.max(5, properties.getUrlFetchTimeoutSeconds()));
         try {
             for (int hop = 0; hop <= MAX_IMAGE_REDIRECTS; hop++) {
-                HttpRequest req = HttpRequest.newBuilder()
-                        .uri(current)
-                        .timeout(timeout)
-                        .header("User-Agent", "Mozilla/5.0 (compatible; AiAssistant-Export/1.0)")
-                        .header("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
-                        .GET()
-                        .build();
-                HttpResponse<InputStream> res = client.send(req, HttpResponse.BodyHandlers.ofInputStream());
+                HttpRequest req =
+                        HttpRequest.newBuilder()
+                                .uri(current)
+                                .timeout(timeout)
+                                .header(
+                                        "User-Agent",
+                                        "Mozilla/5.0 (compatible; AiAssistant-Export/1.0)")
+                                .header(
+                                        "Accept",
+                                        "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
+                                .GET()
+                                .build();
+                HttpResponse<InputStream> res =
+                        client.send(req, HttpResponse.BodyHandlers.ofInputStream());
                 int code = res.statusCode();
                 if (code >= 301 && code <= 308 && code != 304) {
                     String location = res.headers().firstValue("Location").orElse(null);
@@ -486,7 +514,8 @@ public class AssistantExportService {
     }
 
     private byte[] readImageResponse(HttpResponse<InputStream> res, int max) throws IOException {
-        try (InputStream in = res.body(); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+        try (InputStream in = res.body();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             byte[] buf = new byte[8192];
             int n;
             while ((n = in.read(buf)) >= 0) {
@@ -494,16 +523,17 @@ public class AssistantExportService {
                 if (bos.size() > max) return null;
             }
             byte[] data = bos.toByteArray();
-            String ct = res.headers().firstValue("Content-Type").orElse("").toLowerCase(Locale.ROOT);
+            String ct =
+                    res.headers().firstValue("Content-Type").orElse("").toLowerCase(Locale.ROOT);
             if (ct.startsWith("image/")) return data;
             if (ExportImageSniff.sniffPictureType(data) >= 0) return data;
             if (ct.contains("octet-stream") || ct.isEmpty()) {
                 try (ByteArrayInputStream bin = new ByteArrayInputStream(data)) {
                     if (ImageIO.read(bin) != null) return data;
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             return null;
         }
     }
-
 }

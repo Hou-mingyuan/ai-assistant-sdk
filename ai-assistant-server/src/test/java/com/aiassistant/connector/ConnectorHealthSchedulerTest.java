@@ -1,11 +1,10 @@
 package com.aiassistant.connector;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class ConnectorHealthSchedulerTest {
 
@@ -31,7 +30,8 @@ class ConnectorHealthSchedulerTest {
 
         DataConnector healthy = mock(DataConnector.class);
         when(healthy.id()).thenReturn("ok1");
-        when(healthy.listModules()).thenReturn(List.of(new DataConnector.ModuleInfo("m1", "Module 1", "table")));
+        when(healthy.listModules())
+                .thenReturn(List.of(new DataConnector.ModuleInfo("m1", "Module 1", "table")));
 
         var scheduler = new ConnectorHealthScheduler(List.of(broken, healthy), 30_000);
 
@@ -62,7 +62,9 @@ class ConnectorHealthSchedulerTest {
         probeMethod.invoke(scheduler);
         assertFalse(scheduler.isHealthy("flaky1"));
 
-        doReturn(List.of(new DataConnector.ModuleInfo("m1", "Module 1", "table"))).when(flaky).listModules();
+        doReturn(List.of(new DataConnector.ModuleInfo("m1", "Module 1", "table")))
+                .when(flaky)
+                .listModules();
         probeMethod.invoke(scheduler);
         assertTrue(scheduler.isHealthy("flaky1"));
 

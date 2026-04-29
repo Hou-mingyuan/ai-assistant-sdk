@@ -1,12 +1,11 @@
 package com.aiassistant.event;
 
+import java.util.Map;
 import org.springframework.context.ApplicationEvent;
 
-import java.util.Map;
-
 /**
- * Base event for all AI assistant lifecycle events.
- * Subscribe with {@code @EventListener} or implement {@link org.springframework.context.ApplicationListener}.
+ * Base event for all AI assistant lifecycle events. Subscribe with {@code @EventListener} or
+ * implement {@link org.springframework.context.ApplicationListener}.
  */
 public class AiAssistantEvent extends ApplicationEvent {
 
@@ -18,9 +17,15 @@ public class AiAssistantEvent extends ApplicationEvent {
     private final long durationMs;
     private final Map<String, Object> metadata;
 
-    public AiAssistantEvent(Object source, EventType type, String operation,
-                             String tenantId, String modelId, String sessionId,
-                             long durationMs, Map<String, Object> metadata) {
+    public AiAssistantEvent(
+            Object source,
+            EventType type,
+            String operation,
+            String tenantId,
+            String modelId,
+            String sessionId,
+            long durationMs,
+            Map<String, Object> metadata) {
         super(source);
         this.type = type;
         this.operation = operation;
@@ -43,11 +48,31 @@ public class AiAssistantEvent extends ApplicationEvent {
         CAPABILITY_INVOKED
     }
 
-    public EventType getType() { return type; }
-    public String getOperation() { return operation; }
-    public String getTenantId() { return tenantId; }
-    public String getModelId() { return modelId; }
-    public String getSessionId() { return sessionId; }
-    public long getDurationMs() { return durationMs; }
-    public Map<String, Object> getMetadata() { return metadata; }
+    public EventType getType() {
+        return type;
+    }
+
+    public String getOperation() {
+        return operation;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public String getModelId() {
+        return modelId;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public long getDurationMs() {
+        return durationMs;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
 }

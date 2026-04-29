@@ -11,9 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * JDBC-backed ConversationMemoryProvider.
- * Persists short-term messages and long-term facts to relational DB,
- * with an in-memory LRU write-through cache for hot sessions.
+ * JDBC-backed ConversationMemoryProvider. Persists short-term messages and long-term facts to
+ * relational DB, with an in-memory LRU write-through cache for hot sessions.
  */
 public class JdbcConversationMemoryProvider implements ConversationMemoryProvider {
 
@@ -30,7 +29,8 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
     }
 
     private void initSchema() {
-        jdbc.execute("""
+        jdbc.execute(
+                """
             CREATE TABLE IF NOT EXISTS ai_conversation_messages (
                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
                 session_id VARCHAR(255) NOT NULL,
@@ -40,7 +40,8 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
                 INDEX idx_session (session_id)
             )
             """);
-        jdbc.execute("""
+        jdbc.execute(
+                """
             CREATE TABLE IF NOT EXISTS ai_conversation_facts (
                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
                 session_id VARCHAR(255) NOT NULL,
@@ -66,15 +67,15 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
     @Override
     public boolean hasMemory(String sessionId) {
         if (cache.containsKey(sessionId)) return true;
-        Integer count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM ai_conversation_messages WHERE session_id = ?",
-                Integer.class, sessionId);
+        Integer count =
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM ai_conversation_messages WHERE session_id = ?",
+                        Integer.class,
+                        sessionId);
         return count != null && count > 0;
     }
 
-    /**
-     * Flush a session's current state to DB. Call periodically or on shutdown.
-     */
+    /** Flush a session's current state to DB. Call periodically or on shutdown. */
     public void flush(String sessionId) {
         ConversationMemory memory = cache.get(sessionId);
         if (memory == null) return;
@@ -88,9 +89,11 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
     private ConversationMemory loadFromDb(String sessionId) {
         ConversationMemory memory = new ConversationMemory(maxShortTermMessages);
 
-        List<Map<String, Object>> messages = jdbc.queryForList(
-                "SELECT role, content FROM ai_conversation_messages WHERE session_id = ? ORDER BY created_at DESC LIMIT ?",
-                sessionId, maxShortTermMessages);
+        List<Map<String, Object>> messages =
+                jdbc.queryForList(
+                        "SELECT role, content FROM ai_conversation_messages WHERE session_id = ? ORDER BY created_at DESC LIMIT ?",
+                        sessionId,
+                        maxShortTermMessages);
 
         for (int i = messages.size() - 1; i >= 0; i--) {
             Map<String, Object> row = messages.get(i);
@@ -103,9 +106,11 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
             }
         }
 
-        List<String> facts = jdbc.queryForList(
-                "SELECT fact FROM ai_conversation_facts WHERE session_id = ? ORDER BY created_at",
-                String.class, sessionId);
+        List<String> facts =
+                jdbc.queryForList(
+                        "SELECT fact FROM ai_conversation_facts WHERE session_id = ? ORDER BY created_at",
+                        String.class,
+                        sessionId);
         for (String fact : facts) {
             memory.addFact(fact);
         }
@@ -119,14 +124,18 @@ public class JdbcConversationMemoryProvider implements ConversationMemoryProvide
             for (ConversationMemory.MemoryEntry entry : memory.getShortTermHistory()) {
                 jdbc.update(
                         "INSERT INTO ai_conversation_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-                        sessionId, entry.role(), entry.content(), new Timestamp(entry.timestamp()));
+                        sessionId,
+                        entry.role(),
+                        entry.content(),
+                        new Timestamp(entry.timestamp()));
             }
 
             jdbc.update("DELETE FROM ai_conversation_facts WHERE session_id = ?", sessionId);
             for (String fact : memory.getLongTermFacts()) {
                 jdbc.update(
                         "INSERT INTO ai_conversation_facts (session_id, fact) VALUES (?, ?)",
-                        sessionId, fact);
+                        sessionId,
+                        fact);
             }
         } catch (Exception e) {
             log.warn("Failed to persist conversation memory for session {}", sessionId, e);

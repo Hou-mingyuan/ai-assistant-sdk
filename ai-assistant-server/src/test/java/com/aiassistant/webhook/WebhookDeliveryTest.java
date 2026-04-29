@@ -12,8 +12,9 @@ class WebhookDeliveryTest {
     void rejectsUnsafeWebhookUrlBeforeRetrying() throws Exception {
         WebhookDelivery delivery = new WebhookDelivery(new AiAssistantProperties());
         try {
-            boolean delivered = delivery.deliver("http://127.0.0.1:8080/hook", "{}")
-                    .get(200, TimeUnit.MILLISECONDS);
+            boolean delivered =
+                    delivery.deliver("http://127.0.0.1:8080/hook", "{}")
+                            .get(200, TimeUnit.MILLISECONDS);
 
             assertFalse(delivered);
         } finally {
@@ -25,8 +26,8 @@ class WebhookDeliveryTest {
     void rejectsNonHttpWebhookUrlBeforeRetrying() throws Exception {
         WebhookDelivery delivery = new WebhookDelivery(new AiAssistantProperties());
         try {
-            boolean delivered = delivery.deliver("file:///tmp/hook", "{}")
-                    .get(200, TimeUnit.MILLISECONDS);
+            boolean delivered =
+                    delivery.deliver("file:///tmp/hook", "{}").get(200, TimeUnit.MILLISECONDS);
 
             assertFalse(delivered);
         } finally {

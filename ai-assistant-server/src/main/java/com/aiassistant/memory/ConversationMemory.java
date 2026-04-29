@@ -3,9 +3,9 @@ package com.aiassistant.memory;
 import java.util.List;
 
 /**
- * Manages conversation context with sliding window + long-term memory.
- * Short-term: recent N messages in the current session.
- * Long-term: summarized/embedded key facts that persist across sessions.
+ * Manages conversation context with sliding window + long-term memory. Short-term: recent N
+ * messages in the current session. Long-term: summarized/embedded key facts that persist across
+ * sessions.
  */
 public class ConversationMemory {
 
@@ -31,9 +31,7 @@ public class ConversationMemory {
         trimShortTerm();
     }
 
-    /**
-     * Store a long-term fact (user preference, key decision, etc.).
-     */
+    /** Store a long-term fact (user preference, key decision, etc.). */
     public void addFact(String fact) {
         if (fact != null && !fact.isBlank() && longTermFacts.size() < 100) {
             longTermFacts.add(fact.trim());
@@ -48,9 +46,7 @@ public class ConversationMemory {
         return List.copyOf(longTermFacts);
     }
 
-    /**
-     * Build a memory context string for inclusion in the system prompt.
-     */
+    /** Build a memory context string for inclusion in the system prompt. */
     public String buildMemoryPrompt() {
         if (longTermFacts.isEmpty()) return "";
         StringBuilder sb = new StringBuilder();

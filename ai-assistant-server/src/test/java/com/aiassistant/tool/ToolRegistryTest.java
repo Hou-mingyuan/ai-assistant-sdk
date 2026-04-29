@@ -1,17 +1,16 @@
 package com.aiassistant.tool;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ToolRegistryTest {
 
@@ -19,10 +18,25 @@ class ToolRegistryTest {
 
     private ToolDefinition dummyTool(String name) {
         return new ToolDefinition() {
-            @Override public String name() { return name; }
-            @Override public String description() { return "Test tool: " + name; }
-            @Override public JsonNode parametersSchema() { return mapper.createObjectNode().put("type", "object"); }
-            @Override public String execute(JsonNode arguments) { return "{\"ok\":true}"; }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return "Test tool: " + name;
+            }
+
+            @Override
+            public JsonNode parametersSchema() {
+                return mapper.createObjectNode().put("type", "object");
+            }
+
+            @Override
+            public String execute(JsonNode arguments) {
+                return "{\"ok\":true}";
+            }
         };
     }
 
@@ -107,18 +121,19 @@ class ToolRegistryTest {
 
         for (int t = 0; t < threadCount; t++) {
             final int threadId = t;
-            executor.submit(() -> {
-                try {
-                    for (int i = 0; i < toolsPerThread; i++) {
-                        registry.register(dummyTool("t" + threadId + "_tool" + i));
-                        registry.toOpenAiToolsArray();
-                    }
-                } catch (Exception e) {
-                    errors.incrementAndGet();
-                } finally {
-                    latch.countDown();
-                }
-            });
+            executor.submit(
+                    () -> {
+                        try {
+                            for (int i = 0; i < toolsPerThread; i++) {
+                                registry.register(dummyTool("t" + threadId + "_tool" + i));
+                                registry.toOpenAiToolsArray();
+                            }
+                        } catch (Exception e) {
+                            errors.incrementAndGet();
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
         }
 
         latch.await();
@@ -130,6 +145,8 @@ class ToolRegistryTest {
     @Test
     void allReturnsUnmodifiableView() {
         ToolRegistry registry = new ToolRegistry(List.of(dummyTool("z")));
-        assertThrows(UnsupportedOperationException.class, () -> registry.all().put("hack", dummyTool("hack")));
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> registry.all().put("hack", dummyTool("hack")));
     }
 }

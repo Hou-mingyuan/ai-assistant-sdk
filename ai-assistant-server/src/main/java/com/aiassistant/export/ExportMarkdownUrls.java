@@ -3,13 +3,10 @@ package com.aiassistant.export;
 import java.util.Set;
 import java.util.regex.Matcher;
 
-/**
- * 从 Markdown 中收集图片 URL，以及 PDF 用的行内标记剥离。
- */
+/** 从 Markdown 中收集图片 URL，以及 PDF 用的行内标记剥离。 */
 public final class ExportMarkdownUrls {
 
-    private ExportMarkdownUrls() {
-    }
+    private ExportMarkdownUrls() {}
 
     public static void collectMarkdownImageUrls(String text, Set<String> dest) {
         collectMarkdownImageUrls(text, dest, Integer.MAX_VALUE);

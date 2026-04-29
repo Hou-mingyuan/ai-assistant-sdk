@@ -1,14 +1,14 @@
-import type { Ref } from 'vue'
+import type { Ref } from 'vue';
 
 export interface MessageMemoryCapOptions {
-  maxMessagesInMemory?: number
-  maxTotalCharsInMemory?: number
+  maxMessagesInMemory?: number;
+  maxTotalCharsInMemory?: number;
 }
 
 /** 与 AiAssistant Message 兼容的最小形状 */
 export interface MemoryCapMessage {
-  content?: string
-  contentArchive?: string
+  content?: string;
+  contentArchive?: string;
 }
 
 /**
@@ -20,52 +20,52 @@ export function useMessageMemoryCap(
   clearRenderCache: () => void,
 ) {
   function messageCharFootprint(m: MemoryCapMessage): number {
-    const c = m.content?.length ?? 0
-    const a = m.contentArchive?.length ?? 0
-    return c + a
+    const c = m.content?.length ?? 0;
+    const a = m.contentArchive?.length ?? 0;
+    return c + a;
   }
 
   function countMessagesChars(arr: MemoryCapMessage[]): number {
-    let n = 0
+    let n = 0;
     for (const m of arr) {
-      n += messageCharFootprint(m)
+      n += messageCharFootprint(m);
     }
-    return n
+    return n;
   }
 
   function trimMessagesForMemoryCap() {
-    let changed = false
-    const msgCap = options.maxMessagesInMemory
+    let changed = false;
+    const msgCap = options.maxMessagesInMemory;
     if (msgCap !== undefined && msgCap > 0 && messages.value.length > msgCap) {
-      messages.value = messages.value.slice(-msgCap)
-      changed = true
+      messages.value = messages.value.slice(-msgCap);
+      changed = true;
     }
-    const charCap = options.maxTotalCharsInMemory
+    const charCap = options.maxTotalCharsInMemory;
     if (charCap !== undefined && charCap > 0 && messages.value.length > 0) {
-      let acc = countMessagesChars(messages.value)
+      let acc = countMessagesChars(messages.value);
       if (acc > charCap) {
-        let drop = 0
+        let drop = 0;
         while (drop < messages.value.length - 1 && acc > charCap) {
-          acc -= messageCharFootprint(messages.value[drop])
-          drop++
+          acc -= messageCharFootprint(messages.value[drop]);
+          drop++;
         }
         if (drop > 0) {
-          messages.value = messages.value.slice(drop)
-          changed = true
+          messages.value = messages.value.slice(drop);
+          changed = true;
         }
       }
       if (messages.value.length === 1 && countMessagesChars(messages.value) > charCap) {
-        const only = messages.value[0]!
-        const full = (only.contentArchive ?? only.content) ?? ''
+        const only = messages.value[0]!;
+        const full = only.contentArchive ?? only.content ?? '';
         if (full.length > charCap) {
-          only.contentArchive = undefined
-          only.content = full.slice(0, charCap) + '…'
-          changed = true
+          only.contentArchive = undefined;
+          only.content = full.slice(0, charCap) + '…';
+          changed = true;
         }
       }
     }
-    if (changed) clearRenderCache()
+    if (changed) clearRenderCache();
   }
 
-  return { trimMessagesForMemoryCap }
+  return { trimMessagesForMemoryCap };
 }

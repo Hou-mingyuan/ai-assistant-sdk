@@ -74,25 +74,25 @@
 </template>
 
 <script setup lang="ts">
-import type { I18nMessages } from '../utils/i18n'
-import type { ExportFormat } from '../utils/api'
+import type { I18nMessages } from '../utils/i18n';
+import type { ExportFormat } from '../utils/api';
 
 defineProps<{
-  show: boolean
-  x: number
-  y: number
-  color: string
-  selectionText: string
-  hasBaseUrl: boolean
-  exportBusy: boolean
-  t: I18nMessages
-}>()
+  show: boolean;
+  x: number;
+  y: number;
+  color: string;
+  selectionText: string;
+  hasBaseUrl: boolean;
+  exportBusy: boolean;
+  t: I18nMessages;
+}>();
 
 defineEmits<{
-  (e: 'copy'): void
-  (e: 'translate'): void
-  (e: 'delete'): void
-  (e: 'export', fmt: ExportFormat): void
-  (e: 'fork'): void
-}>()
+  (e: 'copy'): void;
+  (e: 'translate'): void;
+  (e: 'delete'): void;
+  (e: 'export', fmt: ExportFormat): void;
+  (e: 'fork'): void;
+}>();
 </script>

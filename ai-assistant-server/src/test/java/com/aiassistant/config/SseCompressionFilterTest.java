@@ -1,17 +1,16 @@
 package com.aiassistant.config;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.Test;
 
 class SseCompressionFilterTest {
 
@@ -55,11 +54,21 @@ class SseCompressionFilterTest {
         FilterChain chain = mock(FilterChain.class);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ServletOutputStream sos = new ServletOutputStream() {
-            @Override public void write(int b) throws IOException { baos.write(b); }
-            @Override public boolean isReady() { return true; }
-            @Override public void setWriteListener(WriteListener l) {}
-        };
+        ServletOutputStream sos =
+                new ServletOutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                        baos.write(b);
+                    }
+
+                    @Override
+                    public boolean isReady() {
+                        return true;
+                    }
+
+                    @Override
+                    public void setWriteListener(WriteListener l) {}
+                };
 
         when(req.getRequestURI()).thenReturn("/ai-assistant/stream");
         when(req.getHeader("Accept-Encoding")).thenReturn("gzip, deflate");

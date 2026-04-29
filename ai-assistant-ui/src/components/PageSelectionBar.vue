@@ -12,7 +12,7 @@
       >
         <button type="button" class="ai-page-sel-btn" @click="$emit('action', 'ask')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
           </svg>
           <span>{{ t.pageSelAsk }}</span>
         </button>
@@ -28,18 +28,18 @@
 </template>
 
 <script setup lang="ts">
-import type { I18nMessages } from '../utils/i18n'
+import type { I18nMessages } from '../utils/i18n';
 
 defineProps<{
-  show: boolean
-  x: number
-  y: number
-  color: string
-  isDark: boolean
-  t: I18nMessages
-}>()
+  show: boolean;
+  x: number;
+  y: number;
+  color: string;
+  isDark: boolean;
+  t: I18nMessages;
+}>();
 
 defineEmits<{
-  (e: 'action', type: 'ask' | 'translate' | 'summarize'): void
-}>()
+  (e: 'action', type: 'ask' | 'translate' | 'summarize'): void;
+}>();
 </script>

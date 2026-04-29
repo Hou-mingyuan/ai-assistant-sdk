@@ -1,9 +1,8 @@
 package com.aiassistant.config;
 
 /**
- * Thread-local tenant context for multi-tenant isolation.
- * Set by authentication filters; consumed by services for
- * per-tenant model/connector/quota resolution.
+ * Thread-local tenant context for multi-tenant isolation. Set by authentication filters; consumed
+ * by services for per-tenant model/connector/quota resolution.
  */
 public final class TenantContext {
 
@@ -33,8 +32,7 @@ public final class TenantContext {
             String displayName,
             String model,
             int rateLimit,
-            java.util.Set<String> allowedConnectors
-    ) {
+            java.util.Set<String> allowedConnectors) {
         public TenantInfo(String tenantId) {
             this(tenantId, tenantId, null, 0, java.util.Set.of());
         }

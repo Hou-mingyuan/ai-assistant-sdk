@@ -6,6 +6,11 @@ import com.aiassistant.connector.ConnectorFactory;
 import com.aiassistant.connector.ConnectorToolRegistrar;
 import com.aiassistant.connector.DataConnector;
 import com.aiassistant.tool.ToolRegistry;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,18 +20,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-/**
- * Exposes health status for all registered DataConnectors and AI provider connectivity.
- */
+/** Exposes health status for all registered DataConnectors and AI provider connectivity. */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
-@io.swagger.v3.oas.annotations.tags.Tag(name = "Connector Health", description = "Data connector health probes")
+@io.swagger.v3.oas.annotations.tags.Tag(
+        name = "Connector Health",
+        description = "Data connector health probes")
 public class ConnectorHealthController {
 
     private static final Logger log = LoggerFactory.getLogger(ConnectorHealthController.class);
@@ -39,14 +38,22 @@ public class ConnectorHealthController {
         this(connectors, toolRegistry, null, false);
     }
 
-    public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry,
-                                     ProviderConnectivityChecker connectivityChecker) {
+    public ConnectorHealthController(
+            List<DataConnector> connectors,
+            ToolRegistry toolRegistry,
+            ProviderConnectivityChecker connectivityChecker) {
         this(connectors, toolRegistry, connectivityChecker, false);
     }
 
-    public ConnectorHealthController(List<DataConnector> connectors, ToolRegistry toolRegistry,
-                                     ProviderConnectivityChecker connectivityChecker, boolean managementEnabled) {
-        this.connectors = connectors != null ? new CopyOnWriteArrayList<>(connectors) : new CopyOnWriteArrayList<>();
+    public ConnectorHealthController(
+            List<DataConnector> connectors,
+            ToolRegistry toolRegistry,
+            ProviderConnectivityChecker connectivityChecker,
+            boolean managementEnabled) {
+        this.connectors =
+                connectors != null
+                        ? new CopyOnWriteArrayList<>(connectors)
+                        : new CopyOnWriteArrayList<>();
         this.toolRegistry = toolRegistry;
         this.connectivityChecker = connectivityChecker;
         this.managementEnabled = managementEnabled;
@@ -72,15 +79,13 @@ public class ConnectorHealthController {
                 entry.put("error", e.getMessage());
                 entry.put("latencyMs", System.currentTimeMillis() - start);
                 allUp = false;
-                log.warn("Connector health check failed for {}: {}", connector.id(), e.getMessage());
+                log.warn(
+                        "Connector health check failed for {}: {}", connector.id(), e.getMessage());
             }
             statuses.add(entry);
         }
 
-        return Map.of(
-                "status", allUp ? "UP" : "DEGRADED",
-                "connectors", statuses
-        );
+        return Map.of("status", allUp ? "UP" : "DEGRADED", "connectors", statuses);
     }
 
     @GetMapping("/health/provider")
@@ -121,13 +126,15 @@ public class ConnectorHealthController {
             return Map.of(
                     "success", false,
                     "errorCode", "CONNECTOR_MANAGEMENT_DISABLED",
-                    "error", "Connector management is disabled"
-            );
+                    "error", "Connector management is disabled");
         }
         if (config == null) return Map.of("success", false, "error", "config is null");
         DataConnector connector = ConnectorFactory.create(config);
         if (connector == null) {
-            return Map.of("success", false, "error",
+            return Map.of(
+                    "success",
+                    false,
+                    "error",
                     "Failed to create connector from config (type=" + config.getType() + ")");
         }
         connectors.add(connector);
@@ -144,8 +151,7 @@ public class ConnectorHealthController {
             return Map.of(
                     "success", false,
                     "errorCode", "CONNECTOR_MANAGEMENT_DISABLED",
-                    "error", "Connector management is disabled"
-            );
+                    "error", "Connector management is disabled");
         }
         boolean removed = connectors.removeIf(c -> c.id().equals(connectorId));
         int toolsRemoved = 0;
@@ -153,7 +159,11 @@ public class ConnectorHealthController {
             String prefix = connectorId.replaceAll("[^a-zA-Z0-9_]", "_").toLowerCase() + "_";
             toolsRemoved = toolRegistry.unregisterByPrefix(prefix);
         }
-        log.info("Unregistered connector: {} (found={}, toolsRemoved={})", connectorId, removed, toolsRemoved);
+        log.info(
+                "Unregistered connector: {} (found={}, toolsRemoved={})",
+                connectorId,
+                removed,
+                toolsRemoved);
         return Map.of("success", removed, "connectorId", connectorId, "toolsRemoved", toolsRemoved);
     }
 }

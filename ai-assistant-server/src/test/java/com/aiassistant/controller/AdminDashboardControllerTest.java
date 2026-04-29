@@ -1,6 +1,8 @@
 package com.aiassistant.controller;
 
-import com.aiassistant.prompt.PromptTemplate;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.aiassistant.plugin.PluginRegistry;
 import com.aiassistant.prompt.PromptTemplateRegistry;
 import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
@@ -8,16 +10,12 @@ import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
-import com.aiassistant.plugin.PluginRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class AdminDashboardControllerTest {
 
@@ -35,21 +33,42 @@ class AdminDashboardControllerTest {
         tokenTracker = new TokenUsageTracker();
         promptRegistry = new PromptTemplateRegistry();
 
-        ToolDefinition dummyTool = new ToolDefinition() {
-            @Override public String name() { return "test_tool"; }
-            @Override public String description() { return "A test tool"; }
-            @Override public JsonNode parametersSchema() { return null; }
-            @Override public String execute(JsonNode arguments) { return "ok"; }
-        };
+        ToolDefinition dummyTool =
+                new ToolDefinition() {
+                    @Override
+                    public String name() {
+                        return "test_tool";
+                    }
+
+                    @Override
+                    public String description() {
+                        return "A test tool";
+                    }
+
+                    @Override
+                    public JsonNode parametersSchema() {
+                        return null;
+                    }
+
+                    @Override
+                    public String execute(JsonNode arguments) {
+                        return "ok";
+                    }
+                };
         toolRegistry = new ToolRegistry(List.of(dummyTool));
 
         modelRouter = new ModelRouter("gpt-4");
 
         ragService = new NoOpRagService();
 
-        controller = new AdminDashboardController(
-                usageStats, tokenTracker, toolRegistry,
-                promptRegistry, ragService, modelRouter);
+        controller =
+                new AdminDashboardController(
+                        usageStats,
+                        tokenTracker,
+                        toolRegistry,
+                        promptRegistry,
+                        ragService,
+                        modelRouter);
     }
 
     @Test
@@ -103,8 +122,7 @@ class AdminDashboardControllerTest {
 
     @Test
     void setQuota_missingTenantId_returnsBadRequest() {
-        ResponseEntity<Map<String, Object>> resp =
-                controller.setQuota(Map.of("dailyLimit", 5000));
+        ResponseEntity<Map<String, Object>> resp = controller.setQuota(Map.of("dailyLimit", 5000));
 
         assertEquals(400, resp.getStatusCode().value());
         assertFalse((boolean) resp.getBody().get("success"));
@@ -128,8 +146,8 @@ class AdminDashboardControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void createPrompt_addsNewTemplate() {
-        ResponseEntity<Map<String, Object>> resp = controller.createPrompt(
-                Map.of("name", "custom", "template", "Hello {{user}}"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.createPrompt(Map.of("name", "custom", "template", "Hello {{user}}"));
 
         assertEquals(200, resp.getStatusCode().value());
         assertTrue((boolean) resp.getBody().get("success"));
@@ -143,7 +161,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void createPrompt_missingFields_returnsError() {
-        ResponseEntity<Map<String, Object>> resp = controller.createPrompt(Map.of("name", "incomplete"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.createPrompt(Map.of("name", "incomplete"));
         assertEquals(400, resp.getStatusCode().value());
         assertFalse((boolean) resp.getBody().get("success"));
     }
@@ -156,10 +175,15 @@ class AdminDashboardControllerTest {
 
     @Test
     void ingestDocument_success() {
-        ResponseEntity<Map<String, Object>> resp = controller.ingestDocument(
-                Map.of("content", "Some knowledge text for RAG ingestion",
-                        "namespace", "test-ns",
-                        "docId", "doc-1"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.ingestDocument(
+                        Map.of(
+                                "content",
+                                "Some knowledge text for RAG ingestion",
+                                "namespace",
+                                "test-ns",
+                                "docId",
+                                "doc-1"));
 
         assertEquals(200, resp.getStatusCode().value());
         assertTrue((boolean) resp.getBody().get("success"));
@@ -168,8 +192,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void ingestDocument_emptyContent_returnsBadRequest() {
-        ResponseEntity<Map<String, Object>> resp = controller.ingestDocument(
-                Map.of("content", "  "));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.ingestDocument(Map.of("content", "  "));
 
         assertEquals(400, resp.getStatusCode().value());
         assertNotNull(resp.getBody().get("error"));
@@ -177,8 +201,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void ingestDocument_missingContent_returnsBadRequest() {
-        ResponseEntity<Map<String, Object>> resp = controller.ingestDocument(
-                Map.of("namespace", "ns"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.ingestDocument(Map.of("namespace", "ns"));
 
         assertEquals(400, resp.getStatusCode().value());
     }
@@ -192,8 +216,17 @@ class AdminDashboardControllerTest {
 
     @Test
     void configureABTest_success() {
-        ResponseEntity<Map<String, Object>> resp = controller.configureABTest(
-                Map.of("name", "test1", "modelA", "gpt-4", "modelB", "gpt-3.5", "percentA", 70));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.configureABTest(
+                        Map.of(
+                                "name",
+                                "test1",
+                                "modelA",
+                                "gpt-4",
+                                "modelB",
+                                "gpt-3.5",
+                                "percentA",
+                                70));
 
         assertEquals(200, resp.getStatusCode().value());
         assertTrue((boolean) resp.getBody().get("success"));
@@ -201,16 +234,16 @@ class AdminDashboardControllerTest {
 
     @Test
     void configureABTest_missingName_returnsBadRequest() {
-        ResponseEntity<Map<String, Object>> resp = controller.configureABTest(
-                Map.of("modelA", "gpt-4", "modelB", "gpt-3.5"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.configureABTest(Map.of("modelA", "gpt-4", "modelB", "gpt-3.5"));
 
         assertEquals(400, resp.getStatusCode().value());
     }
 
     @Test
     void configureABTest_missingModel_returnsBadRequest() {
-        ResponseEntity<Map<String, Object>> resp = controller.configureABTest(
-                Map.of("name", "test1", "modelA", "gpt-4"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.configureABTest(Map.of("name", "test1", "modelA", "gpt-4"));
 
         assertEquals(400, resp.getStatusCode().value());
     }
@@ -227,7 +260,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void setFallbackChain_rejectsNonList() {
-        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(Map.of("chain", "bad"));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.setFallbackChain(Map.of("chain", "bad"));
 
         assertEquals(400, resp.getStatusCode().value());
         assertFalse((boolean) resp.getBody().get("success"));
@@ -235,7 +269,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void setFallbackChain_rejectsNonStringItems() {
-        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(Map.of("chain", List.of(1)));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.setFallbackChain(Map.of("chain", List.of(1)));
 
         assertEquals(400, resp.getStatusCode().value());
         assertFalse((boolean) resp.getBody().get("success"));
@@ -243,8 +278,8 @@ class AdminDashboardControllerTest {
 
     @Test
     void setFallbackChain_rejectsInvalidModelIds() {
-        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(
-                Map.of("chain", List.of("../model")));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.setFallbackChain(Map.of("chain", List.of("../model")));
 
         assertEquals(400, resp.getStatusCode().value());
         assertFalse((boolean) resp.getBody().get("success"));
@@ -252,8 +287,9 @@ class AdminDashboardControllerTest {
 
     @Test
     void setFallbackChain_acceptsSafeModelIds() {
-        ResponseEntity<Map<String, Object>> resp = controller.setFallbackChain(
-                Map.of("chain", List.of("gpt-5.4-mini", "tenant:model_a")));
+        ResponseEntity<Map<String, Object>> resp =
+                controller.setFallbackChain(
+                        Map.of("chain", List.of("gpt-5.4-mini", "tenant:model_a")));
 
         assertEquals(200, resp.getStatusCode().value());
         assertEquals(List.of("gpt-5.4-mini", "tenant:model_a"), modelRouter.getFallbackChain());
@@ -261,9 +297,15 @@ class AdminDashboardControllerTest {
 
     @Test
     void unloadPlugin_rejectsInvalidPluginId() {
-        AdminDashboardController pluginController = new AdminDashboardController(
-                usageStats, tokenTracker, toolRegistry, promptRegistry, ragService, modelRouter,
-                new PluginRegistry(toolRegistry, List.of()));
+        AdminDashboardController pluginController =
+                new AdminDashboardController(
+                        usageStats,
+                        tokenTracker,
+                        toolRegistry,
+                        promptRegistry,
+                        ragService,
+                        modelRouter,
+                        new PluginRegistry(toolRegistry, List.of()));
 
         ResponseEntity<Map<String, Object>> resp = pluginController.unloadPlugin("../plugin");
 
@@ -271,9 +313,7 @@ class AdminDashboardControllerTest {
         assertFalse((boolean) resp.getBody().get("success"));
     }
 
-    /**
-     * No-op RagService for testing without embedding dependencies.
-     */
+    /** No-op RagService for testing without embedding dependencies. */
     private static class NoOpRagService extends RagService {
         NoOpRagService() {
             super(new NoOpEmbeddingProvider(), new NoOpVectorStore());
@@ -281,19 +321,37 @@ class AdminDashboardControllerTest {
     }
 
     private static class NoOpEmbeddingProvider implements com.aiassistant.rag.EmbeddingProvider {
-        @Override public float[] embed(String text) { return new float[0]; }
-        @Override public List<float[]> embedBatch(List<String> texts) {
+        @Override
+        public float[] embed(String text) {
+            return new float[0];
+        }
+
+        @Override
+        public List<float[]> embedBatch(List<String> texts) {
             return texts.stream().map(t -> new float[0]).toList();
         }
-        @Override public int dimensions() { return 0; }
+
+        @Override
+        public int dimensions() {
+            return 0;
+        }
     }
 
     private static class NoOpVectorStore implements com.aiassistant.rag.VectorStore {
-        @Override public void upsert(List<Document> docs) {}
-        @Override public List<SearchResult> search(float[] queryVector, int topK, String namespace) {
+        @Override
+        public void upsert(List<Document> docs) {}
+
+        @Override
+        public List<SearchResult> search(float[] queryVector, int topK, String namespace) {
             return List.of();
         }
-        @Override public void delete(String namespace, List<String> docIds) {}
-        @Override public long count(String namespace) { return 0; }
+
+        @Override
+        public void delete(String namespace, List<String> docIds) {}
+
+        @Override
+        public long count(String namespace) {
+            return 0;
+        }
     }
 }

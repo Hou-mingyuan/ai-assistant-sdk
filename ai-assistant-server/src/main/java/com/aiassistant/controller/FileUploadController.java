@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 文件上传端点：接收 PDF/Word/Excel/CSV 等文件，提取纯文本后调用 LLM 进行摘要或翻译。
- * 文件大小上限由 {@link FileParserService} 内 10MB 硬限控制。
+ * 文件上传端点：接收 PDF/Word/Excel/CSV 等文件，提取纯文本后调用 LLM 进行摘要或翻译。 文件大小上限由 {@link FileParserService} 内 10MB
+ * 硬限控制。
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
@@ -25,22 +25,29 @@ public class FileUploadController {
     private static final Logger log = LoggerFactory.getLogger(FileUploadController.class);
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-    private static final java.util.Map<String, java.util.Set<String>> ALLOWED_TYPES_BY_EXTENSION = java.util.Map.of(
-            ".pdf", java.util.Set.of("application/pdf"),
-            ".docx", java.util.Set.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-            ".xlsx", java.util.Set.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-            ".doc", java.util.Set.of("application/msword"),
-            ".xls", java.util.Set.of("application/vnd.ms-excel"),
-            ".csv", java.util.Set.of("text/csv", "text/plain", "application/vnd.ms-excel"),
-            ".txt", java.util.Set.of("text/plain"),
-            ".md", java.util.Set.of("text/markdown", "text/plain", "application/octet-stream")
-    );
+    private static final java.util.Map<String, java.util.Set<String>> ALLOWED_TYPES_BY_EXTENSION =
+            java.util.Map.of(
+                    ".pdf", java.util.Set.of("application/pdf"),
+                    ".docx",
+                            java.util.Set.of(
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+                    ".xlsx",
+                            java.util.Set.of(
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                    ".doc", java.util.Set.of("application/msword"),
+                    ".xls", java.util.Set.of("application/vnd.ms-excel"),
+                    ".csv", java.util.Set.of("text/csv", "text/plain", "application/vnd.ms-excel"),
+                    ".txt", java.util.Set.of("text/plain"),
+                    ".md",
+                            java.util.Set.of(
+                                    "text/markdown", "text/plain", "application/octet-stream"));
 
     private final FileParserService fileParserService;
     private final LlmService llmService;
     private final UsageStats usageStats;
 
-    public FileUploadController(FileParserService fileParserService, LlmService llmService, UsageStats usageStats) {
+    public FileUploadController(
+            FileParserService fileParserService, LlmService llmService, UsageStats usageStats) {
         this.fileParserService = fileParserService;
         this.llmService = llmService;
         this.usageStats = usageStats;
@@ -83,23 +90,26 @@ public class FileUploadController {
     }
 
     @PostMapping("/file/summarize")
-    public ResponseEntity<ChatResponse> summarizeFile(
-            @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ChatResponse> summarizeFile(@RequestParam("file") MultipartFile file) {
         try {
             String typeError = validateFileType(file);
-            if (typeError != null) return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
+            if (typeError != null)
+                return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
             String text = fileParserService.extractText(file);
             String result = llmService.summarize(text);
             usageStats.recordCall("file_summarize");
             return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (IllegalArgumentException e) {
             usageStats.recordError();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ChatResponse.fail(e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("File summarize failed", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(ChatResponse.fail("File processing failed. Check server logs for details."));
+                    .body(
+                            ChatResponse.fail(
+                                    "File processing failed. Check server logs for details."));
         }
     }
 
@@ -109,19 +119,23 @@ public class FileUploadController {
             @RequestParam(value = "targetLang", defaultValue = "zh") String targetLang) {
         try {
             String typeError = validateFileType(file);
-            if (typeError != null) return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
+            if (typeError != null)
+                return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
             String text = fileParserService.extractText(file);
             String result = llmService.translate(text, targetLang);
             usageStats.recordCall("file_translate");
             return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (IllegalArgumentException e) {
             usageStats.recordError();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ChatResponse.fail(e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ChatResponse.fail(e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("File translate failed", e);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(ChatResponse.fail("File processing failed. Check server logs for details."));
+                    .body(
+                            ChatResponse.fail(
+                                    "File processing failed. Check server logs for details."));
         }
     }
 }

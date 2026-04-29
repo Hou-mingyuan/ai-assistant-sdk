@@ -1,39 +1,41 @@
 package com.aiassistant.prompt;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Lightweight prompt template engine with variable interpolation and conditionals.
  *
- * Syntax:
- *   {{variable}}          - replaced with the variable value
- *   {{#if variable}}...{{/if}}  - block included only if variable is truthy
- *   {{#unless variable}}...{{/unless}} - block included only if variable is falsy
+ * <p>Syntax: {{variable}} - replaced with the variable value {{#if variable}}...{{/if}} - block
+ * included only if variable is truthy {{#unless variable}}...{{/unless}} - block included only if
+ * variable is falsy
  *
- * Example:
- *   "你是{{role}}助手。{{#if industry}}你精通{{industry}}行业。{{/if}}"
+ * <p>Example: "你是{{role}}助手。{{#if industry}}你精通{{industry}}行业。{{/if}}"
  */
 public class PromptTemplate {
 
     private static final Logger log = LoggerFactory.getLogger(PromptTemplate.class);
     private static final Pattern VAR_PATTERN = Pattern.compile("\\{\\{(\\w+)}}");
-    private static final Pattern IF_PATTERN = Pattern.compile("\\{\\{#if (\\w+)}}(.*?)\\{\\{/if}}", Pattern.DOTALL);
-    private static final Pattern UNLESS_PATTERN = Pattern.compile("\\{\\{#unless (\\w+)}}(.*?)\\{\\{/unless}}", Pattern.DOTALL);
+    private static final Pattern IF_PATTERN =
+            Pattern.compile("\\{\\{#if (\\w+)}}(.*?)\\{\\{/if}}", Pattern.DOTALL);
+    private static final Pattern UNLESS_PATTERN =
+            Pattern.compile("\\{\\{#unless (\\w+)}}(.*?)\\{\\{/unless}}", Pattern.DOTALL);
 
     private final String name;
     private final String template;
     private final Map<String, String> defaults;
     private final List<FewShotExample> fewShotExamples;
 
-    public PromptTemplate(String name, String template, Map<String, String> defaults,
-                           List<FewShotExample> fewShotExamples) {
+    public PromptTemplate(
+            String name,
+            String template,
+            Map<String, String> defaults,
+            List<FewShotExample> fewShotExamples) {
         this.name = name;
         this.template = template;
         this.defaults = defaults != null ? Map.copyOf(defaults) : Map.of();
@@ -50,9 +52,7 @@ public class PromptTemplate {
 
     public record FewShotExample(String userInput, String assistantOutput) {}
 
-    /**
-     * Render the template with the given variables.
-     */
+    /** Render the template with the given variables. */
     public String render(Map<String, String> variables) {
         Map<String, String> merged = new HashMap<>(defaults);
         if (variables != null) merged.putAll(variables);
@@ -98,9 +98,7 @@ public class PromptTemplate {
         return render(null);
     }
 
-    /**
-     * Render with few-shot examples appended (if any).
-     */
+    /** Render with few-shot examples appended (if any). */
     public String renderWithExamples(Map<String, String> variables) {
         String base = render(variables);
         if (fewShotExamples.isEmpty()) return base;
@@ -115,7 +113,15 @@ public class PromptTemplate {
         return sb.toString().trim();
     }
 
-    public String getName() { return name; }
-    public String getTemplate() { return template; }
-    public List<FewShotExample> getFewShotExamples() { return fewShotExamples; }
+    public String getName() {
+        return name;
+    }
+
+    public String getTemplate() {
+        return template;
+    }
+
+    public List<FewShotExample> getFewShotExamples() {
+        return fewShotExamples;
+    }
 }

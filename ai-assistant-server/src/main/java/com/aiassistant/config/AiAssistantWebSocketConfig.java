@@ -1,6 +1,9 @@
 package com.aiassistant.config;
 
 import com.aiassistant.controller.AiAssistantWebSocketHandler;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +16,6 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Map;
-
 @Configuration
 @EnableWebSocket
 @ConditionalOnClass(WebSocketConfigurer.class)
@@ -26,7 +25,8 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
     private final AiAssistantWebSocketHandler handler;
     private final AiAssistantProperties properties;
 
-    public AiAssistantWebSocketConfig(AiAssistantWebSocketHandler handler, AiAssistantProperties properties) {
+    public AiAssistantWebSocketConfig(
+            AiAssistantWebSocketHandler handler, AiAssistantProperties properties) {
         this.handler = handler;
         this.properties = properties;
     }
@@ -36,15 +36,15 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
         String path = properties.getContextPath() + "/ws";
         String[] origins = properties.resolveAllowedOrigins();
         registry.addHandler(handler, path)
-                .addInterceptors(new TokenHandshakeInterceptor(
-                        properties.getAccessToken(),
-                        properties.isAllowQueryTokenAuth()))
+                .addInterceptors(
+                        new TokenHandshakeInterceptor(
+                                properties.getAccessToken(), properties.isAllowQueryTokenAuth()))
                 .setAllowedOrigins(origins);
     }
 
     /**
-     * Validates X-AI-Token during WebSocket handshake,
-     * preventing unauthenticated access to the LLM streaming endpoint.
+     * Validates X-AI-Token during WebSocket handshake, preventing unauthenticated access to the LLM
+     * streaming endpoint.
      */
     static class TokenHandshakeInterceptor implements HandshakeInterceptor {
         private final String expectedToken;
@@ -56,8 +56,11 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
         }
 
         @Override
-        public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                                       WebSocketHandler wsHandler, Map<String, Object> attributes) {
+        public boolean beforeHandshake(
+                ServerHttpRequest request,
+                ServerHttpResponse response,
+                WebSocketHandler wsHandler,
+                Map<String, Object> attributes) {
             if (expectedToken == null || expectedToken.isBlank()) return true;
 
             String token = null;
@@ -83,8 +86,10 @@ public class AiAssistantWebSocketConfig implements WebSocketConfigurer {
         }
 
         @Override
-        public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                                   WebSocketHandler wsHandler, Exception exception) {
-        }
+        public void afterHandshake(
+                ServerHttpRequest request,
+                ServerHttpResponse response,
+                WebSocketHandler wsHandler,
+                Exception exception) {}
     }
 }

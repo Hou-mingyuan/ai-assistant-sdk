@@ -14,8 +14,9 @@ public class AiAssistantCorsConfig implements WebMvcConfigurer {
     public AiAssistantCorsConfig(AiAssistantProperties properties) {
         this.properties = properties;
         if ("*".equals(properties.getAllowedOrigins())) {
-            log.warn("ai-assistant.allowed-origins is set to '*'. "
-                    + "This is insecure for production. Set explicit origins via ai-assistant.allowed-origins.");
+            log.warn(
+                    "ai-assistant.allowed-origins is set to '*'. "
+                            + "This is insecure for production. Set explicit origins via ai-assistant.allowed-origins.");
         }
     }
 

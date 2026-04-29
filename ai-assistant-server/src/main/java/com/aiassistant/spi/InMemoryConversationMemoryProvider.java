@@ -1,16 +1,16 @@
 package com.aiassistant.spi;
 
 import com.aiassistant.memory.ConversationMemory;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Default in-memory ConversationMemoryProvider with LRU eviction.
- * Memories are lost on restart; override with Redis/DB-backed implementation for persistence.
- * <p>All access is serialized because {@link LinkedHashMap} in access-order mode
- * mutates internal structure on every {@code get()}.</p>
+ * Default in-memory ConversationMemoryProvider with LRU eviction. Memories are lost on restart;
+ * override with Redis/DB-backed implementation for persistence.
+ *
+ * <p>All access is serialized because {@link LinkedHashMap} in access-order mode mutates internal
+ * structure on every {@code get()}.
  */
 public class InMemoryConversationMemoryProvider implements ConversationMemoryProvider {
 
@@ -21,16 +21,19 @@ public class InMemoryConversationMemoryProvider implements ConversationMemoryPro
     private final int maxShortTermMessages;
     private final long sessionTtlMs;
 
-    public InMemoryConversationMemoryProvider(int maxShortTermMessages, int maxSessions, long sessionTtlMs) {
+    public InMemoryConversationMemoryProvider(
+            int maxShortTermMessages, int maxSessions, long sessionTtlMs) {
         this.maxShortTermMessages = maxShortTermMessages;
         this.sessionTtlMs = sessionTtlMs;
-        this.store = new LinkedHashMap<>(16, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, TimestampedMemory> eldest) {
-                if (size() > maxSessions) return true;
-                return sessionTtlMs > 0 && eldest.getValue().isExpired(sessionTtlMs);
-            }
-        };
+        this.store =
+                new LinkedHashMap<>(16, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(
+                            Map.Entry<String, TimestampedMemory> eldest) {
+                        if (size() > maxSessions) return true;
+                        return sessionTtlMs > 0 && eldest.getValue().isExpired(sessionTtlMs);
+                    }
+                };
     }
 
     public InMemoryConversationMemoryProvider(int maxShortTermMessages) {

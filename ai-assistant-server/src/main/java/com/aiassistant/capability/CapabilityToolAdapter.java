@@ -6,16 +6,15 @@ import com.aiassistant.tool.ToolRegistry;
 import com.aiassistant.util.JsonNodeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Bridges {@link AssistantCapability} SPI with the {@link ToolRegistry},
- * making all registered capabilities available to the LLM via function calling.
+ * Bridges {@link AssistantCapability} SPI with the {@link ToolRegistry}, making all registered
+ * capabilities available to the LLM via function calling.
  */
 public class CapabilityToolAdapter {
 
@@ -23,7 +22,8 @@ public class CapabilityToolAdapter {
     private static final String TOOL_PREFIX = "cap_";
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public CapabilityToolAdapter(ToolRegistry toolRegistry, List<AssistantCapability> capabilities) {
+    public CapabilityToolAdapter(
+            ToolRegistry toolRegistry, List<AssistantCapability> capabilities) {
         if (toolRegistry == null || capabilities == null || capabilities.isEmpty()) {
             return;
         }
@@ -36,10 +36,8 @@ public class CapabilityToolAdapter {
     }
 
     private record CapabilityToolDefinition(
-            AssistantCapability capability,
-            String toolName,
-            ObjectMapper mapper
-    ) implements ToolDefinition {
+            AssistantCapability capability, String toolName, ObjectMapper mapper)
+            implements ToolDefinition {
 
         @Override
         public String name() {

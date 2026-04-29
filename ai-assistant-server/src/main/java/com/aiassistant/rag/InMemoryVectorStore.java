@@ -1,18 +1,16 @@
 package com.aiassistant.rag;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Simple in-memory vector store using cosine similarity.
- * Suitable for development, testing, and small knowledge bases (<10K docs).
- * For production at scale, replace with Milvus/pgvector/Chroma implementation.
+ * Simple in-memory vector store using cosine similarity. Suitable for development, testing, and
+ * small knowledge bases (<10K docs). For production at scale, replace with Milvus/pgvector/Chroma
+ * implementation.
  */
 public class InMemoryVectorStore implements VectorStore {
 
@@ -32,11 +30,13 @@ public class InMemoryVectorStore implements VectorStore {
     public List<SearchResult> search(float[] queryVector, int topK, String namespace) {
         return store.values().stream()
                 .filter(doc -> namespace == null || namespace.equals(doc.namespace()))
-                .map(doc -> new SearchResult(
-                        doc.id(),
-                        doc.content(),
-                        cosineSimilarity(queryVector, doc.vector()),
-                        doc.metadata()))
+                .map(
+                        doc ->
+                                new SearchResult(
+                                        doc.id(),
+                                        doc.content(),
+                                        cosineSimilarity(queryVector, doc.vector()),
+                                        doc.metadata()))
                 .sorted(Comparator.comparingDouble(SearchResult::score).reversed())
                 .limit(topK)
                 .collect(Collectors.toList());
@@ -52,9 +52,7 @@ public class InMemoryVectorStore implements VectorStore {
     @Override
     public long count(String namespace) {
         if (namespace == null) return store.size();
-        return store.values().stream()
-                .filter(d -> namespace.equals(d.namespace()))
-                .count();
+        return store.values().stream().filter(d -> namespace.equals(d.namespace())).count();
     }
 
     static double cosineSimilarity(float[] a, float[] b) {

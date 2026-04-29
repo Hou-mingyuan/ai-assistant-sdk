@@ -29,8 +29,11 @@ class RuntimeConfigControllerTest {
         assertEquals("openai", service.get("provider"));
         assertEquals(false, security.get("accessTokenConfigured"));
         assertEquals("wildcard", security.get("allowedOriginsMode"));
-        assertTrue(((List<?>) security.get("securityWarnings"))
-                .contains(AiAssistantSecurityPostureAdvisor.PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN));
+        assertTrue(
+                ((List<?>) security.get("securityWarnings"))
+                        .contains(
+                                AiAssistantSecurityPostureAdvisor
+                                        .PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN));
     }
 
     @Test
@@ -83,7 +86,6 @@ class RuntimeConfigControllerTest {
 
     private RuntimeConfigController controller(AiAssistantProperties properties) {
         return new RuntimeConfigController(
-                properties,
-                new AiAssistantSecurityPostureAdvisor(properties));
+                properties, new AiAssistantSecurityPostureAdvisor(properties));
     }
 }

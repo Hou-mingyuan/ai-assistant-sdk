@@ -1,7 +1,8 @@
 package com.aiassistant.export;
 
 import com.aiassistant.model.ExportRequest;
-import org.apache.poi.ss.usermodel.CellStyle;
+import java.io.OutputStream;
+import java.util.List;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -11,22 +12,19 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.OutputStream;
-import java.util.List;
-
-/**
- * 会话导出为 XLSX（两列：role / content）。
- */
+/** 会话导出为 XLSX（两列：role / content）。 */
 public final class ExportXlsxWriter {
 
-    private ExportXlsxWriter() {
-    }
+    private ExportXlsxWriter() {}
 
-    public static void write(List<ExportRequest.MessageRow> messages, OutputStream out) throws Exception {
+    public static void write(List<ExportRequest.MessageRow> messages, OutputStream out)
+            throws Exception {
         write(messages, out, false);
     }
 
-    public static void write(List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark) throws Exception {
+    public static void write(
+            List<ExportRequest.MessageRow> messages, OutputStream out, boolean dark)
+            throws Exception {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             XSSFSheet sh = wb.createSheet("messages");
 
@@ -36,9 +34,9 @@ public final class ExportXlsxWriter {
 
             if (dark) {
                 XSSFFont font = wb.createFont();
-                font.setColor(new XSSFColor(new byte[]{(byte) 226, (byte) 232, (byte) 240}, null));
+                font.setColor(new XSSFColor(new byte[] {(byte) 226, (byte) 232, (byte) 240}, null));
                 wrapStyle.setFont(font);
-                wrapStyle.setFillForegroundColor(new XSSFColor(new byte[]{30, 41, 59}, null));
+                wrapStyle.setFillForegroundColor(new XSSFColor(new byte[] {30, 41, 59}, null));
                 wrapStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             }
 
@@ -49,9 +47,9 @@ public final class ExportXlsxWriter {
                 XSSFCellStyle headerStyle = wb.createCellStyle();
                 XSSFFont hf = wb.createFont();
                 hf.setBold(true);
-                hf.setColor(new XSSFColor(new byte[]{(byte) 165, (byte) 180, (byte) 252}, null));
+                hf.setColor(new XSSFColor(new byte[] {(byte) 165, (byte) 180, (byte) 252}, null));
                 headerStyle.setFont(hf);
-                headerStyle.setFillForegroundColor(new XSSFColor(new byte[]{15, 23, 42}, null));
+                headerStyle.setFillForegroundColor(new XSSFColor(new byte[] {15, 23, 42}, null));
                 headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
                 h.getCell(0).setCellStyle(headerStyle);
                 h.getCell(1).setCellStyle(headerStyle);

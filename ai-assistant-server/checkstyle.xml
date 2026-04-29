@@ -9,6 +9,7 @@
 
     <module name="FileTabCharacter">
         <property name="eachLine" value="true"/>
+        <property name="severity" value="error"/>
     </module>
 
     <module name="LineLength">
@@ -16,7 +17,9 @@
         <property name="ignorePattern" value="^package.*|^import.*|a]href|href|http://|https://|ftp://"/>
     </module>
 
-    <module name="NewlineAtEndOfFile"/>
+    <module name="NewlineAtEndOfFile">
+        <property name="severity" value="error"/>
+    </module>
 
     <module name="TreeWalker">
         <!-- Naming -->
@@ -30,8 +33,12 @@
 
         <!-- Imports -->
         <module name="AvoidStarImport"/>
-        <module name="UnusedImports"/>
-        <module name="RedundantImport"/>
+        <module name="UnusedImports">
+            <property name="severity" value="error"/>
+        </module>
+        <module name="RedundantImport">
+            <property name="severity" value="error"/>
+        </module>
 
         <!-- Block checks -->
         <module name="EmptyBlock">
@@ -42,8 +49,12 @@
         <module name="RightCurly"/>
 
         <!-- Coding -->
-        <module name="EmptyStatement"/>
-        <module name="EqualsHashCode"/>
+        <module name="EmptyStatement">
+            <property name="severity" value="error"/>
+        </module>
+        <module name="EqualsHashCode">
+            <property name="severity" value="error"/>
+        </module>
         <module name="MissingSwitchDefault"/>
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>

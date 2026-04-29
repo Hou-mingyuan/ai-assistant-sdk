@@ -3,8 +3,8 @@ package com.aiassistant.rag;
 import java.util.List;
 
 /**
- * Abstraction for vector similarity search stores.
- * Implementations can be in-memory (for dev/testing), Milvus, pgvector, Chroma, etc.
+ * Abstraction for vector similarity search stores. Implementations can be in-memory (for
+ * dev/testing), Milvus, pgvector, Chroma, etc.
  */
 public interface VectorStore {
 
@@ -21,13 +21,8 @@ public interface VectorStore {
             String namespace,
             String content,
             float[] vector,
-            java.util.Map<String, String> metadata
-    ) {}
+            java.util.Map<String, String> metadata) {}
 
     record SearchResult(
-            String docId,
-            String content,
-            double score,
-            java.util.Map<String, String> metadata
-    ) {}
+            String docId, String content, double score, java.util.Map<String, String> metadata) {}
 }

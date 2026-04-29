@@ -12,12 +12,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * Redis-backed ConversationMemoryProvider with local write-through cache.
- * TTL defaults to 24 hours per session.
+ * Redis-backed ConversationMemoryProvider with local write-through cache. TTL defaults to 24 hours
+ * per session.
  */
 public class RedisConversationMemoryProvider implements ConversationMemoryProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(RedisConversationMemoryProvider.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(RedisConversationMemoryProvider.class);
     private static final String KEY_PREFIX = "ai:memory:";
     private static final Duration DEFAULT_TTL = Duration.ofHours(24);
 
@@ -31,7 +32,8 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
         this(redis, maxShortTermMessages, DEFAULT_TTL);
     }
 
-    public RedisConversationMemoryProvider(StringRedisTemplate redis, int maxShortTermMessages, Duration ttl) {
+    public RedisConversationMemoryProvider(
+            StringRedisTemplate redis, int maxShortTermMessages, Duration ttl) {
         this.redis = redis;
         this.objectMapper = new ObjectMapper();
         this.ttl = ttl;
@@ -71,8 +73,8 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
         try {
             String messagesJson = redis.opsForValue().get(KEY_PREFIX + sessionId + ":messages");
             if (messagesJson != null) {
-                List<Map<String, String>> entries = objectMapper.readValue(
-                        messagesJson, new TypeReference<>() {});
+                List<Map<String, String>> entries =
+                        objectMapper.readValue(messagesJson, new TypeReference<>() {});
                 for (Map<String, String> entry : entries) {
                     if ("user".equals(entry.get("role"))) {
                         memory.addUserMessage(entry.get("content"));
@@ -97,14 +99,16 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
 
     private void persistToRedis(String sessionId, ConversationMemory memory) {
         try {
-            List<Map<String, String>> entries = memory.getShortTermHistory().stream()
-                    .map(e -> Map.of("role", e.role(), "content", e.content()))
-                    .toList();
+            List<Map<String, String>> entries =
+                    memory.getShortTermHistory().stream()
+                            .map(e -> Map.of("role", e.role(), "content", e.content()))
+                            .toList();
             String messagesKey = KEY_PREFIX + sessionId + ":messages";
             redis.opsForValue().set(messagesKey, objectMapper.writeValueAsString(entries), ttl);
 
             String factsKey = KEY_PREFIX + sessionId + ":facts";
-            redis.opsForValue().set(factsKey, objectMapper.writeValueAsString(memory.getLongTermFacts()), ttl);
+            redis.opsForValue()
+                    .set(factsKey, objectMapper.writeValueAsString(memory.getLongTermFacts()), ttl);
         } catch (Exception e) {
             log.warn("Failed to persist conversation memory to Redis for session {}", sessionId, e);
         }

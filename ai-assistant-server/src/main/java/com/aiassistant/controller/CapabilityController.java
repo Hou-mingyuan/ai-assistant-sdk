@@ -4,19 +4,18 @@ import com.aiassistant.spi.AssistantCapability;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 /**
- * Exposes assistant capabilities for discovery and invocation.
- * Compatible with MCP tool discovery patterns.
+ * Exposes assistant capabilities for discovery and invocation. Compatible with MCP tool discovery
+ * patterns.
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
@@ -46,17 +45,16 @@ public class CapabilityController {
 
     @PostMapping("/capabilities/{name}/invoke")
     public ResponseEntity<String> invokeCapability(
-            @PathVariable String name,
-            @RequestBody(required = false) Map<String, Object> params) {
+            @PathVariable String name, @RequestBody(required = false) Map<String, Object> params) {
         if (!isSafeCapabilityName(name)) {
             ObjectNode err = objectMapper.createObjectNode();
             err.put("error", "Invalid capability name");
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(err.toString());
+            return ResponseEntity.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(err.toString());
         }
-        AssistantCapability cap = capabilities.stream()
-                .filter(c -> c.name().equals(name))
-                .findFirst()
-                .orElse(null);
+        AssistantCapability cap =
+                capabilities.stream().filter(c -> c.name().equals(name)).findFirst().orElse(null);
         if (cap == null) {
             return ResponseEntity.notFound().build();
         }
@@ -65,13 +63,16 @@ public class CapabilityController {
             ObjectNode resp = objectMapper.createObjectNode();
             resp.put("capability", name);
             resp.put("result", result);
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resp.toString());
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(resp.toString());
         } catch (Exception e) {
             log.error("Capability invocation failed: {} - {}", name, e.getMessage(), e);
             ObjectNode err = objectMapper.createObjectNode();
             err.put("error", "Capability invocation failed. Check server logs for details.");
             return ResponseEntity.internalServerError()
-                    .contentType(MediaType.APPLICATION_JSON).body(err.toString());
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(err.toString());
         }
     }
 

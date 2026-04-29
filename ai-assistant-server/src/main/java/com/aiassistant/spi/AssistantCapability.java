@@ -13,13 +13,12 @@ public interface AssistantCapability {
 
     String description();
 
-    /**
-     * JSON Schema describing the input parameters.
-     */
+    /** JSON Schema describing the input parameters. */
     Map<String, Object> inputSchema();
 
     /**
      * Execute the capability with given parameters.
+     *
      * @return result as a string (can be JSON)
      */
     String execute(Map<String, Object> params) throws Exception;

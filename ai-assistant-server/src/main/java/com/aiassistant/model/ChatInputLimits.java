@@ -3,14 +3,10 @@ package com.aiassistant.model;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 请求体输入限制工具类：总字符校验与历史消息从末尾截断。
- * 用于 Controller 层前置校验和 LLM 调用前的二次裁剪。
- */
+/** 请求体输入限制工具类：总字符校验与历史消息从末尾截断。 用于 Controller 层前置校验和 LLM 调用前的二次裁剪。 */
 public final class ChatInputLimits {
 
-    private ChatInputLimits() {
-    }
+    private ChatInputLimits() {}
 
     /**
      * @return 超过上限时的错误文案；未超限返回 {@code null}
@@ -38,11 +34,9 @@ public final class ChatInputLimits {
         return s == null ? 0 : s.length();
     }
 
-    /**
-     * 从末尾向前保留消息，使 content 总长不超过 {@code budgetChars}（单条超长且为首条时仍会保留该条）。
-     */
-    public static List<ChatRequest.MessageItem> tailHistoryWithinBudget(List<ChatRequest.MessageItem> history,
-                                                                        int budgetChars) {
+    /** 从末尾向前保留消息，使 content 总长不超过 {@code budgetChars}（单条超长且为首条时仍会保留该条）。 */
+    public static List<ChatRequest.MessageItem> tailHistoryWithinBudget(
+            List<ChatRequest.MessageItem> history, int budgetChars) {
         if (history == null || history.isEmpty() || budgetChars <= 0) {
             return history;
         }

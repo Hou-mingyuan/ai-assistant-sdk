@@ -12,7 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Read-only runtime configuration summary for deployment verification.
  *
- * <p>The response intentionally avoids secrets such as API keys, access tokens and full upstream base URLs.
+ * <p>The response intentionally avoids secrets such as API keys, access tokens and full upstream
+ * base URLs.
  */
 @RestController
 @RequestMapping("${ai-assistant.context-path:/ai-assistant}")
@@ -74,8 +75,9 @@ public class RuntimeConfigController {
         features.put("urlFetchEnabled", properties.isUrlFetchEnabled());
         features.put("urlFetchSsrfProtection", properties.isUrlFetchSsrfProtection());
         features.put("headlessFetchEnabled", properties.isHeadlessFetchEnabled());
-        features.put("allowedModelsConfigured", properties.getAllowedModels() != null
-                && !properties.getAllowedModels().isEmpty());
+        features.put(
+                "allowedModelsConfigured",
+                properties.getAllowedModels() != null && !properties.getAllowedModels().isEmpty());
         return features;
     }
 
@@ -97,7 +99,9 @@ public class RuntimeConfigController {
         limits.put("urlFetchMaxBytes", properties.getUrlFetchMaxBytes());
         limits.put("urlFetchTimeoutSeconds", properties.getUrlFetchTimeoutSeconds());
         limits.put("urlPreviewMaxImages", properties.getUrlPreviewMaxImages());
-        limits.put("enabledActions", Arrays.asList("chat", "translate", "summarize", "stream", "export"));
+        limits.put(
+                "enabledActions",
+                Arrays.asList("chat", "translate", "summarize", "stream", "export"));
         return limits;
     }
 

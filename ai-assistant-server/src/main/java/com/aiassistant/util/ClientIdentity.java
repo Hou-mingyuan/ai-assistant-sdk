@@ -1,15 +1,14 @@
 package com.aiassistant.util;
 
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
- * Resolves a stable client identifier from the HTTP request.
- * Priority: X-AI-Token header > first IP in X-Forwarded-For > remoteAddr.
+ * Resolves a stable client identifier from the HTTP request. Priority: X-AI-Token header > first IP
+ * in X-Forwarded-For > remoteAddr.
  */
 public final class ClientIdentity {
 

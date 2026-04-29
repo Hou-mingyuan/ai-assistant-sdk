@@ -10,8 +10,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Rewrites /api/v1/ai-assistant/* to /ai-assistant/* for backward-compatible API versioning.
- * Clients can use either /ai-assistant/chat or /api/v1/ai-assistant/chat.
- * The Accept-Version header is also supported (e.g., Accept-Version: v1).
+ * Clients can use either /ai-assistant/chat or /api/v1/ai-assistant/chat. The Accept-Version header
+ * is also supported (e.g., Accept-Version: v1).
  */
 public class ApiVersionConfig {
 
@@ -28,8 +28,9 @@ public class ApiVersionConfig {
         }
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                        FilterChain chain) throws ServletException, IOException {
+        protected void doFilterInternal(
+                HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                throws ServletException, IOException {
             String uri = request.getRequestURI();
             String versionedPrefix = V1_PREFIX + contextPath;
             if (uri.startsWith(versionedPrefix)) {

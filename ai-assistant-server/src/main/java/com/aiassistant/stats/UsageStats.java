@@ -6,10 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * 进程内用量统计：按 action 和日期记录调用次数与错误次数，保留最近 90 天数据。
- * 多实例部署时各节点独立计数。
- */
+/** 进程内用量统计：按 action 和日期记录调用次数与错误次数，保留最近 90 天数据。 多实例部署时各节点独立计数。 */
 public class UsageStats {
 
     private final AtomicLong totalCalls = new AtomicLong();

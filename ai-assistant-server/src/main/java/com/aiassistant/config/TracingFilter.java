@@ -10,14 +10,15 @@ import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Populates MDC with traceId, spanId, tenantId, userId for structured logging.
- * Picks up existing trace headers (W3C traceparent, X-Request-Id) or generates new ones.
+ * Populates MDC with traceId, spanId, tenantId, userId for structured logging. Picks up existing
+ * trace headers (W3C traceparent, X-Request-Id) or generates new ones.
  */
 public class TracingFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain chain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
         try {
             String traceId = extractTraceId(request);
             String spanId = generateSpanId();

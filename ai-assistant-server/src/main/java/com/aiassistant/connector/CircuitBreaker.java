@@ -1,20 +1,23 @@
 package com.aiassistant.connector;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 /**
- * Lightweight circuit breaker for connector calls.
- * States: CLOSED (normal) → OPEN (fast-fail) → HALF_OPEN (probe).
+ * Lightweight circuit breaker for connector calls. States: CLOSED (normal) → OPEN (fast-fail) →
+ * HALF_OPEN (probe).
  */
 class CircuitBreaker {
 
     private static final Logger log = LoggerFactory.getLogger(CircuitBreaker.class);
 
-    enum State { CLOSED, OPEN, HALF_OPEN }
+    enum State {
+        CLOSED,
+        OPEN,
+        HALF_OPEN
+    }
 
     private final String name;
     private final int failureThreshold;
@@ -60,11 +63,19 @@ class CircuitBreaker {
         if (failures >= failureThreshold && state != State.OPEN) {
             state = State.OPEN;
             openedAt.set(System.currentTimeMillis());
-            log.warn("CircuitBreaker [{}] → OPEN after {} consecutive failures, cooldown {}ms",
-                    name, failures, openDurationMs);
+            log.warn(
+                    "CircuitBreaker [{}] → OPEN after {} consecutive failures, cooldown {}ms",
+                    name,
+                    failures,
+                    openDurationMs);
         }
     }
 
-    State getState() { return state; }
-    String getName() { return name; }
+    State getState() {
+        return state;
+    }
+
+    String getName() {
+        return name;
+    }
 }

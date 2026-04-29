@@ -18,7 +18,8 @@ public class AiAssistantSecurityPostureAdvisor {
     public static final String PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN =
             "PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN";
 
-    private static final Logger log = LoggerFactory.getLogger(AiAssistantSecurityPostureAdvisor.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(AiAssistantSecurityPostureAdvisor.class);
 
     private final AiAssistantProperties properties;
 
@@ -52,20 +53,25 @@ public class AiAssistantSecurityPostureAdvisor {
     public void logWarnings() {
         for (String warning : warningCodes()) {
             if (ADMIN_WITHOUT_ACCESS_TOKEN.equals(warning)) {
-                log.warn("ai-assistant.admin-enabled=true is configured without ai-assistant.access-token. "
-                        + "Configure X-AI-Token authentication before exposing the admin API.");
+                log.warn(
+                        "ai-assistant.admin-enabled=true is configured without ai-assistant.access-token. "
+                                + "Configure X-AI-Token authentication before exposing the admin API.");
             } else if (CONNECTOR_MANAGEMENT_WITHOUT_ACCESS_TOKEN.equals(warning)) {
-                log.warn("ai-assistant.connector-management-enabled=true is configured without "
-                        + "ai-assistant.access-token. Dynamic connector management should be protected.");
+                log.warn(
+                        "ai-assistant.connector-management-enabled=true is configured without "
+                                + "ai-assistant.access-token. Dynamic connector management should be protected.");
             } else if (MCP_SERVER_WITHOUT_ACCESS_TOKEN.equals(warning)) {
-                log.warn("ai-assistant.mcp-server-enabled=true is configured without ai-assistant.access-token. "
-                        + "Protect MCP tool discovery and invocation before exposing this endpoint.");
+                log.warn(
+                        "ai-assistant.mcp-server-enabled=true is configured without ai-assistant.access-token. "
+                                + "Protect MCP tool discovery and invocation before exposing this endpoint.");
             } else if (QUERY_TOKEN_AUTH_ENABLED.equals(warning)) {
-                log.warn("ai-assistant.allow-query-token-auth=true allows tokens in URLs. "
-                        + "Prefer the X-AI-Token header to avoid leaking tokens through logs or browser history.");
+                log.warn(
+                        "ai-assistant.allow-query-token-auth=true allows tokens in URLs. "
+                                + "Prefer the X-AI-Token header to avoid leaking tokens through logs or browser history.");
             } else if (PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN.equals(warning)) {
-                log.warn("ai-assistant.allowed-origins='*' is configured without ai-assistant.access-token. "
-                        + "Use explicit browser origins and configure X-AI-Token before exposing the service.");
+                log.warn(
+                        "ai-assistant.allowed-origins='*' is configured without ai-assistant.access-token. "
+                                + "Use explicit browser origins and configure X-AI-Token before exposing the service.");
             }
         }
     }

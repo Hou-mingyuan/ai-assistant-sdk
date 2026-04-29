@@ -1,15 +1,14 @@
 package com.aiassistant.controller;
 
-import com.aiassistant.service.LlmService;
-import com.aiassistant.stats.UsageStats;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+
+import com.aiassistant.service.LlmService;
+import com.aiassistant.stats.UsageStats;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class AsyncTaskControllerTest {
 
@@ -58,7 +57,9 @@ class AsyncTaskControllerTest {
 
     @Test
     void submitChat_rejectsUnsafeWebhookUrlBeforeSchedulingTask() {
-        var resp = controller.submitChat(Map.of("text", "hello", "webhookUrl", "http://127.0.0.1:8080/hook"));
+        var resp =
+                controller.submitChat(
+                        Map.of("text", "hello", "webhookUrl", "http://127.0.0.1:8080/hook"));
         assertEquals(400, resp.getStatusCode().value());
         verifyNoInteractions(llmService);
     }

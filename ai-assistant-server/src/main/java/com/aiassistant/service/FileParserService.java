@@ -1,21 +1,21 @@
 package com.aiassistant.service;
 
 import com.aiassistant.config.AiAssistantProperties;
+import java.io.*;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
-import java.util.Arrays;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
-
 /**
- * Extracts plain text from uploaded files. Supports txt, md, csv, json, xml, html, yml,
- * pdf (PDFBox), docx/xlsx (POI-OOXML), doc/xls (POI legacy).
- * <p>Dependencies are loaded via reflection so the Starter compiles without POI/PDFBox;
- * missing libraries produce clear error messages.</p>
+ * Extracts plain text from uploaded files. Supports txt, md, csv, json, xml, html, yml, pdf
+ * (PDFBox), docx/xlsx (POI-OOXML), doc/xls (POI legacy).
+ *
+ * <p>Dependencies are loaded via reflection so the Starter compiles without POI/PDFBox; missing
+ * libraries produce clear error messages.
  */
 public class FileParserService {
 
@@ -35,7 +35,8 @@ public class FileParserService {
     }
 
     public FileParserService(AiAssistantProperties properties) {
-        this.maxExtractedChars = properties != null ? properties.getFileMaxExtractedChars() : 300_000;
+        this.maxExtractedChars =
+                properties != null ? properties.getFileMaxExtractedChars() : 300_000;
     }
 
     public String extractText(MultipartFile file) throws IOException {
@@ -48,25 +49,41 @@ public class FileParserService {
 
         String filename = file.getOriginalFilename();
         if (filename == null) filename = "";
-        String ext = filename.contains(".") ? filename.substring(filename.lastIndexOf('.')).toLowerCase() : "";
+        String ext =
+                filename.contains(".")
+                        ? filename.substring(filename.lastIndexOf('.')).toLowerCase()
+                        : "";
 
         assertMagicMatchesExtension(file, ext);
 
         log.info("Parsing file: {} ({}KB)", filename, file.getSize() / 1024);
 
         try {
-            String text = switch (ext) {
-                case ".txt", ".md", ".csv", ".log", ".json", ".xml", ".html", ".yml", ".yaml" -> readAsText(file);
-                case ".pdf" -> readPdf(file);
-                case ".docx" -> readDocx(file);
-                case ".doc" -> readDoc(file);
-                case ".xlsx" -> readXlsx(file);
-                case ".xls" -> readXls(file);
-                default -> throw new IllegalArgumentException(
-                        ext.isEmpty()
-                                ? "Cannot determine file type (no extension). Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml"
-                                : "Unsupported file type: " + ext + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
-            };
+            String text =
+                    switch (ext) {
+                        case ".txt",
+                                ".md",
+                                ".csv",
+                                ".log",
+                                ".json",
+                                ".xml",
+                                ".html",
+                                ".yml",
+                                ".yaml" ->
+                                readAsText(file);
+                        case ".pdf" -> readPdf(file);
+                        case ".docx" -> readDocx(file);
+                        case ".doc" -> readDoc(file);
+                        case ".xlsx" -> readXlsx(file);
+                        case ".xls" -> readXls(file);
+                        default ->
+                                throw new IllegalArgumentException(
+                                        ext.isEmpty()
+                                                ? "Cannot determine file type (no extension). Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml"
+                                                : "Unsupported file type: "
+                                                        + ext
+                                                        + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
+                    };
             text = limitExtractedText(text, filename);
             log.info("Extracted {} characters from {}", text.length(), filename);
             return text;
@@ -82,19 +99,22 @@ public class FileParserService {
         if (text == null || maxExtractedChars <= 0 || text.length() <= maxExtractedChars) {
             return text;
         }
-        log.warn("Extracted text from {} exceeded {} characters and was truncated", filename, maxExtractedChars);
+        log.warn(
+                "Extracted text from {} exceeded {} characters and was truncated",
+                filename,
+                maxExtractedChars);
         return text.substring(0, maxExtractedChars);
     }
 
-    /**
-     * 对二进制 Office / PDF 做魔数校验，缓解「改扩展名触发重型解析」的滥用。
-     */
+    /** 对二进制 Office / PDF 做魔数校验，缓解「改扩展名触发重型解析」的滥用。 */
     private void assertMagicMatchesExtension(MultipartFile file, String ext) throws IOException {
         switch (ext) {
             case ".pdf" -> readMagicAndRequire(file, PDF_MAGIC, "File is not a valid PDF");
             case ".docx", ".xlsx" -> readMagicZip(file);
-            case ".doc", ".xls" -> readMagicAndRequire(file, OLE_MAGIC, "File is not a valid legacy Office document");
-            default -> { }
+            case ".doc", ".xls" ->
+                    readMagicAndRequire(
+                            file, OLE_MAGIC, "File is not a valid legacy Office document");
+            default -> {}
         }
     }
 
@@ -103,10 +123,12 @@ public class FileParserService {
         if (startsWith(head, ZIP_MAGIC) || startsWith(head, ZIP_MAGIC_EMPTY)) {
             return;
         }
-        throw new IllegalArgumentException("File is not a valid ZIP-based Office document (docx/xlsx)");
+        throw new IllegalArgumentException(
+                "File is not a valid ZIP-based Office document (docx/xlsx)");
     }
 
-    private static void readMagicAndRequire(MultipartFile file, byte[] magic, String message) throws IOException {
+    private static void readMagicAndRequire(MultipartFile file, byte[] magic, String message)
+            throws IOException {
         byte[] head = readHead(file, magic.length);
         if (!startsWith(head, magic)) {
             throw new IllegalArgumentException(message);
@@ -115,7 +137,7 @@ public class FileParserService {
 
     private static byte[] readHead(MultipartFile file, int n) throws IOException {
         try (InputStream raw = file.getInputStream();
-             BufferedInputStream in = new BufferedInputStream(raw)) {
+                BufferedInputStream in = new BufferedInputStream(raw)) {
             byte[] b = new byte[n];
             int r = in.readNBytes(b, 0, n);
             if (r < n) {
@@ -138,8 +160,9 @@ public class FileParserService {
     }
 
     private String readAsText(MultipartFile file) throws Exception {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             return reader.lines().collect(Collectors.joining("\n"));
         }
     }
@@ -151,11 +174,15 @@ public class FileParserService {
             Class<?> pdDocClass = Class.forName("org.apache.pdfbox.pdmodel.PDDocument");
             Class<?> stripperClass = Class.forName("org.apache.pdfbox.text.PDFTextStripper");
 
-            doc = loaderClass.getMethod("loadPDF", byte[].class).invoke(null, (Object) file.getBytes());
+            doc =
+                    loaderClass
+                            .getMethod("loadPDF", byte[].class)
+                            .invoke(null, (Object) file.getBytes());
             Object stripper = stripperClass.getDeclaredConstructor().newInstance();
             return (String) stripperClass.getMethod("getText", pdDocClass).invoke(stripper, doc);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("PDF parsing requires pdfbox dependency. Add org.apache.pdfbox:pdfbox:3.0.2 to your project.");
+            throw new IllegalStateException(
+                    "PDF parsing requires pdfbox dependency. Add org.apache.pdfbox:pdfbox:3.0.2 to your project.");
         } finally {
             closeQuietly(doc);
         }
@@ -166,13 +193,15 @@ public class FileParserService {
         Object extractor = null;
         try (InputStream is = file.getInputStream()) {
             Class<?> xwpfClass = Class.forName("org.apache.poi.xwpf.usermodel.XWPFDocument");
-            Class<?> extractorClass = Class.forName("org.apache.poi.xwpf.extractor.XWPFWordExtractor");
+            Class<?> extractorClass =
+                    Class.forName("org.apache.poi.xwpf.extractor.XWPFWordExtractor");
 
             doc = xwpfClass.getDeclaredConstructor(InputStream.class).newInstance(is);
             extractor = extractorClass.getDeclaredConstructor(xwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("DOCX parsing requires poi-ooxml dependency. Add org.apache.poi:poi-ooxml:5.2.5 to your project.");
+            throw new IllegalStateException(
+                    "DOCX parsing requires poi-ooxml dependency. Add org.apache.poi:poi-ooxml:5.2.5 to your project.");
         } finally {
             closeQuietly(extractor);
             closeQuietly(doc);
@@ -190,7 +219,8 @@ public class FileParserService {
             extractor = extractorClass.getDeclaredConstructor(hwpfClass).newInstance(doc);
             return (String) extractorClass.getMethod("getText").invoke(extractor);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("DOC parsing requires poi-scratchpad dependency. Add org.apache.poi:poi-scratchpad:5.2.5 to your project.");
+            throw new IllegalStateException(
+                    "DOC parsing requires poi-scratchpad dependency. Add org.apache.poi:poi-scratchpad:5.2.5 to your project.");
         } finally {
             closeQuietly(extractor);
             closeQuietly(doc);
@@ -202,7 +232,8 @@ public class FileParserService {
             Class<?> xssfClass = Class.forName("org.apache.poi.xssf.usermodel.XSSFWorkbook");
             return readWorkbook(xssfClass, file);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("XLSX parsing requires poi-ooxml dependency. Add org.apache.poi:poi-ooxml:5.2.5 to your project.");
+            throw new IllegalStateException(
+                    "XLSX parsing requires poi-ooxml dependency. Add org.apache.poi:poi-ooxml:5.2.5 to your project.");
         }
     }
 
@@ -211,7 +242,8 @@ public class FileParserService {
             Class<?> hssfClass = Class.forName("org.apache.poi.hssf.usermodel.HSSFWorkbook");
             return readWorkbook(hssfClass, file);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("XLS parsing requires poi dependency. Add org.apache.poi:poi:5.2.5 to your project.");
+            throw new IllegalStateException(
+                    "XLS parsing requires poi dependency. Add org.apache.poi:poi:5.2.5 to your project.");
         }
     }
 
@@ -223,15 +255,18 @@ public class FileParserService {
 
         Object workbook;
         try (InputStream wbStream = file.getInputStream()) {
-            workbook = workbookClass.getDeclaredConstructor(InputStream.class).newInstance(wbStream);
+            workbook =
+                    workbookClass.getDeclaredConstructor(InputStream.class).newInstance(wbStream);
         }
         try {
             Object formatter = formatterClass.getDeclaredConstructor().newInstance();
             StringBuilder sb = new StringBuilder();
-            int sheetCount = (int) workbookInterface.getMethod("getNumberOfSheets").invoke(workbook);
+            int sheetCount =
+                    (int) workbookInterface.getMethod("getNumberOfSheets").invoke(workbook);
 
             for (int s = 0; s < sheetCount; s++) {
-                Object sheet = workbookInterface.getMethod("getSheetAt", int.class).invoke(workbook, s);
+                Object sheet =
+                        workbookInterface.getMethod("getSheetAt", int.class).invoke(workbook, s);
                 String sheetName = (String) sheetInterface.getMethod("getSheetName").invoke(sheet);
                 sb.append("--- Sheet: ").append(sheetName).append(" ---\n");
 
@@ -239,8 +274,11 @@ public class FileParserService {
                     StringBuilder rowStr = new StringBuilder();
                     for (Object cell : (Iterable<?>) row) {
                         if (rowStr.length() > 0) rowStr.append("\t");
-                        String val = (String) formatterClass.getMethod("formatCellValue", cellInterface)
-                                .invoke(formatter, cell);
+                        String val =
+                                (String)
+                                        formatterClass
+                                                .getMethod("formatCellValue", cellInterface)
+                                                .invoke(formatter, cell);
                         rowStr.append(val);
                     }
                     sb.append(rowStr).append("\n");

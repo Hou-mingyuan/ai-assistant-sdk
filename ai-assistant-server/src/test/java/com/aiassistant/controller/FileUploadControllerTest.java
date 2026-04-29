@@ -20,8 +20,9 @@ class FileUploadControllerTest {
         FileParserService parser = mock(FileParserService.class);
         LlmService llm = mock(LlmService.class);
         FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "report.pdf", "application/x-msdownload", "%PDF".getBytes());
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file", "report.pdf", "application/x-msdownload", "%PDF".getBytes());
 
         var response = controller.summarizeFile(file);
 
@@ -35,8 +36,8 @@ class FileUploadControllerTest {
         FileParserService parser = mock(FileParserService.class);
         LlmService llm = mock(LlmService.class);
         FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "run.exe", "application/pdf", "%PDF".getBytes());
+        MockMultipartFile file =
+                new MockMultipartFile("file", "run.exe", "application/pdf", "%PDF".getBytes());
 
         var response = controller.summarizeFile(file);
 
@@ -50,8 +51,9 @@ class FileUploadControllerTest {
         FileParserService parser = mock(FileParserService.class);
         LlmService llm = mock(LlmService.class);
         FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "notes.txt", "text/plain; charset=utf-8", "hello".getBytes());
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file", "notes.txt", "text/plain; charset=utf-8", "hello".getBytes());
         when(parser.extractText(any())).thenReturn("hello");
         when(llm.summarize("hello")).thenReturn("summary");
 

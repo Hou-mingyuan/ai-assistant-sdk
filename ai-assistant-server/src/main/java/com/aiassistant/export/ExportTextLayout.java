@@ -4,13 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 
-/**
- * 导出文件名与长行折行（docx / 代码块等）。
- */
+/** 导出文件名与长行折行（docx / 代码块等）。 */
 public final class ExportTextLayout {
 
-    private ExportTextLayout() {
-    }
+    private ExportTextLayout() {}
 
     public static String sanitizeFileStem(String title) {
         String s = title.replaceAll("[\\\\/:*?\"<>|]+", "_").trim();
@@ -20,9 +17,7 @@ public final class ExportTextLayout {
         return s.length() > 120 ? s.substring(0, 120) : s;
     }
 
-    /**
-     * 不依赖 OOXML 全量 schema：对超长物理行插入换行。
-     */
+    /** 不依赖 OOXML 全量 schema：对超长物理行插入换行。 */
     public static String hardWrapLongPhysicalLines(String input, int maxLen) {
         if (input == null) {
             return "";
@@ -38,7 +33,9 @@ public final class ExportTextLayout {
             int start = 0;
             while (start < rawLine.length()) {
                 int end = Math.min(rawLine.length(), start + maxLen);
-                if (end > start && end < rawLine.length() && Character.isHighSurrogate(rawLine.charAt(end - 1))) {
+                if (end > start
+                        && end < rawLine.length()
+                        && Character.isHighSurrogate(rawLine.charAt(end - 1))) {
                     end--;
                 }
                 if (end <= start) {
@@ -51,9 +48,7 @@ public final class ExportTextLayout {
         return out.toString();
     }
 
-    /**
-     * 硬换行前保护 Markdown 图片语法，避免截断 {@code ![](...)}。
-     */
+    /** 硬换行前保护 Markdown 图片语法，避免截断 {@code ![](...)}。 */
     public static String hardWrapLongPhysicalLinesPreserveMdImages(String input, int maxLen) {
         if (input == null) {
             return "";

@@ -1,15 +1,14 @@
 package com.aiassistant.controller;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.aiassistant.spi.AssistantCapability;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.ResponseEntity;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 class CapabilityControllerTest {
 
@@ -17,11 +16,30 @@ class CapabilityControllerTest {
 
     private AssistantCapability dummyCap(String name) {
         return new AssistantCapability() {
-            @Override public String name() { return name; }
-            @Override public String description() { return name + " desc"; }
-            @Override public Map<String, Object> inputSchema() { return Map.of("type", "object"); }
-            @Override public String execute(Map<String, Object> params) { return "result:" + params; }
-            @Override public List<String> tags() { return List.of("test"); }
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public String description() {
+                return name + " desc";
+            }
+
+            @Override
+            public Map<String, Object> inputSchema() {
+                return Map.of("type", "object");
+            }
+
+            @Override
+            public String execute(Map<String, Object> params) {
+                return "result:" + params;
+            }
+
+            @Override
+            public List<String> tags() {
+                return List.of("test");
+            }
         };
     }
 
@@ -96,14 +114,28 @@ class CapabilityControllerTest {
 
     @Test
     void invokeCapability_executionError_returns500() {
-        AssistantCapability failCap = new AssistantCapability() {
-            @Override public String name() { return "fail"; }
-            @Override public String description() { return "always fails"; }
-            @Override public Map<String, Object> inputSchema() { return Map.of(); }
-            @Override public String execute(Map<String, Object> params) throws Exception {
-                throw new RuntimeException("boom");
-            }
-        };
+        AssistantCapability failCap =
+                new AssistantCapability() {
+                    @Override
+                    public String name() {
+                        return "fail";
+                    }
+
+                    @Override
+                    public String description() {
+                        return "always fails";
+                    }
+
+                    @Override
+                    public Map<String, Object> inputSchema() {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public String execute(Map<String, Object> params) throws Exception {
+                        throw new RuntimeException("boom");
+                    }
+                };
         var controller = new CapabilityController(List.of(failCap));
         ResponseEntity<String> resp = controller.invokeCapability("fail", Map.of());
         assertEquals(500, resp.getStatusCode().value());

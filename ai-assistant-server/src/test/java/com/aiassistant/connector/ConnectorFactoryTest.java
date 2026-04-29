@@ -1,9 +1,9 @@
 package com.aiassistant.connector;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.aiassistant.config.ConnectorProperties;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectorFactoryTest {
 

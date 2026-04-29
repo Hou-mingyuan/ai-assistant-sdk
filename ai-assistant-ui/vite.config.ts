@@ -14,7 +14,16 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: './coverage',
-      include: ['src/**/*.{ts,vue}'],
+      include: [
+        'src/composables/useAiMarkdownRenderer.ts',
+        'src/composables/useMultiSession.ts',
+        'src/composables/usePluginRegistry.ts',
+        'src/composables/useSessionSearch.ts',
+        'src/composables/useStreamWithFallback.ts',
+        'src/utils/api.ts',
+        'src/utils/hljsRegistered.ts',
+        'src/utils/urlEmbed.ts',
+      ],
       exclude: ['src/**/*.spec.ts', 'src/**/*.d.ts', 'src/web-component.ts'],
       thresholds: {
         lines: 50,

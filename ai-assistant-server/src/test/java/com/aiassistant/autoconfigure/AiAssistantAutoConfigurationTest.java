@@ -1,7 +1,7 @@
 package com.aiassistant.autoconfigure;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,8 +14,9 @@ class AiAssistantAutoConfigurationTest {
 
     @Test
     void mcpServerRequiresExplicitOptIn() throws Exception {
-        Method method = AiAssistantAutoConfiguration.class.getDeclaredMethod(
-                "mcpServerController", ObjectProvider.class);
+        Method method =
+                AiAssistantAutoConfiguration.class.getDeclaredMethod(
+                        "mcpServerController", ObjectProvider.class);
 
         ConditionalOnProperty condition = method.getAnnotation(ConditionalOnProperty.class);
 
@@ -27,8 +28,11 @@ class AiAssistantAutoConfigurationTest {
 
     @Test
     void capabilityToolAdapterKeepsExistingDefault() throws Exception {
-        Method method = AiAssistantAutoConfiguration.class.getDeclaredMethod(
-                "capabilityToolAdapter", com.aiassistant.tool.ToolRegistry.class, ObjectProvider.class);
+        Method method =
+                AiAssistantAutoConfiguration.class.getDeclaredMethod(
+                        "capabilityToolAdapter",
+                        com.aiassistant.tool.ToolRegistry.class,
+                        ObjectProvider.class);
 
         ConditionalOnProperty condition = method.getAnnotation(ConditionalOnProperty.class);
 
