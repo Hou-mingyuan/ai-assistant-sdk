@@ -39,7 +39,7 @@ COPY ai-assistant-service/src ai-assistant-service/src
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -q -f ai-assistant-service/pom.xml -DskipTests package
 
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 ARG APP_VERSION=1.0.0-SNAPSHOT
 ARG VCS_REF=unknown
