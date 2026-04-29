@@ -4,6 +4,8 @@
 
 Docker 镜像会使用 Spring Boot layered jar，把依赖、Spring Boot loader、快照依赖和应用代码拆成独立层，减少代码变更后的镜像重传和重建成本。
 
+仓库根目录的 `.dockerignore` 使用白名单模式，只把 `ai-assistant-server` 和 `ai-assistant-service` 的构建必需文件传入 Docker 上下文；如果后续服务模块依赖新的本地目录，需要同步更新 `.dockerignore`。
+
 适用场景：
 
 - 不想改已有业务后端，只想部署一个统一 AI 助手服务。

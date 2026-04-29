@@ -1,0 +1,99 @@
+name: Standalone Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".dockerignore"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "ai-assistant-server/pom.xml"
+      - "ai-assistant-server/src/**"
+      - "ai-assistant-service/pom.xml"
+      - "ai-assistant-service/src/**"
+      - ".github/workflows/standalone-docker.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".dockerignore"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "ai-assistant-server/pom.xml"
+      - "ai-assistant-server/src/**"
+      - "ai-assistant-service/pom.xml"
+      - "ai-assistant-service/src/**"
+      - ".github/workflows/standalone-docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build standalone service image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        shell: bash
+        run: |
+          version="$(awk '
+            /<artifactId>ai-assistant-service<\/artifactId>/ { in_project = 1; next }
+            in_project && /<version>/ {
+              gsub(/.*<version>|<\/version>.*/, "")
+              print
+              exit
+            }
+          ' ai-assistant-service/pom.xml)"
+          if [ -z "${version}" ]; then
+            echo "Failed to resolve ai-assistant-service version" >&2
+            exit 1
+          fi
+          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "created=${created}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ai-assistant-service:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.meta.outputs.created }}
+
+      - name: Smoke test image
+        shell: bash
+        run: |
+          docker run -d \
+            --name ai-assistant-service-ci \
+            -p 18080:8080 \
+            -e AI_ASSISTANT_API_KEY=ci-placeholder \
+            -e AI_ASSISTANT_PROVIDER=ollama \
+            ai-assistant-service:ci
+
+          for attempt in {1..30}; do
+            if curl -fsS http://localhost:18080/ai-assistant/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs ai-assistant-service-ci
+          exit 1
+
+      - name: Clean up container
+        if: always()
+        run: docker rm -f ai-assistant-service-ci || true
