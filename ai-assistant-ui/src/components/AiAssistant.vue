@@ -513,6 +513,9 @@
               <button type="button" @click="copyDiagnostics">
                 {{ diagnosticsCopied ? t.diagnosticsCopied : t.diagnosticsCopy }}
               </button>
+              <span class="ai-sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {{ diagnosticsCopyMessage }}
+              </span>
               <button
                 type="button"
                 class="ai-diagnostics-close"
@@ -981,6 +984,7 @@ const selectedModelStorageKeyResolved = computed(
 const diagnosticsOpen = ref(false);
 const diagnosticsBusy = ref(false);
 const diagnosticsCopied = ref(false);
+const diagnosticsCopyMessage = ref('');
 const diagnosticsLastChecked = ref('');
 const modelListError = ref('');
 const connectionBaseUrlInput = ref(options.baseUrl || '');
@@ -1145,16 +1149,41 @@ async function copyDiagnostics() {
     `Available models: ${modelChoices.value.length}`,
     `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,
   ];
+  const text = lines.join('\n');
   try {
-    await navigator.clipboard.writeText(lines.join('\n'));
+    await writeClipboardText(text);
     diagnosticsCopied.value = true;
+    diagnosticsCopyMessage.value = t.value.diagnosticsCopied;
     pendingTimers.push(
       window.setTimeout(() => {
         diagnosticsCopied.value = false;
+        diagnosticsCopyMessage.value = '';
       }, 1500),
     );
   } catch {
     diagnosticsCopied.value = false;
+    diagnosticsCopyMessage.value = t.value.diagnosticsCopyFailed;
+  }
+}
+
+async function writeClipboardText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    const copied = document.execCommand('copy');
+    if (!copied) throw new Error('copy command failed');
+  } finally {
+    document.body.removeChild(textarea);
   }
 }
 

@@ -71,6 +71,7 @@ export interface I18nMessages {
   diagnosticsRefresh: string;
   diagnosticsCopy: string;
   diagnosticsCopied: string;
+  diagnosticsCopyFailed: string;
   diagnosticsClose: string;
   diagnosticsBaseUrl: string;
   diagnosticsModelEndpoint: string;
@@ -200,6 +201,7 @@ const messages: Record<string, I18nMessages> = {
     diagnosticsRefresh: 'Refresh',
     diagnosticsCopy: 'Copy',
     diagnosticsCopied: 'Copied',
+    diagnosticsCopyFailed: 'Copy failed',
     diagnosticsClose: 'Close diagnostics',
     diagnosticsBaseUrl: 'Base URL',
     diagnosticsModelEndpoint: 'Models endpoint',
@@ -319,6 +321,7 @@ const messages: Record<string, I18nMessages> = {
     diagnosticsRefresh: '刷新',
     diagnosticsCopy: '复制',
     diagnosticsCopied: '已复制',
+    diagnosticsCopyFailed: '复制失败',
     diagnosticsClose: '关闭诊断',
     diagnosticsBaseUrl: '后端地址',
     diagnosticsModelEndpoint: '模型接口',
@@ -442,6 +445,7 @@ const ja = {
   diagnosticsRefresh: '更新',
   diagnosticsCopy: 'コピー',
   diagnosticsCopied: 'コピー済み',
+  diagnosticsCopyFailed: 'コピーに失敗しました',
   diagnosticsClose: '診断を閉じる',
   diagnosticsBaseUrl: 'ベース URL',
   diagnosticsModelEndpoint: 'モデルエンドポイント',
@@ -564,6 +568,7 @@ const ko = {
   diagnosticsRefresh: '새로고침',
   diagnosticsCopy: '복사',
   diagnosticsCopied: '복사됨',
+  diagnosticsCopyFailed: '복사 실패',
   diagnosticsClose: '진단 닫기',
   diagnosticsBaseUrl: '기본 URL',
   diagnosticsModelEndpoint: '모델 엔드포인트',

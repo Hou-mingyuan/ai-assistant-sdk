@@ -123,7 +123,35 @@ test.describe('AI Assistant Widget', () => {
     await page.getByRole('button', { name: /测试连接|Test connection/ }).click()
     await expect(diagnostics).toContainText('/custom-ai/models')
     await expect(diagnostics).toContainText(/Configured|已配置/)
-    await expect(diagnostics.getByRole('status')).toBeVisible()
+    await expect(diagnostics.locator('.ai-connection-config-message')).toBeVisible()
+  })
+
+  test('diagnostics copy includes troubleshooting details', async ({ page }) => {
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            ;(window as unknown as { __copiedDiagnostics?: string }).__copiedDiagnostics = text
+          },
+        },
+      })
+    })
+    await page.click('.ai-fab')
+    await page.click('.ai-header-diagnostics')
+    const diagnostics = page.locator('.ai-diagnostics-panel')
+    await diagnostics.getByRole('button', { name: /复制|Copy/ }).click()
+    await expect(diagnostics.getByRole('button', { name: /已复制|Copied/ })).toBeVisible()
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { __copiedDiagnostics?: string }).__copiedDiagnostics || ''),
+      )
+      .toContain('AI Assistant Diagnostics')
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as unknown as { __copiedDiagnostics?: string }).__copiedDiagnostics || ''),
+      )
+      .toContain('Last error:')
   })
 
   test('clearing saved connection settings removes stale browser storage', async ({ page }) => {
