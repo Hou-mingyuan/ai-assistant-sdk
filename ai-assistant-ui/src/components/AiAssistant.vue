@@ -108,6 +108,7 @@
               :title="t.diagnosticsTitle"
               :aria-label="t.diagnosticsTitle"
               :aria-pressed="diagnosticsOpen ? 'true' : 'false'"
+              :aria-controls="uid + '-diagnostics'"
               @click.stop="toggleDiagnostics"
             >
               <svg
@@ -497,11 +498,14 @@
 
         <div
           v-if="diagnosticsOpen"
+          :id="uid + '-diagnostics'"
           class="ai-diagnostics-panel"
-          :aria-label="t.diagnosticsTitle"
+          role="region"
+          :aria-labelledby="uid + '-diagnostics-title'"
+          :aria-busy="diagnosticsBusy ? 'true' : 'false'"
         >
           <div class="ai-diagnostics-head">
-            <strong>{{ t.diagnosticsTitle }}</strong>
+            <strong :id="uid + '-diagnostics-title'">{{ t.diagnosticsTitle }}</strong>
             <div class="ai-diagnostics-actions">
               <button type="button" :disabled="diagnosticsBusy" @click="runModelDiagnostics">
                 {{ t.diagnosticsRefresh }}
@@ -522,7 +526,7 @@
           <dl class="ai-diagnostics-list">
             <div>
               <dt>{{ t.diagnosticsStatus }}</dt>
-              <dd>{{ diagnosticsStatusMessage }}</dd>
+              <dd aria-live="polite">{{ diagnosticsStatusMessage }}</dd>
             </div>
             <div>
               <dt>{{ t.diagnosticsBaseUrl }}</dt>
@@ -581,7 +585,12 @@
                 {{ t.connectionConfigSave }}
               </button>
             </div>
-            <p v-if="connectionConfigMessage" class="ai-connection-config-message">
+            <p
+              v-if="connectionConfigMessage"
+              class="ai-connection-config-message"
+              role="status"
+              aria-live="polite"
+            >
               {{ connectionConfigMessage }}
             </p>
           </div>
@@ -868,8 +877,10 @@ const systemDarkRef = ref(window.matchMedia?.('(prefers-color-scheme: dark)').ma
 const reducedMotionRef = ref(
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
 );
+const pageVisibleRef = ref(!document.hidden);
 let darkMediaCleanup: (() => void) | null = null;
 let reducedMotionCleanup: (() => void) | null = null;
+let pageVisibilityCleanup: (() => void) | null = null;
 onMounted(() => {
   const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
   if (mql) {
@@ -887,10 +898,16 @@ onMounted(() => {
     reducedMql.addEventListener('change', handler);
     reducedMotionCleanup = () => reducedMql.removeEventListener('change', handler);
   }
+  const visibilityHandler = () => {
+    pageVisibleRef.value = !document.hidden;
+  };
+  document.addEventListener('visibilitychange', visibilityHandler);
+  pageVisibilityCleanup = () => document.removeEventListener('visibilitychange', visibilityHandler);
 });
 onUnmounted(() => {
   darkMediaCleanup?.();
   reducedMotionCleanup?.();
+  pageVisibilityCleanup?.();
 });
 const isDark = computed(() => {
   if (options.theme === 'dark') return true;
@@ -1196,6 +1213,10 @@ const CODE_WALL_CELL_HEIGHT = 18;
 const CODE_WALL_TICK_MS = 50;
 const CODE_WALL_MUTATION_RATIO = 0.08;
 
+function shouldAnimateCodeWall() {
+  return !reducedMotionRef.value && pageVisibleRef.value;
+}
+
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
 
 function pickCodeWallToken() {
@@ -1305,7 +1326,7 @@ function paintCodeWall() {
 }
 
 function tickCodeWall(timestamp: number) {
-  if (reducedMotionRef.value) {
+  if (!shouldAnimateCodeWall()) {
     codeWallRaf = 0;
     return;
   }
@@ -1339,7 +1360,7 @@ function startCodeWall() {
     });
     codeWallResizeObserver.observe(panel);
   }
-  if (reducedMotionRef.value) return;
+  if (!shouldAnimateCodeWall()) return;
   codeWallRaf = requestAnimationFrame(tickCodeWall);
 }
 
@@ -2425,7 +2446,7 @@ watch(selectedChatModel, (v) => {
   }
 });
 
-watch(reducedMotionRef, () => {
+watch([reducedMotionRef, pageVisibleRef], () => {
   if (isOpen.value) {
     nextTick(() => startCodeWall());
   }

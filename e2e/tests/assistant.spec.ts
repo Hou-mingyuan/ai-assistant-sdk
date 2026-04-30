@@ -51,6 +51,23 @@ test.describe('AI Assistant Widget', () => {
       .toBe('none')
   })
 
+  test('code wall stays static while page is hidden', async ({ page }) => {
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    await page.click('.ai-fab')
+    const canvas = page.locator('.ai-code-wall-canvas')
+    await expect(canvas).toBeVisible()
+    const firstFrame = await canvas.evaluate((el: HTMLCanvasElement) => el.toDataURL())
+    await page.waitForTimeout(260)
+    const secondFrame = await canvas.evaluate((el: HTMLCanvasElement) => el.toDataURL())
+    expect(secondFrame).toBe(firstFrame)
+  })
+
   test('panel has mode buttons', async ({ page }) => {
     await page.click('.ai-fab')
     const modeBar = page.locator('.ai-mode-bar')
@@ -83,9 +100,14 @@ test.describe('AI Assistant Widget', () => {
 
   test('diagnostics panel shows connection details', async ({ page }) => {
     await page.click('.ai-fab')
-    await page.click('.ai-header-diagnostics')
+    const diagnosticsButton = page.locator('.ai-header-diagnostics')
+    await diagnosticsButton.click()
     const diagnostics = page.locator('.ai-diagnostics-panel')
     await expect(diagnostics).toBeVisible()
+    const diagnosticsRegion = page.getByRole('region', { name: /诊断|Diagnostics/ })
+    await expect(diagnosticsRegion).toBeVisible()
+    await expect(diagnosticsButton).toHaveAttribute('aria-controls', await diagnosticsRegion.getAttribute('id'))
+    await expect(diagnosticsRegion).toHaveAttribute('aria-busy', /true|false/)
     await expect(diagnostics).toContainText(/后端地址|Base URL/)
     await expect(diagnostics).toContainText(/模型接口|Models endpoint/)
     await expect(diagnostics).toContainText(/访问令牌|Access token/)
@@ -100,6 +122,7 @@ test.describe('AI Assistant Widget', () => {
     await page.getByRole('button', { name: /测试连接|Test connection/ }).click()
     await expect(diagnostics).toContainText('/custom-ai/models')
     await expect(diagnostics).toContainText(/Configured|已配置/)
+    await expect(diagnostics.getByRole('status')).toBeVisible()
   })
 
   test('clearing saved connection settings removes stale browser storage', async ({ page }) => {
