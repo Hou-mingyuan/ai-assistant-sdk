@@ -7,8 +7,8 @@ interface ExportDeps {
   sessions: Ref<SessionEntry[]>;
   messages: Ref<{ role: string; content: string; contentArchive?: string }[]>;
   wrapperRef: Ref<HTMLElement | undefined>;
-  baseUrl?: string;
-  accessToken?: string;
+  getBaseUrl: () => string | undefined;
+  getAccessToken: () => string | undefined;
   isDark?: ComputedRef<boolean>;
   t: ComputedRef<I18nMessages>;
   exportServerBusy: Ref<boolean>;
@@ -63,7 +63,8 @@ export function useExportActions(deps: ExportDeps) {
   }
 
   async function exportAssistantMessageServer(globalIndex: number, fmt: ExportFormat) {
-    if (deps.exportServerBusy.value || !deps.baseUrl) return;
+    const baseUrl = deps.getBaseUrl();
+    if (deps.exportServerBusy.value || !baseUrl) return;
     const m = deps.messages.value[globalIndex];
     if (!m || m.role !== 'assistant') return;
     deps.exportServerBusy.value = true;
@@ -75,11 +76,11 @@ export function useExportActions(deps: ExportDeps) {
         m.contentArchive ?? m.content,
       );
       const res = await postServerExport(
-        deps.baseUrl,
+        baseUrl,
         fmt,
         title,
         [{ role: 'assistant', content }],
-        deps.accessToken,
+        deps.getAccessToken(),
         (phase) => {
           if (phase === 'response') deps.setExportToast(deps.t.value.exportReceiving, 0);
           if (phase === 'download') deps.setExportToast(deps.t.value.exportStartingDownload, 0);
@@ -143,18 +144,19 @@ export function useExportActions(deps: ExportDeps) {
 
   async function batchExportAllServer(fmt: ExportFormat) {
     batchExportMenuOpen.value = false;
-    if (deps.exportServerBusy.value || !deps.baseUrl) return;
+    const baseUrl = deps.getBaseUrl();
+    if (deps.exportServerBusy.value || !baseUrl) return;
     deps.exportServerBusy.value = true;
     deps.setExportToast(deps.t.value.exportPreparing, 0);
     try {
       const allMsgs = collectAllSessionMessages();
       const title = `${deps.t.value.title}-all-sessions`;
       const res = await postServerExport(
-        deps.baseUrl,
+        baseUrl,
         fmt,
         title,
         allMsgs,
-        deps.accessToken,
+        deps.getAccessToken(),
         (phase) => {
           if (phase === 'response') deps.setExportToast(deps.t.value.exportReceiving, 0);
           if (phase === 'download') deps.setExportToast(deps.t.value.exportStartingDownload, 0);

@@ -63,6 +63,7 @@
             @pointerdown.stop.prevent="(ev) => onPanelResizePointerDown(ev, rz.edge)"
           />
         </div>
+        <canvas ref="codeWallCanvasRef" class="ai-code-wall-canvas" aria-hidden="true"></canvas>
         <!-- Header：中间 ai-header-spacer 穿透命中顶边缩放手柄 -->
         <div
           class="ai-header"
@@ -99,6 +100,33 @@
                 <circle cx="12" cy="12" r="3" />
               </svg>
               <span class="ai-header-personalize-text">{{ t.personalizeTitle }}</span>
+            </button>
+            <button
+              v-if="mode === 'chat'"
+              type="button"
+              class="ai-header-diagnostics"
+              :title="t.diagnosticsTitle"
+              :aria-label="t.diagnosticsTitle"
+              :aria-pressed="diagnosticsOpen ? 'true' : 'false'"
+              @click.stop="toggleDiagnostics"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 3v18h18" />
+                <path d="M7 14l3-3 3 2 5-6" />
+                <path d="M18 7h-4" />
+                <path d="M18 7v4" />
+              </svg>
+              <span class="ai-header-diagnostics-text">{{ t.diagnosticsTitle }}</span>
             </button>
             <button
               type="button"
@@ -467,6 +495,98 @@
           </button>
         </div>
 
+        <div
+          v-if="diagnosticsOpen"
+          class="ai-diagnostics-panel"
+          :aria-label="t.diagnosticsTitle"
+        >
+          <div class="ai-diagnostics-head">
+            <strong>{{ t.diagnosticsTitle }}</strong>
+            <div class="ai-diagnostics-actions">
+              <button type="button" :disabled="diagnosticsBusy" @click="runModelDiagnostics">
+                {{ t.diagnosticsRefresh }}
+              </button>
+              <button type="button" @click="copyDiagnostics">
+                {{ diagnosticsCopied ? t.diagnosticsCopied : t.diagnosticsCopy }}
+              </button>
+              <button
+                type="button"
+                class="ai-diagnostics-close"
+                :aria-label="t.diagnosticsClose"
+                @click="diagnosticsOpen = false"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <dl class="ai-diagnostics-list">
+            <div>
+              <dt>{{ t.diagnosticsStatus }}</dt>
+              <dd>{{ diagnosticsStatusMessage }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsBaseUrl }}</dt>
+              <dd>{{ options.baseUrl || '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsModelEndpoint }}</dt>
+              <dd>{{ diagnosticsModelEndpoint }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsToken }}</dt>
+              <dd>{{ diagnosticsTokenText }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsSelectedModel }}</dt>
+              <dd>{{ selectedChatModel || t.diagnosticsNoSelectedModel }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsAvailableModels }}</dt>
+              <dd>{{ modelChoices.length }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.diagnosticsLastChecked }}</dt>
+              <dd>{{ diagnosticsLastChecked || t.diagnosticsNeverChecked }}</dd>
+            </div>
+          </dl>
+          <div class="ai-connection-config">
+            <strong>{{ t.connectionConfigTitle }}</strong>
+            <label>
+              <span>{{ t.diagnosticsBaseUrl }}</span>
+              <input
+                v-model="connectionBaseUrlInput"
+                type="text"
+                :placeholder="t.connectionConfigBaseUrlPlaceholder"
+                autocomplete="off"
+              />
+            </label>
+            <label>
+              <span>{{ t.diagnosticsToken }}</span>
+              <input
+                v-model="connectionTokenInput"
+                type="password"
+                :placeholder="t.connectionConfigTokenPlaceholder"
+                autocomplete="off"
+              />
+            </label>
+            <label class="ai-connection-config-check">
+              <input v-model="connectionPersistEnabled" type="checkbox" />
+              <span>{{ t.connectionConfigPersist }}</span>
+            </label>
+            <div class="ai-connection-config-actions">
+              <button type="button" :disabled="diagnosticsBusy" @click="testConnectionConfig">
+                {{ t.connectionConfigTest }}
+              </button>
+              <button type="button" :disabled="diagnosticsBusy" @click="saveConnectionConfig">
+                {{ t.connectionConfigSave }}
+              </button>
+            </div>
+            <p v-if="connectionConfigMessage" class="ai-connection-config-message">
+              {{ connectionConfigMessage }}
+            </p>
+          </div>
+        </div>
+
         <!-- Input -->
         <div class="ai-footer">
           <div v-if="pendingImageThumb" class="ai-pending-image">
@@ -563,7 +683,7 @@
               :aria-label="t.modelLabel"
             >
               <template v-if="modelChoices.length === 0">
-                <option value="" disabled>{{ t.modelsListEmpty }}</option>
+                <option value="" disabled>{{ modelListMessage }}</option>
               </template>
               <template v-else>
                 <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
@@ -645,7 +765,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import FabContextMenu from './FabContextMenu.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
 import PersonalizeDialog from './PersonalizeDialog.vue';
@@ -719,7 +839,8 @@ function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void
 
 const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
 
-const options = inject<AiAssistantOptions>('ai-assistant-options', {
+const options = reactive(
+  inject<AiAssistantOptions>('ai-assistant-options', {
   baseUrl: '/ai-assistant',
   primaryColor: '#6366f1',
   position: 'bottom-right',
@@ -731,7 +852,8 @@ const options = inject<AiAssistantOptions>('ai-assistant-options', {
   systemPromptMaxInputChars: 4000,
   showModelPicker: true,
   selectedModelStorageKey: 'ai-assistant-selected-model',
-});
+  }),
+);
 
 function reportAssistantError(source: string, message: string) {
   options.onAssistantError?.({ source, message });
@@ -783,8 +905,8 @@ const exportActions = useExportActions({
   sessions: multiSessions.sessions,
   messages,
   wrapperRef,
-  baseUrl: options.baseUrl,
-  accessToken: options.accessToken,
+  getBaseUrl: () => options.baseUrl,
+  getAccessToken: () => options.accessToken,
   isDark,
   t,
   exportServerBusy,
@@ -822,12 +944,80 @@ const showModelPickerResolved = computed(() => options.showModelPicker !== false
 const selectedModelStorageKeyResolved = computed(
   () => options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
 );
+const diagnosticsOpen = ref(false);
+const diagnosticsBusy = ref(false);
+const diagnosticsCopied = ref(false);
+const diagnosticsLastChecked = ref('');
+const connectionBaseUrlInput = ref(options.baseUrl || '');
+const connectionTokenInput = ref(options.accessToken || '');
+const connectionPersistEnabled = ref(true);
+const connectionConfigMessage = ref('');
+const CONNECTION_BASE_URL_STORAGE_KEY = 'ai-assistant-connection-base-url';
+const CONNECTION_TOKEN_STORAGE_KEY = 'ai-assistant-connection-token';
+type ModelListStatus =
+  | ''
+  | 'empty'
+  | 'network'
+  | 'unauthorized'
+  | 'rateLimited'
+  | 'serverError'
+  | 'failed';
+const modelListStatus = ref<ModelListStatus>('');
+const modelListMessage = computed(() => {
+  switch (modelListStatus.value) {
+    case 'empty':
+      return t.value.modelsListEmpty;
+    case 'network':
+      return t.value.modelsNetworkError;
+    case 'unauthorized':
+      return t.value.modelsUnauthorized;
+    case 'rateLimited':
+      return t.value.modelsRateLimited;
+    case 'serverError':
+      return t.value.modelsServerError;
+    case 'failed':
+      return t.value.modelsLoadFailed;
+    default:
+      return t.value.modelsListEmpty;
+  }
+});
+const diagnosticsModelEndpoint = computed(() =>
+  options.baseUrl ? `${options.baseUrl.replace(/\/+$/, '')}/models` : '—',
+);
+const diagnosticsTokenText = computed(() =>
+  options.accessToken?.trim() ? t.value.diagnosticsTokenConfigured : t.value.diagnosticsTokenMissing,
+);
+const diagnosticsStatusMessage = computed(() => {
+  if (!options.baseUrl) return t.value.diagnosticsStatusNoBaseUrl;
+  if (diagnosticsBusy.value) return t.value.diagnosticsStatusChecking;
+  if (modelChoices.value.length > 0) return t.value.diagnosticsStatusReady;
+  return modelListMessage.value;
+});
+
+function modelListStatusFromError(error?: string): ModelListStatus {
+  if (!error) return 'failed';
+  if (/\b(401|403)\b/.test(error)) return 'unauthorized';
+  if (/\b429\b/.test(error)) return 'rateLimited';
+  if (/\b5\d\d\b/.test(error)) return 'serverError';
+  if (/failed to fetch|networkerror|timeout|aborted/i.test(error)) return 'network';
+  return 'failed';
+}
 
 async function refreshChatModels() {
+  modelChoices.value = [];
+  selectedChatModel.value = '';
+  modelListStatus.value = '';
   if (!options.baseUrl || !showModelPickerResolved.value) return;
   try {
     const r = await fetchModels(options.baseUrl, options.accessToken);
-    if (!r.success || !r.models?.length) return;
+    if (!r.success) {
+      modelListStatus.value = modelListStatusFromError(r.error);
+      return;
+    }
+    if (!r.models?.length) {
+      modelListStatus.value = 'empty';
+      return;
+    }
     modelChoices.value = r.models;
     const def = r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0];
     let pick = def;
@@ -839,7 +1029,93 @@ async function refreshChatModels() {
     }
     selectedChatModel.value = pick;
   } catch {
-    /* 无 /models 或网络错误：不展示下拉 */
+    modelListStatus.value = 'network';
+  }
+}
+
+async function runModelDiagnostics() {
+  diagnosticsBusy.value = true;
+  try {
+    await refreshChatModels();
+  } finally {
+    diagnosticsLastChecked.value = new Date().toLocaleString();
+    diagnosticsBusy.value = false;
+  }
+}
+
+function toggleDiagnostics() {
+  diagnosticsOpen.value = !diagnosticsOpen.value;
+  if (diagnosticsOpen.value) {
+    syncConnectionInputsFromOptions();
+    void runModelDiagnostics();
+  }
+}
+
+function syncConnectionInputsFromOptions() {
+  connectionBaseUrlInput.value = options.baseUrl || '';
+  connectionTokenInput.value = options.accessToken || '';
+}
+
+function applyConnectionConfigInputs() {
+  const baseUrl = connectionBaseUrlInput.value.trim();
+  const token = connectionTokenInput.value.trim();
+  options.baseUrl = baseUrl || undefined;
+  options.accessToken = token || undefined;
+}
+
+function persistConnectionConfigIfEnabled() {
+  const baseUrl = connectionBaseUrlInput.value.trim();
+  const token = connectionTokenInput.value.trim();
+  try {
+    if (!connectionPersistEnabled.value) {
+      localStorage.removeItem(CONNECTION_BASE_URL_STORAGE_KEY);
+      localStorage.removeItem(CONNECTION_TOKEN_STORAGE_KEY);
+      return;
+    }
+    if (baseUrl) localStorage.setItem(CONNECTION_BASE_URL_STORAGE_KEY, baseUrl);
+    else localStorage.removeItem(CONNECTION_BASE_URL_STORAGE_KEY);
+    if (token) localStorage.setItem(CONNECTION_TOKEN_STORAGE_KEY, token);
+    else localStorage.removeItem(CONNECTION_TOKEN_STORAGE_KEY);
+  } catch {
+    /* localStorage may be unavailable or full. */
+  }
+}
+
+async function testConnectionConfig() {
+  applyConnectionConfigInputs();
+  await runModelDiagnostics();
+  connectionConfigMessage.value =
+    modelChoices.value.length > 0 ? t.value.connectionConfigTested : t.value.connectionConfigFailed;
+}
+
+async function saveConnectionConfig() {
+  applyConnectionConfigInputs();
+  persistConnectionConfigIfEnabled();
+  await runModelDiagnostics();
+  connectionConfigMessage.value = t.value.connectionConfigSaved;
+}
+
+async function copyDiagnostics() {
+  const lines = [
+    'AI Assistant Diagnostics',
+    `Base URL: ${options.baseUrl || '(not configured)'}`,
+    `Models endpoint: ${diagnosticsModelEndpoint.value}`,
+    `Access token: ${options.accessToken?.trim() ? 'configured' : 'missing'}`,
+    `Status: ${diagnosticsStatusMessage.value}`,
+    `Selected model: ${selectedChatModel.value || '(not selected)'}`,
+    `Available models: ${modelChoices.value.length}`,
+    `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,
+  ];
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'));
+    diagnosticsCopied.value = true;
+    pendingTimers.push(
+      window.setTimeout(() => {
+        diagnosticsCopied.value = false;
+      }, 1500),
+    );
+  } catch {
+    diagnosticsCopied.value = false;
   }
 }
 
@@ -852,8 +1128,8 @@ const targetLang = ref('zh');
 const msgCtxComposable = useMsgContextMenu({
   messages,
   loading,
-  baseUrl: options.baseUrl,
-  accessToken: options.accessToken,
+  getBaseUrl: () => options.baseUrl,
+  getAccessToken: () => options.accessToken,
   targetLang,
   t,
   reportError: reportAssistantError,
@@ -872,14 +1148,182 @@ const {
 
 const bodyRef = ref<HTMLElement>();
 const panelRef = ref<HTMLElement>();
+const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileInputRef = ref<HTMLInputElement>();
 const dragActive = ref(false);
 let dragCounter = 0;
 const pendingTimers: number[] = [];
 const pendingImageData = ref<string | null>(null);
 const pendingImageThumb = ref<string | null>(null);
+type CodeWallCell = {
+  char: string;
+  color: string;
+  targetColor: string;
+  progress: number;
+};
+let codeWallCells: CodeWallCell[] = [];
+let codeWallGrid = { columns: 0, rows: 0 };
+let codeWallRaf = 0;
+let codeWallLastTick = 0;
+let codeWallResizeObserver: ResizeObserver | null = null;
+const CODE_WALL_TOKENS = [
+  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}[]()<>/+=-_*#$',
+  'AI',
+  'CODE',
+];
+const CODE_WALL_COLORS = [
+  'rgba(75, 210, 128, 0.56)',
+  'rgba(30, 165, 94, 0.48)',
+  'rgba(126, 222, 156, 0.36)',
+  'rgba(0, 220, 120, 0.42)',
+  'rgba(178, 238, 194, 0.28)',
+];
+const CODE_WALL_CELL_WIDTH = 15;
+const CODE_WALL_CELL_HEIGHT = 18;
+const CODE_WALL_TICK_MS = 50;
+const CODE_WALL_MUTATION_RATIO = 0.08;
 
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
+
+function pickCodeWallToken() {
+  return CODE_WALL_TOKENS[Math.floor(Math.random() * CODE_WALL_TOKENS.length)] || 'AI';
+}
+
+function pickCodeWallColor() {
+  return (
+    CODE_WALL_COLORS[Math.floor(Math.random() * CODE_WALL_COLORS.length)] ||
+    'rgba(75, 210, 128, 0.42)'
+  );
+}
+
+function createCodeWallCell(): CodeWallCell {
+  const color = pickCodeWallColor();
+  return {
+    char: pickCodeWallToken(),
+    color,
+    targetColor: color,
+    progress: Math.random(),
+  };
+}
+
+function rebuildCodeWallCells(columns: number, rows: number) {
+  const nextCount = columns * rows;
+  if (nextCount <= 0) {
+    codeWallCells = [];
+    return;
+  }
+  if (codeWallCells.length === nextCount) return;
+  codeWallCells = Array.from({ length: nextCount }, () => createCodeWallCell());
+}
+
+function resizeCodeWallCanvas() {
+  const canvas = codeWallCanvasRef.value;
+  const panel = panelRef.value;
+  if (!canvas || !panel) return;
+
+  const width = Math.max(1, Math.ceil(panel.clientWidth || panel.offsetWidth));
+  const height = Math.max(1, Math.ceil(panel.clientHeight || panel.offsetHeight));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const nextCanvasWidth = Math.ceil(width * dpr);
+  const nextCanvasHeight = Math.ceil(height * dpr);
+
+  if (canvas.width !== nextCanvasWidth || canvas.height !== nextCanvasHeight) {
+    canvas.width = nextCanvasWidth;
+    canvas.height = nextCanvasHeight;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
+
+  const columns = Math.ceil(width / CODE_WALL_CELL_WIDTH);
+  const rows = Math.ceil(height / CODE_WALL_CELL_HEIGHT);
+  if (columns !== codeWallGrid.columns || rows !== codeWallGrid.rows) {
+    codeWallGrid = { columns, rows };
+    rebuildCodeWallCells(columns, rows);
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+  paintCodeWall();
+}
+
+function mutateCodeWallCells() {
+  if (!codeWallCells.length) return;
+  const mutationCount = Math.max(1, Math.floor(codeWallCells.length * CODE_WALL_MUTATION_RATIO));
+  for (let i = 0; i < mutationCount; i++) {
+    const cell = codeWallCells[Math.floor(Math.random() * codeWallCells.length)];
+    if (!cell) continue;
+    cell.char = pickCodeWallToken();
+    cell.targetColor = pickCodeWallColor();
+    cell.progress = 0;
+  }
+}
+
+function paintCodeWall() {
+  const canvas = codeWallCanvasRef.value;
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx || !codeWallGrid.columns || !codeWallGrid.rows) return;
+
+  const width = canvas.width / Math.min(window.devicePixelRatio || 1, 2);
+  const height = canvas.height / Math.min(window.devicePixelRatio || 1, 2);
+  ctx.clearRect(0, 0, width, height);
+  ctx.font =
+    '700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+  ctx.textBaseline = 'middle';
+
+  for (let row = 0; row < codeWallGrid.rows; row++) {
+    for (let col = 0; col < codeWallGrid.columns; col++) {
+      const cell = codeWallCells[row * codeWallGrid.columns + col];
+      if (!cell) continue;
+      if (cell.progress < 1) {
+        cell.progress = Math.min(1, cell.progress + 0.22);
+        if (cell.progress === 1) cell.color = cell.targetColor;
+      }
+      const x = col * CODE_WALL_CELL_WIDTH + 3;
+      const y = row * CODE_WALL_CELL_HEIGHT + 9;
+      ctx.fillStyle = cell.progress < 1 ? cell.targetColor : cell.color;
+      ctx.shadowColor = cell.targetColor;
+      ctx.shadowBlur = cell.progress < 1 ? 8 : 3;
+      ctx.globalAlpha = cell.progress < 1 ? 0.44 + cell.progress * 0.24 : 0.44;
+      ctx.fillText(cell.char, x, y);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function tickCodeWall(timestamp: number) {
+  codeWallRaf = requestAnimationFrame(tickCodeWall);
+  if (timestamp - codeWallLastTick < CODE_WALL_TICK_MS) return;
+  codeWallLastTick = timestamp;
+  mutateCodeWallCells();
+  paintCodeWall();
+}
+
+function stopCodeWall() {
+  if (codeWallRaf) {
+    cancelAnimationFrame(codeWallRaf);
+    codeWallRaf = 0;
+  }
+  codeWallLastTick = 0;
+  codeWallResizeObserver?.disconnect();
+  codeWallResizeObserver = null;
+}
+
+function startCodeWall() {
+  const panel = panelRef.value;
+  const canvas = codeWallCanvasRef.value;
+  if (!panel || !canvas) return;
+
+  stopCodeWall();
+  resizeCodeWallCanvas();
+  if (typeof ResizeObserver !== 'undefined') {
+    codeWallResizeObserver = new ResizeObserver(() => {
+      resizeCodeWallCanvas();
+    });
+    codeWallResizeObserver.observe(panel);
+  }
+  codeWallRaf = requestAnimationFrame(tickCodeWall);
+}
 
 const modes = computed(() => [
   { value: 'translate' as const, label: t.value.translate },
@@ -1553,8 +1997,10 @@ watch(isOpen, (open) => {
       }
       ensurePanelInViewport();
       saveFabPos(panelSnapshot.value?.edge);
+      startCodeWall();
     });
   } else {
+    stopCodeWall();
     onPanelClose();
     if (panelSnapshot.value) {
       const s = panelSnapshot.value;
@@ -1929,6 +2375,11 @@ function onEscKeydown(e: KeyboardEvent) {
     personalizeOpen.value = false;
     return;
   }
+  if (diagnosticsOpen.value) {
+    e.preventDefault();
+    diagnosticsOpen.value = false;
+    return;
+  }
   if (isOpen.value) {
     e.preventDefault();
     isOpen.value = false;
@@ -1958,6 +2409,15 @@ watch(selectedChatModel, (v) => {
 
 onMounted(() => {
   try {
+    const savedBaseUrl = localStorage.getItem(CONNECTION_BASE_URL_STORAGE_KEY);
+    const savedToken = localStorage.getItem(CONNECTION_TOKEN_STORAGE_KEY);
+    if (savedBaseUrl) options.baseUrl = savedBaseUrl;
+    if (savedToken) options.accessToken = savedToken;
+    syncConnectionInputsFromOptions();
+  } catch {
+    /* ignore */
+  }
+  try {
     const s = localStorage.getItem(systemPromptStorageKeyResolved.value);
     if (s) {
       const cap = systemPromptMaxInputCharsResolved.value;
@@ -1972,6 +2432,9 @@ onMounted(() => {
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);
   window.addEventListener('keydown', onEscKeydown, true);
   document.addEventListener('mousedown', onDocPointerDownCloseFabMenu, true);
+  if (isOpen.value) {
+    nextTick(() => startCodeWall());
+  }
 });
 
 onUnmounted(() => {
@@ -1983,6 +2446,7 @@ onUnmounted(() => {
   disposeSearch();
   disposeExportToast();
   cleanupGeometry();
+  stopCodeWall();
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   window.removeEventListener('resize', onWinResize);

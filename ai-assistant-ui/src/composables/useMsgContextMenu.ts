@@ -39,8 +39,8 @@ const MSG_CTX_MENU_H = 280;
 interface MsgCtxDeps {
   messages: Ref<{ role: string; content: string; contentArchive?: string }[]>;
   loading: Ref<boolean>;
-  baseUrl?: string;
-  accessToken?: string;
+  getBaseUrl: () => string | undefined;
+  getAccessToken: () => string | undefined;
   targetLang: Ref<string>;
   t: ComputedRef<I18nMessages>;
   reportError: (source: string, msg: string) => void;
@@ -271,7 +271,8 @@ export function useMsgContextMenu(deps: MsgCtxDeps) {
 
   async function translateAssistantSelection() {
     const text = msgCtxMenu.value.selectionText;
-    if (!text || !deps.baseUrl) {
+    const baseUrl = deps.getBaseUrl();
+    if (!text || !baseUrl) {
       closeMsgCtxMenu();
       return;
     }
@@ -307,7 +308,7 @@ export function useMsgContextMenu(deps: MsgCtxDeps) {
       };
       let acc = '';
       let textFlushRaf = 0;
-      const stream = streamChat(deps.baseUrl, payload, deps.accessToken, signal);
+      const stream = streamChat(baseUrl, payload, deps.getAccessToken(), signal);
       try {
         for await (const chunk of stream) {
           if (signal.aborted) {

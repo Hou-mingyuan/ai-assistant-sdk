@@ -62,6 +62,39 @@ export interface I18nMessages {
   modelLabel: string;
   /** 模型列表未加载或为空时的占位 */
   modelsListEmpty: string;
+  modelsLoadFailed: string;
+  modelsNetworkError: string;
+  modelsUnauthorized: string;
+  modelsRateLimited: string;
+  modelsServerError: string;
+  diagnosticsTitle: string;
+  diagnosticsRefresh: string;
+  diagnosticsCopy: string;
+  diagnosticsCopied: string;
+  diagnosticsClose: string;
+  diagnosticsBaseUrl: string;
+  diagnosticsModelEndpoint: string;
+  diagnosticsToken: string;
+  diagnosticsTokenConfigured: string;
+  diagnosticsTokenMissing: string;
+  diagnosticsSelectedModel: string;
+  diagnosticsNoSelectedModel: string;
+  diagnosticsAvailableModels: string;
+  diagnosticsLastChecked: string;
+  diagnosticsNeverChecked: string;
+  diagnosticsStatus: string;
+  diagnosticsStatusReady: string;
+  diagnosticsStatusChecking: string;
+  diagnosticsStatusNoBaseUrl: string;
+  connectionConfigTitle: string;
+  connectionConfigBaseUrlPlaceholder: string;
+  connectionConfigTokenPlaceholder: string;
+  connectionConfigPersist: string;
+  connectionConfigTest: string;
+  connectionConfigSave: string;
+  connectionConfigSaved: string;
+  connectionConfigTested: string;
+  connectionConfigFailed: string;
   openInIde: string;
   exportServerXlsx: string;
   exportServerDocx: string;
@@ -156,6 +189,39 @@ const messages: Record<string, I18nMessages> = {
     systemPromptPlaceholder: 'Optional. Applies to chat only; saved in this browser.',
     modelLabel: 'Model',
     modelsListEmpty: 'No models (check GET …/models)',
+    modelsLoadFailed: 'Unable to load models (check GET …/models)',
+    modelsNetworkError: 'Unable to reach model API',
+    modelsUnauthorized: 'Model API needs a valid access token',
+    modelsRateLimited: 'Model API is rate limited',
+    modelsServerError: 'Model API returned a server error',
+    diagnosticsTitle: 'Diagnostics',
+    diagnosticsRefresh: 'Refresh',
+    diagnosticsCopy: 'Copy',
+    diagnosticsCopied: 'Copied',
+    diagnosticsClose: 'Close diagnostics',
+    diagnosticsBaseUrl: 'Base URL',
+    diagnosticsModelEndpoint: 'Models endpoint',
+    diagnosticsToken: 'Access token',
+    diagnosticsTokenConfigured: 'Configured',
+    diagnosticsTokenMissing: 'Missing',
+    diagnosticsSelectedModel: 'Selected model',
+    diagnosticsNoSelectedModel: 'Not selected',
+    diagnosticsAvailableModels: 'Available models',
+    diagnosticsLastChecked: 'Last checked',
+    diagnosticsNeverChecked: 'Never',
+    diagnosticsStatus: 'Status',
+    diagnosticsStatusReady: 'Model API is ready',
+    diagnosticsStatusChecking: 'Checking model API…',
+    diagnosticsStatusNoBaseUrl: 'No base URL configured',
+    connectionConfigTitle: 'Connection settings',
+    connectionConfigBaseUrlPlaceholder: 'API base URL, e.g. /ai-assistant',
+    connectionConfigTokenPlaceholder: 'Access token (optional)',
+    connectionConfigPersist: 'Save in this browser',
+    connectionConfigTest: 'Test connection',
+    connectionConfigSave: 'Save',
+    connectionConfigSaved: 'Connection settings saved',
+    connectionConfigTested: 'Connection test finished',
+    connectionConfigFailed: 'Connection test failed',
     openInIde: 'IDE',
     exportServerXlsx: 'Server: Excel (.xlsx)',
     exportServerDocx: 'Server: Word (.docx)',
@@ -240,6 +306,39 @@ const messages: Record<string, I18nMessages> = {
     systemPromptPlaceholder: '可选，仅「对话」模式生效；保存在本浏览器。',
     modelLabel: '模型',
     modelsListEmpty: '无模型列表（请检查 GET …/models）',
+    modelsLoadFailed: '模型列表加载失败（请检查 GET …/models）',
+    modelsNetworkError: '无法连接模型接口',
+    modelsUnauthorized: '模型接口需要有效访问令牌',
+    modelsRateLimited: '模型接口请求过于频繁',
+    modelsServerError: '模型接口返回服务端错误',
+    diagnosticsTitle: '诊断',
+    diagnosticsRefresh: '刷新',
+    diagnosticsCopy: '复制',
+    diagnosticsCopied: '已复制',
+    diagnosticsClose: '关闭诊断',
+    diagnosticsBaseUrl: '后端地址',
+    diagnosticsModelEndpoint: '模型接口',
+    diagnosticsToken: '访问令牌',
+    diagnosticsTokenConfigured: '已配置',
+    diagnosticsTokenMissing: '未配置',
+    diagnosticsSelectedModel: '当前模型',
+    diagnosticsNoSelectedModel: '未选择',
+    diagnosticsAvailableModels: '可用模型',
+    diagnosticsLastChecked: '上次检查',
+    diagnosticsNeverChecked: '尚未检查',
+    diagnosticsStatus: '状态',
+    diagnosticsStatusReady: '模型接口正常',
+    diagnosticsStatusChecking: '正在检查模型接口…',
+    diagnosticsStatusNoBaseUrl: '未配置后端地址',
+    connectionConfigTitle: '连接配置',
+    connectionConfigBaseUrlPlaceholder: '接口地址，例如 /ai-assistant',
+    connectionConfigTokenPlaceholder: '访问令牌（可选）',
+    connectionConfigPersist: '保存到本浏览器',
+    connectionConfigTest: '测试连接',
+    connectionConfigSave: '保存',
+    connectionConfigSaved: '连接配置已保存',
+    connectionConfigTested: '连接测试完成',
+    connectionConfigFailed: '连接测试失败',
     openInIde: 'IDE',
     exportServerXlsx: '服务端：Excel（.xlsx）',
     exportServerDocx: '服务端：Word（.docx）',
@@ -328,6 +427,39 @@ const ja = {
   systemPromptPlaceholder: '任意。チャットモードのみ有効、このブラウザに保存。',
   modelLabel: 'モデル',
   modelsListEmpty: 'モデルなし（GET …/models を確認）',
+  modelsLoadFailed: 'モデル一覧を読み込めません（GET …/models を確認）',
+  modelsNetworkError: 'モデル API に接続できません',
+  modelsUnauthorized: 'モデル API には有効なアクセストークンが必要です',
+  modelsRateLimited: 'モデル API のリクエストが制限されています',
+  modelsServerError: 'モデル API がサーバーエラーを返しました',
+  diagnosticsTitle: '診断',
+  diagnosticsRefresh: '更新',
+  diagnosticsCopy: 'コピー',
+  diagnosticsCopied: 'コピー済み',
+  diagnosticsClose: '診断を閉じる',
+  diagnosticsBaseUrl: 'ベース URL',
+  diagnosticsModelEndpoint: 'モデルエンドポイント',
+  diagnosticsToken: 'アクセストークン',
+  diagnosticsTokenConfigured: '設定済み',
+  diagnosticsTokenMissing: '未設定',
+  diagnosticsSelectedModel: '選択中のモデル',
+  diagnosticsNoSelectedModel: '未選択',
+  diagnosticsAvailableModels: '利用可能なモデル',
+  diagnosticsLastChecked: '最終確認',
+  diagnosticsNeverChecked: '未確認',
+  diagnosticsStatus: '状態',
+  diagnosticsStatusReady: 'モデル API は正常です',
+  diagnosticsStatusChecking: 'モデル API を確認中…',
+  diagnosticsStatusNoBaseUrl: 'ベース URL が未設定です',
+  connectionConfigTitle: '接続設定',
+  connectionConfigBaseUrlPlaceholder: 'API ベース URL（例: /ai-assistant）',
+  connectionConfigTokenPlaceholder: 'アクセストークン（任意）',
+  connectionConfigPersist: 'このブラウザに保存',
+  connectionConfigTest: '接続をテスト',
+  connectionConfigSave: '保存',
+  connectionConfigSaved: '接続設定を保存しました',
+  connectionConfigTested: '接続テストが完了しました',
+  connectionConfigFailed: '接続テストに失敗しました',
   openInIde: 'IDE',
   exportServerXlsx: 'サーバー: Excel（.xlsx）',
   exportServerDocx: 'サーバー: Word（.docx）',
@@ -415,6 +547,39 @@ const ko = {
   systemPromptPlaceholder: '선택 사항. 채팅 모드에만 적용, 이 브라우저에 저장됩니다.',
   modelLabel: '모델',
   modelsListEmpty: '모델 없음 (GET …/models 확인)',
+  modelsLoadFailed: '모델 목록을 불러올 수 없음 (GET …/models 확인)',
+  modelsNetworkError: '모델 API에 연결할 수 없음',
+  modelsUnauthorized: '모델 API에 유효한 액세스 토큰이 필요함',
+  modelsRateLimited: '모델 API 요청이 제한됨',
+  modelsServerError: '모델 API가 서버 오류를 반환함',
+  diagnosticsTitle: '진단',
+  diagnosticsRefresh: '새로고침',
+  diagnosticsCopy: '복사',
+  diagnosticsCopied: '복사됨',
+  diagnosticsClose: '진단 닫기',
+  diagnosticsBaseUrl: '기본 URL',
+  diagnosticsModelEndpoint: '모델 엔드포인트',
+  diagnosticsToken: '액세스 토큰',
+  diagnosticsTokenConfigured: '설정됨',
+  diagnosticsTokenMissing: '없음',
+  diagnosticsSelectedModel: '선택한 모델',
+  diagnosticsNoSelectedModel: '선택 안 됨',
+  diagnosticsAvailableModels: '사용 가능한 모델',
+  diagnosticsLastChecked: '마지막 확인',
+  diagnosticsNeverChecked: '아직 없음',
+  diagnosticsStatus: '상태',
+  diagnosticsStatusReady: '모델 API 정상',
+  diagnosticsStatusChecking: '모델 API 확인 중…',
+  diagnosticsStatusNoBaseUrl: '기본 URL이 설정되지 않음',
+  connectionConfigTitle: '연결 설정',
+  connectionConfigBaseUrlPlaceholder: 'API 기본 URL, 예: /ai-assistant',
+  connectionConfigTokenPlaceholder: '액세스 토큰 (선택 사항)',
+  connectionConfigPersist: '이 브라우저에 저장',
+  connectionConfigTest: '연결 테스트',
+  connectionConfigSave: '저장',
+  connectionConfigSaved: '연결 설정 저장됨',
+  connectionConfigTested: '연결 테스트 완료',
+  connectionConfigFailed: '연결 테스트 실패',
   openInIde: 'IDE',
   exportServerXlsx: '서버: Excel (.xlsx)',
   exportServerDocx: '서버: Word (.docx)',
