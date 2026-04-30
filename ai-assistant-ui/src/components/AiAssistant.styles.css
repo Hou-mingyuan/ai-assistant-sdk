@@ -1172,6 +1172,12 @@
   .ai-fab-ctx-leave-to {
     filter: none !important;
   }
+  .ai-fab:before,
+  .ai-panel:after,
+  .ai-mic.recording,
+  .ai-bubble .ai-skeleton-line {
+    animation: none !important;
+  }
   .ai-typing span {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

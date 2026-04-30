@@ -32,6 +32,25 @@ test.describe('AI Assistant Widget', () => {
       .toBeGreaterThan(0)
   })
 
+  test('reduced motion disables decorative matrix animations', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.reload()
+    await page.waitForSelector('.ai-fab')
+    await expect
+      .poll(() =>
+        page.locator('.ai-fab').evaluate((el) => getComputedStyle(el, '::before').animationName),
+      )
+      .toBe('none')
+
+    await page.click('.ai-fab')
+    await expect(page.locator('.ai-code-wall-canvas')).toBeVisible()
+    await expect
+      .poll(() =>
+        page.locator('.ai-panel').evaluate((el) => getComputedStyle(el, '::after').animationName),
+      )
+      .toBe('none')
+  })
+
   test('panel has mode buttons', async ({ page }) => {
     await page.click('.ai-fab')
     const modeBar = page.locator('.ai-mode-bar')

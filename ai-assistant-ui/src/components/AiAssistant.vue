@@ -865,7 +865,11 @@ const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
 
 const wrapperRef = ref<HTMLElement>();
 const systemDarkRef = ref(window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false);
+const reducedMotionRef = ref(
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+);
 let darkMediaCleanup: (() => void) | null = null;
+let reducedMotionCleanup: (() => void) | null = null;
 onMounted(() => {
   const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
   if (mql) {
@@ -875,9 +879,18 @@ onMounted(() => {
     mql.addEventListener('change', handler);
     darkMediaCleanup = () => mql.removeEventListener('change', handler);
   }
+  const reducedMql = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  if (reducedMql) {
+    const handler = (e: MediaQueryListEvent) => {
+      reducedMotionRef.value = e.matches;
+    };
+    reducedMql.addEventListener('change', handler);
+    reducedMotionCleanup = () => reducedMql.removeEventListener('change', handler);
+  }
 });
 onUnmounted(() => {
   darkMediaCleanup?.();
+  reducedMotionCleanup?.();
 });
 const isDark = computed(() => {
   if (options.theme === 'dark') return true;
@@ -1292,6 +1305,10 @@ function paintCodeWall() {
 }
 
 function tickCodeWall(timestamp: number) {
+  if (reducedMotionRef.value) {
+    codeWallRaf = 0;
+    return;
+  }
   codeWallRaf = requestAnimationFrame(tickCodeWall);
   if (timestamp - codeWallLastTick < CODE_WALL_TICK_MS) return;
   codeWallLastTick = timestamp;
@@ -1322,6 +1339,7 @@ function startCodeWall() {
     });
     codeWallResizeObserver.observe(panel);
   }
+  if (reducedMotionRef.value) return;
   codeWallRaf = requestAnimationFrame(tickCodeWall);
 }
 
@@ -2404,6 +2422,12 @@ watch(selectedChatModel, (v) => {
     localStorage.setItem(selectedModelStorageKeyResolved.value, v);
   } catch {
     /* ignore */
+  }
+});
+
+watch(reducedMotionRef, () => {
+  if (isOpen.value) {
+    nextTick(() => startCodeWall());
   }
 });
 
