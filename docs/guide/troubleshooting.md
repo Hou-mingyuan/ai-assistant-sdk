@@ -115,19 +115,32 @@ AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 也可以在 Vite 开发环境使用代理：
 
 ```ts
-export default defineConfig({
-  server: {
-    proxy: {
-      '/ai-assistant': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
+import { defineConfig, loadEnv } from 'vite'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const proxyTarget = env.VITE_AI_ASSISTANT_PROXY_TARGET || 'http://localhost:8080'
+
+  return {
+    server: {
+      proxy: {
+        '/ai-assistant': {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
       },
     },
-  },
+  }
 })
 ```
 
 此时前端 `baseUrl` 使用 `/ai-assistant`。
+
+如果 `8080` 已被其它本地服务占用，启动小助手后端时可换到 `18080`，然后在 Playground 或宿主前端的 `.env` 中设置：
+
+```text
+VITE_AI_ASSISTANT_PROXY_TARGET=http://localhost:18080
+```
 
 ## 6. 接口返回 429 Too Many Requests
 

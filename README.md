@@ -1035,12 +1035,20 @@ npm install
 **与后端联调：**
 
 1. 先启动**任意已集成 `ai-assistant-spring-boot-starter`** 的 Web 服务，并保证浏览器能访问到与插件 **`baseUrl`** 一致的接口（默认前缀为 **`/ai-assistant`**，也可在配置中改成别的路径）。
-2. 若开发时通过 Vite 代理转发请求，请把 **`ai-assistant-vue-playground/vite.config.ts`** 里 `server.proxy['/ai-assistant'].target`**改成你的后端实际 origin**（本仓库自带的 `ai-assistant-demo` 仅为示例，可不必使用）。
+2. 若开发时通过 Vite 代理转发请求，请在 **`ai-assistant-vue-playground/.env`** 中把 `VITE_AI_ASSISTANT_PROXY_TARGET` 设置为你的后端实际 origin；默认值是 `http://localhost:8080`。
 3. 再启动 Playground：
 
 ```bash
 cd ai-assistant-vue-playground
 npm run dev
+```
+
+本机 `8080` 已被其它服务占用时，可以让后端改用其它端口，并在 Playground 中设置：
+
+```text
+VITE_AI_ASSISTANT_BASE_URL=
+VITE_AI_ASSISTANT_ACCESS_TOKEN=change-me
+VITE_AI_ASSISTANT_PROXY_TARGET=http://localhost:18080
 ```
 
 终端会打印本机地址与端口（默认 **5173**）。若发现端口变成 **5174、5175…**，通常是本机还有**未结束的旧** `npm run dev` 占用了端口，请在对应终端 **Ctrl+C** 结束后再启动；**以终端实际输出为准**。

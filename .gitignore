@@ -17,6 +17,20 @@ e2e/test-results/
 # Cursor 本地规则与 MCP（勿提交）
 .cursor/
 
-# 本地示例 /  Playground，不参与版本库（需要者自备或另仓维护）
+# 本地示例不参与版本库（需要者自备或另仓维护）
 ai-assistant-demo/
-ai-assistant-vue-playground/
+
+# Playground 提交最小源码与配置；依赖、构建产物和 IDE 本地文件仍忽略
+ai-assistant-vue-playground/*
+!ai-assistant-vue-playground/.env.example
+!ai-assistant-vue-playground/index.html
+!ai-assistant-vue-playground/package.json
+!ai-assistant-vue-playground/package-lock.json
+!ai-assistant-vue-playground/src/
+!ai-assistant-vue-playground/src/**
+!ai-assistant-vue-playground/tsconfig.json
+!ai-assistant-vue-playground/tsconfig.node.json
+!ai-assistant-vue-playground/vite.config.ts
+ai-assistant-vue-playground/.idea/
+ai-assistant-vue-playground/dist/
+ai-assistant-vue-playground/node_modules/

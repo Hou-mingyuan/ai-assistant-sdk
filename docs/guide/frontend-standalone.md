@@ -54,6 +54,8 @@ VITE_AI_ASSISTANT_BASE_URL=http://localhost:8080/ai-assistant
 VITE_AI_ASSISTANT_ACCESS_TOKEN=change-me
 ```
 
+如果使用 Vite 本地代理，可以留空 `VITE_AI_ASSISTANT_BASE_URL`，让组件继续请求同源 `/ai-assistant`。
+
 代码里读取：
 
 ```ts
@@ -100,19 +102,34 @@ Web Component 适合 Vue 以外的页面或低代码平台：
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
-export default defineConfig({
-  server: {
-    proxy: {
-      '/ai-assistant': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const proxyTarget = env.VITE_AI_ASSISTANT_PROXY_TARGET || 'http://localhost:8080'
+
+  return {
+    server: {
+      proxy: {
+        '/ai-assistant': {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
       },
     },
-  },
+  }
 })
 ```
+
+对应 `.env`：
+
+```text
+VITE_AI_ASSISTANT_BASE_URL=
+VITE_AI_ASSISTANT_ACCESS_TOKEN=change-me
+VITE_AI_ASSISTANT_PROXY_TARGET=http://localhost:8080
+```
+
+如果本机 `8080` 已被其它服务占用，可以把 `VITE_AI_ASSISTANT_PROXY_TARGET` 改成实际后端端口，例如 `http://localhost:18080`。
 
 然后前端配置：
 

@@ -7,6 +7,7 @@ test.describe('AI Assistant Widget', () => {
   })
 
   test('FAB is visible on page load', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'AI Assistant E2E Playground' })).toBeVisible()
     const fab = page.locator('.ai-fab')
     await expect(fab).toBeVisible()
   })
@@ -37,6 +38,14 @@ test.describe('AI Assistant Widget', () => {
     const textarea = page.locator('.ai-footer-textarea')
     await textarea.fill('Hello, AI!')
     await expect(textarea).toHaveValue('Hello, AI!')
+  })
+
+  test('model picker explains missing backend model list', async ({ page }) => {
+    await page.click('.ai-fab')
+    const modelPicker = page.locator('.ai-model-select')
+    await expect(modelPicker).toBeVisible()
+    await expect(modelPicker).toBeDisabled()
+    await expect(modelPicker).toContainText(/无模型列表|No models/)
   })
 
   test('search bar appears when messages exist', async ({ page }) => {
