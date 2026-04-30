@@ -111,6 +111,7 @@ test.describe('AI Assistant Widget', () => {
     await expect(diagnostics).toContainText(/后端地址|Base URL/)
     await expect(diagnostics).toContainText(/模型接口|Models endpoint/)
     await expect(diagnostics).toContainText(/访问令牌|Access token/)
+    await expect(diagnostics).toContainText(/最近错误|Last error/)
   })
 
   test('connection settings update diagnostics endpoint', async ({ page }) => {

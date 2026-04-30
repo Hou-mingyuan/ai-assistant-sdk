@@ -529,6 +529,10 @@
               <dd aria-live="polite">{{ diagnosticsStatusMessage }}</dd>
             </div>
             <div>
+              <dt>{{ t.diagnosticsLastError }}</dt>
+              <dd>{{ modelListError || t.diagnosticsNoError }}</dd>
+            </div>
+            <div>
               <dt>{{ t.diagnosticsBaseUrl }}</dt>
               <dd>{{ options.baseUrl || '—' }}</dd>
             </div>
@@ -978,6 +982,7 @@ const diagnosticsOpen = ref(false);
 const diagnosticsBusy = ref(false);
 const diagnosticsCopied = ref(false);
 const diagnosticsLastChecked = ref('');
+const modelListError = ref('');
 const connectionBaseUrlInput = ref(options.baseUrl || '');
 const connectionTokenInput = ref(options.accessToken || '');
 const connectionPersistEnabled = ref(true);
@@ -1037,11 +1042,13 @@ async function refreshChatModels() {
   modelChoices.value = [];
   selectedChatModel.value = '';
   modelListStatus.value = '';
+  modelListError.value = '';
   if (!options.baseUrl || !showModelPickerResolved.value) return;
   try {
     const r = await fetchModels(options.baseUrl, options.accessToken);
     if (!r.success) {
       modelListStatus.value = modelListStatusFromError(r.error);
+      modelListError.value = r.error || t.value.modelsLoadFailed;
       return;
     }
     if (!r.models?.length) {
@@ -1058,8 +1065,9 @@ async function refreshChatModels() {
       /* ignore */
     }
     selectedChatModel.value = pick;
-  } catch {
+  } catch (e: unknown) {
     modelListStatus.value = 'network';
+    modelListError.value = e instanceof Error ? e.message : String(e || t.value.modelsNetworkError);
   }
 }
 
@@ -1132,6 +1140,7 @@ async function copyDiagnostics() {
     `Models endpoint: ${diagnosticsModelEndpoint.value}`,
     `Access token: ${options.accessToken?.trim() ? 'configured' : 'missing'}`,
     `Status: ${diagnosticsStatusMessage.value}`,
+    `Last error: ${modelListError.value || '(none)'}`,
     `Selected model: ${selectedChatModel.value || '(not selected)'}`,
     `Available models: ${modelChoices.value.length}`,
     `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,

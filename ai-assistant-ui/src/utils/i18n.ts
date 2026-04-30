@@ -86,6 +86,8 @@ export interface I18nMessages {
   diagnosticsStatusReady: string;
   diagnosticsStatusChecking: string;
   diagnosticsStatusNoBaseUrl: string;
+  diagnosticsLastError: string;
+  diagnosticsNoError: string;
   connectionConfigTitle: string;
   connectionConfigBaseUrlPlaceholder: string;
   connectionConfigTokenPlaceholder: string;
@@ -213,6 +215,8 @@ const messages: Record<string, I18nMessages> = {
     diagnosticsStatusReady: 'Model API is ready',
     diagnosticsStatusChecking: 'Checking model API…',
     diagnosticsStatusNoBaseUrl: 'No base URL configured',
+    diagnosticsLastError: 'Last error',
+    diagnosticsNoError: 'None',
     connectionConfigTitle: 'Connection settings',
     connectionConfigBaseUrlPlaceholder: 'API base URL, e.g. /ai-assistant',
     connectionConfigTokenPlaceholder: 'Access token (optional)',
@@ -330,6 +334,8 @@ const messages: Record<string, I18nMessages> = {
     diagnosticsStatusReady: '模型接口正常',
     diagnosticsStatusChecking: '正在检查模型接口…',
     diagnosticsStatusNoBaseUrl: '未配置后端地址',
+    diagnosticsLastError: '最近错误',
+    diagnosticsNoError: '无',
     connectionConfigTitle: '连接配置',
     connectionConfigBaseUrlPlaceholder: '接口地址，例如 /ai-assistant',
     connectionConfigTokenPlaceholder: '访问令牌（可选）',
@@ -451,6 +457,8 @@ const ja = {
   diagnosticsStatusReady: 'モデル API は正常です',
   diagnosticsStatusChecking: 'モデル API を確認中…',
   diagnosticsStatusNoBaseUrl: 'ベース URL が未設定です',
+  diagnosticsLastError: '直近のエラー',
+  diagnosticsNoError: 'なし',
   connectionConfigTitle: '接続設定',
   connectionConfigBaseUrlPlaceholder: 'API ベース URL（例: /ai-assistant）',
   connectionConfigTokenPlaceholder: 'アクセストークン（任意）',
@@ -571,6 +579,8 @@ const ko = {
   diagnosticsStatusReady: '모델 API 정상',
   diagnosticsStatusChecking: '모델 API 확인 중…',
   diagnosticsStatusNoBaseUrl: '기본 URL이 설정되지 않음',
+  diagnosticsLastError: '최근 오류',
+  diagnosticsNoError: '없음',
   connectionConfigTitle: '연결 설정',
   connectionConfigBaseUrlPlaceholder: 'API 기본 URL, 예: /ai-assistant',
   connectionConfigTokenPlaceholder: '액세스 토큰 (선택 사항)',
