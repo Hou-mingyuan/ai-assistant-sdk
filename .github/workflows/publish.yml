@@ -225,7 +225,7 @@ jobs:
         run: node scripts/smoke-standalone-service.mjs http://localhost:18081/ai-assistant ci-token
 
       - name: Scan published image vulnerabilities
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.image.outputs.image }}
           vuln-type: os,library
