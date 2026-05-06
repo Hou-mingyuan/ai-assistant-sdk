@@ -62,6 +62,9 @@ public class AiAssistantProperties {
     private boolean ragEnabled = false;
     private boolean piiMaskingEnabled = true;
 
+    // ── Session Store ──────────────────────────────────────────────
+    private SessionStoreProperties sessionStore = new SessionStoreProperties();
+
     // ── Data Connectors ─────────────────────────────────────────────
     private List<ConnectorProperties> connectors;
 
@@ -248,6 +251,37 @@ public class AiAssistantProperties {
 
         public void setHistoryMaxChars(int v) {
             this.historyMaxChars = v;
+        }
+    }
+
+    /** Nested: in-memory session store limits. YAML prefix: {@code ai-assistant.session-store} */
+    public static class SessionStoreProperties {
+        private int maxSessionsPerUser = 50;
+        private int maxUsers = 10_000;
+        private int maxMessagesPerSession = 200;
+
+        public int getMaxSessionsPerUser() {
+            return maxSessionsPerUser;
+        }
+
+        public void setMaxSessionsPerUser(int v) {
+            this.maxSessionsPerUser = Math.max(1, v);
+        }
+
+        public int getMaxUsers() {
+            return maxUsers;
+        }
+
+        public void setMaxUsers(int v) {
+            this.maxUsers = Math.max(1, v);
+        }
+
+        public int getMaxMessagesPerSession() {
+            return maxMessagesPerSession;
+        }
+
+        public void setMaxMessagesPerSession(int v) {
+            this.maxMessagesPerSession = Math.max(0, v);
         }
     }
 
@@ -700,6 +734,14 @@ public class AiAssistantProperties {
 
     public void setPiiMaskingEnabled(boolean piiMaskingEnabled) {
         this.piiMaskingEnabled = piiMaskingEnabled;
+    }
+
+    public SessionStoreProperties getSessionStore() {
+        return sessionStore;
+    }
+
+    public void setSessionStore(SessionStoreProperties sessionStore) {
+        this.sessionStore = sessionStore;
     }
 
     public List<ConnectorProperties> getConnectors() {

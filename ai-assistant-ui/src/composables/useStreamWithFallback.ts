@@ -29,6 +29,7 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     if (!(e instanceof Error)) return false;
     if (e.name === 'AbortError') return false;
     const msg = e.message.toLowerCase();
+    if (msg.includes('abort')) return false;
     return (
       msg.includes('failed to fetch') ||
       msg.includes('network') ||
@@ -66,8 +67,11 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
         return;
       }
     } catch (e) {
+      if (signal?.aborted) throw e;
       if (!isConnectionError(e)) throw e;
     }
+
+    if (signal?.aborted) return;
 
     sseFailCount++;
     if (sseFailCount >= SSE_RETRY_THRESHOLD) {

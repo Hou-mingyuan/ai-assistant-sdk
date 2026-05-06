@@ -15,15 +15,26 @@ public class InMemorySessionStore implements SessionStore {
 
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, SessionData>> userSessions =
             new ConcurrentHashMap<>();
-    private static final int MAX_SESSIONS_PER_USER = 50;
-    private static final int MAX_USERS = 10_000;
+    private final int maxSessionsPerUser;
+    private final int maxUsers;
+    private final int maxMessagesPerSession;
     private static final Duration USER_TTL = Duration.ofDays(7);
+
+    public InMemorySessionStore() {
+        this(50, 10_000, 200);
+    }
+
+    public InMemorySessionStore(int maxSessionsPerUser, int maxUsers, int maxMessagesPerSession) {
+        this.maxSessionsPerUser = Math.max(1, maxSessionsPerUser);
+        this.maxUsers = Math.max(1, maxUsers);
+        this.maxMessagesPerSession = Math.max(0, maxMessagesPerSession);
+    }
 
     private final ConcurrentHashMap<String, Instant> userLastAccess = new ConcurrentHashMap<>();
 
     private void touchUser(String userId) {
         userLastAccess.put(userId, Instant.now());
-        if (userSessions.size() > MAX_USERS) {
+        if (userSessions.size() > maxUsers) {
             evictStaleUsers();
         }
     }
@@ -38,13 +49,21 @@ public class InMemorySessionStore implements SessionStore {
                 it.remove();
             }
         }
+        while (userSessions.size() > maxUsers) {
+            userLastAccess.entrySet().stream()
+                    .min(Map.Entry.comparingByValue())
+                    .ifPresent(e -> {
+                        userSessions.remove(e.getKey());
+                        userLastAccess.remove(e.getKey());
+                    });
+        }
     }
 
     @Override
     public SessionData create(String userId, SessionData input) {
         touchUser(userId);
         var sessions = userSessions.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
-        if (sessions.size() >= MAX_SESSIONS_PER_USER) {
+        if (sessions.size() >= maxSessionsPerUser) {
             sessions.entrySet().stream()
                     .min(
                             (a, b) ->
@@ -91,8 +110,15 @@ public class InMemorySessionStore implements SessionStore {
                         sessionId,
                         (id, existing) -> {
                             if (input.getTitle() != null) existing.setTitle(input.getTitle());
-                            if (input.getMessages() != null)
-                                existing.setMessages(copyMessages(input.getMessages()));
+                            if (input.getMessages() != null) {
+                                List<SessionData.MessageItem> msgs = copyMessages(input.getMessages());
+                                if (maxMessagesPerSession > 0 && msgs != null
+                                        && msgs.size() > maxMessagesPerSession) {
+                                    msgs = msgs.subList(
+                                            msgs.size() - maxMessagesPerSession, msgs.size());
+                                }
+                                existing.setMessages(msgs);
+                            }
                             existing.setUpdatedAt(Instant.now());
                             return existing;
                         });

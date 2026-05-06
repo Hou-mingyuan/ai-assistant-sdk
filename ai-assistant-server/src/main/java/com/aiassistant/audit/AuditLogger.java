@@ -48,16 +48,20 @@ public class AuditLogger {
             Map<String, Object> details,
             long durationMs,
             boolean success) {
-        log(
-                new AuditEvent(
-                        action,
-                        userId,
-                        sessionId,
-                        tenantId,
-                        sourceIp,
-                        details,
-                        durationMs,
-                        success));
+        Map<String, String> meta = new java.util.LinkedHashMap<>();
+        if (sessionId != null) meta.put("sessionId", sessionId);
+        if (sourceIp != null) meta.put("sourceIp", sourceIp);
+        if (details != null) {
+            details.forEach((k, v) -> meta.put(k, v != null ? v.toString() : ""));
+        }
+        log(AuditEvent.builder()
+                .tenantId(tenantId != null ? tenantId : "default")
+                .userId(userId)
+                .action(action)
+                .latencyMs(durationMs)
+                .outcome(success ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR)
+                .metadata(meta)
+                .build());
     }
 
     public List<AuditEvent> getRecentEvents(int limit) {

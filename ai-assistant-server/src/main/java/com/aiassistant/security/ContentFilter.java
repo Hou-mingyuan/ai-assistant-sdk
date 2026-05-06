@@ -22,9 +22,13 @@ public class ContentFilter {
                     new PiiRule(
                             "id_card_cn",
                             Pattern.compile("(?<!\\d)\\d{17}[\\dXx](?!\\d)"),
-                            "[身份证号已脱敏]"),
+                            "[身份证号已脱敏]",
+                            ContentFilter::isValidIdCard),
                     new PiiRule(
-                            "bank_card", Pattern.compile("(?<!\\d)\\d{16,19}(?!\\d)"), "[银行卡号已脱敏]"),
+                            "bank_card",
+                            Pattern.compile("(?<!\\d)\\d{16,19}(?!\\d)"),
+                            "[银行卡号已脱敏]",
+                            ContentFilter::passesLuhn),
                     new PiiRule(
                             "email",
                             Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
@@ -85,9 +89,53 @@ public class ContentFilter {
     public String maskPii(String text) {
         String result = text;
         for (PiiRule rule : PII_RULES) {
-            result = rule.pattern.matcher(result).replaceAll(rule.replacement);
+            if (rule.validator == null) {
+                result = rule.pattern.matcher(result).replaceAll(rule.replacement);
+            } else {
+                Matcher m = rule.pattern.matcher(result);
+                StringBuilder sb = new StringBuilder();
+                while (m.find()) {
+                    String matched = m.group();
+                    if (rule.validator.test(matched)) {
+                        m.appendReplacement(sb, Matcher.quoteReplacement(rule.replacement));
+                    }
+                }
+                m.appendTail(sb);
+                result = sb.toString();
+            }
         }
         return result;
+    }
+
+    static boolean passesLuhn(String number) {
+        int sum = 0;
+        boolean alternate = false;
+        for (int i = number.length() - 1; i >= 0; i--) {
+            int n = number.charAt(i) - '0';
+            if (n < 0 || n > 9) return false;
+            if (alternate) {
+                n *= 2;
+                if (n > 9) n -= 9;
+            }
+            sum += n;
+            alternate = !alternate;
+        }
+        return sum % 10 == 0;
+    }
+
+    static boolean isValidIdCard(String id) {
+        if (id.length() != 18) return false;
+        int[] weights = {7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
+        char[] checkChars = {'1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'};
+        int sum = 0;
+        for (int i = 0; i < 17; i++) {
+            int digit = id.charAt(i) - '0';
+            if (digit < 0 || digit > 9) return false;
+            sum += digit * weights[i];
+        }
+        char expected = checkChars[sum % 11];
+        char actual = Character.toUpperCase(id.charAt(17));
+        return actual == expected;
     }
 
     /** Detect PII without masking (for audit/logging). */
@@ -96,6 +144,7 @@ public class ContentFilter {
         for (PiiRule rule : PII_RULES) {
             Matcher m = rule.pattern.matcher(text);
             while (m.find()) {
+                if (rule.validator != null && !rule.validator.test(m.group())) continue;
                 detections.add(new PiiDetection(rule.name, m.start(), m.end()));
             }
         }
@@ -106,5 +155,15 @@ public class ContentFilter {
 
     public record PiiDetection(String type, int start, int end) {}
 
-    private record PiiRule(String name, Pattern pattern, String replacement) {}
+    @FunctionalInterface
+    interface StringPredicate {
+        boolean test(String value);
+    }
+
+    private record PiiRule(String name, Pattern pattern, String replacement,
+                           StringPredicate validator) {
+        PiiRule(String name, Pattern pattern, String replacement) {
+            this(name, pattern, replacement, null);
+        }
+    }
 }

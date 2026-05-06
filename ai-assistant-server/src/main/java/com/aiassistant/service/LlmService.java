@@ -1,5 +1,7 @@
 package com.aiassistant.service;
 
+import com.aiassistant.audit.AuditEvent;
+import com.aiassistant.audit.AuditEventStore;
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.TenantContext;
 import com.aiassistant.memory.ConversationMemory;
@@ -56,6 +58,7 @@ public class LlmService {
     private final RagService ragService;
     private final ConversationMemoryProvider memoryProvider;
     private final List<ChatInterceptor> interceptors;
+    private final AuditEventStore auditEventStore;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final int MAX_TOOL_ROUNDS = 5;
     private final List<String> apiKeys;
@@ -144,6 +147,7 @@ public class LlmService {
                 modelRouter,
                 ragService,
                 null,
+                null,
                 null);
     }
 
@@ -158,7 +162,8 @@ public class LlmService {
             ModelRouter modelRouter,
             RagService ragService,
             ConversationMemoryProvider memoryProvider,
-            List<ChatInterceptor> interceptors) {
+            List<ChatInterceptor> interceptors,
+            AuditEventStore auditEventStore) {
         this.apiKeys = properties.resolveApiKeys();
         if (apiKeys.isEmpty()) {
             throw new IllegalArgumentException("ai-assistant.api-key must be configured");
@@ -174,6 +179,7 @@ public class LlmService {
         this.ragService = ragService;
         this.memoryProvider = memoryProvider;
         this.interceptors = interceptors != null ? interceptors : List.of();
+        this.auditEventStore = auditEventStore;
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
@@ -507,11 +513,15 @@ public class LlmService {
         userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
         String currentModel = modelId;
         RuntimeException lastError = null;
+        long startMs = System.currentTimeMillis();
 
         for (int attempt = 0; attempt < 3; attempt++) {
             ObjectNode body =
                     buildRequestBody(
                             systemPrompt, userMessage, false, history, currentModel, imageData);
+            if (!"chat".equals(operation)) {
+                body.remove("tools");
+            }
             String key = nextApiKey();
             Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
             String rawResponse;
@@ -532,22 +542,46 @@ public class LlmService {
                     currentModel = fallback;
                     continue;
                 }
+                emitAuditEvent(operation, currentModel, 0, 0,
+                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.ERROR);
                 throw e;
             }
             try {
-                recordTokenUsage(rawResponse, currentModel);
+                int[] tokenCounts = extractAndRecordTokenUsage(rawResponse, currentModel);
                 String result = processToolCallingLoop(body, rawResponse, key);
                 if (contentFilter != null) {
                     result = contentFilter.filterOutput(result);
                 }
                 if (sample != null) sample.stop(completionTimer(operation, "success"));
+                emitAuditEvent(operation, currentModel, tokenCounts[0], tokenCounts[1],
+                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.SUCCESS);
                 return result;
             } catch (RuntimeException e) {
                 if (sample != null) sample.stop(completionTimer(operation, "error"));
+                emitAuditEvent(operation, currentModel, 0, 0,
+                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.ERROR);
                 throw e;
             }
         }
         throw lastError != null ? lastError : new RuntimeException("All fallback models exhausted");
+    }
+
+    private void emitAuditEvent(String action, String modelId, int promptTokens,
+                                int completionTokens, long latencyMs, AuditEvent.Outcome outcome) {
+        if (auditEventStore == null) return;
+        try {
+            auditEventStore.record(AuditEvent.builder()
+                    .tenantId(TenantContext.tenantId())
+                    .action(action)
+                    .modelId(modelId)
+                    .promptTokens(promptTokens)
+                    .completionTokens(completionTokens)
+                    .latencyMs(latencyMs)
+                    .outcome(outcome)
+                    .build());
+        } catch (Exception e) {
+            log.debug("Audit event emission failed: {}", e.getMessage());
+        }
     }
 
     private String processToolCallingLoop(ObjectNode body, String rawResponse, String apiKey) {
@@ -607,7 +641,7 @@ public class LlmService {
             }
 
             rawResponse = chatCompletionClient.completeRaw(body, apiKey);
-            recordTokenUsage(rawResponse, modelId);
+            extractAndRecordTokenUsage(rawResponse, modelId);
         }
         return parseContentFromRaw(rawResponse);
     }
@@ -721,11 +755,21 @@ public class LlmService {
         userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
         ObjectNode body =
                 buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
+        if (!"chat".equals(operation)) {
+            body.remove("tools");
+        }
         String key = nextApiKey();
+        long startMs = System.currentTimeMillis();
 
-        if (toolRegistry != null && !toolRegistry.isEmpty()) {
+        if (toolRegistry != null && !toolRegistry.isEmpty() && body.has("tools")) {
             return applyStreamOutputFilter(
-                    callLlmStreamWithTools(body, key, operation), modelId, operation);
+                    callLlmStreamWithTools(body, key, operation), modelId, operation)
+                    .doFinally(signal -> {
+                        AuditEvent.Outcome outcome = signal == SignalType.ON_COMPLETE
+                                ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
+                        emitAuditEvent(operation, modelId, 0, 0,
+                                System.currentTimeMillis() - startMs, outcome);
+                    });
         }
 
         Flux<String> flux =
@@ -734,17 +778,18 @@ public class LlmService {
                         .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
                         .doOnError(e -> markKeyFailed(key));
         flux = applyStreamOutputFilter(flux, modelId, operation);
-        if (meterRegistry == null) {
-            return flux;
-        }
-        Timer.Sample sample = Timer.start(meterRegistry);
+        Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         return flux.doFinally(
                 signal -> {
-                    String outcome =
+                    String outcomeStr =
                             signal == SignalType.ON_COMPLETE
                                     ? "success"
                                     : signal == SignalType.ON_ERROR ? "error" : "cancel";
-                    sample.stop(streamTimer(operation, outcome));
+                    if (sample != null) sample.stop(streamTimer(operation, outcomeStr));
+                    AuditEvent.Outcome auditOutcome = signal == SignalType.ON_COMPLETE
+                            ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
+                    emitAuditEvent(operation, modelId, 0, 0,
+                            System.currentTimeMillis() - startMs, auditOutcome);
                 });
     }
 
@@ -953,21 +998,22 @@ public class LlmService {
         }
     }
 
-    private void recordTokenUsage(String rawResponse, String modelId) {
-        if (tokenUsageTracker == null) return;
+    private int[] extractAndRecordTokenUsage(String rawResponse, String modelId) {
+        int[] counts = {0, 0};
         try {
             JsonNode root = objectMapper.readTree(rawResponse);
             JsonNode usage = root.path("usage");
-            if (usage.isMissingNode()) return;
-            int promptTokens = usage.path("prompt_tokens").asInt(0);
-            int completionTokens = usage.path("completion_tokens").asInt(0);
-            if (promptTokens + completionTokens > 0) {
+            if (usage.isMissingNode()) return counts;
+            counts[0] = usage.path("prompt_tokens").asInt(0);
+            counts[1] = usage.path("completion_tokens").asInt(0);
+            if (tokenUsageTracker != null && counts[0] + counts[1] > 0) {
                 String tenantId = TenantContext.tenantId();
-                tokenUsageTracker.recordUsage(tenantId, modelId, promptTokens, completionTokens);
+                tokenUsageTracker.recordUsage(tenantId, modelId, counts[0], counts[1]);
             }
         } catch (Exception e) {
             log.debug("Token usage tracking skipped: {}", e.getMessage());
         }
+        return counts;
     }
 
     private String enrichWithMemory(String systemPrompt, String sessionId) {

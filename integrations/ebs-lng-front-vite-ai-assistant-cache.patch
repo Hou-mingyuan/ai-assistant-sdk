@@ -1,0 +1,14 @@
+diff --git a/packages/ebs-lng-app/vite.config.ts b/packages/ebs-lng-app/vite.config.ts
+index 0000000..0000000 100644
+--- a/packages/ebs-lng-app/vite.config.ts
++++ b/packages/ebs-lng-app/vite.config.ts
+@@ -76,6 +76,9 @@ export default defineConfig(({mode}) => {
+     define: {
+       __APP_BUILD_VERSION__: JSON.stringify(dayjs().format("YYYYMMDDHHmmss")),
+     },
++    optimizeDeps: {
++      exclude: ["@ai-assistant/vue"],
++    },
+     server: {
+       port: 13011,
+       open: true,

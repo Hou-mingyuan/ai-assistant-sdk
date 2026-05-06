@@ -207,7 +207,8 @@ public class AiAssistantAutoConfiguration {
                 com.aiassistant.routing.ModelRouter modelRouter,
                 ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
                 ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
-                ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
+                ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
+                ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
             return new LlmService(
                     properties,
                     urlFetchService,
@@ -219,7 +220,8 @@ public class AiAssistantAutoConfiguration {
                     modelRouter,
                     ragServiceProvider.getIfAvailable(),
                     memoryProviderProvider.getIfAvailable(),
-                    interceptorsProvider.getIfAvailable());
+                    interceptorsProvider.getIfAvailable(),
+                    auditEventStoreProvider.getIfAvailable());
         }
     }
 
@@ -236,7 +238,8 @@ public class AiAssistantAutoConfiguration {
             com.aiassistant.routing.ModelRouter modelRouter,
             ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
             ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
-            ObjectProvider<List<ChatInterceptor>> interceptorsProvider) {
+            ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
+            ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
         return new LlmService(
                 properties,
                 urlFetchService,
@@ -248,7 +251,8 @@ public class AiAssistantAutoConfiguration {
                 modelRouter,
                 ragServiceProvider.getIfAvailable(),
                 memoryProviderProvider.getIfAvailable(),
-                interceptorsProvider.getIfAvailable());
+                interceptorsProvider.getIfAvailable(),
+                auditEventStoreProvider.getIfAvailable());
     }
 
     @Bean
@@ -350,8 +354,10 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public SessionStore sessionStore() {
-        return new com.aiassistant.service.InMemorySessionStore();
+    public SessionStore sessionStore(AiAssistantProperties properties) {
+        var cfg = properties.getSessionStore();
+        return new com.aiassistant.service.InMemorySessionStore(
+                cfg.getMaxSessionsPerUser(), cfg.getMaxUsers(), cfg.getMaxMessagesPerSession());
     }
 
     @Bean
@@ -399,6 +405,12 @@ public class AiAssistantAutoConfiguration {
     @ConditionalOnMissingBean
     public com.aiassistant.security.ContentFilter contentFilter(AiAssistantProperties properties) {
         return new com.aiassistant.security.ContentFilter(properties.isPiiMaskingEnabled(), true);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.audit.AuditEventStore auditEventStore() {
+        return new com.aiassistant.audit.LoggingAuditEventStore();
     }
 
     @Bean

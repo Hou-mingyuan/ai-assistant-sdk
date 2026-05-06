@@ -19,6 +19,21 @@ function isValidMsg(o: unknown): o is PersistableChatMessage {
   );
 }
 
+export function isAbortCancellationMessage(message: string): boolean {
+  const raw = message.trim();
+  if (!raw) return false;
+  const compact = raw.replace(/\s+/g, ' ').replace(/^[`>\\\s]+/, '');
+  return /^(?:(?:error|错误|エラー|오류)\s*[:：]\s*)?(?:aborterror|signal is aborted|the operation was aborted|aborted without reason)\b/i.test(
+    compact,
+  );
+}
+
+export function pruneTransientAssistantMessages<T extends PersistableChatMessage>(messages: T[]): T[] {
+  return messages.filter(
+    (msg) => !(msg.role === 'assistant' && isAbortCancellationMessage(msg.content)),
+  );
+}
+
 export function loadPersistedMessages(
   persist: boolean,
   storageKey = DEFAULT_STORAGE_KEY,
@@ -29,7 +44,7 @@ export function loadPersistedMessages(
     if (!data) return [];
     const parsed = JSON.parse(data);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isValidMsg);
+    return pruneTransientAssistantMessages(parsed.filter(isValidMsg));
   } catch {
     return [];
   }
@@ -50,7 +65,7 @@ export function useChatHistoryPersistence(
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify(messages.value.slice(-MAX_PERSISTED_MESSAGES)),
+          JSON.stringify(pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES)),
         );
       } catch {
         /* ignore quota / private mode */
@@ -67,7 +82,7 @@ export function useChatHistoryPersistence(
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify(messages.value.slice(-MAX_PERSISTED_MESSAGES)),
+        JSON.stringify(pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES)),
       );
     } catch {
       /* ignore */

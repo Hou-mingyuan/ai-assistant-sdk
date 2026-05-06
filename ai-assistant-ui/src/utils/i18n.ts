@@ -24,6 +24,9 @@ export interface I18nMessages {
   noResponse: string;
   /** 错误前缀，后接技术信息 */
   errorPrefix: string;
+  serviceBusyError: string;
+  serviceUnavailableError: string;
+  serviceGenericError: string;
   /** 读屏：流式生成中 */
   replying: string;
   /** 折叠早期消息：{n} 为数量 */
@@ -166,6 +169,12 @@ const messages: Record<string, I18nMessages> = {
     codeCopied: '✓',
     noResponse: 'No response received',
     errorPrefix: 'Error',
+    serviceBusyError:
+      'The AI service is busy right now. Please retry shortly or switch to another model.',
+    serviceUnavailableError:
+      'The selected model channel is temporarily unavailable. Please switch models or check the service provider.',
+    serviceGenericError:
+      'The AI service is temporarily unavailable. Please retry later or open diagnostics for details.',
     replying: 'Assistant is replying…',
     showEarlierTemplate: '{n} older messages hidden — tap to show all',
     closePanel: 'Close',
@@ -287,6 +296,9 @@ const messages: Record<string, I18nMessages> = {
     codeCopied: '✓',
     noResponse: '未收到回复',
     errorPrefix: '错误',
+    serviceBusyError: 'AI 服务当前繁忙，可能触发了限流。请稍后重试，或切换其他模型。',
+    serviceUnavailableError: '当前模型通道暂时不可用。请切换模型，或检查服务商通道配置。',
+    serviceGenericError: 'AI 服务暂时不可用。请稍后重试，或打开诊断面板查看详情。',
     replying: '助手正在回复…',
     showEarlierTemplate: '已折叠更早的 {n} 条消息，点击查看全部',
     closePanel: '关闭',

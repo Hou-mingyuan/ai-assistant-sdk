@@ -27,10 +27,22 @@
       @pointerdown="onFabPointerDown"
       @contextmenu.prevent="onFabContextMenu"
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
         <path
-          d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 12H7v-2h10v2zm0-3H7V9h10v2zm0-3H7V6h10v2z"
+          d="M6.2 6.6h11.6a2.7 2.7 0 0 1 2.7 2.7v4.9a2.7 2.7 0 0 1-2.7 2.7h-5.9l-4.2 3.3v-3.3H6.2a2.7 2.7 0 0 1-2.7-2.7V9.3a2.7 2.7 0 0 1 2.7-2.7Z"
         />
+        <path d="M8 10.1h8" />
+        <path d="M8 13.2h5.7" />
       </svg>
     </button>
 
@@ -347,9 +359,22 @@
           <div
             v-for="(msg, idx) in displayedMessages"
             :key="`${displayOffset + idx}-${msg.role}`"
-            :class="['ai-msg', msg.role]"
+            v-show="!isTransientAbortAssistantMessage(msg)"
+            :class="[
+              'ai-msg',
+              msg.role,
+              { 'ai-msg-streaming': isActiveStreamingAssistant(displayOffset + idx, msg) },
+            ]"
             :data-ai-msg-global-idx="displayOffset + idx"
           >
+            <span
+              v-if="msg.role === 'assistant'"
+              class="ai-assistant-avatar"
+              :class="{
+                'ai-assistant-avatar-loading': isActiveStreamingAssistant(displayOffset + idx, msg),
+              }"
+              aria-hidden="true"
+            ></span>
             <template v-if="editingMsgIdx === displayOffset + idx">
               <div class="ai-bubble ai-bubble-editing">
                 <textarea
@@ -375,8 +400,26 @@
               </div>
             </template>
             <template v-else>
+              <div
+                v-if="
+                  isActiveStreamingAssistant(displayOffset + idx, msg) &&
+                  !hasVisibleAssistantContent(msg.content)
+                "
+                class="ai-thinking-bubble"
+                role="status"
+                aria-live="polite"
+              >
+                <span class="ai-thinking-orb" aria-hidden="true"></span>
+                <span class="ai-thinking-text">{{ t.replying }}</span>
+                <span class="ai-thinking-dots" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
+              </div>
               <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
               <div
+                v-else
                 class="ai-bubble"
                 @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
                 v-html="
@@ -389,6 +432,15 @@
               ></div>
               <!-- eslint-enable vue/no-v-html -->
             </template>
+            <button
+              v-if="isActiveStreamingAssistant(displayOffset + idx, msg)"
+              type="button"
+              class="ai-stop-generate"
+              :title="t.stopGenerate"
+              @click="stopGenerate"
+            >
+              {{ t.stopGenerate }}
+            </button>
             <div
               v-if="msg.role === 'user' && !loading && editingMsgIdx !== displayOffset + idx"
               class="ai-msg-actions"
@@ -445,23 +497,6 @@
                 👎
               </button>
             </div>
-          </div>
-          <div v-if="loading" class="ai-msg assistant">
-            <div class="ai-bubble">
-              <div class="ai-skeleton">
-                <div class="ai-skeleton-line"></div>
-                <div class="ai-skeleton-line"></div>
-                <div class="ai-skeleton-line"></div>
-              </div>
-            </div>
-            <button
-              type="button"
-              class="ai-stop-generate"
-              :title="t.stopGenerate"
-              @click="stopGenerate"
-            >
-              {{ t.stopGenerate }}
-            </button>
           </div>
         </div>
 
@@ -802,7 +837,9 @@ import type { Locale } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import {
+  isAbortCancellationMessage,
   loadPersistedMessages,
+  pruneTransientAssistantMessages,
   useChatHistoryPersistence,
 } from '../composables/useChatHistoryPersistence';
 import { useExportUi } from '../composables/useExportUi';
@@ -927,7 +964,8 @@ const fabHidden = ref(false);
 const input = ref('');
 const loading = ref(false);
 let streamAbortController: AbortController | null = null;
-const messages = ref<Message[]>(loadPersistedMessages(!!options.persistHistory));
+let streamStoppedByUser = false;
+const messages = ref<Message[]>(pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)));
 const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
   () => !!options.persistHistory,
@@ -1466,12 +1504,23 @@ const showEarlierLabel = computed(() =>
 );
 
 function renderBubble(content: string, globalIdx: number, isStreamingLast: boolean): string {
-  let html = renderContent(content, t.value.copyCode, isStreamingLast);
+  let html = renderContent(sanitizeAssistantContent(content), t.value.copyCode, isStreamingLast);
   const q = debouncedSearchQuery.value.trim();
   if (q) {
     html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value);
   }
   return html;
+}
+
+function isTransientAbortAssistantMessage(msg: Message): boolean {
+  return msg.role === 'assistant' && isAbortCancellationMessage(msg.content);
+}
+
+function removeTransientAssistantMessages() {
+  const cleaned = pruneTransientAssistantMessages(messages.value);
+  if (cleaned.length === messages.value.length) return;
+  messages.value = cleaned;
+  clearRenderCache();
 }
 
 const searchCountLabel = computed(() => {
@@ -1843,7 +1892,8 @@ const copiedIndex = ref(-1);
 
 function stopGenerate() {
   if (streamAbortController) {
-    streamAbortController.abort();
+    streamStoppedByUser = true;
+    streamAbortController.abort('user-stop');
     streamAbortController = null;
   }
 }
@@ -2125,7 +2175,7 @@ async function applyStreamToAssistantMessage(
   let raf = 0;
   function flush() {
     raf = 0;
-    messages.value[msgIndex] = { role: 'assistant', content: pending };
+    messages.value[msgIndex] = { role: 'assistant', content: sanitizeAssistantContent(pending) };
     scrollToBottom(false);
   }
   try {
@@ -2135,11 +2185,106 @@ async function applyStreamToAssistantMessage(
     }
   } finally {
     if (raf) cancelAnimationFrame(raf);
+    pending = sanitizeAssistantContent(pending);
     messages.value[msgIndex] = { role: 'assistant', content: pending };
     scrollToBottom(false);
     trimMessagesForMemoryCap();
   }
   return pending;
+}
+
+function normalizeAssistantServiceError(message: string): string {
+  const raw = message.trim();
+  if (!raw) return message;
+  if (isAbortCancellationMessage(raw)) {
+    return '';
+  }
+  if (/\b429\b|too many requests|rate limit|concurrent session/i.test(raw)) {
+    return t.value.serviceBusyError;
+  }
+  if (/\b503\b|no_available_providers|format_type_mismatch|model channel/i.test(raw)) {
+    return t.value.serviceUnavailableError;
+  }
+  if (/AI service error\.?\s*Check server logs/i.test(raw)) {
+    return t.value.serviceGenericError;
+  }
+  return message;
+}
+
+function isAssistantAbortError(error: unknown): boolean {
+  if (streamStoppedByUser) return true;
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  if (error instanceof Error) {
+    const raw = `${error.name} ${error.message}`.toLowerCase();
+    return raw.includes('abort') || raw.includes('signal is aborted');
+  }
+  return String(error).toLowerCase().includes('abort');
+}
+
+function sanitizeAssistantContent(message: string): string {
+  const normalized = normalizeAssistantServiceError(message);
+  if (!normalized.trim()) return normalized;
+  return stripInternalToolTrace(normalized);
+}
+
+function hasVisibleAssistantContent(message: string): boolean {
+  return sanitizeAssistantContent(message || '').trim().length > 0;
+}
+
+function isActiveStreamingAssistant(globalIdx: number, msg: Message): boolean {
+  return loading.value && msg.role === 'assistant' && globalIdx === messages.value.length - 1;
+}
+
+function stripInternalToolTrace(message: string): string {
+  const lines = message.split(/\r?\n/);
+  const kept: string[] = [];
+  let droppingToolJson = false;
+  let braceBalance = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const compact = trimmed
+      .replace(/^>\s*/, '')
+      .replace(/^`+/, '')
+      .replace(/^[^\w]+/u, '')
+      .replace(/^`+/, '')
+      .trim();
+    const isToolTrace =
+      /^>\s*(?:🔧|🛠|⚙️)?\s*\*\*?cap_[\w-]+\*\*?/i.test(trimmed) ||
+      /^>\s*(?:✅|✓)\s*/i.test(trimmed) ||
+      /^```?\s*cap_[\w-]+/i.test(trimmed) ||
+      /^cap_[\w-]+\s*(?:\(|\{|\[|$)/i.test(trimmed) ||
+      /^`?cap_[\w-]+`?\s*(?:\(|\{|\[|$)/i.test(trimmed) ||
+      /^`?cap_[\w-]+`?\s*(?:\(|\{|\[|$)/i.test(compact);
+
+    if (isToolTrace) {
+      droppingToolJson = /[\{\[]/.test(trimmed) && !/[\}\]]\s*`?$/.test(trimmed);
+      braceBalance = countBraceBalance(trimmed);
+      continue;
+    }
+
+    if (droppingToolJson) {
+      braceBalance += countBraceBalance(trimmed);
+      if (braceBalance <= 0 || /^```$/.test(trimmed)) {
+        droppingToolJson = false;
+        braceBalance = 0;
+      }
+      continue;
+    }
+
+    kept.push(line);
+  }
+
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function countBraceBalance(text: string): number {
+  let balance = 0;
+  for (const ch of text) {
+    if (ch === '{' || ch === '[') balance += 1;
+    else if (ch === '}' || ch === ']') balance -= 1;
+  }
+  return balance;
 }
 
 /** 将 url-preview 配图挂到助手气泡末尾（用户常只看助手方向），去重避免流式结束与回调各追加一次 */
@@ -2246,6 +2391,7 @@ async function send() {
     }
   }
 
+  streamStoppedByUser = false;
   streamAbortController = new AbortController();
   try {
     const fullContent = await applyStreamToAssistantMessage(
@@ -2272,7 +2418,17 @@ async function send() {
     }
     emit('response', fullContent);
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
+    if (isAssistantAbortError(e)) {
+      const currentContent = sanitizeAssistantContent(messages.value[msgIndex]?.content || '');
+      if (currentContent) {
+        messages.value[msgIndex] = { role: 'assistant', content: currentContent };
+      } else {
+        messages.value.splice(msgIndex, 1);
+      }
+      scrollToBottom(false);
+      return;
+    }
+    const message = normalizeAssistantServiceError(e instanceof Error ? e.message : String(e));
     const currentContent = messages.value[msgIndex]?.content || '';
     if (!currentContent) {
       messages.value[msgIndex] = {
@@ -2285,6 +2441,7 @@ async function send() {
     scrollToBottom(false);
   } finally {
     streamAbortController = null;
+    streamStoppedByUser = false;
     loading.value = false;
     scrollToBottom(false);
   }
@@ -2376,11 +2533,14 @@ function scrollToBottom(force: boolean) {
 watch(
   () => messages.value.length,
   () => {
+    removeTransientAssistantMessages();
     trimMessagesForMemoryCap();
     scrollToBottom(false);
     saveHistory();
   },
 );
+
+watch(messages, removeTransientAssistantMessages, { deep: true, flush: 'sync' });
 
 function trapFocus(e: KeyboardEvent) {
   if (e.key !== 'Tab' || !panelRef.value) return;

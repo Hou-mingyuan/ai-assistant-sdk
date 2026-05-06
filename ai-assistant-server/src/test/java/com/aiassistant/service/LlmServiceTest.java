@@ -251,7 +251,8 @@ class LlmServiceTest {
                 modelRouter,
                 ragService,
                 memoryProvider,
-                interceptors);
+                interceptors,
+                null);
     }
 
     private static UrlFetchService urlFetchService() throws Exception {

@@ -24,9 +24,43 @@ class ContentFilterTest {
 
     @Test
     void maskPii_masksIdCard() {
-        String masked = filter.maskPii("身份证号 110101199001011234");
-        assertFalse(masked.contains("110101199001011234"));
+        String masked = filter.maskPii("身份证号 110101199001010015");
+        assertFalse(masked.contains("110101199001010015"));
         assertTrue(masked.contains("[身份证号已脱敏]"));
+    }
+
+    @Test
+    void maskPii_skipsInvalidIdCard() {
+        String input = "随机数字 110101199001011234";
+        String masked = filter.maskPii(input);
+        assertTrue(masked.contains("110101199001011234"));
+    }
+
+    @Test
+    void maskPii_skipsNonLuhnBankCard() {
+        String input = "订单号 1234567890123456";
+        String masked = filter.maskPii(input);
+        assertTrue(masked.contains("1234567890123456"));
+    }
+
+    @Test
+    void passesLuhn_validCard() {
+        assertTrue(ContentFilter.passesLuhn("4532015112830366"));
+    }
+
+    @Test
+    void passesLuhn_invalidCard() {
+        assertFalse(ContentFilter.passesLuhn("1234567890123456"));
+    }
+
+    @Test
+    void isValidIdCard_valid() {
+        assertTrue(ContentFilter.isValidIdCard("110101199001010015"));
+    }
+
+    @Test
+    void isValidIdCard_invalid() {
+        assertFalse(ContentFilter.isValidIdCard("110101199001011234"));
     }
 
     @Test
