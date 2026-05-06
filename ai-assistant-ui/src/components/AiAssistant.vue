@@ -243,6 +243,15 @@
               ☑
             </button>
             <button
+              type="button"
+              class="ai-header-btn"
+              :class="{ active: !codeWallDisabled }"
+              title="Code Wall"
+              @click="codeWallDisabled = !codeWallDisabled; codeWallDisabled ? stopCodeWall() : startCodeWall()"
+            >
+              ✦
+            </button>
+            <button
               v-if="messages.length > 0"
               type="button"
               class="ai-clear"
@@ -915,6 +924,7 @@ import type { ChatPayload } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
+import { useCodeWall } from '../composables/useCodeWall';
 import { usePanelGeometry } from '../composables/usePanelGeometry';
 import { useMsgContextMenu } from '../composables/useMsgContextMenu';
 import { getMessages } from '../utils/i18n';
@@ -1434,184 +1444,14 @@ let dragCounter = 0;
 const pendingTimers: number[] = [];
 const pendingImageData = ref<string | null>(null);
 const pendingImageThumb = ref<string | null>(null);
-type CodeWallCell = {
-  char: string;
-  color: string;
-  targetColor: string;
-  progress: number;
-};
-let codeWallCells: CodeWallCell[] = [];
-let codeWallGrid = { columns: 0, rows: 0 };
-let codeWallRaf = 0;
-let codeWallLastTick = 0;
-let codeWallResizeObserver: ResizeObserver | null = null;
-const CODE_WALL_TOKENS = [
-  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}[]()<>/+=-_*#$',
-  'AI',
-  'CODE',
-];
-const CODE_WALL_COLORS = [
-  'rgba(75, 210, 128, 0.56)',
-  'rgba(30, 165, 94, 0.48)',
-  'rgba(126, 222, 156, 0.36)',
-  'rgba(0, 220, 120, 0.42)',
-  'rgba(178, 238, 194, 0.28)',
-];
-const CODE_WALL_CELL_WIDTH = 15;
-const CODE_WALL_CELL_HEIGHT = 18;
-const CODE_WALL_TICK_MS = 50;
-const CODE_WALL_MUTATION_RATIO = 0.08;
-
-function shouldAnimateCodeWall() {
-  return !reducedMotionRef.value && pageVisibleRef.value;
-}
+const {
+  disabled: codeWallDisabled,
+  start: startCodeWall,
+  stop: stopCodeWall,
+} = useCodeWall(codeWallCanvasRef, panelRef, reducedMotionRef, pageVisibleRef);
 
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
 
-function pickCodeWallToken() {
-  return CODE_WALL_TOKENS[Math.floor(Math.random() * CODE_WALL_TOKENS.length)] || 'AI';
-}
-
-function pickCodeWallColor() {
-  return (
-    CODE_WALL_COLORS[Math.floor(Math.random() * CODE_WALL_COLORS.length)] ||
-    'rgba(75, 210, 128, 0.42)'
-  );
-}
-
-function createCodeWallCell(): CodeWallCell {
-  const color = pickCodeWallColor();
-  return {
-    char: pickCodeWallToken(),
-    color,
-    targetColor: color,
-    progress: Math.random(),
-  };
-}
-
-function rebuildCodeWallCells(columns: number, rows: number) {
-  const nextCount = columns * rows;
-  if (nextCount <= 0) {
-    codeWallCells = [];
-    return;
-  }
-  if (codeWallCells.length === nextCount) return;
-  codeWallCells = Array.from({ length: nextCount }, () => createCodeWallCell());
-}
-
-function resizeCodeWallCanvas() {
-  const canvas = codeWallCanvasRef.value;
-  const panel = panelRef.value;
-  if (!canvas || !panel) return;
-
-  const width = Math.max(1, Math.ceil(panel.clientWidth || panel.offsetWidth));
-  const height = Math.max(1, Math.ceil(panel.clientHeight || panel.offsetHeight));
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const nextCanvasWidth = Math.ceil(width * dpr);
-  const nextCanvasHeight = Math.ceil(height * dpr);
-
-  if (canvas.width !== nextCanvasWidth || canvas.height !== nextCanvasHeight) {
-    canvas.width = nextCanvasWidth;
-    canvas.height = nextCanvasHeight;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-  }
-
-  const columns = Math.ceil(width / CODE_WALL_CELL_WIDTH);
-  const rows = Math.ceil(height / CODE_WALL_CELL_HEIGHT);
-  if (columns !== codeWallGrid.columns || rows !== codeWallGrid.rows) {
-    codeWallGrid = { columns, rows };
-    rebuildCodeWallCells(columns, rows);
-  }
-
-  const ctx = canvas.getContext('2d');
-  ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
-  paintCodeWall();
-}
-
-function mutateCodeWallCells() {
-  if (!codeWallCells.length) return;
-  const mutationCount = Math.max(1, Math.floor(codeWallCells.length * CODE_WALL_MUTATION_RATIO));
-  for (let i = 0; i < mutationCount; i++) {
-    const cell = codeWallCells[Math.floor(Math.random() * codeWallCells.length)];
-    if (!cell) continue;
-    cell.char = pickCodeWallToken();
-    cell.targetColor = pickCodeWallColor();
-    cell.progress = 0;
-  }
-}
-
-function paintCodeWall() {
-  const canvas = codeWallCanvasRef.value;
-  const ctx = canvas?.getContext('2d');
-  if (!canvas || !ctx || !codeWallGrid.columns || !codeWallGrid.rows) return;
-
-  const width = canvas.width / Math.min(window.devicePixelRatio || 1, 2);
-  const height = canvas.height / Math.min(window.devicePixelRatio || 1, 2);
-  ctx.clearRect(0, 0, width, height);
-  ctx.font =
-    '700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
-  ctx.textBaseline = 'middle';
-
-  for (let row = 0; row < codeWallGrid.rows; row++) {
-    for (let col = 0; col < codeWallGrid.columns; col++) {
-      const cell = codeWallCells[row * codeWallGrid.columns + col];
-      if (!cell) continue;
-      if (cell.progress < 1) {
-        cell.progress = Math.min(1, cell.progress + 0.22);
-        if (cell.progress === 1) cell.color = cell.targetColor;
-      }
-      const x = col * CODE_WALL_CELL_WIDTH + 3;
-      const y = row * CODE_WALL_CELL_HEIGHT + 9;
-      ctx.fillStyle = cell.progress < 1 ? cell.targetColor : cell.color;
-      ctx.shadowColor = cell.targetColor;
-      ctx.shadowBlur = cell.progress < 1 ? 8 : 3;
-      ctx.globalAlpha = cell.progress < 1 ? 0.44 + cell.progress * 0.24 : 0.44;
-      ctx.fillText(cell.char, x, y);
-    }
-  }
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
-}
-
-function tickCodeWall(timestamp: number) {
-  if (!shouldAnimateCodeWall()) {
-    codeWallRaf = 0;
-    return;
-  }
-  codeWallRaf = requestAnimationFrame(tickCodeWall);
-  if (timestamp - codeWallLastTick < CODE_WALL_TICK_MS) return;
-  codeWallLastTick = timestamp;
-  mutateCodeWallCells();
-  paintCodeWall();
-}
-
-function stopCodeWall() {
-  if (codeWallRaf) {
-    cancelAnimationFrame(codeWallRaf);
-    codeWallRaf = 0;
-  }
-  codeWallLastTick = 0;
-  codeWallResizeObserver?.disconnect();
-  codeWallResizeObserver = null;
-}
-
-function startCodeWall() {
-  const panel = panelRef.value;
-  const canvas = codeWallCanvasRef.value;
-  if (!panel || !canvas) return;
-
-  stopCodeWall();
-  resizeCodeWallCanvas();
-  if (typeof ResizeObserver !== 'undefined') {
-    codeWallResizeObserver = new ResizeObserver(() => {
-      resizeCodeWallCanvas();
-    });
-    codeWallResizeObserver.observe(panel);
-  }
-  if (!shouldAnimateCodeWall()) return;
-  codeWallRaf = requestAnimationFrame(tickCodeWall);
-}
 
 const modes = computed(() => [
   { value: 'translate' as const, label: t.value.translate },
@@ -1676,8 +1516,20 @@ const showEarlierLabel = computed(() =>
   t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
 );
 
+function escapeHtmlLite(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function renderBubble(content: string, globalIdx: number, isStreamingLast: boolean): string {
-  let html = renderContent(sanitizeAssistantContent(content), t.value.copyCode, isStreamingLast);
+  const sanitized = sanitizeAssistantContent(content);
+  let html: string;
+  if (isStreamingLast && sanitized.length > 200) {
+    html = '<pre class="ai-stream-plain" style="white-space:pre-wrap;font-family:inherit;margin:0">'
+      + escapeHtmlLite(sanitized)
+      + '</pre>';
+  } else {
+    html = renderContent(sanitized, t.value.copyCode, isStreamingLast);
+  }
   const q = debouncedSearchQuery.value.trim();
   if (q) {
     html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value);
@@ -2902,7 +2754,7 @@ watch(selectedChatModel, (v) => {
   }
 });
 
-watch([reducedMotionRef, pageVisibleRef], () => {
+watch([reducedMotionRef, pageVisibleRef, codeWallDisabled], () => {
   if (isOpen.value) {
     nextTick(() => startCodeWall());
   }
