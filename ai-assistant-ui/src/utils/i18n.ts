@@ -29,6 +29,8 @@ export interface I18nMessages {
   serviceGenericError: string;
   /** 读屏：流式生成中 */
   replying: string;
+  /** 消息气泡旁相对时间：刚刚 */
+  justNow: string;
   /** 折叠早期消息：{n} 为数量 */
   showEarlierTemplate: string;
   closePanel: string;
@@ -143,6 +145,7 @@ export interface I18nMessages {
   removeImage: string;
   chatSessions: string;
   closeSession: string;
+  retryError: string;
 }
 
 const messages: Record<string, I18nMessages> = {
@@ -176,6 +179,7 @@ const messages: Record<string, I18nMessages> = {
     serviceGenericError:
       'The AI service is temporarily unavailable. Please retry later or open diagnostics for details.',
     replying: 'Assistant is replying…',
+    justNow: 'just now',
     showEarlierTemplate: '{n} older messages hidden — tap to show all',
     closePanel: 'Close',
     expandPanel: 'Fullscreen',
@@ -272,6 +276,7 @@ const messages: Record<string, I18nMessages> = {
     removeImage: 'Remove image',
     chatSessions: 'Chat sessions',
     closeSession: 'Close',
+    retryError: 'Retry',
   },
   zh: {
     greeting: '👋 你好！我可以帮你：',
@@ -300,6 +305,7 @@ const messages: Record<string, I18nMessages> = {
     serviceUnavailableError: '当前模型通道暂时不可用。请切换模型，或检查服务商通道配置。',
     serviceGenericError: 'AI 服务暂时不可用。请稍后重试，或打开诊断面板查看详情。',
     replying: '助手正在回复…',
+    justNow: '刚刚',
     showEarlierTemplate: '已折叠更早的 {n} 条消息，点击查看全部',
     closePanel: '关闭',
     expandPanel: '全屏',
@@ -395,6 +401,7 @@ const messages: Record<string, I18nMessages> = {
     removeImage: '移除图片',
     chatSessions: '会话列表',
     closeSession: '关闭',
+    retryError: '重试',
   },
 };
 
@@ -519,6 +526,7 @@ const ja = {
   removeImage: '画像を削除',
   chatSessions: 'チャットセッション',
   closeSession: '閉じる',
+  retryError: '再試行',
 };
 
 const ko = {
@@ -642,6 +650,7 @@ const ko = {
   removeImage: '이미지 제거',
   chatSessions: '채팅 세션',
   closeSession: '닫기',
+  retryError: '재시도',
 };
 
 messages.ja = ja satisfies I18nMessages;

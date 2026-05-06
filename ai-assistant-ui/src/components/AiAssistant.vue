@@ -233,6 +233,16 @@
               </div>
             </div>
             <button
+              v-if="messages.length > 0 && !loading"
+              type="button"
+              class="ai-header-btn"
+              :class="{ active: selectMode }"
+              :title="selectMode ? t.closePanel : t.msgCtxDelete"
+              @click="toggleSelectMode"
+            >
+              ☑
+            </button>
+            <button
               v-if="messages.length > 0"
               type="button"
               class="ai-clear"
@@ -332,6 +342,9 @@
               </div>
             </div>
           </Transition>
+          <div v-if="fileUploading" class="ai-upload-progress" role="progressbar" aria-label="Uploading">
+            <div class="ai-upload-progress-bar"></div>
+          </div>
           <div v-if="messages.length === 0" class="ai-empty">
             <p>{{ t.greeting }}</p>
             <div class="ai-quick-actions">
@@ -364,9 +377,18 @@
               'ai-msg',
               msg.role,
               { 'ai-msg-streaming': isActiveStreamingAssistant(displayOffset + idx, msg) },
+              { 'ai-msg-selected': selectMode && selectedMsgIndices.has(displayOffset + idx) },
             ]"
             :data-ai-msg-global-idx="displayOffset + idx"
+            @click="selectMode ? toggleMsgSelection(displayOffset + idx) : undefined"
           >
+            <input
+              v-if="selectMode"
+              type="checkbox"
+              class="ai-msg-checkbox"
+              :checked="selectedMsgIndices.has(displayOffset + idx)"
+              @click.stop="toggleMsgSelection(displayOffset + idx)"
+            />
             <span
               v-if="msg.role === 'assistant'"
               class="ai-assistant-avatar"
@@ -398,6 +420,7 @@
                   </button>
                 </div>
               </div>
+              <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
             </template>
             <template v-else>
               <div
@@ -431,6 +454,7 @@
                 "
               ></div>
               <!-- eslint-enable vue/no-v-html -->
+              <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
             </template>
             <button
               v-if="isActiveStreamingAssistant(displayOffset + idx, msg)"
@@ -497,8 +521,38 @@
                 👎
               </button>
             </div>
+            <button
+              v-if="isErrorMessage(msg) && !loading"
+              type="button"
+              class="ai-retry-btn"
+              @click="retryLastError(displayOffset + idx)"
+            >
+              🔄 {{ t.retryError }}
+            </button>
           </div>
         </div>
+        <Transition name="ai-fade">
+          <div v-if="selectMode && selectedMsgIndices.size > 0" class="ai-batch-delete-bar">
+            <span class="ai-batch-delete-count">{{ selectedMsgIndices.size }}</span>
+            <button type="button" class="ai-batch-delete-btn" @click="deleteSelectedMessages">
+              🗑️ {{ t.msgCtxDelete }}
+            </button>
+            <button type="button" class="ai-batch-cancel-btn" @click="toggleSelectMode">
+              {{ t.closePanel }}
+            </button>
+          </div>
+        </Transition>
+        <Transition name="ai-fade">
+          <button
+            v-if="showScrollToBottomBtn && !loading"
+            type="button"
+            class="ai-scroll-bottom-btn"
+            :aria-label="'↓'"
+            @click="scrollToBottomClick"
+          >
+            ↓
+          </button>
+        </Transition>
 
         <!-- Mode Bar -->
         <div class="ai-mode-bar">
@@ -516,6 +570,13 @@
             <option value="zh">中文</option>
             <option value="en">English</option>
             <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="pt">Português</option>
+            <option value="ru">Русский</option>
+            <option value="ar">العربية</option>
           </select>
         </div>
 
@@ -655,11 +716,17 @@
             <textarea
               v-model="input"
               class="ai-footer-textarea"
-              :placeholder="`${placeholder} (${t.newline})`"
+              :placeholder="`${placeholder} (${ctrlEnterToSend ? 'Ctrl+Enter' : t.newline})`"
               rows="2"
-              @keydown.enter.exact.prevent="send"
+              @input="autoResizeTextarea"
+              @keydown="onTextareaKeydown"
               @paste="onPasteImage"
             />
+            <span
+              v-if="charCountLabel"
+              class="ai-char-counter"
+              :class="{ 'ai-char-counter-warn': charCountNearLimit }"
+            >{{ charCountLabel }}</span>
             <div class="ai-footer-send-group">
               <input
                 ref="fileInputRef"
@@ -700,6 +767,24 @@
                 @click="runPlugin(pl)"
               >
                 {{ pl.icon || pl.label.charAt(0) }}
+              </button>
+              <button
+                type="button"
+                class="ai-ctrl-enter-toggle"
+                :class="{ active: soundEnabled }"
+                :title="soundEnabled ? 'Sound: ON' : 'Sound: OFF'"
+                @click="soundEnabled = !soundEnabled"
+              >
+                {{ soundEnabled ? '🔔' : '🔕' }}
+              </button>
+              <button
+                type="button"
+                class="ai-ctrl-enter-toggle"
+                :class="{ active: ctrlEnterToSend }"
+                :title="ctrlEnterToSend ? 'Ctrl+Enter → Send' : 'Enter → Send'"
+                @click="ctrlEnterToSend = !ctrlEnterToSend"
+              >
+                ⏎
               </button>
               <button
                 class="ai-send"
@@ -864,6 +949,7 @@ interface Message {
   /** 内存 cap 截断展示文案时保留的全文，导出/复制优先使用 */
   contentArchive?: string;
   feedback?: 'up' | 'down';
+  timestamp?: number;
 }
 
 const sessionTitle = ref('');
@@ -880,7 +966,7 @@ function makePluginContext(): PluginContext {
       input.value = text;
     },
     addMessage: (role: 'user' | 'assistant', content: string) => {
-      messages.value.push({ role, content });
+      messages.value.push({ role, content, timestamp: Date.now() });
       scrollToBottom(true);
     },
   };
@@ -913,6 +999,15 @@ function reportAssistantError(source: string, message: string) {
 }
 
 const t = computed(() => getMessages((options.locale || 'en') as Locale));
+
+function formatRelativeTime(ts?: number): string {
+  if (!ts) return '';
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return t.value.justNow || 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return new Date(ts).toLocaleDateString();
+}
 
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
 
@@ -963,6 +1058,38 @@ const isOpen = ref(false);
 const fabHidden = ref(false);
 const input = ref('');
 const loading = ref(false);
+const ctrlEnterToSend = ref(false);
+const soundEnabled = ref(false);
+
+function playNotificationSound() {
+  if (!soundEnabled.value) return;
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1047, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+    osc.onended = () => ctx.close();
+  } catch { /* AudioContext may not be available */ }
+}
+const maxUserChars = computed(() => {
+  const n = options.maxUserMessageChars;
+  return n && n > 0 ? n : 0;
+});
+const charCountLabel = computed(() => {
+  if (!maxUserChars.value) return '';
+  return `${input.value.length}/${maxUserChars.value}`;
+});
+const charCountNearLimit = computed(() => {
+  if (!maxUserChars.value) return false;
+  return input.value.length > maxUserChars.value * 0.85;
+});
 let streamAbortController: AbortController | null = null;
 let streamStoppedByUser = false;
 const messages = ref<Message[]>(pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)));
@@ -1253,10 +1380,56 @@ const {
 } = msgCtxComposable;
 
 const bodyRef = ref<HTMLElement>();
+const showScrollToBottomBtn = ref(false);
+
+function onTextareaKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Enter') return;
+  if (ctrlEnterToSend.value) {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      send();
+    }
+  } else {
+    if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+}
+
+function autoResizeTextarea(event: Event) {
+  const el = event.target as HTMLTextAreaElement;
+  el.style.height = 'auto';
+  const lineHeight = 22;
+  const minH = lineHeight * 2;
+  const maxH = lineHeight * 6;
+  el.style.height = Math.min(Math.max(el.scrollHeight, minH), maxH) + 'px';
+}
+
+function onBodyScroll() {
+  const el = bodyRef.value;
+  if (!el) return;
+  showScrollToBottomBtn.value = el.scrollHeight - el.scrollTop - el.clientHeight > 300;
+}
+
+function scrollToBottomClick() {
+  const el = bodyRef.value;
+  if (el) {
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
+}
+
+watch(bodyRef, (el) => {
+  if (el) el.addEventListener('scroll', onBodyScroll, { passive: true });
+}, { immediate: true });
+
 const panelRef = ref<HTMLElement>();
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileInputRef = ref<HTMLInputElement>();
 const dragActive = ref(false);
+const fileUploading = ref(false);
+const selectMode = ref(false);
+const selectedMsgIndices = ref<Set<number>>(new Set());
 let dragCounter = 0;
 const pendingTimers: number[] = [];
 const pendingImageData = ref<string | null>(null);
@@ -1873,6 +2046,31 @@ function saveCurrentSessionToMulti() {
   if (sessionTitle.value) multiSessions.updateActiveTitle(sessionTitle.value);
 }
 
+function toggleSelectMode() {
+  selectMode.value = !selectMode.value;
+  if (!selectMode.value) selectedMsgIndices.value.clear();
+}
+
+function toggleMsgSelection(globalIdx: number) {
+  const s = new Set(selectedMsgIndices.value);
+  if (s.has(globalIdx)) s.delete(globalIdx);
+  else s.add(globalIdx);
+  selectedMsgIndices.value = s;
+}
+
+function deleteSelectedMessages() {
+  if (selectedMsgIndices.value.size === 0) return;
+  const sorted = [...selectedMsgIndices.value].sort((a, b) => b - a);
+  for (const idx of sorted) {
+    if (idx >= 0 && idx < messages.value.length) {
+      messages.value.splice(idx, 1);
+    }
+  }
+  selectedMsgIndices.value.clear();
+  selectMode.value = false;
+  clearRenderCache();
+}
+
 function clearMessages() {
   messages.value = [];
   renderAllMessages.value = false;
@@ -1896,6 +2094,19 @@ function stopGenerate() {
     streamAbortController.abort('user-stop');
     streamAbortController = null;
   }
+}
+
+function isErrorMessage(msg: Message): boolean {
+  if (msg.role !== 'assistant') return false;
+  const prefixes = ['Error:', '错误:', 'エラー:', '오류:'];
+  return prefixes.some((p) => msg.content.startsWith(p));
+}
+
+function retryLastError(globalIdx: number) {
+  if (loading.value) return;
+  const msg = messages.value[globalIdx];
+  if (!msg || !isErrorMessage(msg)) return;
+  regenerateAt(globalIdx);
 }
 
 function regenerateAt(globalIdx: number) {
@@ -2033,6 +2244,7 @@ function readFileAsDataUrl(file: File) {
     messages.value.push({
       role: 'assistant',
       content: `${t.value.errorPrefix}: Image exceeds 5MB limit`,
+      timestamp: Date.now(),
     });
     return;
   }
@@ -2175,7 +2387,14 @@ async function applyStreamToAssistantMessage(
   let raf = 0;
   function flush() {
     raf = 0;
-    messages.value[msgIndex] = { role: 'assistant', content: sanitizeAssistantContent(pending) };
+    const prev = messages.value[msgIndex];
+    messages.value[msgIndex] = {
+      role: 'assistant',
+      content: sanitizeAssistantContent(pending),
+      timestamp: prev?.timestamp,
+      contentArchive: prev?.contentArchive,
+      feedback: prev?.feedback,
+    };
     scrollToBottom(false);
   }
   try {
@@ -2186,7 +2405,14 @@ async function applyStreamToAssistantMessage(
   } finally {
     if (raf) cancelAnimationFrame(raf);
     pending = sanitizeAssistantContent(pending);
-    messages.value[msgIndex] = { role: 'assistant', content: pending };
+    const prevDone = messages.value[msgIndex];
+    messages.value[msgIndex] = {
+      role: 'assistant',
+      content: pending,
+      timestamp: prevDone?.timestamp,
+      contentArchive: prevDone?.contentArchive,
+      feedback: prevDone?.feedback,
+    };
     scrollToBottom(false);
     trimMessagesForMemoryCap();
   }
@@ -2298,7 +2524,13 @@ function appendUrlPreviewImagesToAssistant(aiIdx: number, imgs: string[]) {
   const note = t.value.urlPreviewImagesNote;
   const md = [`> ${note}`, '', ...lines].join('\n\n');
   const base = (m.contentArchive ?? m.content).trim();
-  messages.value[aiIdx] = { role: 'assistant', content: `${base}\n\n${md}` };
+  messages.value[aiIdx] = {
+    role: 'assistant',
+    content: `${base}\n\n${md}`,
+    timestamp: m.timestamp,
+    contentArchive: m.contentArchive,
+    feedback: m.feedback,
+  };
   clearRenderCache();
   trimMessagesForMemoryCap();
 }
@@ -2311,7 +2543,7 @@ async function send() {
     text = `${text.slice(0, ucap)}\n…`;
   }
 
-  const userEntry: Message = { role: 'user', content: text };
+  const userEntry: Message = { role: 'user', content: text, timestamp: Date.now() };
   messages.value.push(userEntry);
   const userMsgIdx = messages.value.length - 1;
 
@@ -2358,7 +2590,7 @@ async function send() {
 
   emit('send', { action: mode.value, text });
 
-  const assistantMsg: Message = { role: 'assistant', content: '' };
+  const assistantMsg: Message = { role: 'assistant', content: '', timestamp: Date.now() };
   messages.value.push(assistantMsg);
   const msgIndex = messages.value.length - 1;
   scrollToBottom(true);
@@ -2406,7 +2638,14 @@ async function send() {
     streamDone = true;
     /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
     if (!fullContent && !urlPreviewImgs.length) {
-      messages.value[msgIndex] = { role: 'assistant', content: t.value.noResponse };
+      const prevSlot = messages.value[msgIndex];
+      messages.value[msgIndex] = {
+        role: 'assistant',
+        content: t.value.noResponse,
+        timestamp: prevSlot?.timestamp,
+        contentArchive: prevSlot?.contentArchive,
+        feedback: prevSlot?.feedback,
+      };
     } else {
       appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
     }
@@ -2421,7 +2660,14 @@ async function send() {
     if (isAssistantAbortError(e)) {
       const currentContent = sanitizeAssistantContent(messages.value[msgIndex]?.content || '');
       if (currentContent) {
-        messages.value[msgIndex] = { role: 'assistant', content: currentContent };
+        const prevSlot = messages.value[msgIndex];
+        messages.value[msgIndex] = {
+          role: 'assistant',
+          content: currentContent,
+          timestamp: prevSlot?.timestamp,
+          contentArchive: prevSlot?.contentArchive,
+          feedback: prevSlot?.feedback,
+        };
       } else {
         messages.value.splice(msgIndex, 1);
       }
@@ -2431,9 +2677,13 @@ async function send() {
     const message = normalizeAssistantServiceError(e instanceof Error ? e.message : String(e));
     const currentContent = messages.value[msgIndex]?.content || '';
     if (!currentContent) {
+      const prevSlot = messages.value[msgIndex];
       messages.value[msgIndex] = {
         role: 'assistant',
         content: `${t.value.errorPrefix}: ${message}`,
+        timestamp: prevSlot?.timestamp,
+        contentArchive: prevSlot?.contentArchive,
+        feedback: prevSlot?.feedback,
       };
     }
     reportAssistantError('send', message);
@@ -2443,6 +2693,7 @@ async function send() {
     streamAbortController = null;
     streamStoppedByUser = false;
     loading.value = false;
+    playNotificationSound();
     scrollToBottom(false);
   }
 }
@@ -2452,8 +2703,9 @@ async function processFileUpload(file: File) {
 
   const action = mode.value === 'translate' ? ('translate' as const) : ('summarize' as const);
   const label = `📎 ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
-  messages.value.push({ role: 'user', content: label });
+  messages.value.push({ role: 'user', content: label, timestamp: Date.now() });
   loading.value = true;
+  fileUploading.value = true;
   scrollToBottom(true);
 
   emit('send', { action, text: label });
@@ -2466,7 +2718,7 @@ async function processFileUpload(file: File) {
       options.accessToken,
     );
     const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`;
-    messages.value.push({ role: 'assistant', content });
+    messages.value.push({ role: 'assistant', content, timestamp: Date.now() });
     scrollToBottom(true);
     if (res.success) emit('response', content);
     else {
@@ -2475,12 +2727,18 @@ async function processFileUpload(file: File) {
     }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    messages.value.push({ role: 'assistant', content: `${t.value.errorPrefix}: ${message}` });
+    messages.value.push({
+      role: 'assistant',
+      content: `${t.value.errorPrefix}: ${message}`,
+      timestamp: Date.now(),
+    });
     scrollToBottom(true);
     reportAssistantError('file-upload', message);
     emit('error', message || 'Unknown error');
   } finally {
     loading.value = false;
+    fileUploading.value = false;
+    playNotificationSound();
     scrollToBottom(false);
   }
 }

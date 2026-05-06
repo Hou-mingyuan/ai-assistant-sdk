@@ -466,6 +466,20 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  animation: ai-msg-enter 0.25s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-msg { animation: none; }
+}
+@keyframes ai-msg-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .ai-msg.user {
   justify-content: flex-end;
@@ -1845,14 +1859,17 @@ mark.ai-search-hl-active {
   gap: 8px;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 .ai-footer-textarea {
   flex: 1 1 auto;
   min-width: 0;
   width: 0;
   box-sizing: border-box;
-  resize: vertical;
+  resize: none;
   min-height: 44px;
+  overflow-y: auto;
+  transition: height 0.1s ease;
 }
 .ai-footer-send-group {
   display: flex;
@@ -2374,6 +2391,110 @@ mark.ai-search-hl-active {
   border-radius: 12px;
   pointer-events: none;
 }
+/* ── Multi-select delete ──────────────────────────────────── */
+.ai-msg-checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 8px;
+  accent-color: var(--primary, #6366f1);
+  cursor: pointer;
+}
+.ai-msg-selected {
+  background: color-mix(in srgb, var(--primary, #6366f1) 8%, transparent);
+  border-radius: 8px;
+  padding: 4px;
+  margin: -4px;
+}
+.ai-batch-delete-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg, #fff);
+  border-top: 1px solid var(--border, #e2e8f0);
+  z-index: 5;
+}
+.ai-dark .ai-batch-delete-bar {
+  background: var(--bg, #1e293b);
+  border-color: var(--border, #334155);
+}
+.ai-batch-delete-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #6366f1);
+  min-width: 24px;
+}
+.ai-batch-delete-btn {
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ai-batch-delete-btn:hover {
+  background: #dc2626;
+}
+.ai-batch-cancel-btn {
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg, #fff);
+  color: var(--text, #1e293b);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ai-dark .ai-batch-cancel-btn {
+  background: var(--bg, #1e293b);
+  color: var(--text, #e2e8f0);
+  border-color: var(--border, #334155);
+}
+.ai-header-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-muted, #94a3b8);
+  padding: 2px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.ai-header-btn:hover {
+  color: var(--text, #1e293b);
+}
+.ai-header-btn.active {
+  color: var(--primary, #6366f1);
+}
+
+/* ── Upload progress bar ──────────────────────────────────── */
+.ai-upload-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border, #e2e8f0);
+  z-index: 6;
+  overflow: hidden;
+}
+.ai-upload-progress-bar {
+  width: 40%;
+  height: 100%;
+  background: var(--primary, #6366f1);
+  border-radius: 2px;
+  animation: ai-upload-slide 1.2s ease-in-out infinite;
+}
+@keyframes ai-upload-slide {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(150%); }
+  100% { transform: translateX(350%); }
+}
+
 .ai-drop-overlay-inner {
   display: flex;
   flex-direction: column;
@@ -2390,6 +2511,117 @@ mark.ai-search-hl-active {
 .ai-fade-enter-from,
 .ai-fade-leave-to {
   opacity: 0;
+}
+
+.ai-scroll-bottom-btn {
+  position: absolute;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg, #fff);
+  color: var(--text, #1e293b);
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.ai-scroll-bottom-btn:hover {
+  opacity: 1;
+}
+.ai-dark .ai-scroll-bottom-btn {
+  background: var(--bg, #1e293b);
+  border-color: var(--border, #334155);
+  color: var(--text, #e2e8f0);
+}
+
+.ai-msg-time {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 2px;
+  display: block;
+}
+.ai-msg.user .ai-msg-time {
+  text-align: right;
+}
+
+.ai-char-counter {
+  position: absolute;
+  right: 56px;
+  bottom: 6px;
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  pointer-events: none;
+  z-index: 1;
+}
+.ai-char-counter-warn {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* ── Retry error button ───────────────────────────────────── */
+.ai-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  background: var(--bg, #fff);
+  color: #ef4444;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ai-retry-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.ai-dark .ai-retry-btn {
+  background: var(--bg, #1e293b);
+  border-color: var(--border, #334155);
+  color: #f87171;
+}
+.ai-dark .ai-retry-btn:hover {
+  background: #371520;
+  border-color: #f87171;
+}
+
+/* ── Ctrl+Enter toggle ────────────────────────────────────── */
+.ai-ctrl-enter-toggle {
+  background: none;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 4px;
+  color: var(--text-muted, #94a3b8);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.ai-ctrl-enter-toggle:hover {
+  color: var(--text, #1e293b);
+  border-color: var(--text-muted, #94a3b8);
+}
+.ai-ctrl-enter-toggle.active {
+  color: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+}
+.ai-dark .ai-ctrl-enter-toggle {
+  border-color: var(--border, #334155);
 }
 
 /* ── Pending image preview ────────────────────────────────── */

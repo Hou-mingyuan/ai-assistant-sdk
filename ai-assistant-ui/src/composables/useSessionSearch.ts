@@ -5,6 +5,7 @@ interface Message {
   content: string;
   contentArchive?: string;
   feedback?: 'up' | 'down';
+  timestamp?: number;
 }
 
 const SEARCH_DEBOUNCE_MS = 200;
