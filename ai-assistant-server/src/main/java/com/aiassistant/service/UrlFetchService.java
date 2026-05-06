@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -246,39 +247,49 @@ public class UrlFetchService {
             return text;
         }
 
-        StringBuilder sb = new StringBuilder(text);
         int injectCap = Math.max(0, properties.getUrlFetchMaxCharsInjected());
 
-        for (String url : urls) {
-            try {
-                URI uri = URI.create(url);
-                String cached = getCachedText(uri);
-                String extracted;
-                if (cached != null) {
-                    extracted = cached;
-                } else {
-                    byte[] raw = fetchBytes(uri);
-                    Charset cs = sniffCharset(raw, uri);
-                    String html = new String(raw, cs);
-                    extracted = htmlToPlain(html);
-                    if (extracted.length() < 200 && headlessFetchService != null) {
-                        HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
-                        if (!hr.text().isBlank()) {
-                            extracted = hr.text();
+        List<CompletableFuture<String>> futures = urls.stream()
+                .map(url -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        URI uri = URI.create(url);
+                        String cached = getCachedText(uri);
+                        String extracted;
+                        if (cached != null) {
+                            extracted = cached;
+                        } else {
+                            byte[] raw = fetchBytes(uri);
+                            Charset cs = sniffCharset(raw, uri);
+                            String html = new String(raw, cs);
+                            extracted = htmlToPlain(html);
+                            if (extracted.length() < 200 && headlessFetchService != null) {
+                                HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
+                                if (!hr.text().isBlank()) {
+                                    extracted = hr.text();
+                                }
+                            }
+                            putCachedText(uri, extracted);
                         }
+                        if (injectCap > 0 && extracted.length() > injectCap) {
+                            extracted = extracted.substring(0, injectCap) + "\n…[truncated]";
+                        }
+                        return "\n\n--- fetched: " + url + " ---\n" + extracted;
+                    } catch (Exception e) {
+                        log.debug("Failed to enrich URL {}: {}", url, e.getMessage());
+                        return "";
                     }
-                    putCachedText(uri, extracted);
-                }
+                }))
+                .toList();
 
-                if (injectCap > 0 && extracted.length() > injectCap) {
-                    extracted = extracted.substring(0, injectCap) + "\n…[truncated]";
-                }
-                sb.append("\n\n--- fetched: ").append(url).append(" ---\n").append(extracted);
+        StringBuilder sb = new StringBuilder(text);
+        for (CompletableFuture<String> f : futures) {
+            try {
+                String result = f.join();
+                if (!result.isEmpty()) sb.append(result);
             } catch (Exception e) {
-                log.debug("Failed to enrich URL {}: {}", url, e.getMessage());
+                log.debug("URL enrichment future failed: {}", e.getMessage());
             }
         }
-
         return sb.toString();
     }
 

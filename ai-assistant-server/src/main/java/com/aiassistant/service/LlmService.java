@@ -761,13 +761,16 @@ public class LlmService {
         String key = nextApiKey();
         long startMs = System.currentTimeMillis();
 
+        AtomicInteger streamCharCount = new AtomicInteger(0);
+
         if (toolRegistry != null && !toolRegistry.isEmpty() && body.has("tools")) {
             return applyStreamOutputFilter(
                     callLlmStreamWithTools(body, key, operation), modelId, operation)
+                    .doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
                     .doFinally(signal -> {
                         AuditEvent.Outcome outcome = signal == SignalType.ON_COMPLETE
                                 ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
-                        emitAuditEvent(operation, modelId, 0, 0,
+                        emitAuditEvent(operation, modelId, 0, streamCharCount.get() / 4,
                                 System.currentTimeMillis() - startMs, outcome);
                     });
         }
@@ -779,7 +782,8 @@ public class LlmService {
                         .doOnError(e -> markKeyFailed(key));
         flux = applyStreamOutputFilter(flux, modelId, operation);
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
-        return flux.doFinally(
+        return flux.doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
+                .doFinally(
                 signal -> {
                     String outcomeStr =
                             signal == SignalType.ON_COMPLETE
@@ -788,7 +792,7 @@ public class LlmService {
                     if (sample != null) sample.stop(streamTimer(operation, outcomeStr));
                     AuditEvent.Outcome auditOutcome = signal == SignalType.ON_COMPLETE
                             ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
-                    emitAuditEvent(operation, modelId, 0, 0,
+                    emitAuditEvent(operation, modelId, 0, streamCharCount.get() / 4,
                             System.currentTimeMillis() - startMs, auditOutcome);
                 });
     }
