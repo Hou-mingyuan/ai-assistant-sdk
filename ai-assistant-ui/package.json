@@ -20,6 +20,10 @@
       "require": "./dist/ai-assistant.umd.cjs",
       "types": "./dist/index.d.ts"
     },
+    "./plugin": {
+      "import": "./src/vite-plugin.ts",
+      "types": "./src/vite-plugin.ts"
+    },
     "./wc": {
       "import": "./dist/ai-assistant-wc.mjs",
       "require": "./dist/ai-assistant-wc.umd.cjs"
