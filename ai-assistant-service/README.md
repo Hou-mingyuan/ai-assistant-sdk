@@ -107,7 +107,7 @@ AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS=48000
 如果构建卡在 `docker.io/library/maven` 或 `docker.io/library/eclipse-temurin` 的 metadata/token 拉取阶段，说明当前网络访问 Docker Hub 不稳定。可以先配置 Docker 镜像加速器，或提前拉取基础镜像：
 
 ```bash
-docker pull maven:3.9.11-eclipse-temurin-17
+docker pull maven:3.9.11-eclipse-temurin-21
 docker pull eclipse-temurin:17-jre-alpine
 ```
 

@@ -35,7 +35,7 @@ GET /ai-assistant/runtime/config
 处理：
 
 ```bash
-docker pull maven:3.9.11-eclipse-temurin-17
+docker pull maven:3.9.11-eclipse-temurin-21
 docker pull eclipse-temurin:17-jre-alpine
 ```
 

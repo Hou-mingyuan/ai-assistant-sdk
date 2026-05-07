@@ -852,12 +852,19 @@ function reportAssistantError(source: string, message: string) {
 
 const t = computed(() => getMessages((options.locale || 'en') as Locale));
 
+let _rtfCache: { locale: string; rtf: Intl.RelativeTimeFormat } | null = null;
+function getRtf(locale: string) {
+  if (!_rtfCache || _rtfCache.locale !== locale) {
+    _rtfCache = { locale, rtf: new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' }) };
+  }
+  return _rtfCache.rtf;
+}
 function formatRelativeTime(ts?: number): string {
   if (!ts) return '';
   const diff = Math.floor((Date.now() - ts) / 1000);
   if (diff < 60) return t.value.justNow || 'just now';
   const locale = options.locale || 'en';
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' });
+  const rtf = getRtf(locale);
   if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
   if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
   return new Date(ts).toLocaleDateString(locale);
