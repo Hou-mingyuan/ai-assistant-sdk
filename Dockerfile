@@ -1,4 +1,4 @@
-FROM maven:3.9.11-eclipse-temurin-17 AS build
+FROM maven:3.9.11-eclipse-temurin-21 AS build
 
 WORKDIR /workspace
 
@@ -18,28 +18,31 @@ ENV https_proxy=${https_proxy}
 ENV no_proxy=${no_proxy}
 ENV MAVEN_OPTS="${MAVEN_OPTS} -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wagon.http.retryHandler.requestSentEnabled=true -Dmaven.wagon.httpconnectionManager.ttlSeconds=25"
 
+COPY pom.xml pom.xml
 COPY ai-assistant-server/pom.xml ai-assistant-server/pom.xml
+COPY ai-assistant-client/pom.xml ai-assistant-client/pom.xml
 COPY ai-assistant-service/pom.xml ai-assistant-service/pom.xml
-COPY ai-assistant-server/src ai-assistant-server/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -q -f ai-assistant-server/pom.xml \
-        -DskipTests \
+    mvn -q -N -DskipTests install \
+    && mvn -q -DskipTests \
         -Dspotless.check.skip=true \
         -Dcheckstyle.skip=true \
         -Djacoco.skip=true \
-        install \
-    && mvn -q -f ai-assistant-service/pom.xml \
-        -DskipTests \
-        -DexcludeGroupIds=com.aiassistant \
-        dependency:go-offline
+        dependency:go-offline || true
 
+COPY ai-assistant-server/src ai-assistant-server/src
+COPY ai-assistant-client/src ai-assistant-client/src
 COPY ai-assistant-service/src ai-assistant-service/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -q -f ai-assistant-service/pom.xml -DskipTests package
+    mvn -q -DskipTests \
+        -Dspotless.check.skip=true \
+        -Dcheckstyle.skip=true \
+        -Djacoco.skip=true \
+        package
 
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:21-jre-alpine AS runtime
 
 ARG APP_VERSION=1.0.0-SNAPSHOT
 ARG VCS_REF=unknown

@@ -1,7 +1,7 @@
 import type { ComputedRef } from 'vue';
-import { Marked, marked } from 'marked';
+import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
-import hljs from '../utils/hljsRegistered';
+import hljs, { ensureLanguage } from '../utils/hljsRegistered';
 import DOMPurify from 'dompurify';
 import type { AiAssistantOptions } from '../index';
 import type { I18nMessages } from '../utils/i18n';
@@ -9,29 +9,24 @@ import type { I18nMessages } from '../utils/i18n';
 const renderCache = new Map<string, string>();
 const CACHE_CAP = 250;
 
-marked.use(
+const markedFull = new Marked(
   markedHighlight({
     emptyLangClass: 'hljs',
     langPrefix: 'language-',
     highlight(code, lang) {
+      if (lang && !hljs.getLanguage(lang)) ensureLanguage(lang);
       const language = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
       try {
-        return hljs.highlight(code, { language: language, ignoreIllegals: true }).value;
+        return hljs.highlight(code, { language, ignoreIllegals: true }).value;
       } catch {
         return hljs.highlightAuto(code).value;
       }
     },
   }),
+  { gfm: true, breaks: true },
 );
 
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-});
-
-/** 流式最后一泡每帧刷新：不用 highlight.js，减轻 CPU（落字结束后走完整 marked + 高亮并进缓存） */
-const markedStreamOnly = new Marked();
-markedStreamOnly.setOptions({ gfm: true, breaks: true });
+const markedStreamOnly = new Marked({ gfm: true, breaks: true });
 
 function escapeHtml(s: string): string {
   return s
@@ -89,7 +84,7 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
       html = (
         isStreamingLast
           ? markedStreamOnly.parse(src, { async: false })
-          : marked.parse(src, { async: false })
+          : markedFull.parse(src, { async: false })
       ) as string;
     } catch {
       html = `<pre class="ai-md-fallback">${escapeHtml(src)}</pre>`;

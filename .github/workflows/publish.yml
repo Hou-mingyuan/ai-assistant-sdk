@@ -53,7 +53,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run build
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN

@@ -39,6 +39,10 @@ public class InMemorySessionStore implements SessionStore {
         }
     }
 
+    /**
+     * Evicts stale users in O(n log n) instead of O(n^2): sorts by last access once,
+     * then removes from the oldest until under the limit.
+     */
     private void evictStaleUsers() {
         Instant cutoff = Instant.now().minus(USER_TTL);
         Iterator<Map.Entry<String, Instant>> it = userLastAccess.entrySet().iterator();
@@ -49,12 +53,16 @@ public class InMemorySessionStore implements SessionStore {
                 it.remove();
             }
         }
-        while (userSessions.size() > maxUsers) {
+        int excess = userSessions.size() - maxUsers;
+        if (excess > 0) {
             userLastAccess.entrySet().stream()
-                    .min(Map.Entry.comparingByValue())
-                    .ifPresent(e -> {
-                        userSessions.remove(e.getKey());
-                        userLastAccess.remove(e.getKey());
+                    .sorted(Map.Entry.comparingByValue())
+                    .limit(excess)
+                    .map(Map.Entry::getKey)
+                    .toList()
+                    .forEach(key -> {
+                        userSessions.remove(key);
+                        userLastAccess.remove(key);
                     });
         }
     }

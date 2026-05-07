@@ -5,7 +5,6 @@ import com.aiassistant.audit.AuditEventStore;
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.TenantContext;
 import com.aiassistant.memory.ConversationMemory;
-import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
@@ -21,13 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,70 +54,9 @@ public class LlmService {
     private final AuditEventStore auditEventStore;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final int MAX_TOOL_ROUNDS = 5;
-    private final List<String> apiKeys;
-    private final AtomicInteger keyIndex = new AtomicInteger(0);
-    private final ConcurrentHashMap<String, Long> keyCooldown = new ConcurrentHashMap<>();
-    private static final long KEY_COOLDOWN_MS = 30_000;
-
-    private static final int LLM_CACHE_MAX = 500;
-    private static final long LLM_CACHE_TTL_MS = 300_000; // 5 min
-    private final Map<String, LlmCacheEntry> llmCache =
-            java.util.Collections.synchronizedMap(
-                    new LinkedHashMap<>(16, 0.75f, true) {
-                        @Override
-                        protected boolean removeEldestEntry(
-                                Map.Entry<String, LlmCacheEntry> eldest) {
-                            return size() > LLM_CACHE_MAX || eldest.getValue().isExpired();
-                        }
-                    });
-
-    private record LlmCacheEntry(byte[] compressed, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() > expiresAt;
-        }
-
-        String decompress() {
-            try (var bais = new java.io.ByteArrayInputStream(compressed);
-                    var gzis = new java.util.zip.GZIPInputStream(bais)) {
-                return new String(gzis.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            } catch (Exception e) {
-                log.warn(
-                        "Cache entry decompression failed, treating as cache miss: {}",
-                        e.getMessage());
-                return null;
-            }
-        }
-
-        static byte[] compress(String text) {
-            try (var baos = new java.io.ByteArrayOutputStream();
-                    var gzos = new java.util.zip.GZIPOutputStream(baos)) {
-                gzos.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                gzos.finish();
-                return baos.toByteArray();
-            } catch (Exception e) {
-                return text.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            }
-        }
-    }
-
-    /** 与翻译模式、流式翻译、文件翻译共用：走同一 LLM，强调口语化、地道表达 */
-    private static final Map<String, String> TRANSLATE_PROMPTS =
-            Map.of(
-                    "zh",
-                            "You are a skilled translator. Translate the following into natural, colloquial Chinese "
-                                    + "(how people actually write in chat or daily life—avoid stiff textbook tone unless the source is formal). "
-                                    + "Output only the translation, no explanation.",
-                    "en",
-                            "You are a skilled translator. Translate the following into natural, conversational English "
-                                    + "(clear and idiomatic; not unnecessarily formal unless the source is formal). "
-                                    + "Output only the translation, no explanation.",
-                    "ja",
-                            "You are a skilled translator. Translate the following into natural, everyday Japanese. "
-                                    + "Output only the translation, no explanation.");
-
-    private static final String SUMMARIZE_PROMPT =
-            "You are a professional content summarizer. Summarize the following text concisely in the same language as the input. "
-                    + "Output a brief summary with key points.";
+    private final ApiKeyRotator keyRotator;
+    private final LlmResponseCache llmCache;
+    private final LlmRequestBuilder requestBuilder;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -164,10 +96,9 @@ public class LlmService {
             ConversationMemoryProvider memoryProvider,
             List<ChatInterceptor> interceptors,
             AuditEventStore auditEventStore) {
-        this.apiKeys = properties.resolveApiKeys();
-        if (apiKeys.isEmpty()) {
-            throw new IllegalArgumentException("ai-assistant.api-key must be configured");
-        }
+        this.keyRotator = new ApiKeyRotator(properties.resolveApiKeys());
+        this.llmCache = new LlmResponseCache();
+        this.requestBuilder = new LlmRequestBuilder(properties, objectMapper, toolRegistry);
         this.properties = properties;
         this.urlFetchService = urlFetchService;
         this.chatCompletionClient = chatCompletionClient;
@@ -187,7 +118,7 @@ public class LlmService {
                 properties.getProvider(),
                 properties.resolveModel(),
                 timeout,
-                apiKeys.size(),
+                keyRotator.keyCount(),
                 meterRegistry != null,
                 contentFilter != null,
                 ragService != null,
@@ -201,63 +132,18 @@ public class LlmService {
         return memoryProvider.getMemory(sessionId);
     }
 
-    private String nextApiKey() {
-        long now = System.currentTimeMillis();
-        keyCooldown.entrySet().removeIf(e -> now >= e.getValue());
-        int size = apiKeys.size();
-        for (int attempt = 0; attempt < size; attempt++) {
-            int idx = keyIndex.getAndUpdate(i -> (i + 1) % size);
-            String key = apiKeys.get(idx);
-            Long until = keyCooldown.get(key);
-            if (until == null || now >= until) {
-                return key;
-            }
-        }
-        int idx = keyIndex.getAndUpdate(i -> (i + 1) % size);
-        return apiKeys.get(idx);
-    }
-
-    private void markKeyFailed(String key) {
-        long until = System.currentTimeMillis() + KEY_COOLDOWN_MS;
-        keyCooldown.put(key, until);
-        String masked =
-                key.length() > 8
-                        ? key.substring(0, 4) + "****" + key.substring(key.length() - 4)
-                        : "****";
-        int active = apiKeys.size() - keyCooldown.size();
-        log.warn(
-                "api.key.cooldown key={} cooldownUntil={} activeKeys={}/{}",
-                masked,
-                until,
-                Math.max(0, active),
-                apiKeys.size());
-    }
-
     public String translate(String text, String targetLang) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String systemPrompt =
-                    TRANSLATE_PROMPTS.getOrDefault(
-                            targetLang,
-                            "You are a skilled translator. Translate the following into natural, idiomatic "
-                                    + targetLang
-                                    + " (conversational where appropriate). Output only the translation, no explanation.");
-            String cacheKey = llmCacheKey("translate:" + targetLang, text);
-            LlmCacheEntry cached = llmCache.get(cacheKey);
-            if (cached != null && !cached.isExpired()) {
-                String hit = cached.decompress();
-                if (hit != null) return hit;
-                llmCache.remove(cacheKey);
-            }
+            String cacheOp = "translate:" + targetLang;
+            String hit = llmCache.get(cacheOp, text);
+            if (hit != null) return hit;
+            String systemPrompt = requestBuilder.translatePrompt(targetLang);
             String modelId = resolveModelWithRouter(null, "translate");
             String result =
                     callLlm(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
-            llmCache.put(
-                    cacheKey,
-                    new LlmCacheEntry(
-                            LlmCacheEntry.compress(result),
-                            System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+            llmCache.put(cacheOp, text, result);
             return result;
         } finally {
             releaseQuota(tenantId, reserved);
@@ -268,41 +154,21 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String cacheKey = llmCacheKey("summarize", text);
-            LlmCacheEntry cached = llmCache.get(cacheKey);
-            if (cached != null && !cached.isExpired()) {
-                String hit = cached.decompress();
-                if (hit != null) return hit;
-                llmCache.remove(cacheKey);
-            }
+            String hit = llmCache.get("summarize", text);
+            if (hit != null) return hit;
             String modelId = resolveModelWithRouter(null, "summarize");
             String result =
                     callLlm(
-                            SUMMARIZE_PROMPT,
+                            requestBuilder.summarizePrompt(),
                             prepareUserText(text),
                             null,
                             "summarize",
                             modelId,
                             null);
-            llmCache.put(
-                    cacheKey,
-                    new LlmCacheEntry(
-                            LlmCacheEntry.compress(result),
-                            System.currentTimeMillis() + LLM_CACHE_TTL_MS));
+            llmCache.put("summarize", text, result);
             return result;
         } finally {
             releaseQuota(tenantId, reserved);
-        }
-    }
-
-    private static String llmCacheKey(String operation, String text) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(operation.getBytes(StandardCharsets.UTF_8));
-            md.update(text.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(md.digest());
-        } catch (Exception e) {
-            return operation + ":" + text.hashCode();
         }
     }
 
@@ -325,10 +191,10 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+            String prompt = requestBuilder.resolveSystemPrompt(requestSystemPrompt);
             prompt = enrichWithMemory(prompt, sessionId);
             prompt = enrichWithRag(prompt, userMessage);
-            int estTokens = estimateTokens(prompt, userMessage, history);
+            int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
             ChatInterceptor.ChatContext ctx =
@@ -374,12 +240,7 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String systemPrompt =
-                    TRANSLATE_PROMPTS.getOrDefault(
-                            targetLang,
-                            "You are a skilled translator. Translate the following into natural, idiomatic "
-                                    + targetLang
-                                    + " (conversational where appropriate). Output only the translation, no explanation.");
+            String systemPrompt = requestBuilder.translatePrompt(targetLang);
             String modelId = resolveModelWithRouter(null, "translate");
             return callLlmStream(
                             systemPrompt, prepareUserText(text), null, "translate", modelId, null)
@@ -396,7 +257,7 @@ public class LlmService {
         try {
             String modelId = resolveModelWithRouter(null, "summarize");
             return callLlmStream(
-                            SUMMARIZE_PROMPT,
+                            requestBuilder.summarizePrompt(),
                             prepareUserText(text),
                             null,
                             "summarize",
@@ -428,10 +289,10 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String prompt = resolveEffectiveSystemPrompt(requestSystemPrompt);
+            String prompt = requestBuilder.resolveSystemPrompt(requestSystemPrompt);
             prompt = enrichWithMemory(prompt, sessionId);
             prompt = enrichWithRag(prompt, userMessage);
-            int estTokens = estimateTokens(prompt, userMessage, history);
+            int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
             ChatInterceptor.ChatContext ctx =
@@ -486,23 +347,6 @@ public class LlmService {
         return chatStream(userMessage, null, null, null, null);
     }
 
-    private String resolveEffectiveSystemPrompt(String requestSystemPrompt) {
-        if (properties.isAllowClientSystemPrompt()
-                && requestSystemPrompt != null
-                && !requestSystemPrompt.isBlank()) {
-            String t = requestSystemPrompt.trim();
-            int cap = properties.getClientSystemPromptMaxChars();
-            if (cap > 0 && t.length() > cap) {
-                t = t.substring(0, cap);
-            }
-            return t;
-        }
-        if (properties.getSystemPrompt() != null && !properties.getSystemPrompt().isBlank()) {
-            return properties.getSystemPrompt();
-        }
-        return "You are a helpful AI assistant.";
-    }
-
     private String callLlm(
             String systemPrompt,
             String userMessage,
@@ -510,25 +354,25 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
-        userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
+        userMessage = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
         String currentModel = modelId;
         RuntimeException lastError = null;
         long startMs = System.currentTimeMillis();
 
         for (int attempt = 0; attempt < 3; attempt++) {
             ObjectNode body =
-                    buildRequestBody(
+                    requestBuilder.buildRequestBody(
                             systemPrompt, userMessage, false, history, currentModel, imageData);
             if (!"chat".equals(operation)) {
                 body.remove("tools");
             }
-            String key = nextApiKey();
+            String key = keyRotator.nextKey();
             Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
             String rawResponse;
             try {
                 rawResponse = chatCompletionClient.completeRaw(body, key);
             } catch (RuntimeException e) {
-                markKeyFailed(key);
+                keyRotator.markFailed(key);
                 if (sample != null) sample.stop(completionTimer(operation, "error"));
                 lastError = e;
                 String fallback =
@@ -552,6 +396,7 @@ public class LlmService {
                 if (contentFilter != null) {
                     result = contentFilter.filterOutput(result);
                 }
+                keyRotator.markSuccess(key);
                 if (sample != null) sample.stop(completionTimer(operation, "success"));
                 emitAuditEvent(operation, currentModel, tokenCounts[0], tokenCounts[1],
                         System.currentTimeMillis() - startMs, AuditEvent.Outcome.SUCCESS);
@@ -612,7 +457,11 @@ public class LlmService {
                 return msg.path("content").asText("");
             }
 
-            ArrayNode messages = (ArrayNode) body.get("messages");
+            JsonNode messagesNode = body.get("messages");
+            if (messagesNode == null || !messagesNode.isArray()) {
+                throw new RuntimeException("Malformed request body: 'messages' is not an array");
+            }
+            ArrayNode messages = (ArrayNode) messagesNode;
             ObjectNode assistantMsg = messages.addObject();
             assistantMsg.put("role", "assistant");
             if (msg.has("content") && !msg.get("content").isNull()) {
@@ -686,65 +535,6 @@ public class LlmService {
         }
     }
 
-    /**
-     * {@link ChatInputLimits#validateTotalChars} 只统计原始请求体；链接抓取会在服务端显著放大 {@code text}， 与 history
-     * 叠加后易触发上游 LLM 5xx。此处与 {@link #buildRequestBody} 相同的 history 裁剪规则对齐后再截断 user。
-     */
-    private String clampUserMessageForTotalBudget(
-            String userMessage, List<ChatRequest.MessageItem> history, String systemPrompt) {
-        if (userMessage == null) {
-            return null;
-        }
-        int max = properties.getChatMaxTotalChars();
-        if (max <= 0) {
-            return userMessage;
-        }
-        List<ChatRequest.MessageItem> hist = history;
-        int histCap = properties.getChatHistoryMaxChars();
-        if (hist != null && !hist.isEmpty() && histCap > 0) {
-            hist = ChatInputLimits.tailHistoryWithinBudget(history, histCap);
-        }
-        int used = strLen(systemPrompt);
-        if (hist != null) {
-            for (ChatRequest.MessageItem item : hist) {
-                if (item != null) {
-                    used += strLen(item.getContent());
-                }
-            }
-        }
-        int room = max - used;
-        if (room >= userMessage.length()) {
-            return userMessage;
-        }
-        if (room <= 64) {
-            log.warn(
-                    "chatMaxTotalChars exhausted by system/history (used={}, max={}); user text hard-clamped",
-                    used,
-                    max);
-            return userMessage.length() <= 64 ? userMessage : userMessage.substring(0, 61) + "…";
-        }
-        log.debug(
-                "User message truncated for chatMaxTotalChars: {} -> {} chars",
-                userMessage.length(),
-                room);
-        return userMessage.substring(0, room - 24) + "\n…[truncated: chatMaxTotalChars]";
-    }
-
-    private static int strLen(String s) {
-        return s == null ? 0 : s.length();
-    }
-
-    private static int estimateTokens(
-            String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history) {
-        int chars = strLen(systemPrompt) + strLen(userMessage);
-        if (history != null) {
-            for (var item : history) {
-                if (item != null) chars += strLen(item.getContent());
-            }
-        }
-        return chars / 4;
-    }
-
     private Flux<String> callLlmStream(
             String systemPrompt,
             String userMessage,
@@ -752,13 +542,13 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
-        userMessage = clampUserMessageForTotalBudget(userMessage, history, systemPrompt);
+        userMessage = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
         ObjectNode body =
-                buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
+                requestBuilder.buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
         if (!"chat".equals(operation)) {
             body.remove("tools");
         }
-        String key = nextApiKey();
+        String key = keyRotator.nextKey();
         long startMs = System.currentTimeMillis();
 
         AtomicInteger streamCharCount = new AtomicInteger(0);
@@ -779,7 +569,7 @@ public class LlmService {
                 chatCompletionClient
                         .completeStream(body, key)
                         .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
-                        .doOnError(e -> markKeyFailed(key));
+                        .doOnError(e -> keyRotator.markFailed(key));
         flux = applyStreamOutputFilter(flux, modelId, operation);
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         return flux.doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
@@ -846,7 +636,7 @@ public class LlmService {
                                         probeBody, firstChoice.path("message"), toolCalls, apiKey)
                                 .subscribeOn(Schedulers.boundedElastic());
                     } catch (Exception e) {
-                        markKeyFailed(apiKey);
+                        keyRotator.markFailed(apiKey);
                         return Flux.error(e);
                     }
                 });
@@ -864,7 +654,13 @@ public class LlmService {
                         long deadline = System.currentTimeMillis() + toolLoopTimeoutMs;
                         ObjectNode bodyClone = body.deepCopy();
                         bodyClone.put("stream", false);
-                        ArrayNode messages = (ArrayNode) bodyClone.get("messages");
+                        JsonNode msgsNode = bodyClone.get("messages");
+                        if (msgsNode == null || !msgsNode.isArray()) {
+                            sink.error(new RuntimeException(
+                                    "Malformed request body: 'messages' is not an array"));
+                            return;
+                        }
+                        ArrayNode messages = (ArrayNode) msgsNode;
                         JsonNode curAssistantMsg = assistantMessage;
                         JsonNode curToolCalls = toolCalls;
 
@@ -1098,63 +894,5 @@ public class LlmService {
                 .tag("operation", operation)
                 .tag("outcome", outcome)
                 .register(meterRegistry);
-    }
-
-    private ObjectNode buildRequestBody(
-            String systemPrompt,
-            String userMessage,
-            boolean stream,
-            List<ChatRequest.MessageItem> history,
-            String modelId,
-            String imageData) {
-        ObjectNode body = objectMapper.createObjectNode();
-        body.put(
-                "model",
-                modelId != null && !modelId.isBlank() ? modelId : properties.resolveModel());
-        body.put("max_tokens", properties.getMaxTokens());
-        body.put("temperature", properties.getTemperature());
-        body.put("stream", stream);
-
-        ArrayNode messages = body.putArray("messages");
-        messages.addObject().put("role", "system").put("content", systemPrompt);
-
-        List<ChatRequest.MessageItem> hist = history;
-        int histCap = properties.getChatHistoryMaxChars();
-        if (history != null && !history.isEmpty() && histCap > 0) {
-            hist = ChatInputLimits.tailHistoryWithinBudget(history, histCap);
-            if (hist.size() < history.size()) {
-                log.debug(
-                        "history trimmed for LLM: {} -> {} messages", history.size(), hist.size());
-            }
-        }
-        if (hist != null && !hist.isEmpty()) {
-            for (ChatRequest.MessageItem item : hist) {
-                if (item.getRole() != null && item.getContent() != null) {
-                    messages.addObject()
-                            .put("role", item.getRole())
-                            .put("content", item.getContent());
-                }
-            }
-        }
-
-        if (toolRegistry != null && !toolRegistry.isEmpty()) {
-            body.set("tools", toolRegistry.toOpenAiToolsArray());
-        }
-
-        boolean hasImage = imageData != null && !imageData.isBlank();
-        if (hasImage) {
-            ObjectNode userMsg = messages.addObject().put("role", "user");
-            ArrayNode content = userMsg.putArray("content");
-            content.addObject().put("type", "text").put("text", userMessage);
-            String dataUrl =
-                    imageData.startsWith("data:")
-                            ? imageData
-                            : "data:image/png;base64," + imageData;
-            ObjectNode imgPart = content.addObject().put("type", "image_url");
-            imgPart.putObject("image_url").put("url", dataUrl);
-        } else {
-            messages.addObject().put("role", "user").put("content", userMessage);
-        }
-        return body;
     }
 }

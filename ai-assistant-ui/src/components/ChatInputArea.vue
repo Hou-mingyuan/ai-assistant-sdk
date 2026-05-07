@@ -54,7 +54,7 @@
           type="button"
           class="ai-ctrl-enter-toggle"
           :class="{ active: soundEnabled }"
-          :title="soundEnabled ? 'Sound: ON' : 'Sound: OFF'"
+          :title="soundEnabled ? t.soundOn : t.soundOff"
           @click="$emit('update:soundEnabled', !soundEnabled)"
         >
           {{ soundEnabled ? '🔔' : '🔕' }}
@@ -63,7 +63,7 @@
           type="button"
           class="ai-ctrl-enter-toggle"
           :class="{ active: ctrlEnterToSend }"
-          :title="ctrlEnterToSend ? 'Ctrl+Enter → Send' : 'Enter → Send'"
+          :title="ctrlEnterToSend ? t.ctrlEnterMode : t.enterMode"
           @click="$emit('update:ctrlEnterToSend', !ctrlEnterToSend)"
         >
           ⏎

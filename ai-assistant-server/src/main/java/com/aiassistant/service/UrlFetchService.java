@@ -20,6 +20,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -141,12 +143,14 @@ public class UrlFetchService {
         "placeholder.",
     };
 
+    private static final int MAX_REDIRECTS = 5;
+    private static final ExecutorService URL_FETCH_POOL =
+            Executors.newVirtualThreadPerTaskExecutor();
+
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
     private volatile HeadlessFetcher headlessFetchService;
-
-    private static final int MAX_REDIRECTS = 5;
 
     public UrlFetchService(AiAssistantProperties properties) {
         this(properties, (HttpClient) null);
@@ -278,7 +282,7 @@ public class UrlFetchService {
                         log.debug("Failed to enrich URL {}: {}", url, e.getMessage());
                         return "";
                     }
-                }))
+                }, URL_FETCH_POOL))
                 .toList();
 
         StringBuilder sb = new StringBuilder(text);

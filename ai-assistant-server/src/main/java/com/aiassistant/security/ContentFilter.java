@@ -40,11 +40,37 @@ public class ContentFilter {
 
     private static final List<Pattern> INJECTION_PATTERNS =
             List.of(
-                    Pattern.compile("(?i)ignore\\s+(all\\s+)?previous\\s+instructions"),
+                    // Role/instruction override
+                    Pattern.compile("(?i)ignore\\s+(all\\s+)?previous\\s+(instructions|prompts|rules|context)"),
+                    Pattern.compile("(?i)disregard\\s+(all\\s+)?(previous|above|prior|earlier)\\s+(instructions|prompts|rules)"),
+                    Pattern.compile("(?i)forget\\s+(all\\s+)?(previous|above|prior|earlier|your)\\s+(instructions|prompts|rules|training)"),
+                    Pattern.compile("(?i)override\\s+(all\\s+)?(previous|system|your)\\s+(instructions|prompts|rules)"),
+                    // Identity manipulation
                     Pattern.compile("(?i)you\\s+are\\s+now\\s+(a|an)\\s+"),
+                    Pattern.compile("(?i)act\\s+as\\s+(a|an|if|though)\\s+"),
+                    Pattern.compile("(?i)pretend\\s+(you\\s+are|to\\s+be|you're)\\s+"),
+                    Pattern.compile("(?i)from\\s+now\\s+on,?\\s+(you|your)\\s+(are|will|must|should)"),
+                    Pattern.compile("(?i)switch\\s+to\\s+.{0,30}\\bmode\\b"),
+                    // System prompt extraction
                     Pattern.compile("(?i)system\\s*prompt\\s*:"),
-                    Pattern.compile("(?i)jailbreak"),
-                    Pattern.compile("(?i)\\bDAN\\b.*\\bmode\\b"));
+                    Pattern.compile("(?i)(show|reveal|display|repeat|print|output|tell\\s+me)\\s+(your\\s+)?(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
+                    Pattern.compile("(?i)what\\s+(are|is|were)\\s+your\\s+(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
+                    // Jailbreak techniques
+                    Pattern.compile("(?i)\\bjailbreak\\b"),
+                    Pattern.compile("(?i)\\bDAN\\b.*\\bmode\\b"),
+                    Pattern.compile("(?i)\\bDAN\\b.*\\b(prompt|jailbreak|bypass)\\b"),
+                    Pattern.compile("(?i)developer\\s+mode\\s+(enabled|activated|on)"),
+                    Pattern.compile("(?i)\\b(STAN|DUDE|AIM)\\b.*\\b(mode|prompt)\\b"),
+                    // Delimiter/format attacks
+                    Pattern.compile("(?i)```\\s*(system|instructions?)\\b"),
+                    Pattern.compile("(?i)<\\|?(system|im_start|endoftext|im_end)\\|?>"),
+                    Pattern.compile("(?i)\\[INST\\]|\\[/INST\\]|<<SYS>>|<</SYS>>"),
+                    // Constraint removal
+                    Pattern.compile("(?i)(remove|disable|bypass|skip|drop)\\s+(all\\s+)?(safety|content|ethical|moderation)\\s*(filters?|restrictions?|guidelines?|guardrails?|checks?)"),
+                    Pattern.compile("(?i)without\\s+(any\\s+)?(safety|ethical|content|moderation)\\s*(restrictions?|guidelines?|filters?|guardrails?)"),
+                    // Token smuggling and encoding tricks
+                    Pattern.compile("(?i)base64[:\\s]+decode"),
+                    Pattern.compile("(?i)rot13[:\\s]+(decode|apply|use)"));
 
     private final boolean piiMaskingEnabled;
     private final boolean injectionDetectionEnabled;
@@ -85,23 +111,57 @@ public class ContentFilter {
         return piiMaskingEnabled ? maskPii(text) : text;
     }
 
-    /** Mask PII patterns in text. */
-    public String maskPii(String text) {
-        String result = text;
+    private static final Pattern COMBINED_SIMPLE_PII;
+    private static final java.util.Map<String, String> SIMPLE_REPLACEMENT_MAP;
+
+    static {
+        StringBuilder combined = new StringBuilder();
+        java.util.Map<String, String> replacements = new java.util.LinkedHashMap<>();
         for (PiiRule rule : PII_RULES) {
             if (rule.validator == null) {
-                result = rule.pattern.matcher(result).replaceAll(rule.replacement);
-            } else {
+                if (!combined.isEmpty()) combined.append('|');
+                combined.append("(?<").append(rule.name).append('>').append(rule.pattern.pattern()).append(')');
+                replacements.put(rule.name, rule.replacement);
+            }
+        }
+        COMBINED_SIMPLE_PII = Pattern.compile(combined.toString());
+        SIMPLE_REPLACEMENT_MAP = replacements;
+    }
+
+    /**
+     * Masks PII in a single pass for simple rules (no validator), then applies validated rules
+     * individually. Reduces scan passes from N to ~2.
+     */
+    public String maskPii(String text) {
+        Matcher cm = COMBINED_SIMPLE_PII.matcher(text);
+        StringBuilder sb = new StringBuilder();
+        while (cm.find()) {
+            String replacement = text;
+            for (var entry : SIMPLE_REPLACEMENT_MAP.entrySet()) {
+                try {
+                    if (cm.group(entry.getKey()) != null) {
+                        replacement = entry.getValue();
+                        break;
+                    }
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            cm.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        cm.appendTail(sb);
+        String result = sb.toString();
+
+        for (PiiRule rule : PII_RULES) {
+            if (rule.validator != null) {
                 Matcher m = rule.pattern.matcher(result);
-                StringBuilder sb = new StringBuilder();
+                StringBuilder vsb = new StringBuilder();
                 while (m.find()) {
-                    String matched = m.group();
-                    if (rule.validator.test(matched)) {
-                        m.appendReplacement(sb, Matcher.quoteReplacement(rule.replacement));
+                    if (rule.validator.test(m.group())) {
+                        m.appendReplacement(vsb, Matcher.quoteReplacement(rule.replacement));
                     }
                 }
-                m.appendTail(sb);
-                result = sb.toString();
+                m.appendTail(vsb);
+                result = vsb.toString();
             }
         }
         return result;

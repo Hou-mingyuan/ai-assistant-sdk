@@ -23,6 +23,7 @@ public class BatchController {
 
     private static final Logger log = LoggerFactory.getLogger(BatchController.class);
     private static final int MAX_BATCH_SIZE = 20;
+    private static final int MAX_ITEM_TEXT_CHARS = 300_000;
 
     private final LlmService llmService;
     private final UsageStats usageStats;
@@ -85,6 +86,10 @@ public class BatchController {
         Object rawText = req.get("text");
         if (!(rawText instanceof String text) || text.isBlank()) {
             return Map.of("index", index, "error", "text is required");
+        }
+        if (text.length() > MAX_ITEM_TEXT_CHARS) {
+            return Map.of("index", index, "error",
+                    "text exceeds maximum length of " + MAX_ITEM_TEXT_CHARS + " characters");
         }
         try {
             String result =

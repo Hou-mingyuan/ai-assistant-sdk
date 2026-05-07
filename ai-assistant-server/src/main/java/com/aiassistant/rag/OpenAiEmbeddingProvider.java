@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +62,9 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
 
     @Override
     public List<float[]> embedBatch(List<String> texts) {
+        if (texts == null || texts.isEmpty()) {
+            return Collections.emptyList();
+        }
         try {
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);
@@ -73,7 +78,8 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
                             .bodyValue(body.toString())
                             .retrieve()
                             .bodyToMono(String.class)
-                            .block();
+                            .timeout(Duration.ofSeconds(60))
+                            .block(Duration.ofSeconds(65));
 
             JsonNode root = mapper.readTree(response);
             JsonNode dataNode = root.get("data");

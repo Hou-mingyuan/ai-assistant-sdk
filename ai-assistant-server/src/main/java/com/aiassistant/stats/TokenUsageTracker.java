@@ -69,7 +69,9 @@ public class TokenUsageTracker {
 
     public void releaseReservation(String tenantId, int estimatedTokens) {
         AtomicLong reserved = reservedTokens.get(tenantId);
-        if (reserved != null) reserved.addAndGet(-estimatedTokens);
+        if (reserved != null) {
+            reserved.updateAndGet(cur -> Math.max(0, cur - estimatedTokens));
+        }
     }
 
     public long remainingQuota(String tenantId) {

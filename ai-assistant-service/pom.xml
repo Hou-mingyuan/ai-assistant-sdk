@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.12</version>
+        <version>3.5.0</version>
         <relativePath/>
     </parent>
 
@@ -20,7 +20,7 @@
     <description>Standalone Docker-friendly AI Assistant service built on the starter SDK</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

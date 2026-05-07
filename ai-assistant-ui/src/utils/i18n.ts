@@ -146,10 +146,13 @@ export interface I18nMessages {
   chatSessions: string;
   closeSession: string;
   retryError: string;
+  soundOn: string;
+  soundOff: string;
+  ctrlEnterMode: string;
+  enterMode: string;
 }
 
-const messages: Record<string, I18nMessages> = {
-  en: {
+const en: I18nMessages = {
     greeting: '👋 Hi! I can help you:',
     translate: '🌐 Translate',
     summarize: '📝 Summarize',
@@ -277,8 +280,13 @@ const messages: Record<string, I18nMessages> = {
     chatSessions: 'Chat sessions',
     closeSession: 'Close',
     retryError: 'Retry',
-  },
-  zh: {
+    soundOn: 'Sound: ON',
+    soundOff: 'Sound: OFF',
+    ctrlEnterMode: 'Ctrl+Enter to send',
+    enterMode: 'Enter to send',
+};
+
+const zh: I18nMessages = {
     greeting: '👋 你好！我可以帮你：',
     translate: '🌐 翻译',
     summarize: '📝 摘要',
@@ -402,11 +410,14 @@ const messages: Record<string, I18nMessages> = {
     chatSessions: '会话列表',
     closeSession: '关闭',
     retryError: '重试',
-  },
+    soundOn: '提示音：开',
+    soundOff: '提示音：关',
+    ctrlEnterMode: 'Ctrl+Enter 发送',
+    enterMode: 'Enter 发送',
 };
 
-const ja = {
-  ...messages.en,
+const ja: I18nMessages = {
+  ...en,
   greeting: '👋 こんにちは！お手伝いします：',
   translate: '🌐 翻訳',
   summarize: '📝 要約',
@@ -527,10 +538,14 @@ const ja = {
   chatSessions: 'チャットセッション',
   closeSession: '閉じる',
   retryError: '再試行',
+  soundOn: '通知音：ON',
+  soundOff: '通知音：OFF',
+  ctrlEnterMode: 'Ctrl+Enterで送信',
+  enterMode: 'Enterで送信',
 };
 
-const ko = {
-  ...messages.en,
+const ko: I18nMessages = {
+  ...en,
   greeting: '👋 안녕하세요! 도와드리겠습니다:',
   translate: '🌐 번역',
   summarize: '📝 요약',
@@ -651,11 +666,14 @@ const ko = {
   chatSessions: '채팅 세션',
   closeSession: '닫기',
   retryError: '재시도',
+  soundOn: '알림음: 켜짐',
+  soundOff: '알림음: 꺼짐',
+  ctrlEnterMode: 'Ctrl+Enter로 전송',
+  enterMode: 'Enter로 전송',
 };
 
-messages.ja = ja satisfies I18nMessages;
-messages.ko = ko satisfies I18nMessages;
+const messages = { en, zh, ja, ko } satisfies Record<Locale, I18nMessages>;
 
 export function getMessages(locale: Locale): I18nMessages {
-  return (messages as Record<string, I18nMessages>)[locale] || messages.en;
+  return messages[locale] ?? messages.en;
 }

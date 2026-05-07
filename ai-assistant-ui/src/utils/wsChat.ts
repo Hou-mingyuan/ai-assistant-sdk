@@ -82,10 +82,30 @@ export async function* wsStreamChat(
     );
   }
 
+  const HEARTBEAT_TIMEOUT_MS = 45_000;
+  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function resetHeartbeatTimer() {
+    if (heartbeatTimer) clearTimeout(heartbeatTimer);
+    heartbeatTimer = setTimeout(() => {
+      error = new Error('WebSocket heartbeat timeout');
+      done = true;
+      ws.close();
+      wake();
+    }, HEARTBEAT_TIMEOUT_MS);
+  }
+
+  const origOnMessage = ws.onmessage!;
+  ws.onmessage = (e) => {
+    resetHeartbeatTimer();
+    origOnMessage.call(ws, e);
+  };
+
   await new Promise<void>((resolve, reject) => {
     ws.onopen = () => {
       ws.onerror = onRuntimeError;
       ws.send(JSON.stringify(payload));
+      resetHeartbeatTimer();
       resolve();
     };
     ws.onerror = () => reject(new Error('WebSocket connection failed'));
@@ -103,6 +123,7 @@ export async function* wsStreamChat(
     }
     if (error) throw error;
   } finally {
+    if (heartbeatTimer) clearTimeout(heartbeatTimer);
     if (ws.readyState === WebSocket.OPEN) ws.close();
   }
 }

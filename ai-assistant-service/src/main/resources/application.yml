@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: ai-assistant-service
+  threads:
+    virtual:
+      enabled: ${SPRING_THREADS_VIRTUAL_ENABLED:true}
   lifecycle:
     timeout-per-shutdown-phase: ${SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE:20s}
   servlet:

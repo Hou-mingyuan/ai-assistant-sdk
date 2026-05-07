@@ -118,9 +118,13 @@ class AiAssistantElement extends HTMLElement {
     if (!this._options) return;
     const target = this._options as Record<string, unknown>;
 
+    const defaults = DEFAULT_OPTIONS as Record<string, unknown>;
     for (const [attr, prop] of Object.entries(ATTR_MAP)) {
       const val = this.getAttribute(attr);
-      if (val === null) continue;
+      if (val === null) {
+        target[prop] = defaults[prop];
+        continue;
+      }
 
       if (BOOLEAN_ATTRS.has(attr)) {
         target[prop] = val !== 'false' && val !== '0';

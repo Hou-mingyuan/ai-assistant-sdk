@@ -1,16 +1,17 @@
 package com.aiassistant.rag;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Simple in-memory vector store using cosine similarity. Suitable for development, testing, and
- * small knowledge bases (<10K docs). For production at scale, replace with Milvus/pgvector/Chroma
- * implementation.
+ * In-memory vector store using cosine similarity with MinHeap-based top-K selection. O(n log k)
+ * instead of O(n log n) — significant when k << n. Suitable for development, testing, and small
+ * knowledge bases (<10K docs).
  */
 public class InMemoryVectorStore implements VectorStore {
 
@@ -28,18 +29,26 @@ public class InMemoryVectorStore implements VectorStore {
 
     @Override
     public List<SearchResult> search(float[] queryVector, int topK, String namespace) {
-        return store.values().stream()
-                .filter(doc -> namespace == null || namespace.equals(doc.namespace()))
-                .map(
-                        doc ->
-                                new SearchResult(
-                                        doc.id(),
-                                        doc.content(),
-                                        cosineSimilarity(queryVector, doc.vector()),
-                                        doc.metadata()))
-                .sorted(Comparator.comparingDouble(SearchResult::score).reversed())
-                .limit(topK)
-                .collect(Collectors.toList());
+        PriorityQueue<SearchResult> minHeap =
+                new PriorityQueue<>(topK + 1, Comparator.comparingDouble(SearchResult::score));
+
+        float queryNorm = norm(queryVector);
+        if (queryNorm == 0f) return List.of();
+
+        for (Document doc : store.values()) {
+            if (namespace != null && !namespace.equals(doc.namespace())) continue;
+            double score = cosineSimilarity(queryVector, doc.vector(), queryNorm);
+            if (minHeap.size() < topK) {
+                minHeap.offer(new SearchResult(doc.id(), doc.content(), score, doc.metadata()));
+            } else if (!minHeap.isEmpty() && score > minHeap.peek().score()) {
+                minHeap.poll();
+                minHeap.offer(new SearchResult(doc.id(), doc.content(), score, doc.metadata()));
+            }
+        }
+
+        List<SearchResult> results = new ArrayList<>(minHeap);
+        results.sort(Comparator.comparingDouble(SearchResult::score).reversed());
+        return results;
     }
 
     @Override
@@ -55,15 +64,29 @@ public class InMemoryVectorStore implements VectorStore {
         return store.values().stream().filter(d -> namespace.equals(d.namespace())).count();
     }
 
-    static double cosineSimilarity(float[] a, float[] b) {
-        if (a.length != b.length) return 0.0;
-        double dot = 0, normA = 0, normB = 0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
+    static float norm(float[] v) {
+        float sum = 0f;
+        for (float x : v) sum += x * x;
+        return (float) Math.sqrt(sum);
+    }
+
+    /**
+     * Cosine similarity with pre-computed query norm, avoiding redundant norm(query) per document.
+     * The inner loop is kept simple and sequential for JIT auto-vectorization (SIMD).
+     */
+    static double cosineSimilarity(float[] query, float[] doc, float queryNorm) {
+        if (query.length != doc.length || queryNorm == 0f) return 0.0;
+        float dot = 0f, docNormSq = 0f;
+        for (int i = 0; i < query.length; i++) {
+            dot += query[i] * doc[i];
+            docNormSq += doc[i] * doc[i];
         }
-        double denom = Math.sqrt(normA) * Math.sqrt(normB);
-        return denom == 0 ? 0.0 : dot / denom;
+        double docNorm = Math.sqrt(docNormSq);
+        return docNorm == 0.0 ? 0.0 : dot / (queryNorm * docNorm);
+    }
+
+    /** Convenience overload for standalone use (without pre-computed norm). */
+    static double cosineSimilarity(float[] a, float[] b) {
+        return cosineSimilarity(a, b, norm(a));
     }
 }

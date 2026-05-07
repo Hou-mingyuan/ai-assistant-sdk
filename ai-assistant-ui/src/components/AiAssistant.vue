@@ -820,8 +820,12 @@ function makePluginContext(): PluginContext {
   };
 }
 
-function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void> }) {
-  plugin.action(makePluginContext());
+async function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void> }) {
+  try {
+    await plugin.action(makePluginContext());
+  } catch (e) {
+    console.error('[AiAssistant] plugin action failed', e);
+  }
 }
 
 const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
@@ -852,9 +856,11 @@ function formatRelativeTime(ts?: number): string {
   if (!ts) return '';
   const diff = Math.floor((Date.now() - ts) / 1000);
   if (diff < 60) return t.value.justNow || 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return new Date(ts).toLocaleDateString();
+  const locale = options.locale || 'en';
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' });
+  if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+  if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
+  return new Date(ts).toLocaleDateString(locale);
 }
 
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
@@ -1244,9 +1250,14 @@ function scrollToBottomClick() {
   }
 }
 
-watch(bodyRef, (el) => {
+watch(bodyRef, (el, oldEl) => {
+  if (oldEl) oldEl.removeEventListener('scroll', onBodyScroll);
   if (el) el.addEventListener('scroll', onBodyScroll, { passive: true });
 }, { immediate: true });
+
+onUnmounted(() => {
+  if (bodyRef.value) bodyRef.value.removeEventListener('scroll', onBodyScroll);
+});
 
 const panelRef = ref<HTMLElement>();
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
@@ -1853,6 +1864,9 @@ function handleBodyClick(e: MouseEvent) {
           target.textContent = t.value.copyCode;
         }, 1500),
       );
+    }).catch(() => {
+      target.textContent = '⚠';
+      pendingTimers.push(window.setTimeout(() => { target.textContent = t.value.copyCode; }, 1500));
     });
   }
 }
@@ -2203,6 +2217,7 @@ function appendUrlPreviewImagesToAssistant(aiIdx: number, imgs: string[]) {
 async function send() {
   let text = input.value.trim();
   if (!text || loading.value) return;
+  if (!options.baseUrl) return;
   const ucap = options.maxUserMessageChars;
   if (ucap !== undefined && ucap > 0 && text.length > ucap) {
     text = `${text.slice(0, ucap)}\n…`;

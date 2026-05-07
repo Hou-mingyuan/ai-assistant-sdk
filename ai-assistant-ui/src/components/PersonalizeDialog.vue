@@ -72,7 +72,8 @@ defineEmits<{
   (e: 'update:modelValue', value: string): void;
 }>();
 
-const titleId = 'ai-assistant-personalize-title';
+let _idCounter = 0;
+const titleId = `ai-assistant-personalize-title-${++_idCounter}-${Date.now()}`;
 const taRef = ref<HTMLTextAreaElement>();
 
 watch(
