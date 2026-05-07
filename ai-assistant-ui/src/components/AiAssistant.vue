@@ -601,241 +601,77 @@
           </button>
         </div>
 
-        <div
+        <ConnectionDiagnostics
           v-if="diagnosticsOpen"
-          :id="uid + '-diagnostics'"
-          class="ai-diagnostics-panel"
-          role="region"
-          :aria-labelledby="uid + '-diagnostics-title'"
-          :aria-busy="diagnosticsBusy ? 'true' : 'false'"
-        >
-          <div class="ai-diagnostics-head">
-            <strong :id="uid + '-diagnostics-title'">{{ t.diagnosticsTitle }}</strong>
-            <div class="ai-diagnostics-actions">
-              <button type="button" :disabled="diagnosticsBusy" @click="runModelDiagnostics">
-                {{ t.diagnosticsRefresh }}
-              </button>
-              <button type="button" @click="copyDiagnostics">
-                {{ diagnosticsCopied ? t.diagnosticsCopied : t.diagnosticsCopy }}
-              </button>
-              <span class="ai-sr-only" role="status" aria-live="polite" aria-atomic="true">
-                {{ diagnosticsCopyMessage }}
-              </span>
-              <button
-                type="button"
-                class="ai-diagnostics-close"
-                :aria-label="t.diagnosticsClose"
-                @click="diagnosticsOpen = false"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-          <dl class="ai-diagnostics-list">
-            <div>
-              <dt>{{ t.diagnosticsStatus }}</dt>
-              <dd aria-live="polite">{{ diagnosticsStatusMessage }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsLastError }}</dt>
-              <dd>{{ modelListError || t.diagnosticsNoError }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsBaseUrl }}</dt>
-              <dd>{{ options.baseUrl || '—' }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsModelEndpoint }}</dt>
-              <dd>{{ diagnosticsModelEndpoint }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsToken }}</dt>
-              <dd>{{ diagnosticsTokenText }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsSelectedModel }}</dt>
-              <dd>{{ selectedChatModel || t.diagnosticsNoSelectedModel }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsAvailableModels }}</dt>
-              <dd>{{ modelChoices.length }}</dd>
-            </div>
-            <div>
-              <dt>{{ t.diagnosticsLastChecked }}</dt>
-              <dd>{{ diagnosticsLastChecked || t.diagnosticsNeverChecked }}</dd>
-            </div>
-          </dl>
-          <div class="ai-connection-config">
-            <strong>{{ t.connectionConfigTitle }}</strong>
-            <label>
-              <span>{{ t.diagnosticsBaseUrl }}</span>
-              <input
-                v-model="connectionBaseUrlInput"
-                type="text"
-                :placeholder="t.connectionConfigBaseUrlPlaceholder"
-                autocomplete="off"
-              />
-            </label>
-            <label>
-              <span>{{ t.diagnosticsToken }}</span>
-              <input
-                v-model="connectionTokenInput"
-                type="password"
-                :placeholder="t.connectionConfigTokenPlaceholder"
-                autocomplete="off"
-              />
-            </label>
-            <label class="ai-connection-config-check">
-              <input v-model="connectionPersistEnabled" type="checkbox" />
-              <span>{{ t.connectionConfigPersist }}</span>
-            </label>
-            <div class="ai-connection-config-actions">
-              <button type="button" :disabled="diagnosticsBusy" @click="testConnectionConfig">
-                {{ t.connectionConfigTest }}
-              </button>
-              <button type="button" :disabled="diagnosticsBusy" @click="saveConnectionConfig">
-                {{ t.connectionConfigSave }}
-              </button>
-            </div>
-            <p
-              v-if="connectionConfigMessage"
-              class="ai-connection-config-message"
-              role="status"
-              aria-live="polite"
-            >
-              {{ connectionConfigMessage }}
-            </p>
-          </div>
-        </div>
+          :uid="uid"
+          :busy="diagnosticsBusy"
+          :copied="diagnosticsCopied"
+          :copy-message="diagnosticsCopyMessage"
+          :status-message="diagnosticsStatusMessage"
+          :last-error="modelListError"
+          :base-url="options.baseUrl"
+          :model-endpoint="diagnosticsModelEndpoint"
+          :token-text="diagnosticsTokenText"
+          :selected-model="selectedChatModel"
+          :model-count="modelChoices.length"
+          :last-checked="diagnosticsLastChecked"
+          :base-url-input="connectionBaseUrlInput"
+          :token-input="connectionTokenInput"
+          :persist-enabled="connectionPersistEnabled"
+          :config-message="connectionConfigMessage"
+          :t="t"
+          @refresh="runModelDiagnostics"
+          @copy="copyDiagnostics"
+          @close="diagnosticsOpen = false"
+          @test-config="testConnectionConfig"
+          @save-config="saveConnectionConfig"
+          @update:base-url-input="connectionBaseUrlInput = $event"
+          @update:token-input="connectionTokenInput = $event"
+          @update:persist-enabled="connectionPersistEnabled = $event"
+        />
 
         <!-- Input -->
-        <div class="ai-footer">
-          <div v-if="pendingImageThumb" class="ai-pending-image">
-            <img :src="pendingImageThumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
+        <ChatInputArea
+          v-model="input"
+          :mode="mode"
+          :loading="loading"
+          :ctrl-enter-to-send="ctrlEnterToSend"
+          :sound-enabled="soundEnabled"
+          :color="color"
+          :placeholder="placeholder"
+          :char-count-label="charCountLabel"
+          :char-count-near-limit="charCountNearLimit"
+          :pending-image-thumb="pendingImageThumb"
+          :accept-types="ACCEPT_TYPES"
+          :has-base-url="!!options.baseUrl"
+          :show-model-picker="showModelPickerResolved"
+          :selected-model="selectedChatModel"
+          :model-choices="modelChoices"
+          :model-list-message="modelListMessage"
+          :t="t"
+          @send="send"
+          @clear-pending-image="clearPendingImage"
+          @file-upload="processFileUpload"
+          @paste-image="onPasteImage"
+          @update:ctrl-enter-to-send="ctrlEnterToSend = $event"
+          @update:sound-enabled="soundEnabled = $event"
+          @update:selected-model="selectedChatModel = $event"
+        >
+          <template #footer-plugins>
             <button
+              v-for="pl in getPlugins('footer')"
+              :key="pl.id"
               type="button"
-              class="ai-pending-image-remove"
-              :aria-label="t.removeImage"
-              @click="clearPendingImage"
+              class="ai-plugin-btn"
+              :title="pl.label"
+              :aria-label="pl.label"
+              :disabled="loading"
+              @click="runPlugin(pl)"
             >
-              &times;
+              {{ pl.icon || pl.label.charAt(0) }}
             </button>
-          </div>
-          <div class="ai-footer-input-row">
-            <textarea
-              v-model="input"
-              class="ai-footer-textarea"
-              :placeholder="`${placeholder} (${ctrlEnterToSend ? 'Ctrl+Enter' : t.newline})`"
-              rows="2"
-              @input="autoResizeTextarea"
-              @keydown="onTextareaKeydown"
-              @paste="onPasteImage"
-            />
-            <span
-              v-if="charCountLabel"
-              class="ai-char-counter"
-              :class="{ 'ai-char-counter-warn': charCountNearLimit }"
-            >{{ charCountLabel }}</span>
-            <div class="ai-footer-send-group">
-              <input
-                ref="fileInputRef"
-                type="file"
-                :accept="ACCEPT_TYPES"
-                style="display: none"
-                @change="handleFileUpload"
-              />
-              <button
-                v-if="mode !== 'chat'"
-                type="button"
-                class="ai-upload"
-                :disabled="loading"
-                :title="t.uploadFile"
-                :aria-label="t.uploadFile"
-                @click="fileInputRef?.click()"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"
-                  />
-                </svg>
-              </button>
-              <button
-                v-for="pl in getPlugins('footer')"
-                :key="pl.id"
-                type="button"
-                class="ai-plugin-btn"
-                :title="pl.label"
-                :aria-label="pl.label"
-                :disabled="loading"
-                @click="runPlugin(pl)"
-              >
-                {{ pl.icon || pl.label.charAt(0) }}
-              </button>
-              <button
-                type="button"
-                class="ai-ctrl-enter-toggle"
-                :class="{ active: soundEnabled }"
-                :title="soundEnabled ? 'Sound: ON' : 'Sound: OFF'"
-                @click="soundEnabled = !soundEnabled"
-              >
-                {{ soundEnabled ? '🔔' : '🔕' }}
-              </button>
-              <button
-                type="button"
-                class="ai-ctrl-enter-toggle"
-                :class="{ active: ctrlEnterToSend }"
-                :title="ctrlEnterToSend ? 'Ctrl+Enter → Send' : 'Enter → Send'"
-                @click="ctrlEnterToSend = !ctrlEnterToSend"
-              >
-                ⏎
-              </button>
-              <button
-                class="ai-send"
-                type="button"
-                :style="sendStyle"
-                :disabled="!input.trim() || loading"
-                :title="t.send"
-                :aria-label="t.send"
-                @click="send"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                  class="ai-send-icon"
-                >
-                  <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div
-            v-if="mode === 'chat' && showModelPickerResolved && options.baseUrl"
-            class="ai-footer-model-row"
-          >
-            <select
-              v-model="selectedChatModel"
-              class="ai-model-select"
-              :disabled="loading || modelChoices.length === 0"
-              :aria-label="t.modelLabel"
-            >
-              <template v-if="modelChoices.length === 0">
-                <option value="" disabled>{{ modelListMessage }}</option>
-              </template>
-              <template v-else>
-                <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
-              </template>
-            </select>
-          </div>
-        </div>
+          </template>
+        </ChatInputArea>
       </div>
     </Transition>
 
@@ -918,6 +754,8 @@ import InlineTranslatePopover from './InlineTranslatePopover.vue';
 import ExportToast from './ExportToast.vue';
 import PageSelectionBar from './PageSelectionBar.vue';
 import SessionTabs from './SessionTabs.vue';
+import ConnectionDiagnostics from './ConnectionDiagnostics.vue';
+import ChatInputArea from './ChatInputArea.vue';
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels } from '../utils/api';
 import type { ChatPayload } from '../utils/api';
@@ -1392,29 +1230,6 @@ const {
 const bodyRef = ref<HTMLElement>();
 const showScrollToBottomBtn = ref(false);
 
-function onTextareaKeydown(e: KeyboardEvent) {
-  if (e.key !== 'Enter') return;
-  if (ctrlEnterToSend.value) {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      send();
-    }
-  } else {
-    if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      send();
-    }
-  }
-}
-
-function autoResizeTextarea(event: Event) {
-  const el = event.target as HTMLTextAreaElement;
-  el.style.height = 'auto';
-  const lineHeight = 22;
-  const minH = lineHeight * 2;
-  const maxH = lineHeight * 6;
-  el.style.height = Math.min(Math.max(el.scrollHeight, minH), maxH) + 'px';
-}
 
 function onBodyScroll() {
   const el = bodyRef.value;
@@ -1435,7 +1250,6 @@ watch(bodyRef, (el) => {
 
 const panelRef = ref<HTMLElement>();
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
-const fileInputRef = ref<HTMLInputElement>();
 const dragActive = ref(false);
 const fileUploading = ref(false);
 const selectMode = ref(false);
@@ -1840,7 +1654,6 @@ const panelStyle = computed(
       transformOrigin: panelTransformOrigin.value,
     }) as Record<string, string>,
 );
-const sendStyle = computed(() => ({ backgroundColor: color.value }));
 
 const emit = defineEmits<{
   (e: 'send', payload: { action: string; text: string }): void;
@@ -2595,13 +2408,6 @@ async function processFileUpload(file: File) {
   }
 }
 
-async function handleFileUpload(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  target.value = '';
-  if (!file) return;
-  await processFileUpload(file);
-}
 
 /** 距底部小于此值则视为「在跟随」，流式更新时才自动滚 */
 const SCROLL_STICKY_PX = 80;
