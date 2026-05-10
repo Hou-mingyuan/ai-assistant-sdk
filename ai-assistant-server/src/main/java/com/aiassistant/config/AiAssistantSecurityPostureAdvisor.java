@@ -108,34 +108,4 @@ public class AiAssistantSecurityPostureAdvisor {
     private boolean isWildcardOrigin(String value) {
         return value != null && value.trim().equals("*");
     }
-
-    /**
-     * Probe abstraction so unit tests can inject deterministic results without touching real
-     * environment variables. The default implementation looks at well-known K8s and PaaS markers.
-     */
-    interface MultiReplicaEnvironmentProbe {
-        boolean looksLikeMultiReplica();
-    }
-
-    /**
-     * Default probe: returns true if the JVM is running inside a Kubernetes pod (presence of
-     * KUBERNETES_SERVICE_HOST) or if HOSTNAME matches the typical multi-replica patterns
-     * "&lt;name&gt;-&lt;hash&gt;-&lt;suffix&gt;" used by Deployments / StatefulSets.
-     */
-    static class SystemEnvMultiReplicaEnvironmentProbe implements MultiReplicaEnvironmentProbe {
-        @Override
-        public boolean looksLikeMultiReplica() {
-            if (hasEnv("KUBERNETES_SERVICE_HOST")) return true;
-            String host = System.getenv("HOSTNAME");
-            if (host == null || host.isBlank()) return false;
-            // Deployment pod: name-replicasethash-suffix (e.g. ai-assistant-7d8b9c-2xq4l)
-            // StatefulSet pod: name-N (e.g. ai-assistant-0)
-            return host.matches(".+-[a-z0-9]{5,10}-[a-z0-9]{5}") || host.matches(".+-\\d+");
-        }
-
-        private static boolean hasEnv(String name) {
-            String value = System.getenv(name);
-            return value != null && !value.isBlank();
-        }
-    }
 }

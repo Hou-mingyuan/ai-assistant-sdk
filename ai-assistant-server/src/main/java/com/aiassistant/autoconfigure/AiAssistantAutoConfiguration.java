@@ -117,6 +117,28 @@ public class AiAssistantAutoConfiguration {
         return event -> banner.logBanner();
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.config.MultiReplicaStorageAdvisor multiReplicaStorageAdvisor() {
+        return new com.aiassistant.config.MultiReplicaStorageAdvisor();
+    }
+
+    @Bean
+    public ApplicationListener<ApplicationReadyEvent> multiReplicaStorageAdvisorLogger(
+            com.aiassistant.config.MultiReplicaStorageAdvisor advisor,
+            ObjectProvider<com.aiassistant.rag.VectorStore> vectorStoreProvider,
+            ObjectProvider<com.aiassistant.service.SessionStore> sessionStoreProvider,
+            ObjectProvider<com.aiassistant.stats.TokenUsageTracker> tokenUsageTrackerProvider,
+            ObjectProvider<com.aiassistant.spi.ConversationMemoryProvider>
+                            conversationMemoryProviderProvider) {
+        return event ->
+                advisor.logWarnings(
+                        vectorStoreProvider.getIfAvailable(),
+                        sessionStoreProvider.getIfAvailable(),
+                        tokenUsageTrackerProvider.getIfAvailable(),
+                        conversationMemoryProviderProvider.getIfAvailable());
+    }
+
     @Configuration
     @ConditionalOnClass(name = "com.microsoft.playwright.Playwright")
     @ConditionalOnProperty(

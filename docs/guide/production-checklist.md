@@ -55,6 +55,16 @@
 - [ ] 如果允许导出图片，`AI_ASSISTANT_EXPORT_MAX_IMAGE_BYTES` 和 `AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS` 有明确上限。
 - [ ] Compose 或平台层已设置内存、CPU 和日志滚动限制。
 
+## 多副本部署的 In-Memory 状态
+
+启动时启动器会判断当前 JVM 是否像多副本部署（命中 `KUBERNETES_SERVICE_HOST` 或 HOSTNAME 形如 `<name>-<hash>-<suffix>` / `<name>-N`），如果是且关键状态组件还在使用默认的 in-memory 实现，会按组件分别打 `WARN`：
+
+- [ ] 如果启用 RAG，已用共享 `VectorStore`（Milvus / Pinecone / Qdrant / pgvector …）替换默认 `InMemoryVectorStore`，避免一副本上的索引在另一副本上不可见。
+- [ ] 已配置 `spring-data-redis` 让自动装配的 `RedisSessionStore` 接管，或自行注册 `SessionStore` Bean，避免会话只在写入它的副本可见。
+- [ ] 已确认 `TokenUsageTracker` 在多副本下的有效配额是 `quota * replicas`；对硬性配额场景，把额度统计放到上游网关或共享后端。
+- [ ] 已注册 `RedisConversationMemoryProvider` 或自定义 `ConversationMemoryProvider`，让长期事实和滚动历史能跨副本共享。
+- [ ] 如果上面任何一项没替换，已在变更单中明确标注「该能力暂不支持多副本一致性」，并和业务方对齐。
+
 ## 网络和反向代理
 
 - [ ] 反向代理公开路径和 `AI_ASSISTANT_CONTEXT_PATH` 一致。
