@@ -10,6 +10,9 @@ import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.service.llm.PromptComposer;
+import com.aiassistant.service.llm.RequestEnricher;
+import com.aiassistant.service.llm.ResponsePostProcessor;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
@@ -58,6 +61,9 @@ public class LlmService {
     private final LlmResponseCache llmCache;
     private final LlmRequestBuilder requestBuilder;
     private final OpenAiResponseParser responseParser;
+    private final PromptComposer promptComposer;
+    private final RequestEnricher requestEnricher;
+    private final ResponsePostProcessor responsePostProcessor;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -113,6 +119,10 @@ public class LlmService {
         this.memoryProvider = memoryProvider;
         this.interceptors = interceptors != null ? interceptors : List.of();
         this.auditEventStore = auditEventStore;
+        this.promptComposer = new PromptComposer(requestBuilder, memoryProvider, ragService);
+        this.requestEnricher = new RequestEnricher(contentFilter, urlFetchService);
+        this.responsePostProcessor =
+                new ResponsePostProcessor(contentFilter, tokenUsageTracker, responseParser);
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
@@ -144,7 +154,13 @@ public class LlmService {
             String systemPrompt = requestBuilder.translatePrompt(targetLang);
             String modelId = resolveModelWithRouter(null, "translate");
             String result =
-                    callLlm(systemPrompt, prepareUserText(text), null, "translate", modelId, null);
+                    callLlm(
+                            systemPrompt,
+                            requestEnricher.enrichUserText(text),
+                            null,
+                            "translate",
+                            modelId,
+                            null);
             llmCache.put(cacheOp, text, result);
             return result;
         } finally {
@@ -162,7 +178,7 @@ public class LlmService {
             String result =
                     callLlm(
                             requestBuilder.summarizePrompt(),
-                            prepareUserText(text),
+                            requestEnricher.enrichUserText(text),
                             null,
                             "summarize",
                             modelId,
@@ -193,9 +209,9 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String prompt = requestBuilder.resolveSystemPrompt(requestSystemPrompt);
-            prompt = enrichWithMemory(prompt, sessionId);
-            prompt = enrichWithRag(prompt, userMessage);
+            String prompt =
+                    promptComposer.composeChatSystemPrompt(
+                            requestSystemPrompt, sessionId, userMessage);
             int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
@@ -213,7 +229,7 @@ public class LlmService {
             String result =
                     callLlm(
                             ctx.systemPrompt(),
-                            prepareUserText(ctx.userMessage()),
+                            requestEnricher.enrichUserText(ctx.userMessage()),
                             history,
                             "chat",
                             ctx.modelId() != null ? ctx.modelId() : modelId,
@@ -245,7 +261,12 @@ public class LlmService {
             String systemPrompt = requestBuilder.translatePrompt(targetLang);
             String modelId = resolveModelWithRouter(null, "translate");
             return callLlmStream(
-                            systemPrompt, prepareUserText(text), null, "translate", modelId, null)
+                            systemPrompt,
+                            requestEnricher.enrichUserText(text),
+                            null,
+                            "translate",
+                            modelId,
+                            null)
                     .doFinally(signal -> releaseQuota(tenantId, reserved));
         } catch (Exception e) {
             releaseQuota(tenantId, reserved);
@@ -260,7 +281,7 @@ public class LlmService {
             String modelId = resolveModelWithRouter(null, "summarize");
             return callLlmStream(
                             requestBuilder.summarizePrompt(),
-                            prepareUserText(text),
+                            requestEnricher.enrichUserText(text),
                             null,
                             "summarize",
                             modelId,
@@ -291,9 +312,9 @@ public class LlmService {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String prompt = requestBuilder.resolveSystemPrompt(requestSystemPrompt);
-            prompt = enrichWithMemory(prompt, sessionId);
-            prompt = enrichWithRag(prompt, userMessage);
+            String prompt =
+                    promptComposer.composeChatSystemPrompt(
+                            requestSystemPrompt, sessionId, userMessage);
             int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
@@ -313,7 +334,7 @@ public class LlmService {
             Flux<String> flux =
                     callLlmStream(
                             ctx.systemPrompt(),
-                            prepareUserText(ctx.userMessage()),
+                            requestEnricher.enrichUserText(ctx.userMessage()),
                             history,
                             "chat",
                             ctx.modelId() != null ? ctx.modelId() : modelId,
@@ -393,11 +414,10 @@ public class LlmService {
                 throw e;
             }
             try {
-                int[] tokenCounts = extractAndRecordTokenUsage(rawResponse, currentModel);
+                int[] tokenCounts =
+                        responsePostProcessor.extractAndRecord(rawResponse, currentModel);
                 String result = processToolCallingLoop(body, rawResponse, key);
-                if (contentFilter != null) {
-                    result = contentFilter.filterOutput(result);
-                }
+                result = responsePostProcessor.filterSync(result);
                 keyRotator.markSuccess(key);
                 if (sample != null) sample.stop(completionTimer(operation, "success"));
                 emitAuditEvent(operation, currentModel, tokenCounts[0], tokenCounts[1],
@@ -433,7 +453,7 @@ public class LlmService {
 
     private String processToolCallingLoop(ObjectNode body, String rawResponse, String apiKey) {
         if (toolRegistry == null || toolRegistry.isEmpty()) {
-            return parseContentFromRaw(rawResponse);
+            return responsePostProcessor.parseContentFromRaw(rawResponse);
         }
         String modelId = body.path("model").asText("");
         for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -448,7 +468,9 @@ public class LlmService {
                 return "AI service returned an unparseable response.";
             }
             JsonNode choices = root.path("choices");
-            if (!choices.isArray() || choices.isEmpty()) return parseContentFromRaw(rawResponse);
+            if (!choices.isArray() || choices.isEmpty()) {
+                return responsePostProcessor.parseContentFromRaw(rawResponse);
+            }
 
             JsonNode firstChoice = choices.get(0);
             JsonNode msg = firstChoice.path("message");
@@ -492,13 +514,9 @@ public class LlmService {
             }
 
             rawResponse = chatCompletionClient.completeRaw(body, apiKey);
-            extractAndRecordTokenUsage(rawResponse, modelId);
+            responsePostProcessor.extractAndRecord(rawResponse, modelId);
         }
-        return parseContentFromRaw(rawResponse);
-    }
-
-    private String parseContentFromRaw(String raw) {
-        return responseParser.parseContent(raw);
+        return responsePostProcessor.parseContentFromRaw(rawResponse);
     }
 
     private Timer completionTimer(String operation, String outcome) {
@@ -507,25 +525,6 @@ public class LlmService {
                 .tag("operation", operation)
                 .tag("outcome", outcome)
                 .register(meterRegistry);
-    }
-
-    private String prepareUserText(String text) {
-        if (text == null) {
-            return text;
-        }
-        if (contentFilter != null) {
-            var filtered = contentFilter.filterInput(text);
-            text = filtered.text();
-            if (filtered.hasWarnings()) {
-                log.warn("Content filter warnings: {}", filtered.warnings());
-            }
-        }
-        try {
-            return urlFetchService.enrichUserMessage(text);
-        } catch (Exception e) {
-            log.warn("URL enrichment skipped: {}", e.getMessage());
-            return text;
-        }
     }
 
     private Flux<String> callLlmStream(
@@ -547,8 +546,8 @@ public class LlmService {
         AtomicInteger streamCharCount = new AtomicInteger(0);
 
         if (toolRegistry != null && !toolRegistry.isEmpty() && body.has("tools")) {
-            return applyStreamOutputFilter(
-                    callLlmStreamWithTools(body, key, operation), modelId, operation)
+            return responsePostProcessor
+                    .filterStream(callLlmStreamWithTools(body, key, operation), modelId)
                     .doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
                     .doFinally(signal -> {
                         AuditEvent.Outcome outcome = signal == SignalType.ON_COMPLETE
@@ -563,7 +562,7 @@ public class LlmService {
                         .completeStream(body, key)
                         .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
                         .doOnError(e -> keyRotator.markFailed(key));
-        flux = applyStreamOutputFilter(flux, modelId, operation);
+        flux = responsePostProcessor.filterStream(flux, modelId);
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         return flux.doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
                 .doFinally(
@@ -580,29 +579,6 @@ public class LlmService {
                 });
     }
 
-    private Flux<String> applyStreamOutputFilter(
-            Flux<String> flux, String modelId, String operation) {
-        if (contentFilter == null && tokenUsageTracker == null) return flux;
-        StringBuilder fullText = new StringBuilder();
-        return flux.map(
-                        chunk -> {
-                            fullText.append(chunk);
-                            if (contentFilter != null) {
-                                return contentFilter.filterOutput(chunk);
-                            }
-                            return chunk;
-                        })
-                .doOnComplete(
-                        () -> {
-                            if (tokenUsageTracker != null && !fullText.isEmpty()) {
-                                int estimatedCompletionTokens = fullText.length() / 4;
-                                String tenantId = TenantContext.tenantId();
-                                tokenUsageTracker.recordUsage(
-                                        tenantId, modelId, 0, estimatedCompletionTokens);
-                            }
-                        });
-    }
-
     private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
         return Flux.defer(
                 () -> {
@@ -613,7 +589,7 @@ public class LlmService {
                         JsonNode root = objectMapper.readTree(rawResponse);
                         JsonNode choices = root.path("choices");
                         if (!choices.isArray() || choices.isEmpty()) {
-                            return Flux.just(parseContentFromRaw(rawResponse));
+                            return Flux.just(responsePostProcessor.parseContentFromRaw(rawResponse));
                         }
                         JsonNode firstChoice = choices.get(0);
                         String finishReason = firstChoice.path("finish_reason").asText("");
@@ -712,7 +688,7 @@ public class LlmService {
                             JsonNode root = objectMapper.readTree(rawResponse);
                             JsonNode choices = root.path("choices");
                             if (!choices.isArray() || choices.isEmpty()) {
-                                sink.next(parseContentFromRaw(rawResponse));
+                                sink.next(responsePostProcessor.parseContentFromRaw(rawResponse));
                                 break;
                             }
                             JsonNode nextChoice = choices.get(0);
@@ -791,29 +767,6 @@ public class LlmService {
         }
     }
 
-    private int[] extractAndRecordTokenUsage(String rawResponse, String modelId) {
-        int[] counts = responseParser.parseUsage(rawResponse);
-        if (tokenUsageTracker != null && counts[0] + counts[1] > 0) {
-            String tenantId = TenantContext.tenantId();
-            tokenUsageTracker.recordUsage(tenantId, modelId, counts[0], counts[1]);
-        }
-        return counts;
-    }
-
-    private String enrichWithMemory(String systemPrompt, String sessionId) {
-        if (memoryProvider == null || sessionId == null || sessionId.isBlank()) return systemPrompt;
-        try {
-            ConversationMemory memory = memoryProvider.getMemory(sessionId);
-            String memoryPrompt = memory.buildMemoryPrompt();
-            if (memoryPrompt != null && !memoryPrompt.isBlank()) {
-                return systemPrompt + "\n\n" + memoryPrompt;
-            }
-        } catch (Exception e) {
-            log.debug("Memory enrichment skipped: {}", e.getMessage());
-        }
-        return systemPrompt;
-    }
-
     private void recordToMemory(String sessionId, String userMessage, String assistantMessage) {
         if (memoryProvider == null || sessionId == null || sessionId.isBlank()) return;
         try {
@@ -857,19 +810,6 @@ public class LlmService {
             }
         }
         return response;
-    }
-
-    private String enrichWithRag(String systemPrompt, String userMessage) {
-        if (ragService == null || userMessage == null || userMessage.isBlank()) return systemPrompt;
-        try {
-            String context = ragService.buildContextPrompt(userMessage, "default");
-            if (context != null && !context.isBlank()) {
-                return systemPrompt + "\n\n" + context;
-            }
-        } catch (Exception e) {
-            log.debug("RAG enrichment skipped: {}", e.getMessage());
-        }
-        return systemPrompt;
     }
 
     private Timer streamTimer(String operation, String outcome) {
