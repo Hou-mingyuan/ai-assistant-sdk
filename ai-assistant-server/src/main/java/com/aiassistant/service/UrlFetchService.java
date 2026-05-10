@@ -1,5 +1,12 @@
 package com.aiassistant.service;
 
+import static com.aiassistant.util.HtmlTextExtractor.decodeBasicEntities;
+import static com.aiassistant.util.HtmlTextExtractor.firstNonBlank;
+import static com.aiassistant.util.HtmlTextExtractor.htmlToPlain;
+import static com.aiassistant.util.HtmlTextExtractor.indexOfIgnoreCase;
+import static com.aiassistant.util.HtmlTextExtractor.matchGroup;
+import static com.aiassistant.util.HtmlTextExtractor.stripTags;
+
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.util.UrlFetchSafety;
@@ -372,93 +379,9 @@ public class UrlFetchService {
         return StandardCharsets.UTF_8;
     }
 
-    private static int indexOfIgnoreCase(String src, String target, int from) {
-        int tLen = target.length();
-        int limit = src.length() - tLen;
-        for (int j = from; j <= limit; j++) {
-            if (src.regionMatches(true, j, target, 0, tLen)) {
-                return j;
-            }
-        }
-        return -1;
-    }
-
-    private static String htmlToPlain(String html) {
-        int len = html.length();
-        StringBuilder sb = new StringBuilder(len / 3);
-        int i = 0;
-        while (i < len) {
-            char c = html.charAt(i);
-            if (c == '<') {
-                boolean isScript = len - i >= 7 && html.regionMatches(true, i, "<script", 0, 7);
-                boolean isStyle =
-                        !isScript && len - i >= 6 && html.regionMatches(true, i, "<style", 0, 6);
-                if (isScript || isStyle) {
-                    String endTag = isScript ? "</script>" : "</style>";
-                    int close = indexOfIgnoreCase(html, endTag, i);
-                    i = close < 0 ? len : close + endTag.length();
-                    sb.append(' ');
-                    continue;
-                }
-                int gt = html.indexOf('>', i);
-                i = gt < 0 ? len : gt + 1;
-                sb.append(' ');
-            } else if (c == '&') {
-                int semi = html.indexOf(';', i);
-                if (semi > i && semi - i <= 8) {
-                    String ent = html.substring(i, semi + 1);
-                    switch (ent) {
-                        case "&nbsp;" -> sb.append(' ');
-                        case "&lt;" -> sb.append('<');
-                        case "&gt;" -> sb.append('>');
-                        case "&amp;" -> sb.append('&');
-                        case "&quot;" -> sb.append('"');
-                        case "&#39;" -> sb.append('\'');
-                        default -> sb.append(ent);
-                    }
-                    i = semi + 1;
-                } else {
-                    sb.append(c);
-                    i++;
-                }
-            } else {
-                sb.append(c);
-                i++;
-            }
-        }
-        return sb.toString().replaceAll("\\s+", " ").trim();
-    }
-
-    private static String stripTags(String s) {
-        if (s == null) {
-            return "";
-        }
-        return s.replaceAll("<[^>]+>", " ").replaceAll("\\s+", " ").trim();
-    }
-
-    private static String firstNonBlank(String... parts) {
-        if (parts == null) {
-            return "";
-        }
-        for (String p : parts) {
-            if (p != null && !p.isBlank()) {
-                return p.trim();
-            }
-        }
-        return "";
-    }
-
-    private static String matchGroup(Pattern p, String html) {
-        Matcher m = p.matcher(html);
-        return m.find() ? decodeBasicEntities(m.group(1).trim()) : "";
-    }
-
-    private static String decodeBasicEntities(String s) {
-        if (s == null) {
-            return "";
-        }
-        return s.replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'");
-    }
+    // HTML text utilities (htmlToPlain, stripTags, firstNonBlank, matchGroup,
+    // decodeBasicEntities, indexOfIgnoreCase) live in
+    // com.aiassistant.util.HtmlTextExtractor and are used here via static import.
 
     /** 抽取并对图片按「与新闻正文相关性」排序：优先 og/twitter 主图、正文区域内大图、alt 与标题/摘要有交集者；剔除明显装饰/图标 URL。 */
     private List<String> collectImages(
