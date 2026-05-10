@@ -44,13 +44,7 @@ public class AiAssistantProperties {
     /** 非流式 /chat/completions 对瞬时错误额外重试次数（不含首次请求），0 表示不重试。 */
     private int llmMaxRetries = 2;
 
-    private String allowedOrigins = "*";
-    private String accessToken;
     private boolean enableStats = true;
-    private boolean adminEnabled = false;
-    private boolean connectorManagementEnabled = false;
-    private boolean allowQueryTokenAuth = false;
-    private boolean mcpServerEnabled = false;
     private int fileMaxExtractedChars = 300_000;
     private String systemPrompt;
 
@@ -60,14 +54,17 @@ public class AiAssistantProperties {
     /** 客户端传入的 system prompt 实际生效最大字符，超出截断；0 表示不额外截断。 */
     private int clientSystemPromptMaxChars = 4_000;
 
-    // ── Rate Limiting ──────────────────────────────────────────────────
-    private int rateLimit = 0;
-    private java.util.Map<String, Integer> rateLimitPerAction;
+    // ── Security (ai-assistant.security.*) ─────────────────────────
+    private SecurityProperties security = new SecurityProperties();
+
+    // ── Admin / management surfaces (ai-assistant.admin.*) ───────────
+    private AdminProperties admin = new AdminProperties();
+
+    // ── Rate Limiting (ai-assistant.rate-limit-config.*) ────────────
+    private RateLimitProperties rateLimitConfig = new RateLimitProperties();
 
     // ── Embedding / RAG (ai-assistant.rag.*) ─────────────────────────
     private RagProperties rag = new RagProperties();
-
-    private boolean piiMaskingEnabled = true;
 
     // ── Session Store ──────────────────────────────────────────────
     private SessionStoreProperties sessionStore = new SessionStoreProperties();
@@ -201,6 +198,51 @@ public class AiAssistantProperties {
         }
     }
 
+    /**
+     * 限流配置子域。
+     *
+     * <p>YAML 嵌套形式 {@code ai-assistant.rate-limit-config.requests-per-minute / .per-action}，
+     * 同时保留历史扁平形式 {@code ai-assistant.rate-limit / .rate-limit-per-action}（通过主类的
+     * delegation getter/setter 兼容）。
+     */
+    @Getter
+    @Setter
+    public static class RateLimitProperties {
+        private int requestsPerMinute = 0;
+        private java.util.Map<String, Integer> perAction;
+    }
+
+    /**
+     * 安全相关配置子域。
+     *
+     * <p>YAML 嵌套形式 {@code ai-assistant.security.access-token / .allowed-origins /
+     * .pii-masking-enabled / .allow-query-token-auth}，同时保留历史扁平形式（通过主类的 delegation
+     * 兼容）。
+     */
+    @Getter
+    @Setter
+    public static class SecurityProperties {
+        private String accessToken;
+        private String allowedOrigins = "*";
+        private boolean piiMaskingEnabled = true;
+        private boolean allowQueryTokenAuth = false;
+    }
+
+    /**
+     * 管理与暴露面配置子域。
+     *
+     * <p>YAML 嵌套形式 {@code ai-assistant.admin.enabled / .connector-management-enabled /
+     * .mcp-server-enabled}，同时保留历史扁平形式 {@code ai-assistant.admin-enabled} 等（通过主类
+     * 的 delegation 兼容）。
+     */
+    @Getter
+    @Setter
+    public static class AdminProperties {
+        private boolean enabled = false;
+        private boolean connectorManagementEnabled = false;
+        private boolean mcpServerEnabled = false;
+    }
+
     // ── Derived / business methods ──────────────────────────────────
 
     /** Get all available API keys (single key + key list merged). */
@@ -216,27 +258,29 @@ public class AiAssistantProperties {
     }
 
     public String[] resolveAllowedOrigins() {
-        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+        String origins = security.getAllowedOrigins();
+        if (origins == null || origins.isBlank()) {
             return new String[] {"*"};
         }
-        java.util.LinkedHashSet<String> origins = new java.util.LinkedHashSet<>();
-        for (String origin : allowedOrigins.split(",")) {
+        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+        for (String origin : origins.split(",")) {
             if (origin != null && !origin.isBlank()) {
-                origins.add(origin.trim());
+                set.add(origin.trim());
             }
         }
-        if (origins.isEmpty()) {
+        if (set.isEmpty()) {
             return new String[] {"*"};
         }
-        return origins.toArray(String[]::new);
+        return set.toArray(String[]::new);
     }
 
     public int resolveRateLimit(String action) {
-        if (rateLimitPerAction != null && action != null) {
-            Integer v = rateLimitPerAction.get(action);
+        java.util.Map<String, Integer> perAction = rateLimitConfig.getPerAction();
+        if (perAction != null && action != null) {
+            Integer v = perAction.get(action);
             if (v != null && v > 0) return v;
         }
-        return rateLimit;
+        return rateLimitConfig.getRequestsPerMinute();
     }
 
     // ── Flat delegation helpers (backward compatibility) ────────────
@@ -401,6 +445,84 @@ public class AiAssistantProperties {
 
     public void setEmbeddingDimensions(int v) {
         rag.setEmbeddingDimensions(v);
+    }
+
+    // ── Rate limit flat delegation (backward compatibility) ────────
+
+    public int getRateLimit() {
+        return rateLimitConfig.getRequestsPerMinute();
+    }
+
+    public void setRateLimit(int v) {
+        rateLimitConfig.setRequestsPerMinute(v);
+    }
+
+    public java.util.Map<String, Integer> getRateLimitPerAction() {
+        return rateLimitConfig.getPerAction();
+    }
+
+    public void setRateLimitPerAction(java.util.Map<String, Integer> v) {
+        rateLimitConfig.setPerAction(v);
+    }
+
+    // ── Security flat delegation (backward compatibility) ──────────
+
+    public String getAccessToken() {
+        return security.getAccessToken();
+    }
+
+    public void setAccessToken(String v) {
+        security.setAccessToken(v);
+    }
+
+    public String getAllowedOrigins() {
+        return security.getAllowedOrigins();
+    }
+
+    public void setAllowedOrigins(String v) {
+        security.setAllowedOrigins(v);
+    }
+
+    public boolean isPiiMaskingEnabled() {
+        return security.isPiiMaskingEnabled();
+    }
+
+    public void setPiiMaskingEnabled(boolean v) {
+        security.setPiiMaskingEnabled(v);
+    }
+
+    public boolean isAllowQueryTokenAuth() {
+        return security.isAllowQueryTokenAuth();
+    }
+
+    public void setAllowQueryTokenAuth(boolean v) {
+        security.setAllowQueryTokenAuth(v);
+    }
+
+    // ── Admin flat delegation (backward compatibility) ────────────
+
+    public boolean isAdminEnabled() {
+        return admin.isEnabled();
+    }
+
+    public void setAdminEnabled(boolean v) {
+        admin.setEnabled(v);
+    }
+
+    public boolean isConnectorManagementEnabled() {
+        return admin.isConnectorManagementEnabled();
+    }
+
+    public void setConnectorManagementEnabled(boolean v) {
+        admin.setConnectorManagementEnabled(v);
+    }
+
+    public boolean isMcpServerEnabled() {
+        return admin.isMcpServerEnabled();
+    }
+
+    public void setMcpServerEnabled(boolean v) {
+        admin.setMcpServerEnabled(v);
     }
 
     /** 客户端请求的模型经白名单校验后的实际使用 id。 */
