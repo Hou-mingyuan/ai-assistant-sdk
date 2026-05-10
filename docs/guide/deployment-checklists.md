@@ -113,3 +113,29 @@ app.use(AiAssistant, {
 | 希望 AI 服务独立扩容、独立升级 | 独立服务部署 |
 
 如果仍不确定，先用独立服务跑通最小链路；确认需要深度复用业务上下文后，再切换到 Starter 集成。
+
+## 多副本部署专题
+
+无论选择哪种路径，只要把 SDK 部署成多个副本（Kubernetes Deployment、StatefulSet、负载均衡后挂多个 Pod 等），下面这些"默认进程内"的能力都会在每个副本上独立计数，导致总体表现不一致：
+
+| 能力 | 默认实现 | 多副本表现 | 建议 |
+| --- | --- | --- | --- |
+| 限流 | `RateLimitFilter`（进程内 Bucket） | 每副本独立计数，总配额 = 副本数 × 单副本配额 | 注册 `RedisRateLimitFilter` Bean，或把限流前移到 API 网关 |
+| 会话存储 | `InMemorySessionStore` | 同一会话被路由到不同副本时丢失上下文 | 切换为 `RedisSessionStore` 或自定义 `SessionStore` 实现 |
+| 向量存储（RAG） | `InMemoryVectorStore` | 每副本各持一份索引，不共享 | 注入 Milvus / Pinecone / Qdrant 等 `VectorStore` 实现 |
+| Token 用量 | `TokenUsageTracker`（进程内） | 每副本独立计数，配额超额检测可能不准 | 替换为基于 Redis / 数据库的实现 |
+| 对话记忆 | `ConversationMemory`（进程内） | 同一会话被路由到不同副本时记忆不一致 | 实现 `ConversationMemoryProvider` 持久化 |
+
+启动时，若服务检测到运行在 Kubernetes 中（`KUBERNETES_SERVICE_HOST` 存在）或 `HOSTNAME` 命中 K8s 命名规则，且 `ai-assistant.rate-limit` 大于 0，会在日志中输出 `MULTI_REPLICA_INPROCESS_RATE_LIMIT` 警告，提示需要切换到 Redis 限流或网关限流。请把该警告作为多副本环境的强制检查项。
+
+要快速判断当前环境是否多副本：
+
+```bash
+# 入口副本数
+kubectl get deployment ai-assistant-service -o jsonpath='{.spec.replicas}'
+
+# 实际运行的 Pod 数
+kubectl get pods -l app=ai-assistant-service --no-headers | wc -l
+```
+
+如果只能用单副本运行（小流量、内部工具），把 `ai-assistant.rate-limit` 调整到与单副本容量匹配的水平；启用 `RedisRateLimitFilter` 后再恢复到面向集群的配额。
