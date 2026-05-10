@@ -57,6 +57,7 @@ public class LlmService {
     private final ApiKeyRotator keyRotator;
     private final LlmResponseCache llmCache;
     private final LlmRequestBuilder requestBuilder;
+    private final OpenAiResponseParser responseParser;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -99,6 +100,7 @@ public class LlmService {
         this.keyRotator = new ApiKeyRotator(properties.resolveApiKeys());
         this.llmCache = new LlmResponseCache();
         this.requestBuilder = new LlmRequestBuilder(properties, objectMapper, toolRegistry);
+        this.responseParser = new OpenAiResponseParser(objectMapper);
         this.properties = properties;
         this.urlFetchService = urlFetchService;
         this.chatCompletionClient = chatCompletionClient;
@@ -496,16 +498,7 @@ public class LlmService {
     }
 
     private String parseContentFromRaw(String raw) {
-        try {
-            JsonNode root = objectMapper.readTree(raw);
-            JsonNode choices = root.path("choices");
-            if (choices.isArray() && !choices.isEmpty()) {
-                return choices.get(0).path("message").path("content").asText("");
-            }
-        } catch (Exception e) {
-            log.debug("parseContentFromRaw fallback to raw: {}", e.getMessage());
-        }
-        return raw;
+        return responseParser.parseContent(raw);
     }
 
     private Timer completionTimer(String operation, String outcome) {
@@ -799,19 +792,10 @@ public class LlmService {
     }
 
     private int[] extractAndRecordTokenUsage(String rawResponse, String modelId) {
-        int[] counts = {0, 0};
-        try {
-            JsonNode root = objectMapper.readTree(rawResponse);
-            JsonNode usage = root.path("usage");
-            if (usage.isMissingNode()) return counts;
-            counts[0] = usage.path("prompt_tokens").asInt(0);
-            counts[1] = usage.path("completion_tokens").asInt(0);
-            if (tokenUsageTracker != null && counts[0] + counts[1] > 0) {
-                String tenantId = TenantContext.tenantId();
-                tokenUsageTracker.recordUsage(tenantId, modelId, counts[0], counts[1]);
-            }
-        } catch (Exception e) {
-            log.debug("Token usage tracking skipped: {}", e.getMessage());
+        int[] counts = responseParser.parseUsage(rawResponse);
+        if (tokenUsageTracker != null && counts[0] + counts[1] > 0) {
+            String tenantId = TenantContext.tenantId();
+            tokenUsageTracker.recordUsage(tenantId, modelId, counts[0], counts[1]);
         }
         return counts;
     }
