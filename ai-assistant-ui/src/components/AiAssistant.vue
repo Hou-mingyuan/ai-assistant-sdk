@@ -77,200 +77,37 @@
         </div>
         <canvas ref="codeWallCanvasRef" class="ai-code-wall-canvas" aria-hidden="true"></canvas>
         <!-- Header：中间 ai-header-spacer 穿透命中顶边缩放手柄 -->
-        <div
-          class="ai-header"
-          :class="{ 'ai-header-dragging': panelDragging }"
-          @pointerdown="onPanelHeaderPointerDown"
-        >
-          <span :id="uid + '-title'" class="ai-title" :title="sessionTitle || t.title">{{
-            sessionTitle || t.title
-          }}</span>
-          <span class="ai-header-spacer" aria-hidden="true" />
-          <div class="ai-header-actions">
-            <button
-              v-if="mode === 'chat' && showSystemPromptUi"
-              type="button"
-              class="ai-header-personalize"
-              :title="t.personalizeTitle"
-              :aria-label="t.personalizeTitle"
-              @click.stop="openPersonalize"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-                />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span class="ai-header-personalize-text">{{ t.personalizeTitle }}</span>
-            </button>
-            <button
-              v-if="mode === 'chat'"
-              type="button"
-              class="ai-header-diagnostics"
-              :title="t.diagnosticsTitle"
-              :aria-label="t.diagnosticsTitle"
-              :aria-pressed="diagnosticsOpen ? 'true' : 'false'"
-              :aria-controls="uid + '-diagnostics'"
-              @click.stop="toggleDiagnostics"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 3v18h18" />
-                <path d="M7 14l3-3 3 2 5-6" />
-                <path d="M18 7h-4" />
-                <path d="M18 7v4" />
-              </svg>
-              <span class="ai-header-diagnostics-text">{{ t.diagnosticsTitle }}</span>
-            </button>
-            <button
-              type="button"
-              class="ai-expand"
-              :title="panelExpanded ? t.shrinkPanel : t.expandPanel"
-              :aria-label="panelExpanded ? t.shrinkPanel : t.expandPanel"
-              :aria-pressed="panelExpanded ? 'true' : 'false'"
-              @click.stop="togglePanelExpand"
-            >
-              <!-- 与常见系统控件一致：单框=全屏，双框错位=退出全屏 -->
-              <svg
-                v-if="!panelExpanded"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="5" y="5" width="14" height="14" rx="2.5" />
-              </svg>
-              <svg
-                v-else
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="4" y="9" width="11" height="11" rx="2.25" />
-                <rect x="9" y="4" width="11" height="11" rx="2.25" />
-              </svg>
-            </button>
-            <button
-              v-for="pl in getPlugins('header')"
-              :key="pl.id"
-              type="button"
-              class="ai-plugin-btn"
-              :title="pl.label"
-              :aria-label="pl.label"
-              @click.stop="runPlugin(pl)"
-            >
-              {{ pl.icon || pl.label.charAt(0) }}
-            </button>
-            <button
-              type="button"
-              class="ai-new-session"
-              :title="t.newSession"
-              :aria-label="t.newSession"
-              @click="startNewSession"
-            >
-              +
-            </button>
-            <div v-if="messages.length > 0" class="ai-batch-export-wrap">
-              <button
-                type="button"
-                class="ai-batch-export-btn"
-                :title="t.batchExport"
-                :aria-label="t.batchExport"
-                @click.stop="toggleBatchExportMenu"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-                </svg>
-              </button>
-              <div v-if="batchExportMenuOpen" class="ai-batch-export-menu">
-                <button type="button" @click="batchExportAllJson">{{ t.exportJson }}</button>
-                <button type="button" @click="batchExportAllMarkdown">
-                  {{ t.exportMarkdown }}
-                </button>
-                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('xlsx')">
-                  {{ t.exportServerXlsx }}
-                </button>
-                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('docx')">
-                  {{ t.exportServerDocx }}
-                </button>
-                <button v-if="options.baseUrl" type="button" @click="batchExportAllServer('pdf')">
-                  {{ t.exportServerPdf }}
-                </button>
-              </div>
-            </div>
-            <button
-              v-if="messages.length > 0 && !loading"
-              type="button"
-              class="ai-header-btn"
-              :class="{ active: selectMode }"
-              :title="selectMode ? t.closePanel : t.msgCtxDelete"
-              @click="toggleSelectMode"
-            >
-              ☑
-            </button>
-            <button
-              type="button"
-              class="ai-header-btn"
-              :class="{ active: !codeWallDisabled }"
-              title="Code Wall"
-              @click="codeWallDisabled = !codeWallDisabled; codeWallDisabled ? stopCodeWall() : startCodeWall()"
-            >
-              ✦
-            </button>
-            <button
-              v-if="messages.length > 0"
-              type="button"
-              class="ai-clear"
-              :title="t.clear"
-              :aria-label="t.clear"
-              @click="clearMessages"
-            >
-              &#x1f5d1;
-            </button>
-            <button
-              type="button"
-              class="ai-close"
-              :aria-label="t.closePanel"
-              @click="isOpen = false"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
+        <AssistantHeader
+          :uid="uid"
+          :session-title="sessionTitle"
+          :panel-dragging="panelDragging"
+          :mode="mode"
+          :show-system-prompt-ui="showSystemPromptUi"
+          :diagnostics-open="diagnosticsOpen"
+          :panel-expanded="panelExpanded"
+          :select-mode="selectMode"
+          :code-wall-disabled="codeWallDisabled"
+          :batch-export-menu-open="batchExportMenuOpen"
+          :has-messages="messages.length > 0"
+          :loading="loading"
+          :has-base-url="!!options.baseUrl"
+          :header-plugins="getPlugins('header')"
+          :t="t"
+          @pointerdown-header="onPanelHeaderPointerDown"
+          @open-personalize="openPersonalize"
+          @toggle-diagnostics="toggleDiagnostics"
+          @toggle-panel-expand="togglePanelExpand"
+          @run-plugin="runPlugin"
+          @start-new-session="startNewSession"
+          @toggle-batch-export-menu="toggleBatchExportMenu"
+          @batch-export-all-json="batchExportAllJson"
+          @batch-export-all-markdown="batchExportAllMarkdown"
+          @batch-export-all-server="batchExportAllServer"
+          @toggle-select-mode="toggleSelectMode"
+          @toggle-code-wall="onToggleCodeWall"
+          @clear-messages="clearMessages"
+          @close-panel="isOpen = false"
+        />
 
         <div class="ai-sr-only" aria-live="polite" aria-atomic="true">{{ a11yStatusText }}</div>
 
@@ -616,6 +453,7 @@ import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounte
 import FabContextMenu from './FabContextMenu.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
 import MessageList from './MessageList.vue';
+import AssistantHeader from './AssistantHeader.vue';
 import PersonalizeDialog from './PersonalizeDialog.vue';
 import InlineTranslatePopover from './InlineTranslatePopover.vue';
 import ExportToast from './ExportToast.vue';
@@ -1155,6 +993,15 @@ const {
   start: startCodeWall,
   stop: stopCodeWall,
 } = useCodeWall(codeWallCanvasRef, panelRef, reducedMotionRef, pageVisibleRef);
+
+function onToggleCodeWall() {
+  codeWallDisabled.value = !codeWallDisabled.value;
+  if (codeWallDisabled.value) {
+    stopCodeWall();
+  } else {
+    startCodeWall();
+  }
+}
 
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
 
