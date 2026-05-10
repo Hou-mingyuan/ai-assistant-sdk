@@ -1,9 +1,17 @@
 **
 
+# Root aggregator POM is required by the multi-module Maven build inside Docker.
+!pom.xml
+
 !ai-assistant-server/
 !ai-assistant-server/pom.xml
 !ai-assistant-server/src/
 !ai-assistant-server/src/**
+
+!ai-assistant-client/
+!ai-assistant-client/pom.xml
+!ai-assistant-client/src/
+!ai-assistant-client/src/**
 
 !ai-assistant-service/
 !ai-assistant-service/pom.xml
