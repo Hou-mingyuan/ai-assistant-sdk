@@ -474,6 +474,7 @@ import { getMessages } from '../utils/i18n';
 import type { Locale } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
+import { useChatOrchestrator } from '../composables/useChatOrchestrator';
 import {
   isAbortCancellationMessage,
   loadPersistedMessages,
@@ -1492,77 +1493,35 @@ function showAllOlderMessages() {
 
 const copiedIndex = ref(-1);
 
-function stopGenerate() {
-  if (streamAbortController) {
-    streamStoppedByUser = true;
-    streamAbortController.abort('user-stop');
-    streamAbortController = null;
-  }
-}
-
-function isErrorMessage(msg: Message): boolean {
-  if (msg.role !== 'assistant') return false;
-  const prefixes = ['Error:', '错误:', 'エラー:', '오류:'];
-  return prefixes.some((p) => msg.content.startsWith(p));
-}
-
-function retryLastError(globalIdx: number) {
-  if (loading.value) return;
-  const msg = messages.value[globalIdx];
-  if (!msg || !isErrorMessage(msg)) return;
-  regenerateAt(globalIdx);
-}
-
-function regenerateAt(globalIdx: number) {
-  if (loading.value) return;
-  const assistantMsg = messages.value[globalIdx];
-  if (!assistantMsg || assistantMsg.role !== 'assistant') return;
-  let userIdx = globalIdx - 1;
-  while (userIdx >= 0 && messages.value[userIdx].role !== 'user') userIdx--;
-  if (userIdx < 0) return;
-  const userText = messages.value[userIdx].contentArchive ?? messages.value[userIdx].content;
-  const cleanText = userText.replace(/^🖼️\s*/, '');
-  messages.value.splice(globalIdx, 1);
-  clearRenderCache();
-  input.value = cleanText;
-  nextTick(() => send());
-}
-
 const editingMsgIdx = ref<number | null>(null);
 const editingText = ref('');
 
-function startEdit(globalIdx: number) {
-  if (loading.value) return;
-  const msg = messages.value[globalIdx];
-  if (!msg || msg.role !== 'user') return;
-  const raw = (msg.contentArchive ?? msg.content).replace(/^🖼️\s*/, '');
-  editingMsgIdx.value = globalIdx;
-  editingText.value = raw;
-  // MessageList watches editingIdx and focuses its own textarea ref.
-}
-
-function cancelEdit() {
-  editingMsgIdx.value = null;
-  editingText.value = '';
-}
-
-function confirmEditAndResend(globalIdx: number) {
-  const newText = editingText.value.trim();
-  if (!newText || loading.value) return;
-  messages.value.splice(globalIdx);
-  clearRenderCache();
-  editingMsgIdx.value = null;
-  editingText.value = '';
-  input.value = newText;
-  nextTick(() => send());
-}
-
-function setFeedback(globalIdx: number, value: 'up' | 'down') {
-  const msg = messages.value[globalIdx];
-  if (!msg || msg.role !== 'assistant') return;
-  msg.feedback = msg.feedback === value ? undefined : value;
-  emit('feedback', { index: globalIdx, value: msg.feedback ?? null });
-}
+const {
+  stopGenerate,
+  isErrorMessage,
+  regenerateAt,
+  retryLastError,
+  startEdit,
+  cancelEdit,
+  confirmEditAndResend,
+  setFeedback,
+} = useChatOrchestrator({
+  messages,
+  loading,
+  input,
+  editingMsgIdx,
+  editingText,
+  clearRenderCache,
+  send: () => send(),
+  getStreamAbortController: () => streamAbortController,
+  setStreamAbortController: (c) => {
+    streamAbortController = c;
+  },
+  setStreamStoppedByUser: (v) => {
+    streamStoppedByUser = v;
+  },
+  emitFeedback: (payload) => emit('feedback', payload),
+});
 
 function handleBodyClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
