@@ -373,172 +373,38 @@
               </button>
             </div>
           </div>
-          <div v-if="hiddenOlderCount > 0 && !renderAllMessages" class="ai-older-msgs-banner">
-            <button type="button" class="ai-older-msgs-btn" @click="showAllOlderMessages">
-              {{ showEarlierLabel }}
-            </button>
-          </div>
-          <div
-            v-for="(msg, idx) in displayedMessages"
-            :key="`${displayOffset + idx}-${msg.role}`"
-            v-show="!isTransientAbortAssistantMessage(msg)"
-            :class="[
-              'ai-msg',
-              msg.role,
-              { 'ai-msg-streaming': isActiveStreamingAssistant(displayOffset + idx, msg) },
-              { 'ai-msg-selected': selectMode && selectedMsgIndices.has(displayOffset + idx) },
-            ]"
-            :data-ai-msg-global-idx="displayOffset + idx"
-            @click="selectMode ? toggleMsgSelection(displayOffset + idx) : undefined"
-          >
-            <input
-              v-if="selectMode"
-              type="checkbox"
-              class="ai-msg-checkbox"
-              :checked="selectedMsgIndices.has(displayOffset + idx)"
-              @click.stop="toggleMsgSelection(displayOffset + idx)"
-            />
-            <span
-              v-if="msg.role === 'assistant'"
-              class="ai-assistant-avatar"
-              :class="{
-                'ai-assistant-avatar-loading': isActiveStreamingAssistant(displayOffset + idx, msg),
-              }"
-              aria-hidden="true"
-            ></span>
-            <template v-if="editingMsgIdx === displayOffset + idx">
-              <div class="ai-bubble ai-bubble-editing">
-                <textarea
-                  ref="editTextareaRef"
-                  v-model="editingText"
-                  class="ai-edit-textarea"
-                  rows="3"
-                  @keydown.enter.exact.prevent="confirmEditAndResend(displayOffset + idx)"
-                  @keydown.escape="cancelEdit"
-                ></textarea>
-                <div class="ai-edit-actions">
-                  <button type="button" class="ai-edit-cancel" @click="cancelEdit">
-                    {{ t.closePanel }}
-                  </button>
-                  <button
-                    type="button"
-                    class="ai-edit-confirm"
-                    @click="confirmEditAndResend(displayOffset + idx)"
-                  >
-                    {{ t.send }}
-                  </button>
-                </div>
-              </div>
-              <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
-            </template>
-            <template v-else>
-              <div
-                v-if="
-                  isActiveStreamingAssistant(displayOffset + idx, msg) &&
-                  !hasVisibleAssistantContent(msg.content)
-                "
-                class="ai-thinking-bubble"
-                role="status"
-                aria-live="polite"
-              >
-                <span class="ai-thinking-orb" aria-hidden="true"></span>
-                <span class="ai-thinking-text">{{ t.replying }}</span>
-                <span class="ai-thinking-dots" aria-hidden="true">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </span>
-              </div>
-              <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
-              <div
-                v-else
-                class="ai-bubble"
-                @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
-                v-html="
-                  renderBubble(
-                    msg.content,
-                    displayOffset + idx,
-                    loading && msg.role === 'assistant' && idx === displayedMessages.length - 1,
-                  )
-                "
-              ></div>
-              <!-- eslint-enable vue/no-v-html -->
-              <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
-            </template>
-            <button
-              v-if="isActiveStreamingAssistant(displayOffset + idx, msg)"
-              type="button"
-              class="ai-stop-generate"
-              :title="t.stopGenerate"
-              @click="stopGenerate"
-            >
-              {{ t.stopGenerate }}
-            </button>
-            <div
-              v-if="msg.role === 'user' && !loading && editingMsgIdx !== displayOffset + idx"
-              class="ai-msg-actions"
-            >
-              <button
-                type="button"
-                class="ai-msg-edit"
-                :title="t.msgCtxEdit"
-                :aria-label="t.msgCtxEdit"
-                @click="startEdit(displayOffset + idx)"
-              >
-                ✏️
-              </button>
-            </div>
-            <div v-if="msg.role === 'assistant' && msg.content && !loading" class="ai-msg-actions">
-              <button
-                type="button"
-                class="ai-msg-copy"
-                :title="t.copyCode"
-                :aria-label="t.copyCode"
-                @click="copyMessage(msg.contentArchive ?? msg.content, displayOffset + idx)"
-              >
-                {{ copiedIndex === displayOffset + idx ? t.codeCopied : '📋' }}
-              </button>
-              <button
-                type="button"
-                class="ai-msg-regenerate"
-                :title="t.regenerate"
-                :aria-label="t.regenerate"
-                @click="regenerateAt(displayOffset + idx)"
-              >
-                🔄
-              </button>
-              <button
-                type="button"
-                class="ai-msg-feedback"
-                :class="{ active: msg.feedback === 'up' }"
-                :title="t.thumbsUp"
-                :aria-label="t.thumbsUp"
-                :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
-                @click="setFeedback(displayOffset + idx, 'up')"
-              >
-                👍
-              </button>
-              <button
-                type="button"
-                class="ai-msg-feedback"
-                :class="{ active: msg.feedback === 'down' }"
-                :title="t.thumbsDown"
-                :aria-label="t.thumbsDown"
-                :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
-                @click="setFeedback(displayOffset + idx, 'down')"
-              >
-                👎
-              </button>
-            </div>
-            <button
-              v-if="isErrorMessage(msg) && !loading"
-              type="button"
-              class="ai-retry-btn"
-              @click="retryLastError(displayOffset + idx)"
-            >
-              🔄 {{ t.retryError }}
-            </button>
-          </div>
+          <MessageList
+            :messages="displayedMessages"
+            :display-offset="displayOffset"
+            :hidden-older-count="hiddenOlderCount"
+            :render-all-messages="renderAllMessages"
+            :select-mode="selectMode"
+            :selected-indices="selectedMsgIndices"
+            :loading="loading"
+            :editing-idx="editingMsgIdx"
+            :editing-text="editingText"
+            :copied-index="copiedIndex"
+            :show-earlier-label="showEarlierLabel"
+            :t="t"
+            :is-transient-abort="isTransientAbortAssistantMessage"
+            :is-active-streaming="isActiveStreamingAssistant"
+            :has-visible-content="hasVisibleAssistantContent"
+            :format-relative-time="formatRelativeTime"
+            :render-bubble="renderBubble"
+            :on-bubble-context-menu="onBubbleContextMenu"
+            :is-error-message="isErrorMessage"
+            @show-all-older-messages="showAllOlderMessages"
+            @toggle-selection="toggleMsgSelection"
+            @confirm-edit="confirmEditAndResend"
+            @cancel-edit="cancelEdit"
+            @update:editing-text="editingText = $event"
+            @stop-generate="stopGenerate"
+            @start-edit="startEdit"
+            @copy-message="copyMessage"
+            @regenerate-at="regenerateAt"
+            @set-feedback="setFeedback"
+            @retry-last-error="retryLastError"
+          />
         </div>
         <Transition name="ai-fade">
           <div v-if="selectMode && selectedMsgIndices.size > 0" class="ai-batch-delete-bar">
@@ -749,6 +615,7 @@
 import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import FabContextMenu from './FabContextMenu.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
+import MessageList from './MessageList.vue';
 import PersonalizeDialog from './PersonalizeDialog.vue';
 import InlineTranslatePopover from './InlineTranslatePopover.vue';
 import ExportToast from './ExportToast.vue';
@@ -792,14 +659,7 @@ import {
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  /** 内存 cap 截断展示文案时保留的全文，导出/复制优先使用 */
-  contentArchive?: string;
-  feedback?: 'up' | 'down';
-  timestamp?: number;
-}
+import type { Message } from '../types/message';
 
 const sessionTitle = ref('');
 const multiSessions = useMultiSession();
@@ -1823,7 +1683,6 @@ function regenerateAt(globalIdx: number) {
 
 const editingMsgIdx = ref<number | null>(null);
 const editingText = ref('');
-const editTextareaRef = ref<HTMLTextAreaElement[]>();
 
 function startEdit(globalIdx: number) {
   if (loading.value) return;
@@ -1832,13 +1691,7 @@ function startEdit(globalIdx: number) {
   const raw = (msg.contentArchive ?? msg.content).replace(/^🖼️\s*/, '');
   editingMsgIdx.value = globalIdx;
   editingText.value = raw;
-  nextTick(() => {
-    const ta = editTextareaRef.value?.[0];
-    if (ta) {
-      ta.focus();
-      ta.setSelectionRange(ta.value.length, ta.value.length);
-    }
-  });
+  // MessageList watches editingIdx and focuses its own textarea ref.
 }
 
 function cancelEdit() {
