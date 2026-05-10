@@ -97,6 +97,19 @@ public class AiAssistantAutoConfiguration {
         return advisor;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.config.AiAssistantCapabilityBanner aiAssistantCapabilityBanner(
+            AiAssistantProperties properties) {
+        return new com.aiassistant.config.AiAssistantCapabilityBanner(properties);
+    }
+
+    @Bean
+    public ApplicationListener<ApplicationReadyEvent> aiAssistantCapabilityBannerLogger(
+            com.aiassistant.config.AiAssistantCapabilityBanner banner) {
+        return event -> banner.logBanner();
+    }
+
     @Configuration
     @ConditionalOnClass(name = "com.microsoft.playwright.Playwright")
     @ConditionalOnProperty(

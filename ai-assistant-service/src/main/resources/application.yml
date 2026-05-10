@@ -14,10 +14,12 @@ spring:
     multipart:
       max-file-size: ${AI_ASSISTANT_MULTIPART_MAX_FILE_SIZE:10MB}
       max-request-size: ${AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE:10MB}
+
 management:
   endpoints:
     web:
       exposure:
+        # 默认仅暴露 health 与 info；生产可根据需要追加 prometheus、metrics
         include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
   endpoint:
     health:
@@ -35,48 +37,77 @@ info:
     description: Standalone AI Assistant service
     image: ${AI_ASSISTANT_IMAGE_NAME:ai-assistant-service}
 
+# ============================================================
+# AI Assistant 配置
+# 完整文档：docs/guide/configuration.md
+# 启动后服务会在日志中打印一份「Enabled Capabilities」清单，
+# 可作为生产环境的快速核对依据。
+# ============================================================
 ai-assistant:
-  provider: ${AI_ASSISTANT_PROVIDER:openai}
-  api-key: ${AI_ASSISTANT_API_KEY:}
-  base-url: ${AI_ASSISTANT_BASE_URL:}
-  model: ${AI_ASSISTANT_MODEL:}
+  # ── LLM Provider（必填）──────────────────────────────────
+  provider: ${AI_ASSISTANT_PROVIDER:openai}        # openai/deepseek/tongyi/zhipu/volcengine/...
+  api-key: ${AI_ASSISTANT_API_KEY:}                # 必填：模型 API Key（生产请走 Vault / K8s Secret）
+  base-url: ${AI_ASSISTANT_BASE_URL:}              # 可选：自定义 API 地址，缺省按 provider 推断
+  model: ${AI_ASSISTANT_MODEL:}                    # 可选：默认模型；不填则使用 provider 默认值
   context-path: ${AI_ASSISTANT_CONTEXT_PATH:/ai-assistant}
-  access-token: ${AI_ASSISTANT_ACCESS_TOKEN:}
-  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS:*}
-  rate-limit: ${AI_ASSISTANT_RATE_LIMIT:60}
-  timeout-seconds: ${AI_ASSISTANT_TIMEOUT_SECONDS:60}
-  max-tokens: ${AI_ASSISTANT_MAX_TOKENS:2048}
-  temperature: ${AI_ASSISTANT_TEMPERATURE:0.7}
-  llm-max-retries: ${AI_ASSISTANT_LLM_MAX_RETRIES:2}
-  allowed-models: ${AI_ASSISTANT_ALLOWED_MODELS:}
-  system-prompt: ${AI_ASSISTANT_SYSTEM_PROMPT:}
-  allow-client-system-prompt: ${AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT:true}
-  client-system-prompt-max-chars: ${AI_ASSISTANT_CLIENT_SYSTEM_PROMPT_MAX_CHARS:4000}
-  allow-query-token-auth: ${AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH:false}
-  admin-enabled: ${AI_ASSISTANT_ADMIN_ENABLED:false}
-  connector-management-enabled: ${AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED:false}
-  mcp-server-enabled: ${AI_ASSISTANT_MCP_SERVER_ENABLED:false}
-  websocket-enabled: ${AI_ASSISTANT_WEBSOCKET_ENABLED:false}
-  rag-enabled: ${AI_ASSISTANT_RAG_ENABLED:false}
-  embedding-model: ${AI_ASSISTANT_EMBEDDING_MODEL:}
-  embedding-dimensions: ${AI_ASSISTANT_EMBEDDING_DIMENSIONS:1536}
-  pii-masking-enabled: ${AI_ASSISTANT_PII_MASKING_ENABLED:true}
-  headless-fetch-enabled: ${AI_ASSISTANT_HEADLESS_FETCH_ENABLED:false}
-  headless-fetch-timeout-seconds: ${AI_ASSISTANT_HEADLESS_FETCH_TIMEOUT_SECONDS:30}
-  url-fetch-enabled: ${AI_ASSISTANT_URL_FETCH_ENABLED:true}
-  url-fetch-ssrf-protection: ${AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION:true}
-  url-fetch-max-bytes: ${AI_ASSISTANT_URL_FETCH_MAX_BYTES:524288}
-  url-fetch-timeout-seconds: ${AI_ASSISTANT_URL_FETCH_TIMEOUT_SECONDS:15}
-  url-fetch-max-chars-injected: ${AI_ASSISTANT_URL_FETCH_MAX_CHARS_INJECTED:24000}
-  url-fetch-cache-ttl-seconds: ${AI_ASSISTANT_URL_FETCH_CACHE_TTL_SECONDS:90}
-  url-fetch-cache-max-entries: ${AI_ASSISTANT_URL_FETCH_CACHE_MAX_ENTRIES:32}
-  url-preview-max-summary-chars: ${AI_ASSISTANT_URL_PREVIEW_MAX_SUMMARY_CHARS:900}
-  url-preview-max-images: ${AI_ASSISTANT_URL_PREVIEW_MAX_IMAGES:10}
-  file-max-extracted-chars: ${AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS:300000}
-  export-max-messages: ${AI_ASSISTANT_EXPORT_MAX_MESSAGES:2000}
-  export-max-total-chars: ${AI_ASSISTANT_EXPORT_MAX_TOTAL_CHARS:2000000}
-  export-max-image-bytes: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_BYTES:3000000}
-  export-max-image-urls: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS:64}
-  export-embed-images: ${AI_ASSISTANT_EXPORT_EMBED_IMAGES:true}
-  chat-max-total-chars: ${AI_ASSISTANT_CHAT_MAX_TOTAL_CHARS:300000}
-  chat-history-max-chars: ${AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS:48000}
+
+  # ── 模型调用参数 ─────────────────────────────────────────
+  timeout-seconds: ${AI_ASSISTANT_TIMEOUT_SECONDS:60}     # default: 60；范围 5~600
+  max-tokens: ${AI_ASSISTANT_MAX_TOKENS:2048}             # default: 2048
+  temperature: ${AI_ASSISTANT_TEMPERATURE:0.7}            # default: 0.7
+  llm-max-retries: ${AI_ASSISTANT_LLM_MAX_RETRIES:2}      # default: 2（夹紧 0~5）
+  allowed-models: ${AI_ASSISTANT_ALLOWED_MODELS:}         # default: empty；为空时忽略前端 model 字段
+
+  # ── 鉴权与跨域 ───────────────────────────────────────────
+  access-token: ${AI_ASSISTANT_ACCESS_TOKEN:}             # default: empty；强烈建议生产配置
+  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS:*}      # default: *（生产请收紧）
+  allow-query-token-auth: ${AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH:false}   # default: false（仅向后兼容用）
+
+  # ── 限流 ─────────────────────────────────────────────────
+  rate-limit: ${AI_ASSISTANT_RATE_LIMIT:60}               # default: 0（=不限）；多副本部署需切 RedisRateLimitFilter
+
+  # ── system prompt ────────────────────────────────────────
+  system-prompt: ${AI_ASSISTANT_SYSTEM_PROMPT:}                                       # default: empty
+  allow-client-system-prompt: ${AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT:true}         # default: true
+  client-system-prompt-max-chars: ${AI_ASSISTANT_CLIENT_SYSTEM_PROMPT_MAX_CHARS:4000} # default: 4000
+
+  # ── 高风险 / 高暴露面开关（默认全部 false）────────────────
+  admin-enabled: ${AI_ASSISTANT_ADMIN_ENABLED:false}                                  # default: false
+  connector-management-enabled: ${AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED:false}    # default: false
+  mcp-server-enabled: ${AI_ASSISTANT_MCP_SERVER_ENABLED:false}                        # default: false
+  websocket-enabled: ${AI_ASSISTANT_WEBSOCKET_ENABLED:false}                          # default: false
+  rag-enabled: ${AI_ASSISTANT_RAG_ENABLED:false}                                      # default: false
+
+  # ── 安全默认（默认开启）──────────────────────────────────
+  pii-masking-enabled: ${AI_ASSISTANT_PII_MASKING_ENABLED:true}                       # default: true（手机/身份证/银行卡/邮箱/IP 自动脱敏）
+
+  # ── RAG（仅当 rag-enabled=true 时生效）──────────────────
+  embedding-model: ${AI_ASSISTANT_EMBEDDING_MODEL:}                                   # default: empty（=text-embedding-3-small）
+  embedding-dimensions: ${AI_ASSISTANT_EMBEDDING_DIMENSIONS:1536}                     # default: 1536
+
+  # ── Headless URL 抓取（依赖 Playwright 二进制）──────────
+  headless-fetch-enabled: ${AI_ASSISTANT_HEADLESS_FETCH_ENABLED:false}                # default: false
+  headless-fetch-timeout-seconds: ${AI_ASSISTANT_HEADLESS_FETCH_TIMEOUT_SECONDS:30}   # default: 30；最小 5 秒
+
+  # ── 普通 URL 抓取（默认开启，受 SSRF 防护）──────────────
+  url-fetch-enabled: ${AI_ASSISTANT_URL_FETCH_ENABLED:true}                                       # default: true
+  url-fetch-ssrf-protection: ${AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION:true}                       # default: true
+  url-fetch-max-bytes: ${AI_ASSISTANT_URL_FETCH_MAX_BYTES:524288}                                 # default: 524288（512KB）
+  url-fetch-timeout-seconds: ${AI_ASSISTANT_URL_FETCH_TIMEOUT_SECONDS:15}                         # default: 15
+  url-fetch-max-chars-injected: ${AI_ASSISTANT_URL_FETCH_MAX_CHARS_INJECTED:24000}                # default: 24000
+  url-fetch-cache-ttl-seconds: ${AI_ASSISTANT_URL_FETCH_CACHE_TTL_SECONDS:90}                     # default: 90；0=关闭缓存
+  url-fetch-cache-max-entries: ${AI_ASSISTANT_URL_FETCH_CACHE_MAX_ENTRIES:32}                     # default: 32
+  url-preview-max-summary-chars: ${AI_ASSISTANT_URL_PREVIEW_MAX_SUMMARY_CHARS:900}                # default: 900
+  url-preview-max-images: ${AI_ASSISTANT_URL_PREVIEW_MAX_IMAGES:10}                               # default: 10（夹紧到 30）
+
+  # ── 文件解析 / 导出 ──────────────────────────────────────
+  file-max-extracted-chars: ${AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS:300000}                       # default: 300000
+  export-max-messages: ${AI_ASSISTANT_EXPORT_MAX_MESSAGES:2000}                                   # default: 2000（夹紧到 50000）
+  export-max-total-chars: ${AI_ASSISTANT_EXPORT_MAX_TOTAL_CHARS:2000000}                          # default: 2000000（硬上限 20M）
+  export-max-image-bytes: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_BYTES:3000000}                          # default: 3000000
+  export-max-image-urls: ${AI_ASSISTANT_EXPORT_MAX_IMAGE_URLS:64}                                 # default: 64
+  export-embed-images: ${AI_ASSISTANT_EXPORT_EMBED_IMAGES:true}                                   # default: true
+
+  # ── Chat 限制 ────────────────────────────────────────────
+  chat-max-total-chars: ${AI_ASSISTANT_CHAT_MAX_TOTAL_CHARS:300000}                               # default: 300000
+  chat-history-max-chars: ${AI_ASSISTANT_CHAT_HISTORY_MAX_CHARS:48000}                            # default: 48000
