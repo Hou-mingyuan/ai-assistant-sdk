@@ -9,7 +9,8 @@ import static com.aiassistant.util.HtmlTextExtractor.stripTags;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.UrlPreviewResponse;
-import com.aiassistant.util.UrlFetchSafety;
+import com.aiassistant.security.DefaultSsrfPolicy;
+import com.aiassistant.security.SsrfPolicy;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -40,7 +41,10 @@ import org.slf4j.LoggerFactory;
  * <p>Features: SSRF-safe redirect following, TTL-based content cache, og/twitter image extraction,
  * and intelligent article image scoring.
  *
- * @see com.aiassistant.util.UrlFetchSafety
+ * <p>SSRF 校验通过注入的 {@link SsrfPolicy} 完成，缺省使用 {@link DefaultSsrfPolicy}。
+ *
+ * @see com.aiassistant.security.SsrfPolicy
+ * @see com.aiassistant.security.DefaultSsrfPolicy
  */
 public class UrlFetchService {
 
@@ -156,15 +160,22 @@ public class UrlFetchService {
 
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
+    private final SsrfPolicy ssrfPolicy;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
     private volatile HeadlessFetcher headlessFetchService;
 
     public UrlFetchService(AiAssistantProperties properties) {
-        this(properties, (HttpClient) null);
+        this(properties, null, DefaultSsrfPolicy.INSTANCE);
     }
 
     public UrlFetchService(AiAssistantProperties properties, HttpClient httpClient) {
+        this(properties, httpClient, DefaultSsrfPolicy.INSTANCE);
+    }
+
+    public UrlFetchService(
+            AiAssistantProperties properties, HttpClient httpClient, SsrfPolicy ssrfPolicy) {
         this.properties = properties;
+        this.ssrfPolicy = ssrfPolicy != null ? ssrfPolicy : DefaultSsrfPolicy.INSTANCE;
         if (httpClient != null) {
             this.httpClient = httpClient;
         } else {
@@ -327,7 +338,7 @@ public class UrlFetchService {
 
     private byte[] fetchBytes(URI uri) throws Exception {
         if (properties.isUrlFetchSsrfProtection()) {
-            UrlFetchSafety.validateHttpUrlForServerSideFetch(uri);
+            ssrfPolicy.validate(uri);
         }
         int max = Math.max(1024, properties.getUrlFetchMaxBytes());
         URI current = uri;
@@ -352,7 +363,7 @@ public class UrlFetchService {
                 }
                 current = current.resolve(location);
                 if (properties.isUrlFetchSsrfProtection()) {
-                    UrlFetchSafety.validateHttpUrlForServerSideFetch(current);
+                    ssrfPolicy.validate(current);
                 }
                 continue;
             }

@@ -83,8 +83,15 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public UrlFetchService urlFetchService(AiAssistantProperties properties) {
-        return new UrlFetchService(properties);
+    public com.aiassistant.security.SsrfPolicy ssrfPolicy() {
+        return new com.aiassistant.security.DefaultSsrfPolicy();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public UrlFetchService urlFetchService(
+            AiAssistantProperties properties, com.aiassistant.security.SsrfPolicy ssrfPolicy) {
+        return new UrlFetchService(properties, null, ssrfPolicy);
     }
 
     @Bean
