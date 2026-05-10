@@ -64,10 +64,9 @@ public class AiAssistantProperties {
     private int rateLimit = 0;
     private java.util.Map<String, Integer> rateLimitPerAction;
 
-    // ── Embedding / RAG ─────────────────────────────────────────────
-    private String embeddingModel;
-    private int embeddingDimensions = 1536;
-    private boolean ragEnabled = false;
+    // ── Embedding / RAG (ai-assistant.rag.*) ─────────────────────────
+    private RagProperties rag = new RagProperties();
+
     private boolean piiMaskingEnabled = true;
 
     // ── Session Store ──────────────────────────────────────────────
@@ -166,6 +165,21 @@ public class AiAssistantProperties {
     public static class ChatProperties {
         private int maxTotalChars = 300_000;
         private int historyMaxChars = 48_000;
+    }
+
+    /**
+     * RAG（检索增强生成）配置子域。
+     *
+     * <p>YAML 既可用嵌套形式 {@code ai-assistant.rag.enabled / .embedding-model /
+     * .embedding-dimensions}，也可继续用历史的扁平形式 {@code ai-assistant.rag-enabled /
+     * .embedding-model / .embedding-dimensions}（通过主类的 flat delegation setter 兼容）。
+     */
+    @Getter
+    @Setter
+    public static class RagProperties {
+        private boolean enabled = false;
+        private String embeddingModel;
+        private int embeddingDimensions = 1536;
     }
 
     @Getter
@@ -361,6 +375,32 @@ public class AiAssistantProperties {
 
     public void setExportEmbedImages(boolean v) {
         export_.setEmbedImages(v);
+    }
+
+    // ── RAG flat delegation (backward compatibility) ───────────────
+
+    public boolean isRagEnabled() {
+        return rag.isEnabled();
+    }
+
+    public void setRagEnabled(boolean v) {
+        rag.setEnabled(v);
+    }
+
+    public String getEmbeddingModel() {
+        return rag.getEmbeddingModel();
+    }
+
+    public void setEmbeddingModel(String v) {
+        rag.setEmbeddingModel(v);
+    }
+
+    public int getEmbeddingDimensions() {
+        return rag.getEmbeddingDimensions();
+    }
+
+    public void setEmbeddingDimensions(int v) {
+        rag.setEmbeddingDimensions(v);
     }
 
     /** 客户端请求的模型经白名单校验后的实际使用 id。 */
