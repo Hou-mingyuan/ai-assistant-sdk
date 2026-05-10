@@ -1,0 +1,403 @@
+.ai-bubble :deep(.ai-ide-btn) {
+  position: absolute;
+  top: 6px;
+  right: 52px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: #2d2d2d;
+  color: #9cdcfe;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ai-bubble :deep(.ai-ide-btn:hover) {
+  background: #3d3d3d;
+  color: #fff;
+}
+
+/* 銆岀炕璇戦€変腑銆嶆诞灞傦細璐村湪閫変腑鏂囧瓧宸︿笅鏂广€佸彲閫変腑鏂囨湰 */
+.ai-inline-trans-pop {
+  position: fixed;
+  z-index: 100002;
+  box-sizing: border-box;
+  min-width: 200px;
+  max-width: min(360px, calc(100vw - 16px));
+  max-height: min(280px, 42vh);
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 22%, rgba(0, 0, 0, 0.12));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.75) inset,
+    0 4px 16px rgba(15, 23, 42, 0.1),
+    0 14px 36px -8px rgba(15, 23, 42, 0.18),
+    0 0 40px -12px color-mix(in srgb, var(--primary, #6366f1) 28%, transparent);
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: auto;
+  animation: ai-inline-trans-in 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ai-inline-trans-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-inline-trans-pop {
+    animation: none;
+  }
+}
+.ai-inline-trans-body {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.ai-inline-trans-loading,
+.ai-inline-trans-error {
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.ai-dark .ai-inline-trans-pop {
+  background: #313244;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+/* 鎵╁ぇ/缂╁皬锛氬幓鎺?UA 榛樿鎸夐挳杈规锛屼笌娓呯┖/鍏抽棴涓€鑷?*/
+.ai-expand {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: 0;
+  color: inherit;
+  opacity: 0.88;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  line-height: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ai-expand:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+.ai-expand:focus {
+  outline: none;
+}
+.ai-expand:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* ---------- 闈㈡澘鍏悜缂╂斁锛氶€忔槑鍛戒腑鍖?+ 鍏夋爣锛屾棤瑁呴グ绾?---------- */
+.ai-panel {
+  position: relative;
+  --ai-header-h: 52px;
+}
+.ai-panel-resize-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.ai-header {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  min-height: var(--ai-header-h);
+  box-sizing: border-box;
+  padding-left: 10px;
+  padding-right: 10px;
+  cursor: grab;
+}
+.ai-header.ai-header-dragging {
+  cursor: grabbing;
+}
+.ai-title {
+  pointer-events: auto;
+  position: relative;
+  z-index: 3;
+  flex: 0 1 auto;
+  max-width: 56%;
+  min-width: 0;
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-header-spacer {
+  flex: 1 1 auto;
+  min-width: 48px;
+  height: 1px;
+  align-self: stretch;
+  pointer-events: auto;
+}
+.ai-header-actions {
+  pointer-events: auto;
+  position: relative;
+  z-index: 3;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ai-assistant-wrapper.panel-mounted {
+  container-type: inline-size;
+  container-name: ai-assistant;
+}
+/* 鏀惧ぇ妯″紡锛氬唴鑱斿楂樺凡鎸夎鍙ｈ绠楋紝鍕垮啀鐢ㄩ粯璁?max-width/max-height 闄愭涓恒€屽皬绐椼€嶆瘮渚?*/
+.ai-assistant-wrapper.panel-mounted.panel-expanded {
+  max-width: none;
+  max-height: none;
+}
+/* 鏈細璇濆唴闅愯棌鎮诞鐞冿細涓嶅崰鐐瑰嚮鍖哄煙锛屽埛鏂板悗缁勪欢閲嶅缓鍗虫仮澶?*/
+.ai-assistant-wrapper.fab-session-hidden:not(.panel-mounted) {
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+}
+@container ai-assistant (max-width: 300px) {
+  .ai-header-personalize-text,
+  .ai-header-diagnostics-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+@container ai-assistant (min-width: 301px) {
+  .ai-header-personalize-text,
+  .ai-header-diagnostics-text {
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+.ai-panel-rz {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  z-index: 2;
+}
+.ai-rz-n {
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 9px;
+  cursor: ns-resize;
+  z-index: 4;
+}
+.ai-rz-s {
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 9px;
+  cursor: ns-resize;
+}
+.ai-rz-e {
+  top: calc(var(--ai-header-h) + 2px);
+  right: 0;
+  bottom: 12px;
+  width: 9px;
+  cursor: ew-resize;
+}
+.ai-rz-w {
+  top: calc(var(--ai-header-h) + 2px);
+  left: 0;
+  bottom: 12px;
+  width: 9px;
+  cursor: ew-resize;
+}
+/* 鐪熷疄璐撮潰鏉块《瑙掞細渚濊禆鏍囬鏍忓乏鍙?padding 鐣欏嚭绐勬潯锛屼簨浠跺彲绌块€忓懡涓墜鏌?*/
+.ai-rz-nw {
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+}
+.ai-rz-ne {
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nesw-resize;
+}
+.ai-rz-se {
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+}
+.ai-rz-sw {
+  left: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nesw-resize;
+}
+
+/* 鍙抽敭鑿滃崟锛氭棤閫変腑鏃跺鍒?缈昏瘧绂佺敤鎬?*/
+.ai-fab-ctx-item:disabled,
+.ai-fab-ctx-item[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  color: #94a3b8;
+  transform: none;
+  box-shadow: none;
+}
+.ai-fab-ctx-item:disabled:hover,
+.ai-fab-ctx-item[disabled]:hover {
+  background: transparent;
+  color: #94a3b8;
+  box-shadow: none;
+}
+.ai-dark .ai-fab-ctx-item:disabled,
+.ai-dark .ai-fab-ctx-item[disabled] {
+  color: #64748b;
+}
+.ai-dark .ai-fab-ctx-item:disabled:hover,
+.ai-dark .ai-fab-ctx-item[disabled]:hover {
+  background: transparent;
+  color: #64748b;
+}
+
+/* 鏈嶅姟绔鍑鸿繘搴︼細瑙嗗彛涓婇儴灞呬腑锛屽己瀵规瘮涓庝富鑹叉潯锛岄伩鍏嶇敤鎴烽敊杩?*/
+.ai-export-toast {
+  position: fixed;
+  z-index: var(--ai-z-index-overlay, 2147483646);
+  left: 50%;
+  top: max(16px, env(safe-area-inset-top, 0px));
+  bottom: auto;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 24px));
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 15px 22px 16px;
+  padding-top: 18px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  color: #0f172a;
+  text-align: center;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #eef2ff 100%);
+  border: 1px solid color-mix(in srgb, var(--export-accent, #6366f1) 22%, rgba(15, 23, 42, 0.12));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    0 28px 56px -12px rgba(15, 23, 42, 0.28),
+    0 0 48px -8px color-mix(in srgb, var(--export-accent, #6366f1) 45%, transparent);
+  pointer-events: none;
+  overflow: hidden;
+}
+.ai-export-toast::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--export-accent, #6366f1) 85%, #312e81),
+    color-mix(in srgb, var(--export-accent, #6366f1) 55%, #a5b4fc)
+  );
+}
+.ai-dark .ai-export-toast {
+  color: #f1f5f9;
+  background: linear-gradient(168deg, #1e293b 0%, #0f172a 48%, #1a1033 100%);
+  border-color: color-mix(in srgb, var(--export-accent, #818cf8) 35%, rgba(255, 255, 255, 0.12));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 32px 64px -16px rgba(0, 0, 0, 0.55),
+    0 0 56px -6px color-mix(in srgb, var(--export-accent, #818cf8) 50%, transparent);
+}
+.ai-dark .ai-export-toast::before {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--export-accent, #818cf8) 90%, #4c1d95),
+    color-mix(in srgb, var(--export-accent, #818cf8) 50%, #c4b5fd)
+  );
+}
+.ai-export-toast-t-enter-active {
+  transition:
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1.15, 0.36, 1);
+}
+.ai-export-toast-t-leave-active {
+  transition:
+    opacity 0.22s ease-out,
+    transform 0.22s ease-in;
+}
+.ai-export-toast-t-enter-from,
+.ai-export-toast-t-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-18px) scale(0.94);
+}
+
+/* Markdown 鍥剧墖锛氫笉鎾戠牬姘旀场锛岄珮搴﹂殢鑱婂ぉ鍖猴紙闈㈡澘锛夊彉鍖栵紱flex 瀛愰」闇€ min-width:0 鎵嶅厑璁告敹缂?*/
+.ai-assistant-wrapper .ai-body {
+  container-type: size;
+  container-name: ai-chat;
+}
+/* 闀夸細璇濓細瑙嗗彛澶栨秷鎭彲璺宠繃甯冨眬/缁樺埗锛?lighten DOM 鎴愭湰锛涢珮搴︾敱 contain-intrinsic-size 鍗犱綅鐩磋嚦瀹炴祴锛?*/
+.ai-assistant-wrapper .ai-body > .ai-msg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.ai-assistant-wrapper .ai-msg .ai-bubble {
+  min-width: 0;
+}
+.ai-assistant-wrapper .ai-bubble :deep(img) {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  object-fit: contain;
+  box-sizing: border-box;
+  max-height: min(45vh, 400px);
+}
+@supports (height: 1cqh) {
+  .ai-assistant-wrapper .ai-bubble :deep(img) {
+    max-height: min(58cqh, 45vh, 400px);
+  }
+}
+.ai-assistant-wrapper .ai-bubble :deep(picture) {
+  max-width: 100%;
+  display: block;
+}
+.ai-assistant-wrapper .ai-bubble :deep(picture img) {
+  max-width: 100%;
+}
+

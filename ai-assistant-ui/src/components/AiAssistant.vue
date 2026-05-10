@@ -2641,4 +2641,11 @@ onUnmounted(() => {
 });
 </script>
 
-<style src="./AiAssistant.styles.css"></style>
+<style src="./styles/01-shell.css"></style>
+<style src="./styles/02-header-messages.css"></style>
+<style src="./styles/03-input-popups.css"></style>
+<style src="./styles/04-features.css"></style>
+<style src="./styles/05-overlays-resize.css"></style>
+<style src="./styles/06-page-feedback.css"></style>
+<style src="./styles/07-voice-thinking.css"></style>
+<style src="./styles/08-late-additions.css"></style>
