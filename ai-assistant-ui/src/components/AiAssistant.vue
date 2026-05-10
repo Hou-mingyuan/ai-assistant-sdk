@@ -778,6 +778,7 @@ import {
 import { useExportUi } from '../composables/useExportUi';
 import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer';
 import { useMultiSession } from '../composables/useMultiSession';
+import { useImagePasteAndDrop } from '../composables/useImagePasteAndDrop';
 import {
   providePluginRegistry,
   usePluginRegistry,
@@ -1268,14 +1269,27 @@ onUnmounted(() => {
 
 const panelRef = ref<HTMLElement>();
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
-const dragActive = ref(false);
 const fileUploading = ref(false);
 const selectMode = ref(false);
 const selectedMsgIndices = ref<Set<number>>(new Set());
-let dragCounter = 0;
 const pendingTimers: number[] = [];
-const pendingImageData = ref<string | null>(null);
-const pendingImageThumb = ref<string | null>(null);
+const {
+  dragActive,
+  pendingImageData,
+  pendingImageThumb,
+  onBodyDragOver,
+  onBodyDragEnter,
+  onBodyDragLeave,
+  onBodyDrop,
+  onPasteImage,
+  readFileAsDataUrl,
+  clearPendingImage,
+} = useImagePasteAndDrop({
+  loading,
+  messages,
+  errorPrefix: computed(() => t.value.errorPrefix),
+  processFileUpload,
+});
 const {
   disabled: codeWallDisabled,
   start: startCodeWall,
@@ -1878,91 +1892,7 @@ function handleBodyClick(e: MouseEvent) {
   }
 }
 
-function onBodyDragOver(e: DragEvent) {
-  if (loading.value) return;
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-}
-
-function onBodyDragEnter(_e: DragEvent) {
-  if (loading.value) return;
-  dragCounter++;
-  dragActive.value = true;
-}
-
-function onBodyDragLeave(_e: DragEvent) {
-  dragCounter--;
-  if (dragCounter <= 0) {
-    dragCounter = 0;
-    dragActive.value = false;
-  }
-}
-
-function onBodyDrop(e: DragEvent) {
-  dragCounter = 0;
-  dragActive.value = false;
-  if (loading.value) return;
-  const file = e.dataTransfer?.files?.[0];
-  if (!file) return;
-  if (file.type.startsWith('image/')) {
-    readFileAsDataUrl(file);
-  } else {
-    void processFileUpload(file);
-  }
-}
-
-function onPasteImage(e: ClipboardEvent) {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      e.preventDefault();
-      const file = item.getAsFile();
-      if (file) readFileAsDataUrl(file);
-      return;
-    }
-  }
-}
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-
-function readFileAsDataUrl(file: File) {
-  if (file.size > MAX_IMAGE_BYTES) {
-    messages.value.push({
-      role: 'assistant',
-      content: `${t.value.errorPrefix}: Image exceeds 5MB limit`,
-      timestamp: Date.now(),
-    });
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    const dataUrl = reader.result as string;
-    pendingImageData.value = dataUrl;
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.onload = () => {
-      const maxDim = 80;
-      let w = img.width,
-        h = img.height;
-      if (w > maxDim || h > maxDim) {
-        const scale = maxDim / Math.max(w, h);
-        w = Math.round(w * scale);
-        h = Math.round(h * scale);
-      }
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-      pendingImageThumb.value = canvas.toDataURL('image/png', 0.7);
-    };
-    img.src = dataUrl;
-  };
-  reader.readAsDataURL(file);
-}
-
-function clearPendingImage() {
-  pendingImageData.value = null;
-  pendingImageThumb.value = null;
-}
+// Image paste / drop / pending thumbnail logic moved to useImagePasteAndDrop.
 
 async function copyMessage(text: string, globalIdx: number) {
   try {
