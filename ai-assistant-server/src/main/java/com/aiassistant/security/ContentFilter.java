@@ -15,17 +15,20 @@ public class ContentFilter {
 
     private static final Logger log = LoggerFactory.getLogger(ContentFilter.class);
 
+    // Rule names are also used as regex named-capture groups, so they must match
+    // [A-Za-z][A-Za-z0-9]* (no underscores, no leading digits) — do not switch back to
+    // snake_case without also rewriting the COMBINED_SIMPLE_PII assembly below.
     private static final List<PiiRule> PII_RULES =
             List.of(
                     new PiiRule(
-                            "phone_cn", Pattern.compile("(?<!\\d)1[3-9]\\d{9}(?!\\d)"), "[手机号已脱敏]"),
+                            "phoneCn", Pattern.compile("(?<!\\d)1[3-9]\\d{9}(?!\\d)"), "[手机号已脱敏]"),
                     new PiiRule(
-                            "id_card_cn",
+                            "idCardCn",
                             Pattern.compile("(?<!\\d)\\d{17}[\\dXx](?!\\d)"),
                             "[身份证号已脱敏]",
                             ContentFilter::isValidIdCard),
                     new PiiRule(
-                            "bank_card",
+                            "bankCard",
                             Pattern.compile("(?<!\\d)\\d{16,19}(?!\\d)"),
                             "[银行卡号已脱敏]",
                             ContentFilter::passesLuhn),
@@ -34,7 +37,7 @@ public class ContentFilter {
                             Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
                             "[邮箱已脱敏]"),
                     new PiiRule(
-                            "ip_address",
+                            "ipAddress",
                             Pattern.compile("(?<!\\d)(\\d{1,3}\\.){3}\\d{1,3}(?!\\d)"),
                             "[IP已脱敏]"));
 
