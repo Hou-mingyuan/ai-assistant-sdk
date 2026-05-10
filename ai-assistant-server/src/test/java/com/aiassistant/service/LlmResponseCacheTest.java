@@ -1,7 +1,9 @@
 package com.aiassistant.service;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 class LlmResponseCacheTest {
@@ -39,13 +41,25 @@ class LlmResponseCacheTest {
 
     @Test
     void lruEvictsOldEntries() {
+        // Caffeine's W-TinyLFU enforces the configured maximum size eventually, but does
+        // not guarantee that the very first inserted key wins LRU vs. the admission filter
+        // (the admission policy may reject a freshly-put entry whose frequency it cannot
+        // distinguish from older ones). The contract this test cares about is the size
+        // ceiling, not which specific key happens to be evicted.
         var cache = new LlmResponseCache(3, 300_000);
-        cache.put("op", "a", "va");
-        cache.put("op", "b", "vb");
-        cache.put("op", "c", "vc");
-        cache.put("op", "d", "vd");
-        assertNull(cache.get("op", "a"));
-        assertEquals("vd", cache.get("op", "d"));
+        for (int i = 0; i < 10; i++) {
+            cache.put("op", "k" + i, "v" + i);
+        }
+        await().atMost(Duration.ofSeconds(2))
+                .pollInterval(Duration.ofMillis(20))
+                .untilAsserted(
+                        () -> {
+                            cache.cleanUp();
+                            assertTrue(
+                                    cache.estimatedSize() <= 3,
+                                    "cache size should converge to <= 3, was "
+                                            + cache.estimatedSize());
+                        });
     }
 
     @Test

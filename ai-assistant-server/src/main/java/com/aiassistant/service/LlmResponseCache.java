@@ -50,6 +50,21 @@ public class LlmResponseCache {
         cache.put(key, compress(response));
     }
 
+    /**
+     * Force any pending size-based eviction work to run. Caffeine evicts entries asynchronously
+     * (W-TinyLFU), so a sequence of puts can briefly leave the cache slightly over the configured
+     * maximum size. Tests that need deterministic eviction call this method; production code
+     * does not need to.
+     */
+    void cleanUp() {
+        cache.cleanUp();
+    }
+
+    /** Approximate number of entries; safe for tests that need to assert eviction convergence. */
+    long estimatedSize() {
+        return cache.estimatedSize();
+    }
+
     static String cacheKey(String operation, String text) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
