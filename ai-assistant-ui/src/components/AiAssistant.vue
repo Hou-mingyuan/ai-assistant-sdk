@@ -463,7 +463,6 @@ import ConnectionDiagnostics from './ConnectionDiagnostics.vue';
 import ChatInputArea from './ChatInputArea.vue';
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels } from '../utils/api';
-import type { ChatPayload } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
@@ -475,6 +474,7 @@ import type { Locale } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
+import { useSendStream } from '../composables/useSendStream';
 import {
   isAbortCancellationMessage,
   loadPersistedMessages,
@@ -1653,326 +1653,49 @@ function onWinResize() {
   });
 }
 
-/** 流式 chunk 合并到每帧最多刷新一次，减轻 marked/DOMPurify 压力 */
-async function applyStreamToAssistantMessage(
-  msgIndex: number,
-  stream: AsyncIterable<string>,
-): Promise<string> {
-  let pending = '';
-  let raf = 0;
-  function flush() {
-    raf = 0;
-    const prev = messages.value[msgIndex];
-    messages.value[msgIndex] = {
-      role: 'assistant',
-      content: sanitizeAssistantContent(pending),
-      timestamp: prev?.timestamp,
-      contentArchive: prev?.contentArchive,
-      feedback: prev?.feedback,
-    };
-    scrollToBottom(false);
-  }
-  try {
-    for await (const chunk of stream) {
-      pending += chunk;
-      if (!raf) raf = requestAnimationFrame(flush);
-    }
-  } finally {
-    if (raf) cancelAnimationFrame(raf);
-    pending = sanitizeAssistantContent(pending);
-    const prevDone = messages.value[msgIndex];
-    messages.value[msgIndex] = {
-      role: 'assistant',
-      content: pending,
-      timestamp: prevDone?.timestamp,
-      contentArchive: prevDone?.contentArchive,
-      feedback: prevDone?.feedback,
-    };
-    scrollToBottom(false);
-    trimMessagesForMemoryCap();
-  }
-  return pending;
-}
-
-function normalizeAssistantServiceError(message: string): string {
-  const raw = message.trim();
-  if (!raw) return message;
-  if (isAbortCancellationMessage(raw)) {
-    return '';
-  }
-  if (/\b429\b|too many requests|rate limit|concurrent session/i.test(raw)) {
-    return t.value.serviceBusyError;
-  }
-  if (/\b503\b|no_available_providers|format_type_mismatch|model channel/i.test(raw)) {
-    return t.value.serviceUnavailableError;
-  }
-  if (/AI service error\.?\s*Check server logs/i.test(raw)) {
-    return t.value.serviceGenericError;
-  }
-  return message;
-}
-
-function isAssistantAbortError(error: unknown): boolean {
-  if (streamStoppedByUser) return true;
-  if (error instanceof DOMException && error.name === 'AbortError') return true;
-  if (error instanceof Error) {
-    const raw = `${error.name} ${error.message}`.toLowerCase();
-    return raw.includes('abort') || raw.includes('signal is aborted');
-  }
-  return String(error).toLowerCase().includes('abort');
-}
-
-function sanitizeAssistantContent(message: string): string {
-  const normalized = normalizeAssistantServiceError(message);
-  if (!normalized.trim()) return normalized;
-  return stripInternalToolTrace(normalized);
-}
-
-function hasVisibleAssistantContent(message: string): boolean {
-  return sanitizeAssistantContent(message || '').trim().length > 0;
-}
-
 function isActiveStreamingAssistant(globalIdx: number, msg: Message): boolean {
   return loading.value && msg.role === 'assistant' && globalIdx === messages.value.length - 1;
 }
 
-function stripInternalToolTrace(message: string): string {
-  const lines = message.split(/\r?\n/);
-  const kept: string[] = [];
-  let droppingToolJson = false;
-  let braceBalance = 0;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const compact = trimmed
-      .replace(/^>\s*/, '')
-      .replace(/^`+/, '')
-      .replace(/^[^\w]+/u, '')
-      .replace(/^`+/, '')
-      .trim();
-    const isToolTrace =
-      /^>\s*(?:🔧|🛠|⚙️)?\s*\*\*?cap_[\w-]+\*\*?/i.test(trimmed) ||
-      /^>\s*(?:✅|✓)\s*/i.test(trimmed) ||
-      /^```?\s*cap_[\w-]+/i.test(trimmed) ||
-      /^cap_[\w-]+\s*(?:\(|\{|\[|$)/i.test(trimmed) ||
-      /^`?cap_[\w-]+`?\s*(?:\(|\{|\[|$)/i.test(trimmed) ||
-      /^`?cap_[\w-]+`?\s*(?:\(|\{|\[|$)/i.test(compact);
-
-    if (isToolTrace) {
-      droppingToolJson = /[\{\[]/.test(trimmed) && !/[\}\]]\s*`?$/.test(trimmed);
-      braceBalance = countBraceBalance(trimmed);
-      continue;
-    }
-
-    if (droppingToolJson) {
-      braceBalance += countBraceBalance(trimmed);
-      if (braceBalance <= 0 || /^```$/.test(trimmed)) {
-        droppingToolJson = false;
-        braceBalance = 0;
-      }
-      continue;
-    }
-
-    kept.push(line);
-  }
-
-  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function countBraceBalance(text: string): number {
-  let balance = 0;
-  for (const ch of text) {
-    if (ch === '{' || ch === '[') balance += 1;
-    else if (ch === '}' || ch === ']') balance -= 1;
-  }
-  return balance;
-}
-
-/** 将 url-preview 配图挂到助手气泡末尾（用户常只看助手方向），去重避免流式结束与回调各追加一次 */
-function appendUrlPreviewImagesToAssistant(aiIdx: number, imgs: string[]) {
-  if (!imgs.length) return;
-  const m = messages.value[aiIdx];
-  if (m?.role !== 'assistant') return;
-  const lines = imgs.filter(Boolean).map((u) => `![](${preferHttpsImageUrlWhenPageIsSecure(u)})`);
-  /* 正文中若仅出现裸链，不要用 includes(url) 误当成「已有图」而跳过 */
-  if (lines.length && lines.every((line) => m.content.includes(line))) return;
-  const note = t.value.urlPreviewImagesNote;
-  const md = [`> ${note}`, '', ...lines].join('\n\n');
-  const base = (m.contentArchive ?? m.content).trim();
-  messages.value[aiIdx] = {
-    role: 'assistant',
-    content: `${base}\n\n${md}`,
-    timestamp: m.timestamp,
-    contentArchive: m.contentArchive,
-    feedback: m.feedback,
-  };
-  clearRenderCache();
-  trimMessagesForMemoryCap();
-}
-
-async function send() {
-  let text = input.value.trim();
-  if (!text || loading.value) return;
-  if (!options.baseUrl) return;
-  const ucap = options.maxUserMessageChars;
-  if (ucap !== undefined && ucap > 0 && text.length > ucap) {
-    text = `${text.slice(0, ucap)}\n…`;
-  }
-
-  const userEntry: Message = { role: 'user', content: text, timestamp: Date.now() };
-  messages.value.push(userEntry);
-  const userMsgIdx = messages.value.length - 1;
-
-  /* 翻译/摘要/对话均支持：气泡内嵌直连图、网页链接触发 url-preview（与模式无关） */
-  {
-    let d = text;
-    for (const u of extractHttpUrls(text)) {
-      if (isProbablyDirectImageUrl(u) && !d.includes(`![](${u})`)) {
-        const disp = preferHttpsImageUrlWhenPageIsSecure(u);
-        d += `\n\n![](${disp})`;
-      }
-    }
-    userEntry.content = d;
-  }
-
-  input.value = '';
-  loading.value = true;
-  scrollToBottom(true);
-
-  const imageForPayload = pendingImageData.value;
-  if (pendingImageThumb.value && pendingImageData.value) {
-    userEntry.content = `🖼️ ${userEntry.content}`;
-  }
-  clearPendingImage();
-
-  const payload: ChatPayload = {
-    action: mode.value,
-    text,
-    targetLang: targetLang.value,
-  };
-  if (imageForPayload) payload.imageData = imageForPayload;
-  if (mode.value === 'chat') {
-    const sp = chatSystemPrompt.value.trim();
-    if (sp) payload.systemPrompt = sp;
-    const mid = selectedChatModel.value.trim();
-    if (mid && modelChoices.value.includes(mid)) payload.model = mid;
-  }
-  if (mode.value === 'chat' && messages.value.length > 1) {
-    payload.history = messages.value.slice(0, -1).map((m) => ({
-      role: m.role,
-      content: m.contentArchive ?? m.content,
-    }));
-  }
-
-  emit('send', { action: mode.value, text });
-
-  const assistantMsg: Message = { role: 'assistant', content: '', timestamp: Date.now() };
-  messages.value.push(assistantMsg);
-  const msgIndex = messages.value.length - 1;
-  scrollToBottom(true);
-
-  let urlPreviewImgs: string[] = [];
-  let streamDone = false;
-
-  if (options.baseUrl) {
-    const pageUrl = firstNonImageHttpUrl(extractHttpUrls(text));
-    if (pageUrl) {
-      fetchUrlPreview(options.baseUrl, pageUrl, options.accessToken)
-        .then((r) => {
-          /* 勿与 userEntry 做引用相等：Vue 会把消息项包成 Proxy，恒不等于原始对象，会导致整段预览永远不执行 */
-          const userSlot = messages.value[userMsgIdx];
-          if (!userSlot || userSlot.role !== 'user') return;
-          if (r.success === false) return;
-          const imgs =
-            r.imageUrls && r.imageUrls.length > 0 ? r.imageUrls : r.imageUrl ? [r.imageUrl] : [];
-          if (!imgs.length) return;
-          urlPreviewImgs = imgs;
-          /* 用户气泡保持用户原文（仅链接等）；预览图只挂助手回复，避免标题/摘要把用户消息撑成整页 */
-          if (streamDone) {
-            appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
-            scrollToBottom(false);
-          }
-        })
-        .catch(() => {
-          /* URL preview is optional; ignore preview failures. */
-        });
-    }
-  }
-
-  streamStoppedByUser = false;
-  streamAbortController = new AbortController();
-  try {
-    const fullContent = await applyStreamToAssistantMessage(
-      msgIndex,
-      streamWithFallback(
-        options.baseUrl!,
-        payload,
-        options.accessToken,
-        streamAbortController.signal,
-      ),
-    );
-    streamDone = true;
-    /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
-    if (!fullContent && !urlPreviewImgs.length) {
-      const prevSlot = messages.value[msgIndex];
-      messages.value[msgIndex] = {
-        role: 'assistant',
-        content: t.value.noResponse,
-        timestamp: prevSlot?.timestamp,
-        contentArchive: prevSlot?.contentArchive,
-        feedback: prevSlot?.feedback,
-      };
-    } else {
-      appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
-    }
-    if (urlPreviewImgs.length) scrollToBottom(false);
-    if (!sessionTitle.value && text.trim()) {
-      const raw = text.replace(/\n+/g, ' ').trim();
-      sessionTitle.value = raw.length > 20 ? raw.slice(0, 20) + '…' : raw;
-      multiSessions.updateActiveTitle(sessionTitle.value);
-    }
-    emit('response', fullContent);
-  } catch (e: unknown) {
-    if (isAssistantAbortError(e)) {
-      const currentContent = sanitizeAssistantContent(messages.value[msgIndex]?.content || '');
-      if (currentContent) {
-        const prevSlot = messages.value[msgIndex];
-        messages.value[msgIndex] = {
-          role: 'assistant',
-          content: currentContent,
-          timestamp: prevSlot?.timestamp,
-          contentArchive: prevSlot?.contentArchive,
-          feedback: prevSlot?.feedback,
-        };
-      } else {
-        messages.value.splice(msgIndex, 1);
-      }
-      scrollToBottom(false);
-      return;
-    }
-    const message = normalizeAssistantServiceError(e instanceof Error ? e.message : String(e));
-    const currentContent = messages.value[msgIndex]?.content || '';
-    if (!currentContent) {
-      const prevSlot = messages.value[msgIndex];
-      messages.value[msgIndex] = {
-        role: 'assistant',
-        content: `${t.value.errorPrefix}: ${message}`,
-        timestamp: prevSlot?.timestamp,
-        contentArchive: prevSlot?.contentArchive,
-        feedback: prevSlot?.feedback,
-      };
-    }
-    reportAssistantError('send', message);
-    emit('error', message || 'Unknown error');
-    scrollToBottom(false);
-  } finally {
-    streamAbortController = null;
-    streamStoppedByUser = false;
-    loading.value = false;
-    playNotificationSound();
-    scrollToBottom(false);
-  }
-}
+const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
+  messages,
+  input,
+  loading,
+  sessionTitle,
+  mode,
+  targetLang,
+  chatSystemPrompt,
+  selectedChatModel,
+  modelChoices,
+  pendingImageData,
+  pendingImageThumb,
+  options,
+  t,
+  streamWithFallback,
+  fetchUrlPreview,
+  extractHttpUrls,
+  isProbablyDirectImageUrl,
+  firstNonImageHttpUrl,
+  preferHttpsImageUrlWhenPageIsSecure,
+  clearPendingImage,
+  scrollToBottom,
+  playNotificationSound,
+  trimMessagesForMemoryCap,
+  clearRenderCache,
+  reportAssistantError,
+  updateActiveSessionTitle: (title) => multiSessions.updateActiveTitle(title),
+  emitSend: (payload) => emit('send', payload as { action: 'translate' | 'summarize' | 'chat'; text: string }),
+  emitResponse: (content) => emit('response', content),
+  emitError: (message) => emit('error', message),
+  getStreamAbortController: () => streamAbortController,
+  setStreamAbortController: (c) => {
+    streamAbortController = c;
+  },
+  getStreamStoppedByUser: () => streamStoppedByUser,
+  setStreamStoppedByUser: (v) => {
+    streamStoppedByUser = v;
+  },
+});
 
 async function processFileUpload(file: File) {
   if (!file || loading.value || !options.baseUrl) return;
