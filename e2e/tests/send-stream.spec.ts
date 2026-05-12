@@ -56,8 +56,13 @@ test.describe('useSendStream end-to-end', () => {
      * flush in `applyStreamToAssistantMessage`. */
     await expect(messages.nth(1)).toContainText(/Hello\s+world/)
 
-    /* The send button becomes interactable again once `loading` flips back to
-     * false in the `finally` branch. */
+    /* `loading` flipping back to false in the `finally` branch dismisses the
+     * inline stop button and reveals the assistant feedback row. We assert
+     * those rather than `.ai-send` because the send button is also gated on
+     * non-empty textarea content (which the send path itself cleared). */
+    await expect(page.locator('.ai-msg-stop')).toHaveCount(0)
+    await expect(page.locator('.ai-msg.assistant .ai-msg-feedback').first()).toBeVisible()
+    await page.locator('.ai-footer-textarea').fill('next prompt')
     await expect(page.locator('.ai-send')).toBeEnabled()
   })
 
@@ -83,6 +88,13 @@ test.describe('useSendStream end-to-end', () => {
      * user-initiated abort, leaving just the user message. */
     await expect(page.locator('.ai-msg')).toHaveCount(1)
     await expect(page.locator('.ai-msg').first()).toContainText('will be cancelled')
+    /* `loading` flipping back to false reveals the user-message edit action
+     * (which is only rendered when `!loading`). The send button is also
+     * gated on non-empty textarea content, so we type a follow-up before
+     * asserting it enables. */
+    await expect(page.locator('.ai-msg-stop')).toHaveCount(0)
+    await expect(page.locator('.ai-msg.user .ai-msg-edit')).toBeVisible()
+    await page.locator('.ai-footer-textarea').fill('follow-up')
     await expect(page.locator('.ai-send')).toBeEnabled()
   })
 })
