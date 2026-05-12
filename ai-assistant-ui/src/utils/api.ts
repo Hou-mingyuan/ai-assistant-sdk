@@ -55,13 +55,19 @@ function apiUrl(baseUrl: string, path: string): string {
 }
 
 function parseSseDataEvent(event: string): string | undefined {
+  /* Per SSE spec only the *first* whitespace after `data:` is the separator
+   * and must be stripped; trailing data spaces are part of the payload. We
+   * intentionally avoid a closing `.trim()` so chunks like `data:  world`
+   * keep the leading space and concatenate to the previous chunk as
+   * `Hello world` rather than `Helloworld`. */
   const data = event
     .split('\n')
     .filter((line) => line.startsWith('data:'))
     .map((line) => line.replace(/^data:\s?/, ''))
-    .join('\n')
-    .trim();
-  return data && data !== '[DONE]' ? data : undefined;
+    .join('\n');
+  if (!data) return undefined;
+  if (data === '[DONE]') return undefined;
+  return data;
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;

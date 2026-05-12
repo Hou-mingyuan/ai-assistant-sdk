@@ -308,6 +308,26 @@ describe('streamChat', () => {
     expect(chunks).toEqual(['hello\nworld']);
   });
 
+  it('preserves leading whitespace beyond the single SSE separator space', async () => {
+    /* `data: Hello` and `data:  world` are two SSE events. Only the first
+     * space after `data:` is the separator (per the EventSource spec); the
+     * second event's leading space is part of the payload. The previous
+     * implementation called `.trim()` on the joined payload which silently
+     * collapsed `Hello` + ` world` into `Helloworld` — this regression test
+     * locks the fix in place. */
+    mockFetch.mockResolvedValueOnce(
+      streamResponse(['data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n']),
+    );
+
+    const chunks = [];
+    for await (const chunk of streamChat('/ai', { action: 'chat', text: 'hi' })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['Hello', ' world']);
+    expect(chunks.join('')).toBe('Hello world');
+  });
+
   it('yields trailing SSE data when stream ends without separator', async () => {
     mockFetch.mockResolvedValueOnce(streamResponse(['data: trailing']));
 

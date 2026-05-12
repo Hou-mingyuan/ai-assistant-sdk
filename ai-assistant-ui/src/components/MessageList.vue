@@ -98,8 +98,9 @@
     <button
       v-if="isActiveStreaming(displayOffset + idx, msg)"
       type="button"
-      class="ai-stop-generate"
+      class="ai-stop-generate ai-msg-stop"
       :title="t.stopGenerate"
+      :aria-label="t.stopGenerate"
       @click="emit('stop-generate')"
     >
       {{ t.stopGenerate }}
