@@ -29,12 +29,15 @@ public class ResilientLlmClient {
             Duration waitDuration,
             int failureRateThreshold,
             Duration circuitBreakerWait) {
+        /* Only one of waitDuration / intervalFunction / intervalBiFunction may be set on a
+         * resilience4j RetryConfig — the library raises an IllegalStateException at .build()
+         * time otherwise (since resilience4j 2.x). Use intervalFunction so we keep the
+         * exponential backoff behaviour and skip the fixed waitDuration. */
         this.retry =
                 Retry.of(
                         "llm-retry",
                         RetryConfig.custom()
                                 .maxAttempts(maxRetries)
-                                .waitDuration(waitDuration)
                                 .intervalFunction(
                                         attempt -> waitDuration.toMillis() * (1L << (attempt - 1)))
                                 .retryOnException(this::isRetryable)
