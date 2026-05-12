@@ -76,4 +76,4 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+E
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=20s \
   CMD wget -qO- "http://localhost:${SERVER_PORT:-8080}${AI_ASSISTANT_CONTEXT_PATH:-/ai-assistant}/health" || exit 1
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -cp \"application:application/BOOT-INF/classes:dependencies/BOOT-INF/lib/*:snapshot-dependencies/BOOT-INF/lib/*\" com.aiassistant.serviceapp.AiAssistantServiceApplication"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -cp \"application:application/BOOT-INF/classes:application/BOOT-INF/lib/*:dependencies/BOOT-INF/lib/*:snapshot-dependencies/BOOT-INF/lib/*\" com.aiassistant.serviceapp.AiAssistantServiceApplication"]
