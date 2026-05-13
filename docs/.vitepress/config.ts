@@ -20,6 +20,7 @@ export default defineConfig({
             { text: 'Frontend Recipes', link: '/guide/frontend-recipes' },
             { text: 'Troubleshooting', link: '/guide/troubleshooting' },
             { text: 'Production Checklist', link: '/guide/production-checklist' },
+            { text: 'Security: CSP', link: '/guide/security-csp' },
             { text: 'Configuration', link: '/guide/configuration' },
           ],
         },
