@@ -1,17 +1,17 @@
 {
-  "updatedAt": "2026-05-13T08:23:32.533Z",
+  "updatedAt": "2026-05-13T15:35:51.192Z",
   "files": {
     "ai-assistant.mjs": {
-      "size": 616495,
-      "gzip": 139281
+      "size": 624125,
+      "gzip": 141090
     },
     "ai-assistant.umd.cjs": {
-      "size": 423420,
-      "gzip": 128884
+      "size": 429624,
+      "gzip": 130722
     },
     "style.css": {
-      "size": 160202,
-      "gzip": 25883
+      "size": 164641,
+      "gzip": 26366
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -29,9 +29,13 @@
       "size": 11495,
       "gzip": 3567
     },
-    "PromptTemplateDialog-K3Cj1K13.js": {
+    "PromptTemplateDialog-C_6ZX8DI.js": {
       "size": 15397,
       "gzip": 2996
+    },
+    "SessionsDrawer-BDX9iqYB.js": {
+      "size": 12219,
+      "gzip": 2857
     },
     "ruby-C9GshUWF.js": {
       "size": 9017,
@@ -41,17 +45,13 @@
       "size": 7733,
       "gzip": 2713
     },
-    "MultiModelCompare-iXYz2UAg.js": {
+    "MultiModelCompare-Xs40pCrk.js": {
       "size": 10406,
-      "gzip": 2443
+      "gzip": 2444
     },
     "csharp-mFUWyZia.js": {
       "size": 8261,
       "gzip": 2118
-    },
-    "SessionsDrawer-Cmi09CS1.js": {
-      "size": 7523,
-      "gzip": 2067
     },
     "kotlin-Brwc6iD3.js": {
       "size": 6800,
