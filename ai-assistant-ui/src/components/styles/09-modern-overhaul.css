@@ -1904,3 +1904,56 @@
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-code-wrap.ai-code-folded::after {
   background: linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.96) 90%);
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * F3 - Active search match jump pulse
+ *   跳转到激活匹配消息时整条气泡闪一下 ring，提高视觉定位
+ *   依赖 :has() 选择器（Chromium 105+ / Safari 15.4+ / Firefox 121+ 全部 ≥2024 支持）
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:has(mark.ai-search-hl-active) {
+  position: relative;
+  animation: ai-search-jump-pulse 1.4s ease-out;
+  border-radius: 10px;
+}
+@keyframes ai-search-jump-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(14, 165, 233, 0.55),
+      0 0 0 0 rgba(14, 165, 233, 0.25);
+  }
+  30% {
+    box-shadow:
+      0 0 0 4px rgba(14, 165, 233, 0.45),
+      0 0 0 10px rgba(14, 165, 233, 0.18);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(14, 165, 233, 0);
+    background-color: transparent;
+  }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-msg:has(mark.ai-search-hl-active) {
+  animation-name: ai-search-jump-pulse-dark;
+}
+@keyframes ai-search-jump-pulse-dark {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(56, 189, 248, 0.6),
+      0 0 0 0 rgba(56, 189, 248, 0.3);
+  }
+  30% {
+    box-shadow:
+      0 0 0 4px rgba(56, 189, 248, 0.5),
+      0 0 0 10px rgba(56, 189, 248, 0.2);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(56, 189, 248, 0);
+  }
+}
+/* Reduce motion 偏好：用户禁用了动画，就不闪 */
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:has(mark.ai-search-hl-active) {
+    animation: none;
+  }
+}
