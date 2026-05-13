@@ -35,14 +35,29 @@ public class PromptComposer {
 
     /**
      * Compose the system prompt for a chat turn: resolve the client/global base prompt, then layer
-     * in conversation memory (if configured) and RAG context (if configured).
+     * in conversation memory (if configured), RAG context (if configured), and page context (if the
+     * frontend supplied it).
      */
     public String composeChatSystemPrompt(
             String requestSystemPrompt, String sessionId, String userMessage) {
+        return composeChatSystemPrompt(requestSystemPrompt, sessionId, userMessage, null);
+    }
+
+    public String composeChatSystemPrompt(
+            String requestSystemPrompt, String sessionId, String userMessage, String pageContext) {
         String prompt = requestBuilder.resolveSystemPrompt(requestSystemPrompt);
         prompt = enrichWithMemory(prompt, sessionId);
         prompt = enrichWithRag(prompt, userMessage);
+        prompt = enrichWithPageContext(prompt, pageContext);
         return prompt;
+    }
+
+    /** Append frontend-collected page context so the LLM is aware of what the user is viewing. */
+    public String enrichWithPageContext(String systemPrompt, String pageContext) {
+        if (pageContext == null || pageContext.isBlank()) {
+            return systemPrompt;
+        }
+        return systemPrompt + "\n\n" + pageContext;
     }
 
     /** Append remembered facts and rolling history hints to the system prompt. */

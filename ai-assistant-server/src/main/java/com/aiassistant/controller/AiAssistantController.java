@@ -85,7 +85,9 @@ public class AiAssistantController {
                                         request.getHistory(),
                                         request.getSystemPrompt(),
                                         request.getModel(),
-                                        request.getImageData());
+                                        request.getImageData(),
+                                        request.getSessionId(),
+                                        request.getPageContext());
                     };
             usageStats.recordCall(action);
             return ResponseEntity.ok(ChatResponse.ok(result));
@@ -119,8 +121,8 @@ public class AiAssistantController {
                         request, assistantProperties.getChatMaxTotalChars());
         if (tooLarge != null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(Flux.just(tooLarge));
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .body(Flux.just("[VALIDATION_ERROR] " + tooLarge));
         }
         String action = request.getAction() == null ? "chat" : request.getAction();
         usageStats.recordCall("stream_" + action);
@@ -139,7 +141,9 @@ public class AiAssistantController {
                                     request.getHistory(),
                                     request.getSystemPrompt(),
                                     request.getModel(),
-                                    request.getImageData());
+                                    request.getImageData(),
+                                    request.getSessionId(),
+                                    request.getPageContext());
                 };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -208,7 +212,17 @@ public class AiAssistantController {
                 e -> {
                     usageStats.recordError();
                     log.warn("Assistant stream failed", e);
-                    return Flux.just("AI service error. Check server logs for details.");
+                    if (e instanceof LlmService.QuotaExceededException) {
+                        return Flux.just("[QUOTA_EXCEEDED] " + e.getMessage());
+                    }
+                    String msg = e.getMessage();
+                    if (msg != null && (msg.contains("429") || msg.toLowerCase().contains("rate limit"))) {
+                        return Flux.just("[RATE_LIMITED] " + msg);
+                    }
+                    if (msg != null && (msg.contains("timeout") || msg.contains("timed out"))) {
+                        return Flux.just("[TIMEOUT] " + msg);
+                    }
+                    return Flux.just("[LLM_ERROR] AI service error. Check server logs for details.");
                 });
     }
 }

@@ -196,7 +196,7 @@ public class LlmService {
             String requestSystemPrompt,
             String requestModel,
             String imageData) {
-        return chat(userMessage, history, requestSystemPrompt, requestModel, imageData, null);
+        return chat(userMessage, history, requestSystemPrompt, requestModel, imageData, null, null);
     }
 
     public String chat(
@@ -206,12 +206,30 @@ public class LlmService {
             String requestModel,
             String imageData,
             String sessionId) {
+        return chat(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                imageData,
+                sessionId,
+                null);
+    }
+
+    public String chat(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            String imageData,
+            String sessionId,
+            String pageContext) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
             String prompt =
                     promptComposer.composeChatSystemPrompt(
-                            requestSystemPrompt, sessionId, userMessage);
+                            requestSystemPrompt, sessionId, userMessage, pageContext);
             int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
@@ -299,7 +317,8 @@ public class LlmService {
             String requestSystemPrompt,
             String requestModel,
             String imageData) {
-        return chatStream(userMessage, history, requestSystemPrompt, requestModel, imageData, null);
+        return chatStream(
+                userMessage, history, requestSystemPrompt, requestModel, imageData, null, null);
     }
 
     public Flux<String> chatStream(
@@ -309,12 +328,30 @@ public class LlmService {
             String requestModel,
             String imageData,
             String sessionId) {
+        return chatStream(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                imageData,
+                sessionId,
+                null);
+    }
+
+    public Flux<String> chatStream(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            String imageData,
+            String sessionId,
+            String pageContext) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
             String prompt =
                     promptComposer.composeChatSystemPrompt(
-                            requestSystemPrompt, sessionId, userMessage);
+                            requestSystemPrompt, sessionId, userMessage, pageContext);
             int estTokens = LlmRequestBuilder.estimateTokens(prompt, userMessage, history);
             String modelId = resolveModelWithRouter(requestModel, "chat", estTokens);
 
@@ -409,8 +446,13 @@ public class LlmService {
                     currentModel = fallback;
                     continue;
                 }
-                emitAuditEvent(operation, currentModel, 0, 0,
-                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.ERROR);
+                emitAuditEvent(
+                        operation,
+                        currentModel,
+                        0,
+                        0,
+                        System.currentTimeMillis() - startMs,
+                        AuditEvent.Outcome.ERROR);
                 throw e;
             }
             try {
@@ -420,32 +462,48 @@ public class LlmService {
                 result = responsePostProcessor.filterSync(result);
                 keyRotator.markSuccess(key);
                 if (sample != null) sample.stop(completionTimer(operation, "success"));
-                emitAuditEvent(operation, currentModel, tokenCounts[0], tokenCounts[1],
-                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.SUCCESS);
+                emitAuditEvent(
+                        operation,
+                        currentModel,
+                        tokenCounts[0],
+                        tokenCounts[1],
+                        System.currentTimeMillis() - startMs,
+                        AuditEvent.Outcome.SUCCESS);
                 return result;
             } catch (RuntimeException e) {
                 if (sample != null) sample.stop(completionTimer(operation, "error"));
-                emitAuditEvent(operation, currentModel, 0, 0,
-                        System.currentTimeMillis() - startMs, AuditEvent.Outcome.ERROR);
+                emitAuditEvent(
+                        operation,
+                        currentModel,
+                        0,
+                        0,
+                        System.currentTimeMillis() - startMs,
+                        AuditEvent.Outcome.ERROR);
                 throw e;
             }
         }
         throw lastError != null ? lastError : new RuntimeException("All fallback models exhausted");
     }
 
-    private void emitAuditEvent(String action, String modelId, int promptTokens,
-                                int completionTokens, long latencyMs, AuditEvent.Outcome outcome) {
+    private void emitAuditEvent(
+            String action,
+            String modelId,
+            int promptTokens,
+            int completionTokens,
+            long latencyMs,
+            AuditEvent.Outcome outcome) {
         if (auditEventStore == null) return;
         try {
-            auditEventStore.record(AuditEvent.builder()
-                    .tenantId(TenantContext.tenantId())
-                    .action(action)
-                    .modelId(modelId)
-                    .promptTokens(promptTokens)
-                    .completionTokens(completionTokens)
-                    .latencyMs(latencyMs)
-                    .outcome(outcome)
-                    .build());
+            auditEventStore.record(
+                    AuditEvent.builder()
+                            .tenantId(TenantContext.tenantId())
+                            .action(action)
+                            .modelId(modelId)
+                            .promptTokens(promptTokens)
+                            .completionTokens(completionTokens)
+                            .latencyMs(latencyMs)
+                            .outcome(outcome)
+                            .build());
         } catch (Exception e) {
             log.debug("Audit event emission failed: {}", e.getMessage());
         }
@@ -536,7 +594,8 @@ public class LlmService {
             String imageData) {
         userMessage = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
         ObjectNode body =
-                requestBuilder.buildRequestBody(systemPrompt, userMessage, true, history, modelId, imageData);
+                requestBuilder.buildRequestBody(
+                        systemPrompt, userMessage, true, history, modelId, imageData);
         if (!"chat".equals(operation)) {
             body.remove("tools");
         }
@@ -549,12 +608,20 @@ public class LlmService {
             return responsePostProcessor
                     .filterStream(callLlmStreamWithTools(body, key, operation), modelId)
                     .doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
-                    .doFinally(signal -> {
-                        AuditEvent.Outcome outcome = signal == SignalType.ON_COMPLETE
-                                ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
-                        emitAuditEvent(operation, modelId, 0, streamCharCount.get() / 4,
-                                System.currentTimeMillis() - startMs, outcome);
-                    });
+                    .doFinally(
+                            signal -> {
+                                AuditEvent.Outcome outcome =
+                                        signal == SignalType.ON_COMPLETE
+                                                ? AuditEvent.Outcome.SUCCESS
+                                                : AuditEvent.Outcome.ERROR;
+                                emitAuditEvent(
+                                        operation,
+                                        modelId,
+                                        0,
+                                        streamCharCount.get() / 4,
+                                        System.currentTimeMillis() - startMs,
+                                        outcome);
+                            });
         }
 
         Flux<String> flux =
@@ -566,17 +633,24 @@ public class LlmService {
         Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
         return flux.doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
                 .doFinally(
-                signal -> {
-                    String outcomeStr =
-                            signal == SignalType.ON_COMPLETE
-                                    ? "success"
-                                    : signal == SignalType.ON_ERROR ? "error" : "cancel";
-                    if (sample != null) sample.stop(streamTimer(operation, outcomeStr));
-                    AuditEvent.Outcome auditOutcome = signal == SignalType.ON_COMPLETE
-                            ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR;
-                    emitAuditEvent(operation, modelId, 0, streamCharCount.get() / 4,
-                            System.currentTimeMillis() - startMs, auditOutcome);
-                });
+                        signal -> {
+                            String outcomeStr =
+                                    signal == SignalType.ON_COMPLETE
+                                            ? "success"
+                                            : signal == SignalType.ON_ERROR ? "error" : "cancel";
+                            if (sample != null) sample.stop(streamTimer(operation, outcomeStr));
+                            AuditEvent.Outcome auditOutcome =
+                                    signal == SignalType.ON_COMPLETE
+                                            ? AuditEvent.Outcome.SUCCESS
+                                            : AuditEvent.Outcome.ERROR;
+                            emitAuditEvent(
+                                    operation,
+                                    modelId,
+                                    0,
+                                    streamCharCount.get() / 4,
+                                    System.currentTimeMillis() - startMs,
+                                    auditOutcome);
+                        });
     }
 
     private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
@@ -589,7 +663,8 @@ public class LlmService {
                         JsonNode root = objectMapper.readTree(rawResponse);
                         JsonNode choices = root.path("choices");
                         if (!choices.isArray() || choices.isEmpty()) {
-                            return Flux.just(responsePostProcessor.parseContentFromRaw(rawResponse));
+                            return Flux.just(
+                                    responsePostProcessor.parseContentFromRaw(rawResponse));
                         }
                         JsonNode firstChoice = choices.get(0);
                         String finishReason = firstChoice.path("finish_reason").asText("");
@@ -625,8 +700,9 @@ public class LlmService {
                         bodyClone.put("stream", false);
                         JsonNode msgsNode = bodyClone.get("messages");
                         if (msgsNode == null || !msgsNode.isArray()) {
-                            sink.error(new RuntimeException(
-                                    "Malformed request body: 'messages' is not an array"));
+                            sink.error(
+                                    new RuntimeException(
+                                            "Malformed request body: 'messages' is not an array"));
                             return;
                         }
                         ArrayNode messages = (ArrayNode) msgsNode;

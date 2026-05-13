@@ -35,6 +35,14 @@ public class ChatRequest {
     @Size(max = 10_000_000, message = "imageData exceeds 10MB")
     private String imageData;
 
+    /** 前端采集的页面上下文（URL、标题、DOM 区块文本），注入系统提示让 LLM 感知当前页面 */
+    @Size(max = 20_000, message = "pageContext exceeds 20000 characters")
+    private String pageContext;
+
+    @Size(max = 128, message = "sessionId exceeds 128 characters")
+    @Pattern(regexp = "^[A-Za-z0-9_.:/-]{0,128}$", message = "sessionId contains invalid characters")
+    private String sessionId;
+
     public String getAction() {
         return action;
     }
@@ -89,6 +97,22 @@ public class ChatRequest {
 
     public void setImageData(String imageData) {
         this.imageData = imageData;
+    }
+
+    public String getPageContext() {
+        return pageContext;
+    }
+
+    public void setPageContext(String pageContext) {
+        this.pageContext = pageContext;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public static class MessageItem {
