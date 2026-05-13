@@ -181,6 +181,7 @@ export const zh: I18nMessages = {
   pageContextOnTooltip: '发送时会自动附带当前页面文本作为上下文，点击可临时关闭',
   pageContextOffTooltip: '当前已关闭页面上下文附带，点击可重新开启',
   streamProgressChars: '字',
+  streamTtftLabel: '首字',
   settingsLabel: '设置',
   kbdTitle: '键盘快捷键',
   kbdGroupGlobal: '全局',

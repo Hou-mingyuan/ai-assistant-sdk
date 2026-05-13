@@ -232,6 +232,7 @@
             :show-earlier-label="showEarlierLabel"
             :t="t"
             :stream-started-at="streamStartedAt"
+            :first-token-at="firstTokenAt"
             :streaming-now-ms="streamingNowMs"
             :is-transient-abort="isTransientAbortAssistantMessage"
             :is-active-streaming="isActiveStreamingAssistant"
@@ -2300,7 +2301,7 @@ function stopStreamingTick() {
 }
 onUnmounted(() => stopStreamingTick());
 
-const { send, streamStartedAt, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
+const { send, streamStartedAt, firstTokenAt, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
   messages,
   input,
   loading,

@@ -214,6 +214,8 @@ export interface I18nMessages {
   pageContextOffTooltip: string;
   /** D5: 流式生成进度的字数单位，例如 "字" / "chars" */
   streamProgressChars: string;
+  /** E2: TTFT (Time To First Token) 缩写标签，例如 "首字" / "TTFT" */
+  streamTtftLabel: string;
   /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
   settingsLabel: string;
   /** E1: Keyboard shortcuts dialog title */

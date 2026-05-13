@@ -176,6 +176,9 @@
       aria-live="polite"
     >
       <span class="ai-stream-progress-dot" aria-hidden="true"></span>
+      <span v-if="firstTokenAt != null" class="ai-stream-progress-ttft">
+        {{ t.streamTtftLabel || 'TTFT' }} {{ ((firstTokenAt - streamStartedAt) / 1000).toFixed(1) }}s ·
+      </span>
       {{ msg.content.length }} {{ t.streamProgressChars || 'chars' }}
       ·
       {{ ((streamingNowMs - streamStartedAt) / 1000).toFixed(1) }}s
@@ -365,6 +368,10 @@ const props = defineProps({
     default: null,
   },
   streamStartedAt: {
+    type: Number as PropType<number | null>,
+    default: null,
+  },
+  firstTokenAt: {
     type: Number as PropType<number | null>,
     default: null,
   },

@@ -1661,6 +1661,11 @@
   background: rgba(56, 189, 248, 1);
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
 }
+/* E2: TTFT 分段稍浅一档以与总耗时区分 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-stream-progress-ttft {
+  opacity: 0.72;
+  margin-right: 1px;
+}
 
 /* ════════════════════════════════════════════════════════════════
  * D2 - Settings 齿轮按钮 + popover 菜单

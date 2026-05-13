@@ -230,6 +230,15 @@ export function useSendStream(deps: UseSendStreamDeps) {
    */
   const streamStartedAt = ref<number | null>(null);
 
+  /**
+   * E2: TTFT (Time To First Token) ms 时间戳。
+   * - 在 applyStreamToAssistantMessage 内首次收到非空 chunk 时 set
+   * - finally 块重置为 null
+   * 模板侧用 (firstTokenAt - streamStartedAt) / 1000 显示"首字 1.2s"，
+   * 帮助用户感知模型延迟（特别是模型 cold start 或 RAG 重排序时）。
+   */
+  const firstTokenAt = ref<number | null>(null);
+
   function tNow(): I18nMessages {
     return deps.t.value;
   }
@@ -267,6 +276,11 @@ export function useSendStream(deps: UseSendStreamDeps) {
     try {
       for await (const chunk of stream) {
         pending += chunk;
+        /* E2: 记录首字时间 - 在 chunk 到来时取，比 RAF flush 后取更准
+         * （避免 flush 调度本身被计入延迟）。仅记录第一次。 */
+        if (firstTokenAt.value == null && pending.length > 0) {
+          firstTokenAt.value = Date.now();
+        }
         if (!raf) raf = requestAnimationFrame(flush);
       }
     } finally {
@@ -440,6 +454,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
     deps.setStreamStoppedByUser(false);
     streamStartedAt.value = Date.now();
+    firstTokenAt.value = null;
     const controller = new AbortController();
     deps.setStreamAbortController(controller);
     try {
@@ -511,6 +526,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       deps.setStreamAbortController(null);
       deps.setStreamStoppedByUser(false);
       streamStartedAt.value = null;
+      firstTokenAt.value = null;
       deps.loading.value = false;
       deps.playNotificationSound();
       deps.scrollToBottom(false);
@@ -527,6 +543,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
   return {
     send,
     streamStartedAt,
+    firstTokenAt,
     sanitizeAssistantContent: sanitizeForTemplate,
     hasVisibleAssistantContent: hasVisibleForTemplate,
   };

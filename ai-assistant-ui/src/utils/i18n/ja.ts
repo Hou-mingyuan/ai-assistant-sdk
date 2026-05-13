@@ -180,6 +180,7 @@ export const ja: I18nMessages = {
   pageContextOnTooltip: '送信時に現在のページ本文がコンテキストとして添付されます。クリックで一時的に無効化。',
   pageContextOffTooltip: 'ページコンテキストの添付は無効化されています。クリックで再有効化。',
   streamProgressChars: '文字',
+  streamTtftLabel: '初字',
   settingsLabel: '設定',
   kbdTitle: 'キーボードショートカット',
   kbdGroupGlobal: 'グローバル',
