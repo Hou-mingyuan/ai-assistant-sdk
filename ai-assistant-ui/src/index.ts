@@ -279,3 +279,11 @@ export { useIdleScheduler, runInChunks } from './composables/useIdleScheduler';
 export type { IdleTask, IdleScheduleOptions } from './composables/useIdleScheduler';
 export { useRafBatch, createReadWriteBatch } from './composables/useRafBatch';
 export type { RafBatch } from './composables/useRafBatch';
+export { useCommandPalette } from './composables/useCommandPalette';
+export type { UseCommandPaletteOptions } from './composables/useCommandPalette';
+export type { CommandItem } from './types/command-palette';
+/* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
+ * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
+ * the lib bundle structure clean. Import them directly:
+ *   import CommandPalette from '@ai-assistant/vue/components/CommandPalette.vue';
+ * Or copy them into the host project for full styling control. */
