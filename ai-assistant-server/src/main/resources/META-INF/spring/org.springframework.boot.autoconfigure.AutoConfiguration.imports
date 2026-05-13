@@ -1,1 +1,2 @@
 com.aiassistant.autoconfigure.AiAssistantAutoConfiguration
+com.aiassistant.autoconfigure.AiAssistantHardeningAutoConfiguration
