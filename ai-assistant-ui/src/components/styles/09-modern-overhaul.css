@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 09-modern-overhaul.css
  * ----------------------
  * 增量式视觉升级层（"modern + 玻璃质感"）。在所有原有样式之后引入，
@@ -14,12 +14,13 @@
 
 .ai-assistant-wrapper {
   /* Modern 主题强制覆盖 --primary（无论宿主在 options.primaryColor 传什么），
-     避免诸如 'green' / 'red' 等业务主色与紫粉渐变冲突。如宿主希望保留自己的
-     primary，可在挂载后用 inline style 覆盖回去。 */
-  --primary: #818cf8 !important;
-  --ai-gradient-1: #818cf8;
-  --ai-gradient-2: #c084fc;
-  --ai-gradient-3: #f472b6;
+     避免业务主色与品牌渐变冲突。如宿主希望保留自己的 primary，可在挂载后用
+     inline style 覆盖回去。
+     v2: 科技蓝-青渐变（Stripe / Vercel / Linear 等科技品牌常用），冷峻、专业、中性。 */
+  --primary: #0ea5e9 !important;
+  --ai-gradient-1: #0ea5e9;   /* sky-500 */
+  --ai-gradient-2: #06b6d4;   /* cyan-500 */
+  --ai-gradient-3: #3b82f6;   /* blue-500 */
   --ai-radius-lg: 22px;
   --ai-radius-md: 14px;
   --ai-radius-sm: 10px;
@@ -27,34 +28,35 @@
   --ai-glass-border: rgba(255, 255, 255, 0.6);
   --ai-glass-bg-soft: rgba(248, 250, 252, 0.78);
   --ai-shadow-soft: 0 4px 14px -4px rgba(15, 23, 42, 0.08), 0 24px 56px -16px rgba(15, 23, 42, 0.22);
-  --ai-shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.7) inset, 0 14px 38px -10px rgba(129, 140, 248, 0.45);
+  --ai-shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.7) inset, 0 14px 38px -10px rgba(14, 165, 233, 0.45);
   --ai-text: #0f172a;
   --ai-text-muted: #64748b;
   --ai-border: rgba(15, 23, 42, 0.08);
   --ai-bg: #ffffff;
   --ai-bg-soft: #f8fafc;
-  --ai-hover: rgba(99, 102, 241, 0.08);
+  --ai-hover: rgba(2, 132, 199, 0.08);
 }
 
 .ai-assistant-wrapper.ai-dark {
-  --ai-gradient-1: #6366f1;
-  --ai-gradient-2: #a855f7;
-  --ai-gradient-3: #ec4899;
+  /* 暗色更亮一档保持视觉一致（sky-400 / cyan-400 / blue-400）*/
+  --ai-gradient-1: #38bdf8;
+  --ai-gradient-2: #22d3ee;
+  --ai-gradient-3: #60a5fa;
   --ai-glass-bg: rgba(15, 23, 42, 0.72);
   --ai-glass-border: rgba(255, 255, 255, 0.08);
   --ai-glass-bg-soft: rgba(30, 41, 59, 0.78);
   --ai-shadow-soft: 0 4px 14px -4px rgba(0, 0, 0, 0.45), 0 24px 56px -16px rgba(0, 0, 0, 0.7);
-  --ai-shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 14px 38px -10px rgba(168, 85, 247, 0.4);
+  --ai-shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05) inset, 0 14px 38px -10px rgba(8, 145, 178, 0.4);
   --ai-text: #f1f5f9;
   --ai-text-muted: #94a3b8;
   --ai-border: rgba(255, 255, 255, 0.08);
   --ai-bg: #1e293b;
   --ai-bg-soft: #0f172a;
-  --ai-hover: rgba(168, 85, 247, 0.12);
+  --ai-hover: rgba(8, 145, 178, 0.12);
 }
 
 /* ────────────────────────────────────────────────────────────────
- * 1) Floating Action Button - 紫粉渐变 + 多层 glow
+ * 1) Floating Action Button - 科技蓝青渐变 + 多层 glow
  * ────────────────────────────────────────────────────────────────*/
 .ai-assistant-wrapper .ai-fab {
   width: 58px !important;
@@ -64,8 +66,8 @@
     linear-gradient(135deg, var(--ai-gradient-1) 0%, var(--ai-gradient-2) 50%, var(--ai-gradient-3) 100%) !important;
   box-shadow:
     0 1px 1px rgba(255, 255, 255, 0.5) inset,
-    0 8px 16px -6px rgba(99, 102, 241, 0.45),
-    0 18px 36px -12px rgba(192, 132, 252, 0.55),
+    0 8px 16px -6px rgba(2, 132, 199, 0.45),
+    0 18px 36px -12px rgba(6, 182, 212, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.18) inset !important;
   transition:
     transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -78,10 +80,10 @@
   filter: saturate(1.1) brightness(1.05) !important;
   box-shadow:
     0 1px 1px rgba(255, 255, 255, 0.6) inset,
-    0 12px 22px -6px rgba(99, 102, 241, 0.6),
-    0 24px 48px -12px rgba(192, 132, 252, 0.7),
+    0 12px 22px -6px rgba(2, 132, 199, 0.6),
+    0 24px 48px -12px rgba(6, 182, 212, 0.7),
     0 0 0 1px rgba(255, 255, 255, 0.28) inset,
-    0 0 80px -20px rgba(244, 114, 182, 0.6) !important;
+    0 0 80px -20px rgba(59, 130, 246, 0.6) !important;
 }
 
 .ai-assistant-wrapper .ai-fab:before,
@@ -151,7 +153,7 @@
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
   color: #ffffff !important;
   border-radius: var(--ai-radius-md) var(--ai-radius-md) 4px var(--ai-radius-md) !important;
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.28) !important;
+  box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.28) !important;
 }
 
 .ai-assistant-wrapper .ai-msg.assistant .ai-bubble {
@@ -168,7 +170,7 @@
 /* 助手头像：渐变圆角小方块 */
 .ai-assistant-wrapper .ai-assistant-avatar {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -204,8 +206,8 @@
   border-color: var(--ai-gradient-1) !important;
   background: rgba(255, 255, 255, 0.98) !important;
   box-shadow:
-    0 0 0 3px rgba(129, 140, 248, 0.16),
-    0 4px 12px -2px rgba(99, 102, 241, 0.1) !important;
+    0 0 0 3px rgba(14, 165, 233, 0.16),
+    0 4px 12px -2px rgba(2, 132, 199, 0.1) !important;
 }
 
 /* 主发送按钮 .ai-send：渐变 + 微缩动画（保持原 36px×36px 尺寸不破坏 layout） */
@@ -219,7 +221,7 @@
   border: none !important;
   border-radius: var(--ai-radius-sm) !important;
   box-shadow:
-    0 2px 8px -2px rgba(99, 102, 241, 0.45),
+    0 2px 8px -2px rgba(2, 132, 199, 0.45),
     0 0 0 1px rgba(255, 255, 255, 0.18) inset !important;
   transition:
     transform 0.15s ease,
@@ -231,7 +233,7 @@
   transform: translateY(-1px);
   filter: brightness(1.06);
   box-shadow:
-    0 6px 18px -3px rgba(99, 102, 241, 0.55),
+    0 6px 18px -3px rgba(2, 132, 199, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.24) inset !important;
 }
 
@@ -266,7 +268,7 @@
 
 .ai-assistant-wrapper .ai-upload:hover:not(:disabled),
 .ai-assistant-wrapper .ai-upload-inline:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.12), rgba(192, 132, 252, 0.08)) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(6, 182, 212, 0.08)) !important;
   border-color: var(--ai-gradient-1) !important;
   color: var(--ai-gradient-1) !important;
 }
@@ -322,7 +324,7 @@
 }
 
 .ai-assistant-wrapper .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(129, 140, 248, 0.08) !important;
+  background: rgba(14, 165, 233, 0.08) !important;
   color: var(--ai-gradient-1) !important;
   border-color: transparent !important;
 }
@@ -331,7 +333,7 @@
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
   color: #ffffff !important;
   border-color: transparent !important;
-  box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -357,7 +359,7 @@
 }
 
 .ai-assistant-wrapper.ai-dark .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(168, 85, 247, 0.15) !important;
+  background: rgba(8, 145, 178, 0.15) !important;
   color: var(--ai-gradient-2) !important;
 }
 
@@ -378,7 +380,7 @@
 .ai-assistant-wrapper .ai-slash-item:hover,
 .ai-assistant-wrapper .ai-slash-item-active,
 .ai-assistant-wrapper .ai-fab-ctx-item:hover:not(:disabled) {
-  background: linear-gradient(90deg, rgba(129, 140, 248, 0.12), rgba(192, 132, 252, 0.06)) !important;
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.12), rgba(6, 182, 212, 0.06)) !important;
   color: var(--ai-text) !important;
 }
 
@@ -405,7 +407,7 @@
 
 .ai-assistant-wrapper .ai-mm-btn-primary {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.35);
 }
 
 .ai-assistant-wrapper .ai-mm-btn-primary:hover:not(:disabled) {
@@ -425,7 +427,7 @@
 }
 
 .ai-assistant-wrapper .ai-mm-col-loading {
-  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3) inset, 0 6px 18px -4px rgba(129, 140, 248, 0.25) !important;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3) inset, 0 6px 18px -4px rgba(14, 165, 233, 0.25) !important;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -447,7 +449,7 @@
 .ai-assistant-wrapper .ai-tpl-btn-primary {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
   border-color: transparent !important;
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.35);
 }
 
 .ai-assistant-wrapper .ai-tpl-btn-primary:hover {
@@ -456,12 +458,12 @@
 }
 
 .ai-assistant-wrapper .ai-tpl-list-item-active {
-  background: linear-gradient(90deg, rgba(129, 140, 248, 0.18), rgba(192, 132, 252, 0.08)) !important;
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.18), rgba(6, 182, 212, 0.08)) !important;
   border-color: var(--ai-gradient-1) !important;
 }
 
 .ai-assistant-wrapper .ai-tpl-badge-preset {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.16), rgba(192, 132, 252, 0.16)) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(6, 182, 212, 0.16)) !important;
   color: var(--ai-gradient-1) !important;
 }
 
@@ -553,7 +555,7 @@
 .ai-assistant-wrapper.ai-dark .ai-footer-textarea:focus {
   background: rgba(30, 41, 59, 0.85) !important;
   border-color: var(--ai-gradient-2) !important;
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.24) !important;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.24) !important;
 }
 
 .ai-assistant-wrapper.ai-dark .ai-attach-image,
@@ -585,16 +587,16 @@
 }
 
 .ai-assistant-wrapper *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3));
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.3), rgba(8, 145, 178, 0.3));
   border-radius: 4px;
 }
 
 .ai-assistant-wrapper *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+  background: linear-gradient(180deg, rgba(2, 132, 199, 0.5), rgba(8, 145, 178, 0.5));
 }
 
 .ai-assistant-wrapper ::selection {
-  background: rgba(129, 140, 248, 0.3);
+  background: rgba(14, 165, 233, 0.3);
   color: inherit;
 }
 
@@ -621,7 +623,7 @@
 }
 
 .ai-assistant-wrapper .ai-session-tab.active {
-  background: linear-gradient(180deg, rgba(129, 140, 248, 0.12), transparent) !important;
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.12), transparent) !important;
   color: var(--ai-text) !important;
   font-weight: 500;
 }
@@ -669,7 +671,7 @@
   gap: 4px;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header button:hover {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1), rgba(192, 132, 252, 0.06)) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.06)) !important;
   color: var(--ai-gradient-1) !important;
   transform: translateY(-1px);
 }
@@ -696,13 +698,13 @@
   width: auto !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(129, 140, 248, 0.1) !important;
+  background: rgba(14, 165, 233, 0.1) !important;
   color: var(--ai-gradient-1) !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button.active {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35) !important;
 }
 
 /* #7 消息气泡间距更紧凑，左右对齐更明显 */
@@ -732,7 +734,7 @@
   height: 24px !important;
   border-radius: 50% !important;
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35) !important;
   position: relative;
   flex-shrink: 0;
   margin-right: 6px !important;
@@ -752,8 +754,8 @@
   animation: ai-modern-pulse 1.4s ease-in-out infinite;
 }
 @keyframes ai-modern-pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.35); }
-  50% { transform: scale(1.08); box-shadow: 0 4px 14px -1px rgba(192, 132, 252, 0.5); }
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35); }
+  50% { transform: scale(1.08); box-shadow: 0 4px 14px -1px rgba(6, 182, 212, 0.5); }
 }
 
 /* #10 消息进场动画 */
@@ -807,14 +809,14 @@
 
 /* #24 Thinking 动画精致化 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-bubble {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.06), rgba(192, 132, 252, 0.04)) !important;
-  border: 1px solid rgba(129, 140, 248, 0.18) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.04)) !important;
+  border: 1px solid rgba(14, 165, 233, 0.18) !important;
   border-radius: var(--ai-radius-md) !important;
   padding: 8px 12px !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-orb {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  box-shadow: 0 0 10px -2px rgba(192, 132, 252, 0.6) !important;
+  box-shadow: 0 0 10px -2px rgba(6, 182, 212, 0.6) !important;
   animation: ai-thinking-orb-pulse 1.4s ease-in-out infinite;
 }
 @keyframes ai-thinking-orb-pulse {
@@ -827,7 +829,7 @@
 
 /* #22 主色保持 modern indigo→violet→pink（已生效，此处仅强化暗色对比） */
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark {
-  --primary: #a855f7 !important;
+  --primary: #0891b2 !important;
 }
 
 /* 模型选择下拉更精致 */
@@ -893,7 +895,7 @@
 /* 当 v-html 输出 thinking-details / tool-calls 时，间距更小 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details {
   border-radius: var(--ai-radius-sm) !important;
-  background: rgba(99, 102, 241, 0.04) !important;
+  background: rgba(2, 132, 199, 0.04) !important;
   padding: 6px 10px !important;
   margin-bottom: 6px !important;
 }
@@ -912,8 +914,8 @@
 /* tool-call 卡片精致化 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-tool-call-item {
   border-radius: var(--ai-radius-sm) !important;
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.05), rgba(192, 132, 252, 0.03)) !important;
-  border: 1px solid rgba(129, 140, 248, 0.18) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(6, 182, 212, 0.03)) !important;
+  border: 1px solid rgba(14, 165, 233, 0.18) !important;
   padding: 6px 10px !important;
   margin-bottom: 4px !important;
 }
@@ -955,7 +957,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 4px 12px rgba(129, 140, 248, 0.35));
+  filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.35));
   animation: ai-sparkle-pulse 2s ease-in-out infinite;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p {
@@ -968,8 +970,8 @@
   color: transparent;
 }
 @keyframes ai-sparkle-pulse {
-  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 4px 12px rgba(129, 140, 248, 0.35)); }
-  50% { transform: scale(1.1) rotate(8deg); filter: drop-shadow(0 6px 18px rgba(192, 132, 252, 0.55)); }
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.35)); }
+  50% { transform: scale(1.1) rotate(8deg); filter: drop-shadow(0 6px 18px rgba(6, 182, 212, 0.55)); }
 }
 
 /* SessionTabs 美化 */
@@ -987,11 +989,11 @@
   transition: all 0.15s ease;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tab:hover {
-  background: rgba(129, 140, 248, 0.08) !important;
+  background: rgba(14, 165, 233, 0.08) !important;
   color: var(--ai-gradient-1) !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tab.active {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.18), rgba(192, 132, 252, 0.1)) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(6, 182, 212, 0.1)) !important;
   border-color: var(--ai-gradient-1) !important;
   color: var(--ai-text) !important;
   font-weight: 500;
@@ -1001,7 +1003,7 @@
   color: rgba(241, 245, 249, 0.6) !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-session-tab.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.15)) !important;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(8, 145, 178, 0.15)) !important;
   color: #f1f5f9 !important;
 }
 
@@ -1030,11 +1032,11 @@
   line-height: 1.4;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:hover {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1), rgba(192, 132, 252, 0.06));
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.06));
   border-color: var(--ai-gradient-1);
   color: var(--ai-text);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 4px 12px -2px rgba(2, 132, 199, 0.15);
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-icon {
   font-size: 16px;
@@ -1052,7 +1054,7 @@
   color: rgba(241, 245, 249, 0.7);
 }
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-empty-starter:hover {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.1));
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.18), rgba(8, 145, 178, 0.1));
   color: #f1f5f9;
 }
 
@@ -1072,7 +1074,7 @@
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header-action:hover {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1), rgba(192, 132, 252, 0.06)) !important;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.06)) !important;
   color: var(--ai-gradient-1) !important;
   transform: translateY(-1px);
 }
