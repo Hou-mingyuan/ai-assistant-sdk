@@ -197,6 +197,37 @@ export type {
 } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
+/* D3: Admin SDK — host-side admin dashboard helpers around /admin/* endpoints */
+export {
+  adminOverview,
+  adminListTokens,
+  adminSetTokenQuota,
+  adminListPrompts,
+  adminCreatePrompt,
+  adminListTools,
+  adminIngestRag,
+  adminRagStats,
+  adminConfigureAbTest,
+  adminListAbTests,
+  adminSetFallbackChain,
+  adminGetFallbackChain,
+  adminListPlugins,
+  adminUnloadPlugin,
+  adminSystemInfo,
+} from './utils/adminApi';
+export type {
+  AdminResult,
+  AdminCallOptions,
+  AdminOverview,
+  AdminPromptEntry,
+  AdminToolEntry,
+  AdminRagStats,
+  AdminRagIngestResult,
+  AdminAbTestConfig,
+  AdminFallbackChain,
+  AdminPluginsResult,
+  AdminSystemInfo,
+} from './utils/adminApi';
 export { captureScreenshot } from './utils/pageScreenshot';
 export { extractStructuredData } from './utils/pageStructuredData';
 export {
