@@ -13,6 +13,8 @@ const runPlaygroundBuild = args.has('--playground-build') || args.has('--all')
 const runE2eTests = args.has('--e2e') || args.has('--all')
 /* I4: 集成 F2 bundle-size-check 作为可选 lane。需要 ai-assistant-ui/dist 已构建 */
 const runBundleSize = args.has('--bundle') || args.has('--all')
+/* J2: 集成 coverage-check 作为可选 lane。--all 时会先跑 test:coverage 生成 summary */
+const runCoverage = args.has('--coverage') || args.has('--all')
 
 const checks = [
   {
@@ -86,6 +88,24 @@ if (runBundleSize) {
   })
 }
 
+if (runCoverage) {
+  /* --all 时跑 test:coverage 先生成 summary；单独 --coverage 假设已生成 */
+  if (args.has('--all')) {
+    checks.push({
+      name: 'frontend test:coverage (for coverage-check)',
+      command: npmCommand(),
+      args: ['run', 'test:coverage'],
+      cwd: path.join(root, 'ai-assistant-ui'),
+    })
+  }
+  checks.push({
+    name: 'coverage regression check',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/coverage-check.mjs'), '--max-drop-percent', '1.0'],
+    cwd: root,
+  })
+}
+
 console.log('AI Assistant SDK health check')
 console.log(`Project root: ${root}`)
 console.log('')
@@ -108,9 +128,17 @@ for (const check of checks) {
   console.log('')
 }
 
-if (!runDocs && !runUiTests && !runServerTests && !runPlaygroundBuild && !runE2eTests && !runBundleSize) {
+if (
+  !runDocs &&
+  !runUiTests &&
+  !runServerTests &&
+  !runPlaygroundBuild &&
+  !runE2eTests &&
+  !runBundleSize &&
+  !runCoverage
+) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, or --all to run more checks.',
   )
 }
 

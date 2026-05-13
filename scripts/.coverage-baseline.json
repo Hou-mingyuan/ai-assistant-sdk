@@ -1,0 +1,59 @@
+{
+  "updatedAt": "2026-05-13T09:43:23.081Z",
+  "total": {
+    "statements": 96.23,
+    "branches": 90.5,
+    "functions": 81.01,
+    "lines": 96.23
+  },
+  "files": {
+    "ai-assistant-ui/src/composables/useAiMarkdownRenderer.ts": {
+      "statements": 90,
+      "branches": 72.54,
+      "functions": 92.3,
+      "lines": 90
+    },
+    "ai-assistant-ui/src/composables/useMultiSession.ts": {
+      "statements": 93.49,
+      "branches": 97.95,
+      "functions": 89.47,
+      "lines": 93.49
+    },
+    "ai-assistant-ui/src/composables/usePluginRegistry.ts": {
+      "statements": 100,
+      "branches": 95.65,
+      "functions": 100,
+      "lines": 100
+    },
+    "ai-assistant-ui/src/composables/useSessionSearch.ts": {
+      "statements": 97.87,
+      "branches": 94.02,
+      "functions": 100,
+      "lines": 97.87
+    },
+    "ai-assistant-ui/src/composables/useStreamWithFallback.ts": {
+      "statements": 100,
+      "branches": 82.35,
+      "functions": 100,
+      "lines": 100
+    },
+    "ai-assistant-ui/src/utils/api.ts": {
+      "statements": 99.12,
+      "branches": 94.93,
+      "functions": 100,
+      "lines": 99.12
+    },
+    "ai-assistant-ui/src/utils/hljsRegistered.ts": {
+      "statements": 98.03,
+      "branches": 81.81,
+      "functions": 14.28,
+      "lines": 98.03
+    },
+    "ai-assistant-ui/src/utils/urlEmbed.ts": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    }
+  }
+}

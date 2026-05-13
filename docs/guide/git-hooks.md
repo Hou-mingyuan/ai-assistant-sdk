@@ -94,9 +94,49 @@ A：默认**不会**。需要 clone 后手动跑一次 `node scripts/install-git
 本仓库 monorepo 结构（`ai-assistant-ui/package.json` 与 `.git` 不在同一级）不满足条件，
 强行写会在 npm publish 时被打包上去导致干扰下游。
 
+## 配套：覆盖率回归门槛
+
+`coverage-check.mjs` 与本 hook 互补 —— hook 在 commit 前快速兜底，
+coverage 检查在 CI 里跑完整的回归对比，捕捉**小幅但持续**的覆盖率下滑。
+
+| 层 | 工具 | 触发时机 | 检测维度 |
+| --- | --- | --- | --- |
+| 1. 地板（绝对值） | vitest `thresholds` 配置 | 本地 `npm run test:coverage` & CI | 整体降到死线以下即 fail |
+| 2. 回归（相对值） | `scripts/coverage-check.mjs` | CI 跑完 coverage 后 | 任一文件 / TOTAL 下降 > 阈值（默认 1pt）即 fail |
+
+### 本地手动跑
+
+```bash
+# 跑测试 + 生成 coverage/coverage-summary.json
+cd ai-assistant-ui && npm run test:coverage && cd -
+
+# 与 baseline 对比
+node scripts/coverage-check.mjs
+
+# 调整容忍度（更严格 / 更宽松）
+node scripts/coverage-check.mjs --max-drop-percent 0.5
+node scripts/coverage-check.mjs --max-drop-percent 2.5
+
+# 当前提升是真实的且要被未来 PR 守护：把 baseline 推上去
+node scripts/coverage-check.mjs --update-baseline
+git add scripts/.coverage-baseline.json
+```
+
+### 与 project-health-check 集成
+
+```bash
+# 单独跑（前提：已经有 coverage-summary.json）
+node scripts/project-health-check.mjs --coverage
+
+# --all 自动 build + test:coverage + bundle-size + coverage-check
+node scripts/project-health-check.mjs --all
+```
+
 ## 相关文件
 
 - `scripts/install-git-hooks.mjs` — 安装器（含 `--force` / `--uninstall`）
 - `scripts/git-hooks/pre-commit.mjs` — 实际跑的检查逻辑
+- `scripts/coverage-check.mjs` — 覆盖率回归检测（J2）
+- `scripts/.coverage-baseline.json` — 覆盖率基线快照
 - `.github/workflows/ci.yml` — CI 兜底（spotless / coverage / e2e / bundle-size）
 - [Production Checklist](./production-checklist.md) — 发版前完整 checklist

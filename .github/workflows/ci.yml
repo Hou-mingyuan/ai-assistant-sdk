@@ -131,6 +131,13 @@ jobs:
         run: npm run test:coverage
         working-directory: ai-assistant-ui
 
+      - name: Coverage regression check (vs baseline)
+        # 1pt drop tolerance — catches small slides that vitest's absolute floor
+        # would miss. Update baseline with:
+        #   node scripts/coverage-check.mjs --update-baseline
+        #   git add scripts/.coverage-baseline.json
+        run: node scripts/coverage-check.mjs --max-drop-percent 1.0
+
       - name: Build Web Component
         run: npm run build:wc
         working-directory: ai-assistant-ui
