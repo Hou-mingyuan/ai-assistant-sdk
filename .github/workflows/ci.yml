@@ -52,6 +52,18 @@ jobs:
       - name: Check package version consistency
         run: node scripts/check-version-consistency.mjs
 
+      - name: Multi-replica config lint
+        # K1: warn-only on push to main, strict on PRs targeting main so that
+        # accidentally adding in-process state with replicas>1 to .env /
+        # docker-compose / helm gets caught before merge.
+        # Strict mode exits 1 when any high-severity finding is detected.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/multi-replica-config-lint.mjs --strict
+          else
+            node scripts/multi-replica-config-lint.mjs
+          fi
+
       - name: Validate docker compose files
         env:
           AI_ASSISTANT_API_KEY: ci-placeholder
