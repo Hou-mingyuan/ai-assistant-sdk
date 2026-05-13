@@ -1,0 +1,517 @@
+/* ============================================================================
+ * 10-polish-wave-6.css
+ * ---------------------------------------------------------------------------
+ * UX 第六波 - 细节打磨与微交互。
+ *
+ * 设计原则：
+ * 1. 仅在现有元素上叠加 CSS（不引入新 markup）。
+ * 2. 全部尊重 prefers-reduced-motion；动画时长 ≤ 240ms。
+ * 3. 与 v2 sky tech blue 主题色保持一致。
+ * 4. 暗色 / 亮色都打磨；hover、focus、active 三态完整。
+ *
+ * 覆盖范围：
+ * A. 消息气泡进入动画（slide + scale，stagger）
+ * B. 助手气泡悬停发光（glow ring + shadow lift）
+ * C. 思考中提示（gradient pill + breathing）
+ * D. 流式打字光标（pulsing cursor）
+ * E. 悬浮球微交互（ripple + idle pulse + hover scale）
+ * F. 空状态升级（gradient hint + suggestion chip glow）
+ * G. 头像光晕（assistant gradient ring）
+ * H. 输入框聚焦光晕（focus ring with glow）
+ * I. 滚动条美化（thin custom scrollbar）
+ * J. 滚动到底部按钮（ring pulse + ascending arrow）
+ * K. Settings 齿轮按钮（rotate on hover）
+ * L. Mode 按钮组（hover lift + active shimmer）
+ * M. 复制成功 toast（slide-in + fade-out）
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * A. 消息气泡进入动画
+ * ---------------------------------------------------------------------------
+ * 新消息出现时从下方滑入 + 轻微 scale-up，stagger 给会话注入"在思考"的呼吸感。
+ * ============================================================================
+ */
+@keyframes ai-bubble-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ai-msg {
+  animation: ai-bubble-enter 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+/* 滚动时不触发动画 -- 仅限新增的最后一条 */
+.ai-msg:not(:last-child) {
+  animation: none;
+}
+
+/* ============================================================================
+ * B. 助手气泡悬停发光
+ * ---------------------------------------------------------------------------
+ * 鼠标悬停时气泡微微浮起 + 边缘 sky-blue 微光，提示可交互。
+ * ============================================================================
+ */
+.ai-msg.ai-msg-assistant .ai-bubble {
+  position: relative;
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 200ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    border-color 180ms ease;
+}
+
+.ai-msg.ai-msg-assistant .ai-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 16px -4px rgba(14, 165, 233, 0.18),
+    0 0 0 1px rgba(14, 165, 233, 0.12);
+}
+
+[data-theme="dark"] .ai-msg.ai-msg-assistant .ai-bubble:hover {
+  box-shadow:
+    0 4px 16px -4px rgba(56, 189, 248, 0.22),
+    0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+
+/* ============================================================================
+ * C. 思考中胶囊
+ * ---------------------------------------------------------------------------
+ * "Thinking..." 胶囊用 sky-blue 渐变 + 缓慢 breathing 透明度，避免静态死板。
+ * ============================================================================
+ */
+@keyframes ai-thinking-breath {
+  0%, 100% {
+    opacity: 0.85;
+    background-position: 0% 50%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+}
+
+.ai-thinking-pill {
+  background: linear-gradient(
+    90deg,
+    rgba(14, 165, 233, 0.12),
+    rgba(6, 182, 212, 0.18),
+    rgba(59, 130, 246, 0.12),
+    rgba(14, 165, 233, 0.12)
+  );
+  background-size: 200% 100%;
+  animation: ai-thinking-breath 2.4s ease-in-out infinite;
+}
+
+/* ============================================================================
+ * D. 流式打字光标
+ * ---------------------------------------------------------------------------
+ * 助手正在生成时在最后一段后挂一个 pulsing cursor。基于 .ai-streaming 状态。
+ * ============================================================================
+ */
+@keyframes ai-cursor-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scaleY(0.85);
+  }
+}
+
+.ai-msg.ai-msg-assistant.ai-streaming .ai-md > :last-child::after,
+.ai-msg.ai-msg-assistant.ai-streaming .ai-bubble:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+  border-radius: 2px;
+  animation: ai-cursor-pulse 1.05s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* ============================================================================
+ * E. 悬浮球微交互
+ * ---------------------------------------------------------------------------
+ * idle 时极慢呼吸（4s）让球"活着"；hover 时放大 1.06；click 时 ripple 扩散。
+ * ============================================================================
+ */
+@keyframes ai-fab-idle-pulse {
+  0%, 100% {
+    box-shadow:
+      0 8px 24px -6px rgba(14, 165, 233, 0.42),
+      0 0 0 0 rgba(14, 165, 233, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 8px 24px -4px rgba(14, 165, 233, 0.52),
+      0 0 0 8px rgba(14, 165, 233, 0.0);
+  }
+}
+
+.ai-fab {
+  animation: ai-fab-idle-pulse 4.2s ease-in-out infinite;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 180ms ease;
+}
+
+.ai-fab:hover {
+  transform: scale(1.06);
+}
+
+.ai-fab:active {
+  transform: scale(0.94);
+}
+
+/* Ripple 效果通过伪元素模拟（不需要 JS） */
+.ai-fab::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.32) 0%, transparent 60%);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 320ms ease,
+    transform 320ms ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.ai-fab:active::before {
+  opacity: 1;
+  transform: scale(1.4);
+  transition: none;
+}
+
+/* ============================================================================
+ * F. 空状态升级
+ * ---------------------------------------------------------------------------
+ * 没有任何消息时显示 friendly 渐变提示 + suggestion chip 悬停发光。
+ * ============================================================================
+ */
+.ai-empty,
+.ai-empty-state {
+  background: linear-gradient(
+    180deg,
+    rgba(14, 165, 233, 0.04) 0%,
+    transparent 50%
+  );
+}
+
+.ai-empty h3,
+.ai-empty-state h3 {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ai-starter,
+.ai-suggestion-chip,
+.ai-empty button {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 200ms ease,
+    border-color 180ms ease;
+}
+
+.ai-starter:hover,
+.ai-suggestion-chip:hover,
+.ai-empty button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 6px 16px -6px rgba(14, 165, 233, 0.3);
+}
+
+/* ============================================================================
+ * G. 头像光晕
+ * ---------------------------------------------------------------------------
+ * 助手头像加 sky-blue gradient 环；loading 时旋转环带。
+ * ============================================================================
+ */
+@keyframes ai-avatar-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-avatar.ai-avatar-assistant {
+  position: relative;
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border: 2px solid transparent;
+}
+
+.ai-avatar.ai-avatar-assistant::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(14, 165, 233, 0),
+    rgba(14, 165, 233, 0.5),
+    rgba(6, 182, 212, 0.6),
+    rgba(59, 130, 246, 0.5),
+    rgba(14, 165, 233, 0)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.ai-msg.ai-msg-assistant.ai-streaming .ai-avatar.ai-avatar-assistant::after {
+  opacity: 1;
+  animation: ai-avatar-rotate 3.6s linear infinite;
+}
+
+/* ============================================================================
+ * H. 输入框聚焦光晕
+ * ---------------------------------------------------------------------------
+ * 输入框聚焦时 4px sky-blue glow halo（比单调的 outline 美观）。
+ * ============================================================================
+ */
+.ai-input,
+.ai-input-textarea,
+.ai-chat-input textarea,
+.ai-input-area textarea {
+  transition:
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.ai-input:focus,
+.ai-input-textarea:focus,
+.ai-chat-input textarea:focus,
+.ai-input-area textarea:focus,
+.ai-input:focus-visible,
+.ai-input-textarea:focus-visible {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.6) !important;
+  box-shadow:
+    0 0 0 3px rgba(14, 165, 233, 0.12),
+    0 1px 2px rgba(14, 165, 233, 0.06);
+}
+
+/* ============================================================================
+ * I. 滚动条美化
+ * ---------------------------------------------------------------------------
+ * Chat 消息区 + sessions 抽屉用 6px 自定义 scrollbar，鼠标 hover 时显形。
+ * ============================================================================
+ */
+.ai-body,
+.ai-messages,
+.ai-sessions-list,
+.ai-prompt-tpl-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.32) transparent;
+}
+
+.ai-body::-webkit-scrollbar,
+.ai-messages::-webkit-scrollbar,
+.ai-sessions-list::-webkit-scrollbar,
+.ai-prompt-tpl-list::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ai-body::-webkit-scrollbar-thumb,
+.ai-messages::-webkit-scrollbar-thumb,
+.ai-sessions-list::-webkit-scrollbar-thumb,
+.ai-prompt-tpl-list::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 3px;
+  transition: background 200ms ease;
+}
+
+.ai-body::-webkit-scrollbar-thumb:hover,
+.ai-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.45);
+}
+
+[data-theme="dark"] .ai-body::-webkit-scrollbar-thumb,
+[data-theme="dark"] .ai-messages::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.32);
+}
+
+/* ============================================================================
+ * J. 滚动到底部按钮
+ * ---------------------------------------------------------------------------
+ * 已有 .ai-scroll-to-bottom 业务逻辑（D5 chips 之前 commit）；本轮加 hover 时
+ * 向下浮 + scale，按下时反向。
+ * ============================================================================
+ */
+.ai-scroll-to-bottom-btn,
+.ai-jump-bottom-btn {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 180ms ease,
+    opacity 200ms ease;
+}
+
+.ai-scroll-to-bottom-btn:hover,
+.ai-jump-bottom-btn:hover {
+  transform: translateY(2px) scale(1.05);
+  box-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.32);
+}
+
+.ai-scroll-to-bottom-btn:active,
+.ai-jump-bottom-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* ============================================================================
+ * K. Settings 齿轮按钮
+ * ---------------------------------------------------------------------------
+ * Hover 时齿轮旋转 12 度，提示这是一个真的"齿轮"。
+ * ============================================================================
+ */
+.ai-settings-btn,
+.ai-gear-btn,
+[data-icon="settings"] {
+  transition: transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.ai-settings-btn:hover svg,
+.ai-gear-btn:hover svg,
+[data-icon="settings"]:hover svg {
+  transform: rotate(28deg);
+  transition: transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.ai-settings-btn:active svg,
+.ai-gear-btn:active svg {
+  transform: rotate(56deg);
+}
+
+/* ============================================================================
+ * L. Mode 按钮组（chat / translate / summarize）
+ * ---------------------------------------------------------------------------
+ * Active 态加 shimmer 横移；非 active 态 hover 微浮起。
+ * ============================================================================
+ */
+@keyframes ai-mode-shimmer {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+
+.ai-mode-bar button.active,
+.ai-quick-actions button.active {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%,
+    transparent 100%
+  ), linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
+  background-size: 200% 100%, 100% 100%;
+  background-repeat: no-repeat, no-repeat;
+  animation: ai-mode-shimmer 4.5s ease-in-out infinite;
+}
+
+.ai-mode-bar button:not(.active),
+.ai-quick-actions button:not(.active) {
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.ai-mode-bar button:not(.active):hover,
+.ai-quick-actions button:not(.active):hover {
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+ * M. 复制成功 toast
+ * ---------------------------------------------------------------------------
+ * 代码块复制按钮点击后冒出 "Copied!" 小气泡，220ms 内消失。
+ * 由 useCodeWall 添加 .ai-copied 临时 class 时触发。
+ * ============================================================================
+ */
+@keyframes ai-copied-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  20%, 80% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+}
+
+.ai-copy-btn.ai-copied::after {
+  content: "✓ Copied";
+  position: absolute;
+  top: -28px;
+  right: 0;
+  padding: 4px 8px;
+  background: #15803d;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: ai-copied-fade 1.4s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ============================================================================
+ * Reduced motion 兜底
+ * ---------------------------------------------------------------------------
+ * 所有上述动画在 prefers-reduced-motion 下退化为静态（H2 全局规则已生效，
+ * 这里再补一道局部兜底，确保即使全局规则被 override 也能止住）。
+ * ============================================================================
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ai-msg,
+  .ai-thinking-pill,
+  .ai-fab,
+  .ai-avatar.ai-avatar-assistant::after,
+  .ai-mode-bar button.active,
+  .ai-quick-actions button.active {
+    animation: none !important;
+  }
+  .ai-fab,
+  .ai-msg .ai-bubble,
+  .ai-starter,
+  .ai-scroll-to-bottom-btn {
+    transition: none !important;
+  }
+}
