@@ -9,60 +9,64 @@
     </span>
     <span class="ai-header-spacer" aria-hidden="true" />
     <div class="ai-header-actions">
-      <button
-        v-if="mode === 'chat' && showSystemPromptUi"
-        type="button"
-        class="ai-header-personalize"
-        :title="t.personalizeTitle"
-        :aria-label="t.personalizeTitle"
-        @click.stop="emit('open-personalize')"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      <!-- D2: 统一 Settings 入口齿轮按钮（替代原 personalize + diagnostics 两个独立按钮） -->
+      <div v-if="mode === 'chat'" class="ai-header-settings-wrap">
+        <button
+          type="button"
+          class="ai-header-settings"
+          :title="t.settingsLabel || 'Settings'"
+          :aria-label="t.settingsLabel || 'Settings'"
+          :aria-haspopup="'menu'"
+          :aria-expanded="settingsMenuOpen ? 'true' : 'false'"
+          @click.stop="settingsMenuOpen = !settingsMenuOpen"
         >
-          <path
-            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-          />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        <span class="ai-header-personalize-text">{{ t.personalizeTitle }}</span>
-      </button>
-      <button
-        v-if="mode === 'chat'"
-        type="button"
-        class="ai-header-diagnostics"
-        :title="t.diagnosticsTitle"
-        :aria-label="t.diagnosticsTitle"
-        :aria-pressed="diagnosticsOpen ? 'true' : 'false'"
-        :aria-controls="`${uid}-diagnostics`"
-        @click.stop="emit('toggle-diagnostics')"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+            />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+        <div
+          v-if="settingsMenuOpen"
+          class="ai-header-settings-menu"
+          role="menu"
         >
-          <path d="M3 3v18h18" />
-          <path d="M7 14l3-3 3 2 5-6" />
-          <path d="M18 7h-4" />
-          <path d="M18 7v4" />
-        </svg>
-        <span class="ai-header-diagnostics-text">{{ t.diagnosticsTitle }}</span>
-      </button>
+          <button
+            v-if="showSystemPromptUi"
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="onSettingsPick('personalize')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+            <span>{{ t.personalizeTitle }}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="onSettingsPick('diagnostics')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M3 3v18h18v-2H5V3H3zm14 14l-4-4-2 2-4-4 1.41-1.41L11 12.17 13 10l5 5L17 17z"/>
+            </svg>
+            <span>{{ t.diagnosticsTitle }}</span>
+          </button>
+        </div>
+      </div>
       <button
         v-for="pl in headerPlugins"
         :key="pl.id"
@@ -229,7 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, type PropType } from 'vue';
 import type { I18nMessages } from '../utils/i18n/types';
 import type { AiPlugin } from '../composables/usePluginRegistry';
 
@@ -316,4 +320,22 @@ const emit = defineEmits<{
 const themeToggleLabel = computed(() =>
   props.isDark ? props.t.themeToggleToLight || 'Light mode' : props.t.themeToggleToDark || 'Dark mode',
 );
+
+/* D2: Settings menu (聚合 personalize + diagnostics 入口) */
+const settingsMenuOpen = ref(false);
+
+function onSettingsPick(kind: 'personalize' | 'diagnostics') {
+  settingsMenuOpen.value = false;
+  if (kind === 'personalize') emit('open-personalize');
+  else emit('toggle-diagnostics');
+}
+
+function onClickOutsideSettings(event: MouseEvent) {
+  if (!settingsMenuOpen.value) return;
+  const t = event.target as HTMLElement | null;
+  if (t && t.closest('.ai-header-settings-wrap')) return;
+  settingsMenuOpen.value = false;
+}
+onMounted(() => document.addEventListener('mousedown', onClickOutsideSettings));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideSettings));
 </script>

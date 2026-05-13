@@ -214,4 +214,6 @@ export interface I18nMessages {
   pageContextOffTooltip: string;
   /** D5: 流式生成进度的字数单位，例如 "字" / "chars" */
   streamProgressChars: string;
+  /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
+  settingsLabel: string;
 }

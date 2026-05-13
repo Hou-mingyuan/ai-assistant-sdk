@@ -1661,3 +1661,76 @@
   background: rgba(56, 189, 248, 1);
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * D2 - Settings 齿轮按钮 + popover 菜单
+ *   顶栏 personalize + diagnostics 两个独立按钮合并为单一齿轮入口
+ *   点击齿轮弹出 2 项菜单，分别打开对应 dialog
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--ai-radius-md);
+  box-shadow:
+    0 10px 30px -10px rgba(15, 23, 42, 0.18),
+    0 4px 10px -4px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+  animation: ai-settings-menu-in 0.12s ease;
+}
+@keyframes ai-settings-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--ai-radius-sm);
+  font-size: 13px;
+  color: var(--ai-text);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(6, 182, 212, 0.06));
+  color: var(--ai-gradient-1);
+  transform: translateX(2px);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item:hover svg {
+  opacity: 1;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-menu {
+  background: rgba(15, 23, 42, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.5),
+    0 4px 10px -4px rgba(0, 0, 0, 0.3);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-item {
+  color: rgba(241, 245, 249, 0.85);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-item:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(34, 211, 238, 0.1));
+  color: #ffffff;
+}

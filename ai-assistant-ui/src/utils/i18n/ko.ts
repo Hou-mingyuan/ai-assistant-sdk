@@ -180,4 +180,5 @@ export const ko: I18nMessages = {
   pageContextOnTooltip: '전송 시 현재 페이지 내용이 컨텍스트로 첨부됩니다. 클릭하여 일시 비활성화.',
   pageContextOffTooltip: '페이지 컨텍스트 첨부가 비활성화되어 있습니다. 클릭하여 다시 활성화.',
   streamProgressChars: '자',
+  settingsLabel: '설정',
 };
