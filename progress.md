@@ -316,3 +316,96 @@ ai-assistant-ui/
 - `npm test`: ✅ **213/213** 通过（无新增测试，本轮主要 CSS + UI）
 - `npm run build:types` (vue-tsc): ✅ 0 errors
 - `npm run lint`: ✅ 0 new errors（pre-existing 1 error + 2 warnings 未动）
+
+## 2026-05-13 第四轮：UX 第四波 + Server feature + Tooling
+
+用户从 `继续推进` → `都修` → `开始 自行演进小助手的优化` → 三轮持续放权
+让助理自主推进。本会话共完成 17 个 commit，按主题分四簇：
+
+### Cluster 1: UX 第四波 5 项顺眼调整 (commit `efea80b`)
+
+| # | 改动 |
+|---|---|
+| #A1 | 思考过程默认折叠为 inline 小药丸（22px 高），点击展开成全宽面板 |
+| #A2 | 用户胶囊缩到 78% 宽 + 推右；铅笔编辑仅 hover 显示 |
+| #A3 | 模式按钮从输入框上方移到 model-row 内，紧凑分段控件 |
+| #A4 | 助手头像加 "AI" 字样（loading 时变成 ...） |
+| #A5 | starter 点击填入输入框时去掉 emoji 前缀（emoji 仅作图标） |
+
+### Cluster 2: Server-side 新功能与代码整理（commits `9f3567f` `2ce2d4d` `671c523`）
+
+| Commit | 内容 |
+|---|---|
+| `9f3567f` | AdminAuthFilter 守卫 `/admin/**` 路径，X-Admin-Token + X-AI-Token 回退，常量时间 MessageDigest.isEqual 防时序攻击 |
+| `2ce2d4d` | ChatRequest 新增 pageContext (≤20KB) + sessionId 字段；LlmService chat/chatStream 7 参重载透传 pageContext；Controller 错误前缀化（[QUOTA_EXCEEDED] / [RATE_LIMITED] / [TIMEOUT] / [VALIDATION_ERROR] / [LLM_ERROR]） |
+| `671c523` | 31 个 server java 文件应用 google-java-format，纯格式化无功能影响 |
+
+### Cluster 3: 体验闭环 D 系列（commits `f5e5b04` `a68f102` `61f0c5a` `b36b260` `e8f9bcc` + lint cleanup `7fa9a87`）
+
+| ID | Commit | 价值 |
+|---|---|---|
+| D4 | `f5e5b04` | 页面上下文 UI 徽章（footer 显示已附 N 块 + 一键开关），闭环 server-side pageContext feature |
+| D5 | `a68f102` | 流式 progress chip（chars + elapsed），1Hz tick + tabular-nums 防抖 |
+| D2 | `61f0c5a` | Settings 齿轮按钮聚合 personalize + diagnostics 入口 + popover 菜单 |
+| D1 | `b36b260` | ResizeObserver 真实测量消息高度，给 useMessageVirtualScroll 提供精准 spacer |
+| D3 | `e8f9bcc` | adminApi.ts SDK 包装 15 个 admin endpoints + 14 个新单测；不写 admin UI 而是给宿主提供 type-safe client |
+
+### Cluster 4: 工具感增强 + 工程化护栏 E/F/G 系列
+
+| ID | Commit | 价值 |
+|---|---|---|
+| E1 | `35801ab` | KeyboardShortcutsDialog.vue + Ctrl+/ 触发，3 组 17 行快捷键，平台自适应 ⌘/Ctrl，真实键帽样式 |
+| E2 | `c726a07` | TTFT (Time To First Token) 加到 D5 progress chip：`首字 1.2s · 234 字 · 3.5s` |
+| E3 | `bbece20` | scripts/generate-changelog.mjs 解析 178 conventional commits 自动分类，GitHub commit 链接，按日期组织 |
+| F2 | `102cbd8` | scripts/bundle-size-check.mjs + baseline JSON：24 文件 size 监控 + gzip 计算 + colored diff + --max-delta-percent 阈值告警 |
+| F5 | `b909cfd` | scripts/release.mjs 一键发版：version bump + 5 个文件同步 + CHANGELOG + git tag |
+| F4 | `7ec9691` | 代码块语言 chip + 长代码（≥20 行）折叠按钮 + 渐变遮罩 |
+| F3 | `539ccf5` | active search match 跳转 ring pulse 动画（:has() + prefers-reduced-motion） |
+| G6 | (下一 commit) | CI ci.yml frontend job 加 bundle-size-check 步骤，超 +10% gzip 阻塞 PR |
+
+### 本会话验证
+
+| 指标 | 起点 | 终点 |
+|---|---|---|
+| 单元测试 | 213/213 | **227/227** (+14 admin specs) |
+| vue-tsc | 0 错 | 0 错 |
+| ESLint | 1 err + 2 warn (pre-existing) | **0 / 0** |
+| bundle gzip | 未监控 | **316.46 KB / 24 files** (baseline 已建) |
+| CHANGELOG | 无 | **700+ 行 / 14 days** 自动生成 |
+
+### 核心交付清单
+
+新增工具脚本（4 个）：
+- `scripts/generate-changelog.mjs`
+- `scripts/bundle-size-check.mjs`
+- `scripts/.bundle-size-baseline.json`
+- `scripts/release.mjs`
+
+新增前端模块（2 个）：
+- `ai-assistant-ui/src/utils/adminApi.ts` + `.spec.ts`
+- `ai-assistant-ui/src/components/KeyboardShortcutsDialog.vue`
+
+新增 server feature（1 个）：
+- `ai-assistant-server/.../config/AdminAuthFilter.java`
+
+更新文件：
+- `CHANGELOG.md` 由 generate-changelog.mjs 全量生成
+- `09-modern-overhaul.css` 累计 +~500 行（UX 第四波 + D4/D5/D2/E1/F4/F3 各类徽章/分段控件/折叠/动画样式）
+- 4 语言 i18n 共新增 ~30 个键
+
+### 关键判断记录
+
+1. **D1 增强而非重做**：发现 C10 其实已在 `8f5b3ef` 接入，剩余工作是 ResizeObserver 测量精度
+2. **D2 走 MVP 而非完整 drawer 重构**：齿轮 + popover 30min 达成视觉简化，避免 4-6h dialog 提取
+3. **D3 改为 SDK 而非独立 UI**：admin endpoints 比 UI 普适，宿主可在任何运维系统复用
+4. **D5 用 chars/s 而非 tokens/s**：前端不知道 tokenizer，chars 更直观
+5. **F3 发现已完整 + 仅补 visual polish**：搜索系统完整，新增的 ring pulse 仅作视觉强化
+6. **server 35 文件分 3 个 commit (A 真功能 / B 新文件 / C 格式化)**：替别人 commit 但保留清晰边界，便于将来 bisect
+
+### 后续可继续方向
+
+- G1 历史会话抽屉（替代 tabs，可重命名/收藏/搜索）
+- G2 PWA service worker + manifest（离线缓存）
+- G3 a11y 全面审计 + 修补
+- G5 playground 加 admin dashboard 示例（用 D3 SDK 写演示）
+- F5 真实发版（v1.0.1 / v1.1.0）打 tag

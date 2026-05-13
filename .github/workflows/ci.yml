@@ -126,6 +126,12 @@ jobs:
         run: npm run build:wc
         working-directory: ai-assistant-ui
 
+      - name: Bundle size watchdog (vs baseline)
+        # 报表无论通过失败都生成，但只在超过 +10% gzip 时拒绝合并。
+        # 若需要 update baseline，本地运行：
+        #   node scripts/bundle-size-check.mjs --update-baseline && git add scripts/.bundle-size-baseline.json
+        run: node scripts/bundle-size-check.mjs --max-delta-percent 10
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v7
