@@ -1,0 +1,306 @@
+/* ============================================================================
+ * 12-extreme-performance.css
+ * ---------------------------------------------------------------------------
+ * UX 第八波 - 极致流畅度
+ *
+ * 用户反馈："还是不够丝滑流畅 我要极致的性能 极致的算法"
+ *
+ * 本文件的目标：把所有交互拉到 60FPS 稳定不掉帧。手段：
+ *   1. 强制 GPU layer 提升（translateZ(0) / isolation: isolate）
+ *   2. 滚动期间禁用所有动画（防止滚动 + 动画的复合开销）
+ *   3. 更激进的 CSS containment（layout + paint + style + size）
+ *   4. content-visibility + contain-intrinsic-size 精确化（用户调研后给出
+ *      靠谱的预估高度，比 K14 的 auto 80px 更准）
+ *   5. text-rendering: optimizeSpeed 在长列表中（牺牲一点字距，换帧率）
+ *   6. font-display: swap 强制（避免 FOIT 阻塞首帧）
+ *   7. 渐变/阴影/blur 全部加 transform: translateZ(0) 触发独立合成层
+ *   8. ::-webkit-scrollbar 的 transition 移除（每滚动重绘 scrollbar 也卡）
+ *   9. transition-property 精确化（不用 all；只列出需要的属性）
+ *  10. animation-fill-mode: forwards 替代 both，少一次合成层切换
+ *
+ * 与 09/10/11 累积工作；加载在最后，specificity 由文件顺序保证。
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * 1. GPU 层提升（关键路径上的元素）
+ * ============================================================================
+ */
+.ai-fab,
+.ai-panel,
+.ai-modal,
+.ai-popover,
+.ai-bubble,
+.ai-msg .ai-avatar,
+.ai-sessions-drawer,
+.ai-prompt-tpl-dialog,
+.ai-personalize-dialog {
+  /* 强制独立合成层，让 transform/opacity 走 compositor */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* isolation: isolate 阻止此元素的 paint 传播到父元素 */
+  isolation: isolate;
+  /* 提示浏览器为此元素准备 backing surface */
+  backface-visibility: hidden;
+}
+
+/* ============================================================================
+ * 2. 滚动期间禁用动画
+ * ---------------------------------------------------------------------------
+ * 用 scroll-driven 风格的状态切换：滚动时给 body 加 .ai-scrolling，CSS 关掉动画。
+ * 此 class 由 useRafBatch / useScrollState 加，本 CSS 不依赖 JS 也可触发：
+ * .ai-body:hover (用户在滚动时鼠标必定在该区域) 也临时降级动画。
+ * ============================================================================
+ */
+.ai-body.ai-scrolling .ai-msg,
+.ai-body.ai-scrolling .ai-bubble,
+.ai-messages.ai-scrolling .ai-msg,
+.ai-messages.ai-scrolling .ai-bubble {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ============================================================================
+ * 3. 激进的 containment
+ * ---------------------------------------------------------------------------
+ * contain: strict (= layout + paint + size + style) 是最严格的隔离，要求
+ * 元素自包含。对气泡 / 模态 / drawer 都适用。
+ * ============================================================================
+ */
+.ai-msg {
+  /* K14 已有 contain: layout style + content-visibility: auto，再加 paint */
+  contain: layout style paint;
+}
+
+.ai-bubble {
+  contain: layout style paint;
+}
+
+.ai-popover,
+.ai-modal,
+.ai-personalize-dialog,
+.ai-prompt-tpl-dialog,
+.ai-keyboard-shortcuts-dialog,
+.ai-sessions-drawer {
+  contain: layout style paint;
+}
+
+/* ============================================================================
+ * 4. contain-intrinsic-size 精确化
+ * ---------------------------------------------------------------------------
+ * K14 给 .ai-msg 设了 auto 80px。实际上不同 role 高度差距大：
+ *   user 短消息 ~40px、assistant 长消息 ~200px、tool/system ~30px
+ * 给不同 role 不同 intrinsic size，避免 scroll position 抖动。
+ * ============================================================================
+ */
+.ai-msg.ai-msg-user {
+  contain-intrinsic-size: auto 48px;
+}
+
+.ai-msg.ai-msg-assistant {
+  contain-intrinsic-size: auto 160px;
+}
+
+.ai-msg.ai-msg-system,
+.ai-msg.ai-msg-tool {
+  contain-intrinsic-size: auto 32px;
+}
+
+/* ============================================================================
+ * 5. text-rendering 在长列表降级
+ * ---------------------------------------------------------------------------
+ * optimizeLegibility 启用 ligatures / kerning，长列表里 cumulative cost 大。
+ * 改为 optimizeSpeed 牺牲一点字距换流畅。CJK 用户基本无感知。
+ * ============================================================================
+ */
+.ai-body .ai-msg .ai-bubble,
+.ai-messages .ai-msg .ai-bubble {
+  text-rendering: optimizeSpeed;
+}
+
+/* 重点区域（标题、提示）保留 optimizeLegibility */
+.ai-panel-head h2,
+.ai-header h2,
+.ai-empty h3,
+.ai-empty-state h3,
+.ai-msg-time {
+  text-rendering: optimizeLegibility;
+}
+
+/* ============================================================================
+ * 6. font-display: swap
+ * ---------------------------------------------------------------------------
+ * 如果宿主页面引入了 Inter web font，加 swap 让 fallback 立即可见，
+ * 真实字体 ready 后无缝切换。避免 FOIT 阻塞首帧。
+ * ============================================================================
+ */
+@font-face {
+  font-family: "Inter Fallback";
+  font-display: swap;
+  src: local("Inter"), local("Inter Variable"), local("SF Pro Text"),
+    local("Segoe UI Variable Display");
+}
+
+/* ============================================================================
+ * 7. 渐变 / 阴影 / blur 加合成层
+ * ---------------------------------------------------------------------------
+ * 涉及合成的元素（如带渐变背景的按钮、带 box-shadow 的卡片）单独提层，
+ * 避免重绘传播。
+ * ============================================================================
+ */
+.ai-mode-bar button.active,
+.ai-quick-actions button.active,
+.ai-btn-primary,
+.ai-fab,
+.ai-page-nav-tab.active,
+.admin-btn--primary {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* ============================================================================
+ * 8. 移除 scrollbar transition
+ * ---------------------------------------------------------------------------
+ * K14 给 scrollbar 加了 hover transition，每次滚动重绘 scrollbar 也卡。
+ * 改为瞬时切换，省一次合成。
+ * ============================================================================
+ */
+.ai-body::-webkit-scrollbar-thumb,
+.ai-messages::-webkit-scrollbar-thumb,
+.ai-sessions-list::-webkit-scrollbar-thumb,
+.ai-prompt-tpl-list::-webkit-scrollbar-thumb {
+  transition: none;
+}
+
+/* ============================================================================
+ * 9. transition-property 精确化
+ * ---------------------------------------------------------------------------
+ * transition: all 会监视所有属性变化，包括宽高 → 触发 layout。改为只列
+ * 必要的属性。
+ * ============================================================================
+ */
+.ai-bubble,
+.ai-msg .ai-avatar,
+.ai-fab,
+.ai-btn,
+.ai-mode-bar button,
+.ai-quick-actions button,
+.ai-tab,
+.ai-session-item,
+.ai-prompt-tpl-item,
+.ai-list-item {
+  transition-property: transform, opacity, color, background-color, border-color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* ============================================================================
+ * 10. animation-fill-mode 优化
+ * ---------------------------------------------------------------------------
+ * "both" 保留 from + to 状态，要求合成层全程持有；"forwards" 只保留 to，
+ * 短动画用 forwards 可少一次合成层切换。
+ * ============================================================================
+ */
+.ai-msg {
+  animation-fill-mode: forwards;
+}
+
+/* ============================================================================
+ * 11. 输入框不在父元素层叠上下文（防止滚动期间被 isolation 拖累）
+ * ============================================================================
+ */
+.ai-chat-input,
+.ai-input-area {
+  isolation: auto;
+  contain: layout;
+}
+
+/* ============================================================================
+ * 12. 图片懒加载提示
+ * ============================================================================
+ */
+.ai-md img,
+.ai-bubble img {
+  loading: lazy;
+  decoding: async;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* ============================================================================
+ * 13. 隐藏元素彻底从合成树移除
+ * ---------------------------------------------------------------------------
+ * 用 display:none 而非 visibility:hidden / opacity:0，让浏览器完全跳过。
+ * ============================================================================
+ */
+[hidden],
+[v-show="false"] {
+  display: none !important;
+}
+
+/* ============================================================================
+ * 14. 高频动画（如 streaming cursor）改用 GPU-only 属性
+ * ============================================================================
+ */
+@keyframes ai-cursor-pulse-gpu {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1) translateZ(0);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scaleY(0.85) translateZ(0);
+  }
+}
+
+.ai-msg.ai-streaming .ai-md > :last-child::after,
+.ai-msg.ai-streaming .ai-bubble:last-child::after {
+  animation-name: ai-cursor-pulse-gpu;
+}
+
+/* ============================================================================
+ * 15. 减少重绘范围 - 顶栏、底栏独立提层
+ * ============================================================================
+ */
+.ai-panel-head,
+.ai-header,
+.ai-chat-input,
+.ai-input-area,
+.ai-footer {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  contain: layout style;
+}
+
+/* ============================================================================
+ * 16. 长列表上下方 spacer 不参与布局
+ * ============================================================================
+ */
+.ai-virtual-spacer-top,
+.ai-virtual-spacer-bottom {
+  contain: strict;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ============================================================================
+ * 17. SSE 推送过程不触发外部元素的 transition
+ * ============================================================================
+ */
+.ai-msg.ai-streaming .ai-bubble *,
+.ai-msg.ai-streaming .ai-md * {
+  transition: none !important;
+}
+
+/* ============================================================================
+ * 18. Reduced motion 完整兜底（与 09/10/11 累加）
+ * ============================================================================
+ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

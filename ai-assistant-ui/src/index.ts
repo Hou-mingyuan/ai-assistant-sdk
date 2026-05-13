@@ -275,3 +275,7 @@ export type {
   McpStreamNotification,
   EventSourceLike,
 } from './composables/useMcpStream';
+export { useIdleScheduler, runInChunks } from './composables/useIdleScheduler';
+export type { IdleTask, IdleScheduleOptions } from './composables/useIdleScheduler';
+export { useRafBatch, createReadWriteBatch } from './composables/useRafBatch';
+export type { RafBatch } from './composables/useRafBatch';
