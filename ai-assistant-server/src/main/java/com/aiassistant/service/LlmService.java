@@ -13,6 +13,7 @@ import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.PromptComposer;
 import com.aiassistant.service.llm.RequestEnricher;
 import com.aiassistant.service.llm.ResponsePostProcessor;
+import com.aiassistant.service.llm.ToolCallingLoop;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
@@ -64,6 +65,7 @@ public class LlmService {
     private final PromptComposer promptComposer;
     private final RequestEnricher requestEnricher;
     private final ResponsePostProcessor responsePostProcessor;
+    private final ToolCallingLoop toolCallingLoop;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -123,6 +125,17 @@ public class LlmService {
         this.requestEnricher = new RequestEnricher(contentFilter, urlFetchService);
         this.responsePostProcessor =
                 new ResponsePostProcessor(contentFilter, tokenUsageTracker, responseParser);
+        /* K18: delegate the blocking tool-calling loop to the extracted
+         * ToolCallingLoop class. The local processToolCallingLoop method
+         * is now a one-line forwarder; the algorithm + 5 unit tests live
+         * in com.aiassistant.service.llm.ToolCallingLoop (K12). */
+        this.toolCallingLoop =
+                new ToolCallingLoop(
+                        toolRegistry,
+                        chatCompletionClient,
+                        responsePostProcessor,
+                        objectMapper,
+                        MAX_TOOL_ROUNDS);
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
@@ -509,72 +522,13 @@ public class LlmService {
         }
     }
 
+    /**
+     * Delegate to the extracted {@link ToolCallingLoop} (K12). This wrapper preserves the original
+     * private signature so existing call sites remain identical; the algorithm lives in
+     * ToolCallingLoop and has 5 dedicated unit tests.
+     */
     private String processToolCallingLoop(ObjectNode body, String rawResponse, String apiKey) {
-        if (toolRegistry == null || toolRegistry.isEmpty()) {
-            return responsePostProcessor.parseContentFromRaw(rawResponse);
-        }
-        String modelId = body.path("model").asText("");
-        for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-            JsonNode root;
-            try {
-                root = objectMapper.readTree(rawResponse);
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to parse LLM response in tool loop (round {}): {}",
-                        round,
-                        e.getMessage());
-                return "AI service returned an unparseable response.";
-            }
-            JsonNode choices = root.path("choices");
-            if (!choices.isArray() || choices.isEmpty()) {
-                return responsePostProcessor.parseContentFromRaw(rawResponse);
-            }
-
-            JsonNode firstChoice = choices.get(0);
-            JsonNode msg = firstChoice.path("message");
-            String finishReason = firstChoice.path("finish_reason").asText("");
-            JsonNode toolCalls = msg.path("tool_calls");
-
-            if (!"tool_calls".equals(finishReason) || !toolCalls.isArray() || toolCalls.isEmpty()) {
-                return msg.path("content").asText("");
-            }
-
-            JsonNode messagesNode = body.get("messages");
-            if (messagesNode == null || !messagesNode.isArray()) {
-                throw new RuntimeException("Malformed request body: 'messages' is not an array");
-            }
-            ArrayNode messages = (ArrayNode) messagesNode;
-            ObjectNode assistantMsg = messages.addObject();
-            assistantMsg.put("role", "assistant");
-            if (msg.has("content") && !msg.get("content").isNull()) {
-                assistantMsg.put("content", msg.get("content").asText(""));
-            } else {
-                assistantMsg.putNull("content");
-            }
-            assistantMsg.set("tool_calls", toolCalls);
-
-            for (JsonNode tc : toolCalls) {
-                String callId = tc.path("id").asText();
-                String fnName = tc.path("function").path("name").asText();
-                String argsStr = tc.path("function").path("arguments").asText("{}");
-                String toolResult;
-                try {
-                    JsonNode args = objectMapper.readTree(argsStr);
-                    toolResult = toolRegistry.execute(fnName, args);
-                } catch (Exception e) {
-                    toolResult = "Error: " + e.getMessage();
-                    log.warn("Tool execution failed: {} - {}", fnName, e.getMessage());
-                }
-                ObjectNode toolMsg = messages.addObject();
-                toolMsg.put("role", "tool");
-                toolMsg.put("tool_call_id", callId);
-                toolMsg.put("content", toolResult);
-            }
-
-            rawResponse = chatCompletionClient.completeRaw(body, apiKey);
-            responsePostProcessor.extractAndRecord(rawResponse, modelId);
-        }
-        return responsePostProcessor.parseContentFromRaw(rawResponse);
+        return toolCallingLoop.execute(body, rawResponse, apiKey);
     }
 
     private Timer completionTimer(String operation, String outcome) {
