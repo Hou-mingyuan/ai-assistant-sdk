@@ -190,11 +190,7 @@ export {
   fetchPromptTemplates,
   postServerExport,
 } from './utils/api';
-export type {
-  ModelsListResult,
-  PromptTemplateEntry,
-  PromptTemplatesListResult,
-} from './utils/api';
+export type { ModelsListResult, PromptTemplateEntry, PromptTemplatesListResult } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
 /* D3: Admin SDK — host-side admin dashboard helpers around /admin/* endpoints */
@@ -245,10 +241,7 @@ export type { StreamMetrics } from './utils/perfMetrics';
 export { useMultiSession } from './composables/useMultiSession';
 export type { SessionEntry } from './composables/useMultiSession';
 export { useMultiModelChat } from './composables/useMultiModelChat';
-export type {
-  MultiModelColumn,
-  UseMultiModelChatOptions,
-} from './composables/useMultiModelChat';
+export type { MultiModelColumn, UseMultiModelChatOptions } from './composables/useMultiModelChat';
 export { useTextToSpeech } from './composables/useTextToSpeech';
 export type { TtsSpeakOptions } from './composables/useTextToSpeech';
 export {
@@ -276,3 +269,9 @@ export type {
 } from './composables/useMcpClient';
 export { useMcpAutoPlugin } from './composables/useMcpAutoPlugin';
 export type { UseMcpAutoPluginOptions } from './composables/useMcpAutoPlugin';
+export { useMcpStream, McpStreamUnavailable } from './composables/useMcpStream';
+export type {
+  McpStreamOptions,
+  McpStreamNotification,
+  EventSourceLike,
+} from './composables/useMcpStream';
