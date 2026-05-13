@@ -4,35 +4,46 @@
       {{ showEarlierLabel }}
     </button>
   </div>
+  <!--
+    C10 虚拟窗口：当 `virtualSlice` 启用时，只渲染 [startIndex, endIndex) 区间
+    的消息，用 spacer div 撑开剩余高度以保持 scrollbar 行为正确。spacer 通过
+    `min-height` 而非 height 避免与 flex 父容器冲突。
+  -->
   <div
-    v-for="(msg, idx) in messages"
-    :key="`${displayOffset + idx}-${msg.role}`"
+    v-if="virtualSlice && virtualSlice.enabled && virtualSlice.topSpacer > 0"
+    class="ai-msg-virtual-spacer ai-msg-virtual-spacer-top"
+    :style="{ minHeight: virtualSlice.topSpacer + 'px' }"
+    aria-hidden="true"
+  ></div>
+  <div
+    v-for="(msg, idx) in renderedMessages"
+    :key="`${displayOffset + renderedStart + idx}-${msg.role}`"
     v-show="!isTransientAbort(msg)"
     :class="[
       'ai-msg',
       msg.role,
-      { 'ai-msg-streaming': isActiveStreaming(displayOffset + idx, msg) },
-      { 'ai-msg-selected': selectMode && selectedIndices.has(displayOffset + idx) },
+      { 'ai-msg-streaming': isActiveStreaming(displayOffset + renderedStart + idx, msg) },
+      { 'ai-msg-selected': selectMode && selectedIndices.has(displayOffset + renderedStart + idx) },
     ]"
-    :data-ai-msg-global-idx="displayOffset + idx"
-    @click="selectMode ? emit('toggle-selection', displayOffset + idx) : undefined"
+    :data-ai-msg-global-idx="displayOffset + renderedStart + idx"
+    @click="selectMode ? emit('toggle-selection', displayOffset + renderedStart + idx) : undefined"
   >
     <input
       v-if="selectMode"
       type="checkbox"
       class="ai-msg-checkbox"
-      :checked="selectedIndices.has(displayOffset + idx)"
-      @click.stop="emit('toggle-selection', displayOffset + idx)"
+      :checked="selectedIndices.has(displayOffset + renderedStart + idx)"
+      @click.stop="emit('toggle-selection', displayOffset + renderedStart + idx)"
     />
     <span
       v-if="msg.role === 'assistant'"
       class="ai-assistant-avatar"
       :class="{
-        'ai-assistant-avatar-loading': isActiveStreaming(displayOffset + idx, msg),
+        'ai-assistant-avatar-loading': isActiveStreaming(displayOffset + renderedStart + idx, msg),
       }"
       aria-hidden="true"
     ></span>
-    <template v-if="editingIdx === displayOffset + idx">
+    <template v-if="editingIdx === displayOffset + renderedStart + idx">
       <div class="ai-bubble ai-bubble-editing">
         <textarea
           ref="editTextareaRef"
@@ -40,7 +51,7 @@
           class="ai-edit-textarea"
           rows="3"
           @input="onEditInput($event)"
-          @keydown.enter.exact.prevent="emit('confirm-edit', displayOffset + idx)"
+          @keydown.enter.exact.prevent="emit('confirm-edit', displayOffset + renderedStart + idx)"
           @keydown.escape="emit('cancel-edit')"
         ></textarea>
         <div class="ai-edit-actions">
@@ -50,7 +61,7 @@
           <button
             type="button"
             class="ai-edit-confirm"
-            @click="emit('confirm-edit', displayOffset + idx)"
+            @click="emit('confirm-edit', displayOffset + renderedStart + idx)"
           >
             {{ t.send }}
           </button>
@@ -63,7 +74,7 @@
     <template v-else>
       <div
         v-if="
-          isActiveStreaming(displayOffset + idx, msg) && !hasVisibleContent(msg.content)
+          isActiveStreaming(displayOffset + renderedStart + idx, msg) && !hasVisibleContent(msg.content)
         "
         class="ai-thinking-bubble"
         role="status"
@@ -78,7 +89,7 @@
         </span>
       </div>
       <details
-        v-if="msg.thinking && msg.role === 'assistant' && !isActiveStreaming(displayOffset + idx, msg)"
+        v-if="msg.thinking && msg.role === 'assistant' && !isActiveStreaming(displayOffset + renderedStart + idx, msg)"
         class="ai-thinking-details"
       >
         <summary class="ai-thinking-summary">
@@ -90,17 +101,17 @@
         <!-- eslint-disable vue/no-v-html -->
         <div
           class="ai-thinking-content"
-          v-html="renderBubble(msg.thinking, displayOffset + idx, false)"
+          v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, false)"
         ></div>
         <!-- eslint-enable vue/no-v-html -->
       </details>
       <div
-        v-if="isActiveStreaming(displayOffset + idx, msg) && msg.thinking && !hasVisibleContent(msg.content)"
+        v-if="isActiveStreaming(displayOffset + renderedStart + idx, msg) && msg.thinking && !hasVisibleContent(msg.content)"
         class="ai-thinking-live"
       >
         <span class="ai-thinking-live-label">{{ t.thinkingLive || '正在思考…' }}</span>
         <!-- eslint-disable vue/no-v-html -->
-        <div class="ai-thinking-content" v-html="renderBubble(msg.thinking, displayOffset + idx, true)"></div>
+        <div class="ai-thinking-content" v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, true)"></div>
         <!-- eslint-enable vue/no-v-html -->
       </div>
       <!-- Agent steps display -->
@@ -139,11 +150,11 @@
       <div
         v-else
         class="ai-bubble"
-        @contextmenu="onBubbleContextMenu($event, displayOffset + idx, msg.role)"
+        @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
         v-html="
           renderBubble(
             msg.content,
-            displayOffset + idx,
+            displayOffset + renderedStart + idx,
             loading && msg.role === 'assistant' && idx === messages.length - 1,
           )
         "
@@ -154,7 +165,7 @@
       }}</span>
     </template>
     <button
-      v-if="isActiveStreaming(displayOffset + idx, msg)"
+      v-if="isActiveStreaming(displayOffset + renderedStart + idx, msg)"
       type="button"
       class="ai-stop-generate ai-msg-stop"
       :title="t.stopGenerate"
@@ -164,7 +175,7 @@
       {{ t.stopGenerate }}
     </button>
     <div
-      v-if="msg.role === 'user' && !loading && editingIdx !== displayOffset + idx"
+      v-if="msg.role === 'user' && !loading && editingIdx !== displayOffset + renderedStart + idx"
       class="ai-msg-actions"
     >
       <button
@@ -172,7 +183,7 @@
         class="ai-msg-edit"
         :title="t.msgCtxEdit"
         :aria-label="t.msgCtxEdit"
-        @click="emit('start-edit', displayOffset + idx)"
+        @click="emit('start-edit', displayOffset + renderedStart + idx)"
       >
         ✏️
       </button>
@@ -184,17 +195,17 @@
         :title="t.copyCode"
         :aria-label="t.copyCode"
         @click="
-          emit('copy-message', msg.contentArchive ?? msg.content, displayOffset + idx)
+          emit('copy-message', msg.contentArchive ?? msg.content, displayOffset + renderedStart + idx)
         "
       >
-        {{ copiedIndex === displayOffset + idx ? t.codeCopied : '📋' }}
+        {{ copiedIndex === displayOffset + renderedStart + idx ? t.codeCopied : '📋' }}
       </button>
       <button
         type="button"
         class="ai-msg-regenerate"
         :title="t.regenerate"
         :aria-label="t.regenerate"
-        @click="emit('regenerate-at', displayOffset + idx)"
+        @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
       >
         🔄
       </button>
@@ -205,7 +216,7 @@
         :title="t.thumbsUp"
         :aria-label="t.thumbsUp"
         :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
-        @click="emit('set-feedback', displayOffset + idx, 'up')"
+        @click="emit('set-feedback', displayOffset + renderedStart + idx, 'up')"
       >
         👍
       </button>
@@ -216,7 +227,7 @@
         :title="t.thumbsDown"
         :aria-label="t.thumbsDown"
         :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
-        @click="emit('set-feedback', displayOffset + idx, 'down')"
+        @click="emit('set-feedback', displayOffset + renderedStart + idx, 'down')"
       >
         👎
       </button>
@@ -225,18 +236,36 @@
       v-if="isErrorMessage(msg) && !loading"
       type="button"
       class="ai-retry-btn"
-      @click="emit('retry-last-error', displayOffset + idx)"
+      @click="emit('retry-last-error', displayOffset + renderedStart + idx)"
     >
       🔄 {{ t.retryError }}
     </button>
   </div>
+  <div
+    v-if="virtualSlice && virtualSlice.enabled && virtualSlice.bottomSpacer > 0"
+    class="ai-msg-virtual-spacer ai-msg-virtual-spacer-bottom"
+    :style="{ minHeight: virtualSlice.bottomSpacer + 'px' }"
+    aria-hidden="true"
+  ></div>
 </template>
 
 <script setup lang="ts">
 import type { PropType } from 'vue';
-import { ref, watch, nextTick } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+
+/** C10: Virtual scroll slice passed from the parent. When `enabled` is true,
+ *  MessageList only renders `[startIndex, endIndex)` of `messages` and pads
+ *  the surrounding scroll area with two spacer divs to preserve scrollbar
+ *  geometry. Defaults to undefined → full render (legacy behaviour). */
+export interface VirtualSlice {
+  enabled: boolean;
+  startIndex: number;
+  endIndex: number;
+  topSpacer: number;
+  bottomSpacer: number;
+}
 
 const props = defineProps({
   messages: {
@@ -315,6 +344,21 @@ const props = defineProps({
     type: Function as PropType<(msg: Message) => boolean>,
     required: true,
   },
+  virtualSlice: {
+    type: Object as PropType<VirtualSlice | null>,
+    default: null,
+  },
+});
+
+/* When virtualization is active, slice the messages array to the visible
+   window; otherwise pass through as-is. `renderedStart` always carries the
+   correct offset so child handlers can rebuild the global message index. */
+const renderedStart = computed(() =>
+  props.virtualSlice && props.virtualSlice.enabled ? props.virtualSlice.startIndex : 0,
+);
+const renderedMessages = computed(() => {
+  if (!props.virtualSlice || !props.virtualSlice.enabled) return props.messages;
+  return props.messages.slice(props.virtualSlice.startIndex, props.virtualSlice.endIndex);
 });
 
 const emit = defineEmits<{

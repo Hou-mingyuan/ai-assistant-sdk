@@ -169,6 +169,7 @@
           class="ai-body"
           :aria-busy="loading"
           @click="handleBodyClick"
+          @scroll.passive="onBodyScrollForVirtual"
           @dragover.prevent="onBodyDragOver"
           @dragenter.prevent="onBodyDragEnter"
           @dragleave.prevent="onBodyDragLeave"
@@ -229,6 +230,7 @@
             :render-bubble="renderBubble"
             :on-bubble-context-menu="onBubbleContextMenu"
             :is-error-message="isErrorMessage"
+            :virtual-slice="virtualSliceForList"
             @show-all-older-messages="showAllOlderMessages"
             @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"
@@ -625,6 +627,7 @@ import { useMultiModelChat } from '../composables/useMultiModelChat';
 import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
+import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
 const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
@@ -1274,6 +1277,51 @@ const presetPromptTemplates = computed(() => {
 const promptTemplateLib = usePromptTemplateLibrary({
   presetTemplates: presetPromptTemplates,
 });
+
+/**
+ * C10: 真接入虚拟滚动（opt-in via options.virtualScroll）。
+ *
+ * - 默认 false：保持原有 `MAX_RENDERED_MESSAGES = 60` 折叠机制不变；
+ * - 设为 true 或对象时启用：监听 bodyRef 滚动，每帧节流地更新 scrollTop
+ *   和 viewportHeight，传给 `useMessageVirtualScroll` 算出可视窗口；
+ *   超过阈值（默认 60）才真的切片，否则即便启用也走全量渲染（与
+ *   composable 内部的 minActivationCount 联动）。
+ *
+ * 与 `displayedMessages` 的关系：
+ * - `useSessionSearch` 在「折叠早期消息」时已先做了一次切片，传入的
+ *   `messageCount` 是 displayedMessages.length（不是 messages.length），
+ *   保证虚拟窗口与折叠 banner 一致。
+ */
+const virtualScrollOption = computed(() => {
+  const v = options.virtualScroll;
+  if (v === true) return { threshold: 60, estimatedItemHeight: 90 };
+  if (v && typeof v === 'object') return { threshold: v.threshold ?? 60, estimatedItemHeight: v.estimatedItemHeight ?? 90 };
+  return null;
+});
+const virtualScrollTop = ref(0);
+const virtualViewportHeight = ref(0);
+const virtualMessageCount = computed(() => displayedMessages.value.length);
+const virtualScroll = useMessageVirtualScroll({
+  messageCount: virtualMessageCount,
+  scrollTop: virtualScrollTop,
+  viewportHeight: virtualViewportHeight,
+  estimatedItemHeight: virtualScrollOption.value?.estimatedItemHeight ?? 90,
+  minActivationCount: virtualScrollOption.value?.threshold ?? 60,
+});
+const virtualSliceForList = computed(() => (virtualScrollOption.value ? virtualScroll.window.value : null));
+
+let virtualScrollRaf = 0;
+function onBodyScrollForVirtual() {
+  if (!virtualScrollOption.value) return;
+  if (virtualScrollRaf) return;
+  virtualScrollRaf = requestAnimationFrame(() => {
+    virtualScrollRaf = 0;
+    const el = bodyRef.value;
+    if (!el) return;
+    virtualScrollTop.value = el.scrollTop;
+    virtualViewportHeight.value = el.clientHeight;
+  });
+}
 
 async function refreshServerPromptTemplates() {
   if (!options.baseUrl) return;
@@ -2366,6 +2414,14 @@ onMounted(() => {
   }
   loadFabPos();
   void refreshServerPromptTemplates();
+  /* 初始化虚拟滚动 viewport，避免首屏 window=0 时算出错误的可视区 */
+  void nextTick(() => {
+    const el = bodyRef.value;
+    if (el) {
+      virtualScrollTop.value = el.scrollTop;
+      virtualViewportHeight.value = el.clientHeight;
+    }
+  });
   window.addEventListener('resize', onWinResize);
   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);

@@ -90,6 +90,20 @@ export interface AiAssistantOptions {
   pageContextMaxCharsPerBlock?: number;
   /** 所有 block 合计最大字符，默认 6000 */
   pageContextMaxTotalChars?: number;
+  /**
+   * 长会话虚拟滚动（实验性，opt-in）。
+   *
+   * - `false` / `undefined` (默认)：保持现有 `MAX_RENDERED_MESSAGES = 60` 折叠
+   *   机制，**不启用**虚拟窗口；
+   * - `true`：启用，threshold 默认 60、estimatedItemHeight 默认 90px；
+   * - 对象：可定制 `threshold`（启用阈值条数）与 `estimatedItemHeight`
+   *   （未真实测量时的每条消息高度估算）。
+   *
+   * 启用后只渲染当前 viewport 附近 ±overscan 条消息，其余通过 spacer div
+   * 撑开高度；与 `useSessionSearch` 的折叠机制兼容（`messageCount` 走
+   * displayedMessages.length）。
+   */
+  virtualScroll?: boolean | { threshold?: number; estimatedItemHeight?: number };
 }
 
 const defaultOptions: AiAssistantOptions = {
