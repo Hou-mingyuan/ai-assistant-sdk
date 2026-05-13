@@ -211,4 +211,12 @@ export const en: I18nMessages = {
   kbdFootTip: 'Press Esc to close · Press Ctrl + / again to reopen',
   codeFold: 'Fold',
   codeUnfold: 'Unfold',
+  sessionsDrawerTitle: 'All sessions',
+  sessionsDrawerSearch: 'Filter by title or content…',
+  sessionsDrawerEmpty: 'No sessions match this filter.',
+  sessionsDrawerMsgUnit: 'msgs',
+  sessionsDrawerToday: 'Today',
+  sessionsDrawerYesterday: 'Yesterday',
+  sessionsDrawerThisWeek: 'This week',
+  sessionsDrawerOlder: 'Older',
 };

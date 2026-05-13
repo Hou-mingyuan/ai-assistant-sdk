@@ -65,6 +65,17 @@
             </svg>
             <span>{{ t.diagnosticsTitle }}</span>
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="onSettingsPick('sessions')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"/>
+            </svg>
+            <span>{{ t.sessionsDrawerTitle || 'All sessions' }}</span>
+          </button>
         </div>
       </div>
       <button
@@ -304,6 +315,7 @@ const emit = defineEmits<{
   (e: 'pointerdown-header', event: PointerEvent): void;
   (e: 'open-personalize'): void;
   (e: 'toggle-diagnostics'): void;
+  (e: 'open-sessions-drawer'): void;
   (e: 'toggle-panel-expand'): void;
   (e: 'toggle-theme'): void;
   (e: 'run-plugin', plugin: AiPlugin): void;
@@ -324,10 +336,11 @@ const themeToggleLabel = computed(() =>
 /* D2: Settings menu (聚合 personalize + diagnostics 入口) */
 const settingsMenuOpen = ref(false);
 
-function onSettingsPick(kind: 'personalize' | 'diagnostics') {
+function onSettingsPick(kind: 'personalize' | 'diagnostics' | 'sessions') {
   settingsMenuOpen.value = false;
   if (kind === 'personalize') emit('open-personalize');
-  else emit('toggle-diagnostics');
+  else if (kind === 'diagnostics') emit('toggle-diagnostics');
+  else emit('open-sessions-drawer');
 }
 
 function onClickOutsideSettings(event: MouseEvent) {

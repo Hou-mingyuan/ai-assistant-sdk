@@ -1957,3 +1957,141 @@
     animation: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * G1 - Sessions drawer (all sessions browser)
+ *   触发：齿轮菜单 → "所有会话"
+ *   特点：按时间桶分组（今天/昨天/本周/更早），support filter
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer {
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ai-text-muted);
+  margin-left: 6px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-search {
+  margin: 4px 0 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input {
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 13px;
+  border: 1px solid var(--ai-border);
+  border-radius: 6px;
+  outline: none;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  box-sizing: border-box;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input:focus {
+  border-color: var(--ai-gradient-1);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.18);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-empty {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ai-text-muted);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ai-text-muted);
+  margin: 4px 0;
+  padding-bottom: 2px;
+  border-bottom: 1px dashed var(--ai-border);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 36px 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ai-text);
+  transition: all 0.12s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03));
+  border-color: rgba(14, 165, 233, 0.2);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item.is-active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(6, 182, 212, 0.08));
+  border-color: var(--ai-gradient-1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-meta {
+  font-size: 11px;
+  color: var(--ai-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ai-text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.12s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover .ai-sessions-drawer-item-delete {
+  opacity: 0.85;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+  opacity: 1;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-input {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(241, 245, 249, 0.95);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-item:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(34, 211, 238, 0.05));
+  border-color: rgba(56, 189, 248, 0.28);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-item.is-active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.12));
+  border-color: rgba(56, 189, 248, 0.5);
+}

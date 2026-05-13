@@ -206,4 +206,12 @@ export const ja: I18nMessages = {
   kbdFootTip: 'Esc で閉じる · 再度 Ctrl + / で開く',
   codeFold: '折りたたむ',
   codeUnfold: '展開',
+  sessionsDrawerTitle: '全てのセッション',
+  sessionsDrawerSearch: 'タイトルまたは内容で絞り込み…',
+  sessionsDrawerEmpty: '一致するセッションがありません',
+  sessionsDrawerMsgUnit: '件',
+  sessionsDrawerToday: '今日',
+  sessionsDrawerYesterday: '昨日',
+  sessionsDrawerThisWeek: '今週',
+  sessionsDrawerOlder: 'それ以前',
 };

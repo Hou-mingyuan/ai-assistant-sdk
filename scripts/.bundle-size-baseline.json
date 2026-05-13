@@ -1,17 +1,17 @@
 {
-  "updatedAt": "2026-05-13T08:19:29.630Z",
+  "updatedAt": "2026-05-13T08:23:32.533Z",
   "files": {
     "ai-assistant.mjs": {
-      "size": 613232,
-      "gzip": 138588
+      "size": 616495,
+      "gzip": 139281
     },
     "ai-assistant.umd.cjs": {
-      "size": 417005,
-      "gzip": 127485
+      "size": 423420,
+      "gzip": 128884
     },
     "style.css": {
-      "size": 156807,
-      "gzip": 25461
+      "size": 160202,
+      "gzip": 25883
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -48,6 +48,10 @@
     "csharp-mFUWyZia.js": {
       "size": 8261,
       "gzip": 2118
+    },
+    "SessionsDrawer-Cmi09CS1.js": {
+      "size": 7523,
+      "gzip": 2067
     },
     "kotlin-Brwc6iD3.js": {
       "size": 6800,

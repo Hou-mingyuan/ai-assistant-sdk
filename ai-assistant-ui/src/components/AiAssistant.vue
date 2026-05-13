@@ -89,6 +89,7 @@
           @pointerdown-header="onPanelHeaderPointerDown"
           @open-personalize="openPersonalize"
           @toggle-diagnostics="toggleDiagnostics"
+          @open-sessions-drawer="sessionsDrawerOpen = true"
           @toggle-panel-expand="togglePanelExpand"
           @toggle-theme="toggleManualTheme"
           @run-plugin="runPlugin"
@@ -572,6 +573,18 @@
       @close="keyboardHelpOpen = false"
     />
 
+    <SessionsDrawer
+      v-if="sessionsDrawerOpen"
+      :open="sessionsDrawerOpen"
+      :is-dark="isDark"
+      :t="t"
+      :sessions="multiSessions.sessions.value"
+      :active-id="multiSessions.activeSessionId.value"
+      @close="sessionsDrawerOpen = false"
+      @pick="switchToSession"
+      @delete="deleteSessionTab"
+    />
+
     <ConnectionDiagnostics
       v-if="diagnosticsOpen"
       :uid="uid"
@@ -654,6 +667,7 @@ const ExportToast = defineAsyncComponent(() => import('./ExportToast.vue'));
 const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.vue'));
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
+const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
@@ -970,6 +984,7 @@ const selectedModelStorageKeyResolved = computed(
 );
 const diagnosticsOpen = ref(false);
 const keyboardHelpOpen = ref(false);
+const sessionsDrawerOpen = ref(false);
 const diagnosticsBusy = ref(false);
 const diagnosticsCopied = ref(false);
 const diagnosticsCopyMessage = ref('');
@@ -2562,6 +2577,11 @@ function onEscKeydown(e: KeyboardEvent) {
   if (keyboardHelpOpen.value) {
     e.preventDefault();
     keyboardHelpOpen.value = false;
+    return;
+  }
+  if (sessionsDrawerOpen.value) {
+    e.preventDefault();
+    sessionsDrawerOpen.value = false;
     return;
   }
   if (isOpen.value) {

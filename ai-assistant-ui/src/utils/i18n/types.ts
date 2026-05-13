@@ -247,4 +247,13 @@ export interface I18nMessages {
   /** F4: 代码块折叠按钮文案（折叠态显示 "Unfold"，展开态显示 "Fold"） */
   codeFold: string;
   codeUnfold: string;
+  /** G1: 历史会话抽屉 */
+  sessionsDrawerTitle: string;
+  sessionsDrawerSearch: string;
+  sessionsDrawerEmpty: string;
+  sessionsDrawerMsgUnit: string;
+  sessionsDrawerToday: string;
+  sessionsDrawerYesterday: string;
+  sessionsDrawerThisWeek: string;
+  sessionsDrawerOlder: string;
 }

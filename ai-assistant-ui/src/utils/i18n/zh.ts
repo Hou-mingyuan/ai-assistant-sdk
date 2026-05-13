@@ -207,4 +207,12 @@ export const zh: I18nMessages = {
   kbdFootTip: '按 Esc 关闭 · 再次按 Ctrl + / 可重新打开',
   codeFold: '折叠',
   codeUnfold: '展开',
+  sessionsDrawerTitle: '所有会话',
+  sessionsDrawerSearch: '按标题或内容过滤…',
+  sessionsDrawerEmpty: '没有匹配的会话',
+  sessionsDrawerMsgUnit: '条消息',
+  sessionsDrawerToday: '今天',
+  sessionsDrawerYesterday: '昨天',
+  sessionsDrawerThisWeek: '本周',
+  sessionsDrawerOlder: '更早',
 };

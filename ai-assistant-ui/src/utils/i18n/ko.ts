@@ -206,4 +206,12 @@ export const ko: I18nMessages = {
   kbdFootTip: 'Esc로 닫기 · Ctrl + /로 다시 열기',
   codeFold: '접기',
   codeUnfold: '펼치기',
+  sessionsDrawerTitle: '모든 세션',
+  sessionsDrawerSearch: '제목 또는 내용으로 필터링…',
+  sessionsDrawerEmpty: '일치하는 세션이 없습니다',
+  sessionsDrawerMsgUnit: '건',
+  sessionsDrawerToday: '오늘',
+  sessionsDrawerYesterday: '어제',
+  sessionsDrawerThisWeek: '이번 주',
+  sessionsDrawerOlder: '이전',
 };
