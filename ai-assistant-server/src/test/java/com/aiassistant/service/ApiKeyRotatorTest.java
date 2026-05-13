@@ -119,14 +119,16 @@ class ApiKeyRotatorTest {
         Set<String> seen = java.util.Collections.synchronizedSet(new HashSet<>());
         Thread[] threads = new Thread[10];
         for (int i = 0; i < threads.length; i++) {
-            threads[i] = new Thread(() -> {
-                for (int j = 0; j < 100; j++) {
-                    String key = rotator.nextKey();
-                    seen.add(key);
-                    if (j % 20 == 0) rotator.markFailed(key);
-                    if (j % 30 == 0) rotator.markSuccess(key);
-                }
-            });
+            threads[i] =
+                    new Thread(
+                            () -> {
+                                for (int j = 0; j < 100; j++) {
+                                    String key = rotator.nextKey();
+                                    seen.add(key);
+                                    if (j % 20 == 0) rotator.markFailed(key);
+                                    if (j % 30 == 0) rotator.markSuccess(key);
+                                }
+                            });
         }
         for (Thread t : threads) t.start();
         for (Thread t : threads) t.join();

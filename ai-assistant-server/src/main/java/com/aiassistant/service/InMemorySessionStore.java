@@ -40,8 +40,8 @@ public class InMemorySessionStore implements SessionStore {
     }
 
     /**
-     * Evicts stale users in O(n log n) instead of O(n^2): sorts by last access once,
-     * then removes from the oldest until under the limit.
+     * Evicts stale users in O(n log n) instead of O(n^2): sorts by last access once, then removes
+     * from the oldest until under the limit.
      */
     private void evictStaleUsers() {
         Instant cutoff = Instant.now().minus(USER_TTL);
@@ -60,10 +60,11 @@ public class InMemorySessionStore implements SessionStore {
                     .limit(excess)
                     .map(Map.Entry::getKey)
                     .toList()
-                    .forEach(key -> {
-                        userSessions.remove(key);
-                        userLastAccess.remove(key);
-                    });
+                    .forEach(
+                            key -> {
+                                userSessions.remove(key);
+                                userLastAccess.remove(key);
+                            });
         }
     }
 
@@ -119,11 +120,15 @@ public class InMemorySessionStore implements SessionStore {
                         (id, existing) -> {
                             if (input.getTitle() != null) existing.setTitle(input.getTitle());
                             if (input.getMessages() != null) {
-                                List<SessionData.MessageItem> msgs = copyMessages(input.getMessages());
-                                if (maxMessagesPerSession > 0 && msgs != null
+                                List<SessionData.MessageItem> msgs =
+                                        copyMessages(input.getMessages());
+                                if (maxMessagesPerSession > 0
+                                        && msgs != null
                                         && msgs.size() > maxMessagesPerSession) {
-                                    msgs = msgs.subList(
-                                            msgs.size() - maxMessagesPerSession, msgs.size());
+                                    msgs =
+                                            msgs.subList(
+                                                    msgs.size() - maxMessagesPerSession,
+                                                    msgs.size());
                                 }
                                 existing.setMessages(msgs);
                             }

@@ -1,9 +1,7 @@
 package com.aiassistant.service;
 
-import static com.aiassistant.util.HtmlTextExtractor.decodeBasicEntities;
 import static com.aiassistant.util.HtmlTextExtractor.firstNonBlank;
 import static com.aiassistant.util.HtmlTextExtractor.htmlToPlain;
-import static com.aiassistant.util.HtmlTextExtractor.indexOfIgnoreCase;
 import static com.aiassistant.util.HtmlTextExtractor.matchGroup;
 import static com.aiassistant.util.HtmlTextExtractor.stripTags;
 
@@ -271,37 +269,56 @@ public class UrlFetchService {
 
         int injectCap = Math.max(0, properties.getUrlFetchMaxCharsInjected());
 
-        List<CompletableFuture<String>> futures = urls.stream()
-                .map(url -> CompletableFuture.supplyAsync(() -> {
-                    try {
-                        URI uri = URI.create(url);
-                        String cached = getCachedText(uri);
-                        String extracted;
-                        if (cached != null) {
-                            extracted = cached;
-                        } else {
-                            byte[] raw = fetchBytes(uri);
-                            Charset cs = sniffCharset(raw, uri);
-                            String html = new String(raw, cs);
-                            extracted = htmlToPlain(html);
-                            if (extracted.length() < 200 && headlessFetchService != null) {
-                                HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
-                                if (!hr.text().isBlank()) {
-                                    extracted = hr.text();
-                                }
-                            }
-                            putCachedText(uri, extracted);
-                        }
-                        if (injectCap > 0 && extracted.length() > injectCap) {
-                            extracted = extracted.substring(0, injectCap) + "\n…[truncated]";
-                        }
-                        return "\n\n--- fetched: " + url + " ---\n" + extracted;
-                    } catch (Exception e) {
-                        log.debug("Failed to enrich URL {}: {}", url, e.getMessage());
-                        return "";
-                    }
-                }, URL_FETCH_POOL))
-                .toList();
+        List<CompletableFuture<String>> futures =
+                urls.stream()
+                        .map(
+                                url ->
+                                        CompletableFuture.supplyAsync(
+                                                () -> {
+                                                    try {
+                                                        URI uri = URI.create(url);
+                                                        String cached = getCachedText(uri);
+                                                        String extracted;
+                                                        if (cached != null) {
+                                                            extracted = cached;
+                                                        } else {
+                                                            byte[] raw = fetchBytes(uri);
+                                                            Charset cs = sniffCharset(raw, uri);
+                                                            String html = new String(raw, cs);
+                                                            extracted = htmlToPlain(html);
+                                                            if (extracted.length() < 200
+                                                                    && headlessFetchService
+                                                                            != null) {
+                                                                HeadlessFetcher.Result hr =
+                                                                        headlessFetchService.fetch(
+                                                                                url);
+                                                                if (!hr.text().isBlank()) {
+                                                                    extracted = hr.text();
+                                                                }
+                                                            }
+                                                            putCachedText(uri, extracted);
+                                                        }
+                                                        if (injectCap > 0
+                                                                && extracted.length() > injectCap) {
+                                                            extracted =
+                                                                    extracted.substring(
+                                                                                    0, injectCap)
+                                                                            + "\n…[truncated]";
+                                                        }
+                                                        return "\n\n--- fetched: "
+                                                                + url
+                                                                + " ---\n"
+                                                                + extracted;
+                                                    } catch (Exception e) {
+                                                        log.debug(
+                                                                "Failed to enrich URL {}: {}",
+                                                                url,
+                                                                e.getMessage());
+                                                        return "";
+                                                    }
+                                                },
+                                                URL_FETCH_POOL))
+                        .toList();
 
         StringBuilder sb = new StringBuilder(text);
         for (CompletableFuture<String> f : futures) {

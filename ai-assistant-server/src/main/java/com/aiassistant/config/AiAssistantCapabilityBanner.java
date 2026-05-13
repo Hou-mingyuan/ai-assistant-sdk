@@ -6,8 +6,8 @@ import org.slf4j.LoggerFactory;
 /**
  * 启动时在日志中打印一份当前已启用 / 已关闭的能力清单，便于运维快速核对配置。
  *
- * <p>这是一个被动展示组件：仅读取 {@link AiAssistantProperties}，不修改任何状态，也不阻塞启动。
- * 与 {@link AiAssistantSecurityPostureAdvisor} 配合使用，前者只汇总，后者只对高风险组合发出警告。
+ * <p>这是一个被动展示组件：仅读取 {@link AiAssistantProperties}，不修改任何状态，也不阻塞启动。 与 {@link
+ * AiAssistantSecurityPostureAdvisor} 配合使用，前者只汇总，后者只对高风险组合发出警告。
  *
  * <p>日志格式有意保持 ASCII 与对齐，方便 grep 和 K8s 日志收集系统稳定解析。
  */
@@ -33,30 +33,35 @@ public class AiAssistantCapabilityBanner {
         appendDivider(sb);
 
         appendSection(sb, "CORE");
-        appendKv(sb, "Provider",         describeProvider());
-        appendKv(sb, "Context path",     properties.getContextPath());
-        appendKv(sb, "Access token",     describeAccessToken());
-        appendKv(sb, "Allowed origins",  describeAllowedOrigins());
-        appendKv(sb, "Rate limit",       describeRateLimit());
+        appendKv(sb, "Provider", describeProvider());
+        appendKv(sb, "Context path", properties.getContextPath());
+        appendKv(sb, "Access token", describeAccessToken());
+        appendKv(sb, "Allowed origins", describeAllowedOrigins());
+        appendKv(sb, "Rate limit", describeRateLimit());
 
         appendSection(sb, "TOGGLES (default: false unless marked)");
-        appendKv(sb, "Stats",                          onOff(properties.isEnableStats(),               true));
-        appendKv(sb, "Admin API",                      onOff(properties.isAdminEnabled(),              false));
-        appendKv(sb, "Connector mgmt API",             onOff(properties.isConnectorManagementEnabled(), false));
-        appendKv(sb, "MCP Server",                     onOff(properties.isMcpServerEnabled(),          false));
-        appendKv(sb, "WebSocket channel",              onOff(properties.isWebsocketEnabled(),          false));
-        appendKv(sb, "URL fetch",                      onOff(properties.getUrlFetch().isEnabled(),     true));
-        appendKv(sb, "  SSRF protection",              onOff(properties.getUrlFetch().isSsrfProtection(), true));
-        appendKv(sb, "Headless URL fetch",             onOff(properties.isHeadlessFetchEnabled(),      false));
-        appendKv(sb, "RAG",                            onOff(properties.isRagEnabled(),                false));
-        appendKv(sb, "PII masking",                    onOff(properties.isPiiMaskingEnabled(),         true));
-        appendKv(sb, "Allow client system prompt",     onOff(properties.isAllowClientSystemPrompt(),   true));
-        appendKv(sb, "Query string token auth",        onOff(properties.isAllowQueryTokenAuth(),       false));
+        appendKv(sb, "Stats", onOff(properties.isEnableStats(), true));
+        appendKv(sb, "Admin API", onOff(properties.isAdminEnabled(), false));
+        appendKv(sb, "Connector mgmt API", onOff(properties.isConnectorManagementEnabled(), false));
+        appendKv(sb, "MCP Server", onOff(properties.isMcpServerEnabled(), false));
+        appendKv(sb, "WebSocket channel", onOff(properties.isWebsocketEnabled(), false));
+        appendKv(sb, "URL fetch", onOff(properties.getUrlFetch().isEnabled(), true));
+        appendKv(sb, "  SSRF protection", onOff(properties.getUrlFetch().isSsrfProtection(), true));
+        appendKv(sb, "Headless URL fetch", onOff(properties.isHeadlessFetchEnabled(), false));
+        appendKv(sb, "RAG", onOff(properties.isRagEnabled(), false));
+        appendKv(sb, "PII masking", onOff(properties.isPiiMaskingEnabled(), true));
+        appendKv(
+                sb,
+                "Allow client system prompt",
+                onOff(properties.isAllowClientSystemPrompt(), true));
+        appendKv(sb, "Query string token auth", onOff(properties.isAllowQueryTokenAuth(), false));
 
         appendSection(sb, "HINTS");
         sb.append("\n  Reference docs/guide/configuration.md for the full list of toggles.");
-        sb.append("\n  For multi-replica deploys configure Redis-backed rate limit and session store.");
-        sb.append("\n  Security warnings (if any) are logged separately by AiAssistantSecurityPostureAdvisor.");
+        sb.append(
+                "\n  For multi-replica deploys configure Redis-backed rate limit and session store.");
+        sb.append(
+                "\n  Security warnings (if any) are logged separately by AiAssistantSecurityPostureAdvisor.");
         appendDivider(sb);
 
         log.info("\n{}", sb);
@@ -83,9 +88,7 @@ public class AiAssistantCapabilityBanner {
         return sb.toString();
     }
 
-    /**
-     * 渲染开关状态：与默认值不一致时附加 (custom) 标记，便于一眼识别被显式改动的开关。
-     */
+    /** 渲染开关状态：与默认值不一致时附加 (custom) 标记，便于一眼识别被显式改动的开关。 */
     private static String onOff(boolean current, boolean defaultValue) {
         String state = current ? "ON" : "OFF";
         return current == defaultValue ? state : state + " (custom)";

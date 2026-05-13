@@ -3,8 +3,8 @@ package com.aiassistant.config;
 /**
  * Default probe: returns {@code true} when the JVM is running inside a Kubernetes pod (presence of
  * {@code KUBERNETES_SERVICE_HOST}) or when {@code HOSTNAME} matches the typical multi-replica
- * patterns used by Deployments / StatefulSets ({@code <name>-<replicasethash>-<suffix>} or
- * {@code <name>-N}).
+ * patterns used by Deployments / StatefulSets ({@code <name>-<replicasethash>-<suffix>} or {@code
+ * <name>-N}).
  */
 class SystemEnvMultiReplicaEnvironmentProbe implements MultiReplicaEnvironmentProbe {
 

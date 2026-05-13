@@ -171,7 +171,9 @@ public class LlmRequestBuilder {
                     "chatMaxTotalChars exhausted by system/history (used={}, max={}); user text hard-clamped",
                     used,
                     max);
-            return userMessage.length() <= 64 ? userMessage : userMessage.substring(0, 61) + "\u2026";
+            return userMessage.length() <= 64
+                    ? userMessage
+                    : userMessage.substring(0, 61) + "\u2026";
         }
         log.debug(
                 "User message truncated for chatMaxTotalChars: {} -> {} chars",
@@ -183,15 +185,13 @@ public class LlmRequestBuilder {
     /**
      * Estimates token count using language-aware heuristic.
      *
-     * <p>CJK characters average ~1.5 tokens/char (BPE splits ideographs more),
-     * while ASCII/Latin text averages ~0.25 tokens/char (words split into ~4 chars).
-     * This mixed estimator is ~3x more accurate than the naive chars/4 approach
-     * for multilingual content.
+     * <p>CJK characters average ~1.5 tokens/char (BPE splits ideographs more), while ASCII/Latin
+     * text averages ~0.25 tokens/char (words split into ~4 chars). This mixed estimator is ~3x more
+     * accurate than the naive chars/4 approach for multilingual content.
      */
     public static int estimateTokens(
             String systemPrompt, String userMessage, List<ChatRequest.MessageItem> history) {
-        double tokens = estimateTokensForText(systemPrompt)
-                + estimateTokensForText(userMessage);
+        double tokens = estimateTokensForText(systemPrompt) + estimateTokensForText(userMessage);
         if (history != null) {
             for (var item : history) {
                 if (item != null) tokens += estimateTokensForText(item.getContent());

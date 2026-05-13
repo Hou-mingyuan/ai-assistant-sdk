@@ -24,15 +24,16 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *   <li>RAG documents indexed on one replica are not visible to others.
  *   <li>Conversation history written by replica A is missing when the next request lands on B.
- *   <li>Token usage and quotas are counted per replica, so a hard quota of {@code N} tokens
- *       per day effectively becomes {@code N * replicas}.
+ *   <li>Token usage and quotas are counted per replica, so a hard quota of {@code N} tokens per day
+ *       effectively becomes {@code N * replicas}.
  *   <li>Session listings and per-user limits drift between replicas.
  * </ul>
  *
  * <p>The advisor only emits a single grouped warning per affected component and does not change
- * defaults. Hosts can silence individual warnings by registering replacement beans
- * ({@code @Bean SessionStore redisSessionStore()}, {@code @Bean ConversationMemoryProvider redisConversationMemoryProvider()},
- * etc.) or by ignoring the warning if the multi-replica detection was a false positive.
+ * defaults. Hosts can silence individual warnings by registering replacement beans ({@code @Bean
+ * SessionStore redisSessionStore()}, {@code @Bean ConversationMemoryProvider
+ * redisConversationMemoryProvider()}, etc.) or by ignoring the warning if the multi-replica
+ * detection was a false positive.
  */
 public class MultiReplicaStorageAdvisor {
 
@@ -54,8 +55,8 @@ public class MultiReplicaStorageAdvisor {
     }
 
     /**
-     * Test-friendly constructor: lets unit tests inject a fake probe so the multi-replica
-     * detection can be exercised without manipulating real environment variables.
+     * Test-friendly constructor: lets unit tests inject a fake probe so the multi-replica detection
+     * can be exercised without manipulating real environment variables.
      */
     MultiReplicaStorageAdvisor(MultiReplicaEnvironmentProbe environmentProbe) {
         this.environmentProbe = environmentProbe;
@@ -101,26 +102,30 @@ public class MultiReplicaStorageAdvisor {
                 warningCodes(
                         vectorStore, sessionStore, tokenUsageTracker, conversationMemoryProvider)) {
             switch (warning) {
-                case MULTI_REPLICA_INMEMORY_VECTOR_STORE -> log.warn(
-                        "RAG is using InMemoryVectorStore but the environment looks like a multi-replica "
-                                + "deployment. Indexed documents will not be visible across replicas. "
-                                + "Replace with a shared VectorStore bean (Milvus / Pinecone / Qdrant / pgvector) "
-                                + "before relying on RAG in production.");
-                case MULTI_REPLICA_INMEMORY_SESSION_STORE -> log.warn(
-                        "SessionStore is using InMemorySessionStore but the environment looks like a "
-                                + "multi-replica deployment. Sessions are visible only to the replica that wrote "
-                                + "them. Configure spring-data-redis and let the auto-configured RedisSessionStore "
-                                + "take over, or provide your own SessionStore bean.");
-                case MULTI_REPLICA_INMEMORY_TOKEN_USAGE -> log.warn(
-                        "TokenUsageTracker is in-process but the environment looks like a multi-replica "
-                                + "deployment. Daily quotas are enforced per replica, so the effective limit is "
-                                + "quota * replicas. Place quota enforcement at an upstream gateway or replace "
-                                + "TokenUsageTracker with a shared backend.");
-                case MULTI_REPLICA_INMEMORY_CONVERSATION_MEMORY -> log.warn(
-                        "ConversationMemoryProvider is using InMemoryConversationMemoryProvider but the "
-                                + "environment looks like a multi-replica deployment. Long-term facts and rolling "
-                                + "history are not shared. Configure RedisConversationMemoryProvider (or another "
-                                + "implementation) so that memory survives replica boundaries.");
+                case MULTI_REPLICA_INMEMORY_VECTOR_STORE ->
+                        log.warn(
+                                "RAG is using InMemoryVectorStore but the environment looks like a multi-replica "
+                                        + "deployment. Indexed documents will not be visible across replicas. "
+                                        + "Replace with a shared VectorStore bean (Milvus / Pinecone / Qdrant / pgvector) "
+                                        + "before relying on RAG in production.");
+                case MULTI_REPLICA_INMEMORY_SESSION_STORE ->
+                        log.warn(
+                                "SessionStore is using InMemorySessionStore but the environment looks like a "
+                                        + "multi-replica deployment. Sessions are visible only to the replica that wrote "
+                                        + "them. Configure spring-data-redis and let the auto-configured RedisSessionStore "
+                                        + "take over, or provide your own SessionStore bean.");
+                case MULTI_REPLICA_INMEMORY_TOKEN_USAGE ->
+                        log.warn(
+                                "TokenUsageTracker is in-process but the environment looks like a multi-replica "
+                                        + "deployment. Daily quotas are enforced per replica, so the effective limit is "
+                                        + "quota * replicas. Place quota enforcement at an upstream gateway or replace "
+                                        + "TokenUsageTracker with a shared backend.");
+                case MULTI_REPLICA_INMEMORY_CONVERSATION_MEMORY ->
+                        log.warn(
+                                "ConversationMemoryProvider is using InMemoryConversationMemoryProvider but the "
+                                        + "environment looks like a multi-replica deployment. Long-term facts and rolling "
+                                        + "history are not shared. Configure RedisConversationMemoryProvider (or another "
+                                        + "implementation) so that memory survives replica boundaries.");
                 default -> {
                     // unknown code, ignore -- defensive
                 }

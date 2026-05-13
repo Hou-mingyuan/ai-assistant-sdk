@@ -28,7 +28,8 @@ class RequestEnricherTest {
     void filtersAndEnrichesUrlWhenBothDependenciesPresent() throws Exception {
         ContentFilter filter = new ContentFilter();
         UrlFetchService url = mock(UrlFetchService.class);
-        when(url.enrichUserMessage(anyString())).thenAnswer(inv -> inv.getArgument(0) + " [enriched]");
+        when(url.enrichUserMessage(anyString()))
+                .thenAnswer(inv -> inv.getArgument(0) + " [enriched]");
 
         RequestEnricher enricher = new RequestEnricher(filter, url);
 

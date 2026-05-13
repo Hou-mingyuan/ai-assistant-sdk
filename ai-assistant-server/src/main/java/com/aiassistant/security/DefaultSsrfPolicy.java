@@ -28,8 +28,7 @@ import java.util.Locale;
  *       </ul>
  * </ul>
  *
- * <p>此实现是 stateless 且线程安全的；可作为默认 Spring Bean 注册，也可通过 {@link #INSTANCE} 获取单例
- * 在 static 上下文复用。
+ * <p>此实现是 stateless 且线程安全的；可作为默认 Spring Bean 注册，也可通过 {@link #INSTANCE} 获取单例 在 static 上下文复用。
  *
  * <p>不防御 DNS 重绑定（TOCTOU）。如需 hardening，可在 HttpClient 层做二次 IP 校验。
  */

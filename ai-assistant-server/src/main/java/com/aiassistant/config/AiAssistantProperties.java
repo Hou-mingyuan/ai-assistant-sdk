@@ -26,7 +26,9 @@ public class AiAssistantProperties {
     private String model;
     private String contextPath = "/ai-assistant";
 
-    /** Optional API version prefix appended after contextPath, e.g. "v1" -> /ai-assistant/v1/chat */
+    /**
+     * Optional API version prefix appended after contextPath, e.g. "v1" -> /ai-assistant/v1/chat
+     */
     private String apiVersion = "";
 
     @Min(value = 1, message = "ai-assistant.max-tokens must be >= 1")
@@ -86,9 +88,7 @@ public class AiAssistantProperties {
     // ── Chat Limits (ai-assistant.chat.*) ─────────────────────────────
     private ChatProperties chat = new ChatProperties();
 
-    /**
-     * 允许前端在 /chat、/stream 请求体中指定的模型 id；为空则忽略客户端 model，始终用 resolveModel()。
-     */
+    /** 允许前端在 /chat、/stream 请求体中指定的模型 id；为空则忽略客户端 model，始终用 resolveModel()。 */
     private List<String> allowedModels;
 
     // ── Custom setters with validation ──────────────────────────────
@@ -98,8 +98,8 @@ public class AiAssistantProperties {
     }
 
     /**
-     * Merges apiVersion into contextPath after all properties are bound,
-     * so the SpEL {@code ${ai-assistant.context-path}} in @RequestMapping includes the version.
+     * Merges apiVersion into contextPath after all properties are bound, so the SpEL {@code
+     * ${ai-assistant.context-path}} in @RequestMapping includes the version.
      */
     @PostConstruct
     void mergeApiVersionIntoContextPath() {
@@ -168,8 +168,8 @@ public class AiAssistantProperties {
      * RAG（检索增强生成）配置子域。
      *
      * <p>YAML 既可用嵌套形式 {@code ai-assistant.rag.enabled / .embedding-model /
-     * .embedding-dimensions}，也可继续用历史的扁平形式 {@code ai-assistant.rag-enabled /
-     * .embedding-model / .embedding-dimensions}（通过主类的 flat delegation setter 兼容）。
+     * .embedding-dimensions}，也可继续用历史的扁平形式 {@code ai-assistant.rag-enabled / .embedding-model /
+     * .embedding-dimensions}（通过主类的 flat delegation setter 兼容）。
      */
     @Getter
     @Setter
@@ -202,8 +202,8 @@ public class AiAssistantProperties {
      * 限流配置子域。
      *
      * <p>YAML 嵌套形式 {@code ai-assistant.rate-limit-config.requests-per-minute / .per-action}，
-     * 同时保留历史扁平形式 {@code ai-assistant.rate-limit / .rate-limit-per-action}（通过主类的
-     * delegation getter/setter 兼容）。
+     * 同时保留历史扁平形式 {@code ai-assistant.rate-limit / .rate-limit-per-action}（通过主类的 delegation
+     * getter/setter 兼容）。
      */
     @Getter
     @Setter
@@ -216,8 +216,7 @@ public class AiAssistantProperties {
      * 安全相关配置子域。
      *
      * <p>YAML 嵌套形式 {@code ai-assistant.security.access-token / .allowed-origins /
-     * .pii-masking-enabled / .allow-query-token-auth}，同时保留历史扁平形式（通过主类的 delegation
-     * 兼容）。
+     * .pii-masking-enabled / .allow-query-token-auth}，同时保留历史扁平形式（通过主类的 delegation 兼容）。
      */
     @Getter
     @Setter
@@ -232,8 +231,7 @@ public class AiAssistantProperties {
      * 管理与暴露面配置子域。
      *
      * <p>YAML 嵌套形式 {@code ai-assistant.admin.enabled / .connector-management-enabled /
-     * .mcp-server-enabled}，同时保留历史扁平形式 {@code ai-assistant.admin-enabled} 等（通过主类
-     * 的 delegation 兼容）。
+     * .mcp-server-enabled}，同时保留历史扁平形式 {@code ai-assistant.admin-enabled} 等（通过主类 的 delegation 兼容）。
      */
     @Getter
     @Setter
@@ -241,6 +239,12 @@ public class AiAssistantProperties {
         private boolean enabled = false;
         private boolean connectorManagementEnabled = false;
         private boolean mcpServerEnabled = false;
+        /** Separate bearer token for admin endpoints. Falls back to the main access-token when blank. */
+        private String adminToken;
+
+        public String resolveAdminToken(String fallbackAccessToken) {
+            return (adminToken != null && !adminToken.isBlank()) ? adminToken : fallbackAccessToken;
+        }
     }
 
     // ── Derived / business methods ──────────────────────────────────
@@ -574,7 +578,9 @@ public class AiAssistantProperties {
             case "ollama" -> "http://localhost:11434/v1";
             default ->
                     throw new IllegalArgumentException(
-                            "Unknown provider: " + provider + ". Please set ai-assistant.base-url explicitly.");
+                            "Unknown provider: "
+                                    + provider
+                                    + ". Please set ai-assistant.base-url explicitly.");
         };
     }
 
@@ -600,7 +606,9 @@ public class AiAssistantProperties {
             case "ollama" -> "llama3";
             default ->
                     throw new IllegalArgumentException(
-                            "Unknown provider: " + provider + ". Please set ai-assistant.model explicitly.");
+                            "Unknown provider: "
+                                    + provider
+                                    + ". Please set ai-assistant.model explicitly.");
         };
     }
 

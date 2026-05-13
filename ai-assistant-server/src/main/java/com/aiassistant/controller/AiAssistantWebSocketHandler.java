@@ -107,6 +107,10 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
         String systemPrompt =
                 json.has("systemPrompt") ? json.get("systemPrompt").asText(null) : null;
         String model = json.has("model") ? json.get("model").asText(null) : null;
+        String pageContext =
+                json.has("pageContext") ? json.get("pageContext").asText(null) : null;
+        String sessionId =
+                json.has("sessionId") ? json.get("sessionId").asText(null) : null;
 
         if (text.isBlank()) {
             session.sendMessage(new TextMessage("{\"error\":\"text is required\"}"));
@@ -158,7 +162,9 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                         }
                         case "summarize" -> llmService.summarizeStream(text);
                         default ->
-                                llmService.chatStream(text, hist, systemPrompt, model, imageData);
+                                llmService.chatStream(
+                                        text, hist, systemPrompt, model, imageData,
+                                        sessionId, pageContext);
                     };
 
             Disposable disposable =

@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
  * <p>Round-3 upgraded resilience4j to 2.2.0 which tightened {@code RetryConfig.Builder} to reject
  * configurations that set both {@code waitDuration} and {@code intervalFunction}. The pre-fix
  * constructor combined them, so the class would throw an {@link IllegalStateException} the very
- * first time anyone instantiated it (including via auto-configuration). These tests lock in the
- * fix and exercise the retry-on-retryable / no-retry-on-fatal / circuit-breaker-trips axes that
- * matter to the LLM call path.
+ * first time anyone instantiated it (including via auto-configuration). These tests lock in the fix
+ * and exercise the retry-on-retryable / no-retry-on-fatal / circuit-breaker-trips axes that matter
+ * to the LLM call path.
  */
 class ResilientLlmClientTest {
 

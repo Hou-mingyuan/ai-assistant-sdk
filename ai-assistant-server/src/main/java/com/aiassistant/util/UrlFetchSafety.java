@@ -7,8 +7,8 @@ import java.net.URI;
 /**
  * 服务端出站 HTTP 请求的 SSRF 基线校验门面。
  *
- * <p>历史上本类直接持有 SSRF 校验逻辑。从本次重构起逻辑下沉到
- * {@link com.aiassistant.security.DefaultSsrfPolicy}，本类作为 thin facade 委派调用，保持向后兼容。
+ * <p>历史上本类直接持有 SSRF 校验逻辑。从本次重构起逻辑下沉到 {@link com.aiassistant.security.DefaultSsrfPolicy}，本类作为 thin
+ * facade 委派调用，保持向后兼容。
  *
  * <p>新代码请优先注入 {@link com.aiassistant.security.SsrfPolicy} 接口，便于宿主以 Spring {@code @Bean}
  * 形式替换为更严格策略（如域名白名单、自定义 DNS、SOCKS 代理）。

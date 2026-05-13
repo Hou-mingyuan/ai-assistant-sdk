@@ -7,8 +7,8 @@ import com.aiassistant.stats.TokenUsageTracker;
 import reactor.core.publisher.Flux;
 
 /**
- * Post-LLM processing: PII scrubbing on assistant output, response payload parsing, and
- * usage-based token accounting.
+ * Post-LLM processing: PII scrubbing on assistant output, response payload parsing, and usage-based
+ * token accounting.
  *
  * <p>Splits cleanly into three responsibilities:
  *

@@ -88,7 +88,10 @@ public class BatchController {
             return Map.of("index", index, "error", "text is required");
         }
         if (text.length() > MAX_ITEM_TEXT_CHARS) {
-            return Map.of("index", index, "error",
+            return Map.of(
+                    "index",
+                    index,
+                    "error",
                     "text exceeds maximum length of " + MAX_ITEM_TEXT_CHARS + " characters");
         }
         try {

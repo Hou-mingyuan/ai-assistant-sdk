@@ -130,7 +130,7 @@ public class AiAssistantAutoConfiguration {
             ObjectProvider<com.aiassistant.service.SessionStore> sessionStoreProvider,
             ObjectProvider<com.aiassistant.stats.TokenUsageTracker> tokenUsageTrackerProvider,
             ObjectProvider<com.aiassistant.spi.ConversationMemoryProvider>
-                            conversationMemoryProviderProvider) {
+                    conversationMemoryProviderProvider) {
         return event ->
                 advisor.logWarnings(
                         vectorStoreProvider.getIfAvailable(),
@@ -385,9 +385,9 @@ public class AiAssistantAutoConfiguration {
 
     @Configuration
     @ConditionalOnClass(name = "org.springframework.data.redis.core.StringRedisTemplate")
+    @ConditionalOnBean(org.springframework.data.redis.core.StringRedisTemplate.class)
     static class RedisSessionStoreAutoConfiguration {
         @Bean
-        @ConditionalOnMissingBean(SessionStore.class)
         public SessionStore redisSessionStore(
                 org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
             return new com.aiassistant.service.RedisSessionStore(redisTemplate);
@@ -395,7 +395,7 @@ public class AiAssistantAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(SessionStore.class)
     public SessionStore sessionStore(AiAssistantProperties properties) {
         var cfg = properties.getSessionStore();
         return new com.aiassistant.service.InMemorySessionStore(
@@ -612,6 +612,23 @@ public class AiAssistantAutoConfiguration {
         registration.setFilter(new AiAssistantAuthFilter(properties));
         registration.addUrlPatterns(properties.getContextPath() + "/*");
         registration.setOrder(1);
+        return registration;
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "admin-enabled", havingValue = "true")
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    public FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> aiAssistantAdminAuthFilter(
+            AiAssistantProperties properties) {
+        String adminToken =
+                properties.getAdmin().resolveAdminToken(properties.getAccessToken());
+        FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> registration =
+                new FilterRegistrationBean<>();
+        registration.setFilter(
+                new com.aiassistant.config.AdminAuthFilter(
+                        properties.getContextPath(), adminToken));
+        registration.addUrlPatterns(properties.getContextPath() + "/admin/*");
+        registration.setOrder(2);
         return registration;
     }
 

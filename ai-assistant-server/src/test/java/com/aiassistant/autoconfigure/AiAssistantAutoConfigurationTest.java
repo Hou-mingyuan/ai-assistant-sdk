@@ -45,25 +45,23 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
  *   <li>Default beans (no host overrides) actually materialise the controllers, services and
  *       filters a host application expects on the bus.
  *   <li>{@code @ConditionalOnMissingBean} actually defers to user beans for the substitution
- *       extension points the docs promise (most importantly {@link ChatCompletionClient} and
- *       {@link SsrfPolicy}).
+ *       extension points the docs promise (most importantly {@link ChatCompletionClient} and {@link
+ *       SsrfPolicy}).
  * </ol>
  */
 class AiAssistantAutoConfigurationTest {
 
     /**
-     * Filter Redis and Playwright off the classpath so the nested
-     * {@link AiAssistantAutoConfiguration.RedisSessionStoreAutoConfiguration} and
-     * {@link AiAssistantAutoConfiguration.HeadlessFetchAutoConfiguration} blocks don't activate
-     * — the host POM declares those as optional dependencies which means our test JVM
-     * does have them on the classpath, but a host that does not wire a {@code StringRedisTemplate}
-     * or enable headless fetching should still get a clean, in-memory wiring (which is what
-     * this smoke test asserts).
+     * Filter Redis and Playwright off the classpath so the nested {@link
+     * AiAssistantAutoConfiguration.RedisSessionStoreAutoConfiguration} and {@link
+     * AiAssistantAutoConfiguration.HeadlessFetchAutoConfiguration} blocks don't activate — the host
+     * POM declares those as optional dependencies which means our test JVM does have them on the
+     * classpath, but a host that does not wire a {@code StringRedisTemplate} or enable headless
+     * fetching should still get a clean, in-memory wiring (which is what this smoke test asserts).
      */
     private final WebApplicationContextRunner contextRunner =
             new WebApplicationContextRunner()
-                    .withConfiguration(
-                            AutoConfigurations.of(AiAssistantAutoConfiguration.class))
+                    .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
                     .withClassLoader(
                             new FilteredClassLoader(
                                     "org.springframework.data.redis.core.StringRedisTemplate",
@@ -158,7 +156,10 @@ class AiAssistantAutoConfigurationTest {
 
     @Test
     void hostMayReplaceSsrfPolicyWithCustomBean() {
-        SsrfPolicy custom = uri -> { /* permissive smoke-test policy */ };
+        SsrfPolicy custom =
+                uri -> {
+                    /* permissive smoke-test policy */
+                };
         contextRunner
                 .withPropertyValues("ai-assistant.api-key=sk-test-ssrf-override")
                 .withBean(SsrfPolicy.class, () -> custom)
@@ -173,8 +174,7 @@ class AiAssistantAutoConfigurationTest {
     void contextPathPropertyFlowsIntoControllers() {
         contextRunner
                 .withPropertyValues(
-                        "ai-assistant.api-key=sk-test-ctx",
-                        "ai-assistant.context-path=/custom-ai")
+                        "ai-assistant.api-key=sk-test-ctx", "ai-assistant.context-path=/custom-ai")
                 .run(
                         context -> {
                             AiAssistantProperties properties =

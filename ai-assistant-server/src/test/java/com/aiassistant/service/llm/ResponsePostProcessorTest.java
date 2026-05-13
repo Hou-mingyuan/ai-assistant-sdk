@@ -34,17 +34,17 @@ class ResponsePostProcessorTest {
     @Test
     void parseContentFromRawForwardsToParser() {
         ResponsePostProcessor pp = new ResponsePostProcessor(null, null, PARSER);
-        String json =
-                "{\"choices\":[{\"message\":{\"content\":\"hello world\"}}]}";
+        String json = "{\"choices\":[{\"message\":{\"content\":\"hello world\"}}]}";
         assertEquals("hello world", pp.parseContentFromRaw(json));
     }
 
     @Test
     void extractAndRecordReturnsZeroesAndDoesNotRecordWhenTrackerNull() {
         ResponsePostProcessor pp = new ResponsePostProcessor(null, null, PARSER);
-        int[] counts = pp.extractAndRecord(
-                "{\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":34}}",
-                "test-model");
+        int[] counts =
+                pp.extractAndRecord(
+                        "{\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":34}}",
+                        "test-model");
         assertEquals(12, counts[0]);
         assertEquals(34, counts[1]);
     }
@@ -53,9 +53,9 @@ class ResponsePostProcessorTest {
     void extractAndRecordRecordsUsageWhenTrackerPresent() {
         TokenUsageTracker tracker = new TokenUsageTracker();
         ResponsePostProcessor pp = new ResponsePostProcessor(null, tracker, PARSER);
-        int[] counts = pp.extractAndRecord(
-                "{\"usage\":{\"prompt_tokens\":7,\"completion_tokens\":11}}",
-                "gpt-x");
+        int[] counts =
+                pp.extractAndRecord(
+                        "{\"usage\":{\"prompt_tokens\":7,\"completion_tokens\":11}}", "gpt-x");
         assertEquals(7, counts[0]);
         assertEquals(11, counts[1]);
 

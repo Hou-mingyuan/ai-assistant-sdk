@@ -54,14 +54,15 @@ public class AuditLogger {
         if (details != null) {
             details.forEach((k, v) -> meta.put(k, v != null ? v.toString() : ""));
         }
-        log(AuditEvent.builder()
-                .tenantId(tenantId != null ? tenantId : "default")
-                .userId(userId)
-                .action(action)
-                .latencyMs(durationMs)
-                .outcome(success ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR)
-                .metadata(meta)
-                .build());
+        log(
+                AuditEvent.builder()
+                        .tenantId(tenantId != null ? tenantId : "default")
+                        .userId(userId)
+                        .action(action)
+                        .latencyMs(durationMs)
+                        .outcome(success ? AuditEvent.Outcome.SUCCESS : AuditEvent.Outcome.ERROR)
+                        .metadata(meta)
+                        .build());
     }
 
     public List<AuditEvent> getRecentEvents(int limit) {

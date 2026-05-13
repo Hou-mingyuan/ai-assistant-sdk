@@ -14,8 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Thread-safe LRU cache for LLM responses backed by Caffeine. Stores compressed (GZip) payloads
- * and uses SHA-256 hashing for cache keys to avoid storing raw prompts.
+ * Thread-safe LRU cache for LLM responses backed by Caffeine. Stores compressed (GZip) payloads and
+ * uses SHA-256 hashing for cache keys to avoid storing raw prompts.
  */
 public class LlmResponseCache {
 
@@ -53,8 +53,8 @@ public class LlmResponseCache {
     /**
      * Force any pending size-based eviction work to run. Caffeine evicts entries asynchronously
      * (W-TinyLFU), so a sequence of puts can briefly leave the cache slightly over the configured
-     * maximum size. Tests that need deterministic eviction call this method; production code
-     * does not need to.
+     * maximum size. Tests that need deterministic eviction call this method; production code does
+     * not need to.
      */
     void cleanUp() {
         cache.cleanUp();
@@ -92,7 +92,8 @@ public class LlmResponseCache {
                 GZIPInputStream gzis = new GZIPInputStream(bais)) {
             return new String(gzis.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.warn("Cache entry decompression failed, treating as cache miss: {}", e.getMessage());
+            log.warn(
+                    "Cache entry decompression failed, treating as cache miss: {}", e.getMessage());
             return null;
         }
     }

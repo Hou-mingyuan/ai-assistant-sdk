@@ -4,25 +4,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 纯静态 HTML 文本提取工具集，从 {@code UrlFetchService} 中抽离以减小该服务的认知负担，
- * 也便于单测覆盖。
+ * 纯静态 HTML 文本提取工具集，从 {@code UrlFetchService} 中抽离以减小该服务的认知负担， 也便于单测覆盖。
  *
  * <p>所有方法均无状态、线程安全；行为与抽离前完全一致。
  *
  * <ul>
- *   <li>{@link #htmlToPlain(String)} 把整段 HTML 压平为单行纯文本，丢弃 script/style 内联块、
- *       折叠空白；用于把抓取到的页面塞进 LLM 上下文。
+ *   <li>{@link #htmlToPlain(String)} 把整段 HTML 压平为单行纯文本，丢弃 script/style 内联块、 折叠空白；用于把抓取到的页面塞进 LLM
+ *       上下文。
  *   <li>{@link #stripTags(String)} 简易去标签，专门用于已经匹配到的小片段（如 &lt;title&gt;）。
- *   <li>{@link #matchGroup(Pattern, String)} 在 HTML 上跑一次正则并返回第 1 个分组，
- *       自动调用 {@link #decodeBasicEntities(String)}。
+ *   <li>{@link #matchGroup(Pattern, String)} 在 HTML 上跑一次正则并返回第 1 个分组， 自动调用 {@link
+ *       #decodeBasicEntities(String)}。
  *   <li>{@link #firstNonBlank(String...)} 从一组候选中返回第一个非空、非全空白的字符串。
  *   <li>{@link #indexOfIgnoreCase(String, String, int)} 大小写不敏感的子串查找。
  * </ul>
  */
 public final class HtmlTextExtractor {
 
-    private HtmlTextExtractor() {
-    }
+    private HtmlTextExtractor() {}
 
     /** 大小写不敏感地从 {@code from} 起寻找 {@code target}，返回首次出现位置；找不到返回 -1。 */
     public static int indexOfIgnoreCase(String src, String target, int from) {

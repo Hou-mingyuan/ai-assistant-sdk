@@ -9,8 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default {@link AuditEventStore}: structured SLF4J logging + bounded in-memory ring buffer
- * for recent query support via admin API.
+ * Default {@link AuditEventStore}: structured SLF4J logging + bounded in-memory ring buffer for
+ * recent query support via admin API.
  */
 public class LoggingAuditEventStore implements AuditEventStore {
 
@@ -21,10 +21,16 @@ public class LoggingAuditEventStore implements AuditEventStore {
 
     @Override
     public void record(AuditEvent event) {
-        log.info("audit.event id={} tenant={} action={} model={} tokens={}/{} latency={}ms outcome={}",
-                event.id(), event.tenantId(), event.action(), event.modelId(),
-                event.promptTokens(), event.completionTokens(),
-                event.latencyMs(), event.outcome());
+        log.info(
+                "audit.event id={} tenant={} action={} model={} tokens={}/{} latency={}ms outcome={}",
+                event.id(),
+                event.tenantId(),
+                event.action(),
+                event.modelId(),
+                event.promptTokens(),
+                event.completionTokens(),
+                event.latencyMs(),
+                event.outcome());
         ring.addLast(event);
         if (ringSize.incrementAndGet() > MAX_RING_SIZE) {
             if (ring.pollFirst() != null) {

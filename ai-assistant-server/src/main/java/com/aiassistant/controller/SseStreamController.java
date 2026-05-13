@@ -81,7 +81,9 @@ public class SseStreamController {
                                     request.getHistory(),
                                     request.getSystemPrompt(),
                                     request.getModel(),
-                                    request.getImageData());
+                                    request.getImageData(),
+                                    request.getSessionId(),
+                                    request.getPageContext());
                 };
 
         Flux<ServerSentEvent<String>> sseFlux =

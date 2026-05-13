@@ -44,20 +44,27 @@ public class ContentFilter {
     private static final List<Pattern> INJECTION_PATTERNS =
             List.of(
                     // Role/instruction override
-                    Pattern.compile("(?i)ignore\\s+(all\\s+)?previous\\s+(instructions|prompts|rules|context)"),
-                    Pattern.compile("(?i)disregard\\s+(all\\s+)?(previous|above|prior|earlier)\\s+(instructions|prompts|rules)"),
-                    Pattern.compile("(?i)forget\\s+(all\\s+)?(previous|above|prior|earlier|your)\\s+(instructions|prompts|rules|training)"),
-                    Pattern.compile("(?i)override\\s+(all\\s+)?(previous|system|your)\\s+(instructions|prompts|rules)"),
+                    Pattern.compile(
+                            "(?i)ignore\\s+(all\\s+)?previous\\s+(instructions|prompts|rules|context)"),
+                    Pattern.compile(
+                            "(?i)disregard\\s+(all\\s+)?(previous|above|prior|earlier)\\s+(instructions|prompts|rules)"),
+                    Pattern.compile(
+                            "(?i)forget\\s+(all\\s+)?(previous|above|prior|earlier|your)\\s+(instructions|prompts|rules|training)"),
+                    Pattern.compile(
+                            "(?i)override\\s+(all\\s+)?(previous|system|your)\\s+(instructions|prompts|rules)"),
                     // Identity manipulation
                     Pattern.compile("(?i)you\\s+are\\s+now\\s+(a|an)\\s+"),
                     Pattern.compile("(?i)act\\s+as\\s+(a|an|if|though)\\s+"),
                     Pattern.compile("(?i)pretend\\s+(you\\s+are|to\\s+be|you're)\\s+"),
-                    Pattern.compile("(?i)from\\s+now\\s+on,?\\s+(you|your)\\s+(are|will|must|should)"),
+                    Pattern.compile(
+                            "(?i)from\\s+now\\s+on,?\\s+(you|your)\\s+(are|will|must|should)"),
                     Pattern.compile("(?i)switch\\s+to\\s+.{0,30}\\bmode\\b"),
                     // System prompt extraction
                     Pattern.compile("(?i)system\\s*prompt\\s*:"),
-                    Pattern.compile("(?i)(show|reveal|display|repeat|print|output|tell\\s+me)\\s+(your\\s+)?(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
-                    Pattern.compile("(?i)what\\s+(are|is|were)\\s+your\\s+(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
+                    Pattern.compile(
+                            "(?i)(show|reveal|display|repeat|print|output|tell\\s+me)\\s+(your\\s+)?(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
+                    Pattern.compile(
+                            "(?i)what\\s+(are|is|were)\\s+your\\s+(system|initial|original|hidden)\\s*(prompt|instructions|rules)"),
                     // Jailbreak techniques
                     Pattern.compile("(?i)\\bjailbreak\\b"),
                     Pattern.compile("(?i)\\bDAN\\b.*\\bmode\\b"),
@@ -69,8 +76,10 @@ public class ContentFilter {
                     Pattern.compile("(?i)<\\|?(system|im_start|endoftext|im_end)\\|?>"),
                     Pattern.compile("(?i)\\[INST\\]|\\[/INST\\]|<<SYS>>|<</SYS>>"),
                     // Constraint removal
-                    Pattern.compile("(?i)(remove|disable|bypass|skip|drop)\\s+(all\\s+)?(safety|content|ethical|moderation)\\s*(filters?|restrictions?|guidelines?|guardrails?|checks?)"),
-                    Pattern.compile("(?i)without\\s+(any\\s+)?(safety|ethical|content|moderation)\\s*(restrictions?|guidelines?|filters?|guardrails?)"),
+                    Pattern.compile(
+                            "(?i)(remove|disable|bypass|skip|drop)\\s+(all\\s+)?(safety|content|ethical|moderation)\\s*(filters?|restrictions?|guidelines?|guardrails?|checks?)"),
+                    Pattern.compile(
+                            "(?i)without\\s+(any\\s+)?(safety|ethical|content|moderation)\\s*(restrictions?|guidelines?|filters?|guardrails?)"),
                     // Token smuggling and encoding tricks
                     Pattern.compile("(?i)base64[:\\s]+decode"),
                     Pattern.compile("(?i)rot13[:\\s]+(decode|apply|use)"));
@@ -123,7 +132,11 @@ public class ContentFilter {
         for (PiiRule rule : PII_RULES) {
             if (rule.validator == null) {
                 if (!combined.isEmpty()) combined.append('|');
-                combined.append("(?<").append(rule.name).append('>').append(rule.pattern.pattern()).append(')');
+                combined.append("(?<")
+                        .append(rule.name)
+                        .append('>')
+                        .append(rule.pattern.pattern())
+                        .append(')');
                 replacements.put(rule.name, rule.replacement);
             }
         }
@@ -223,8 +236,8 @@ public class ContentFilter {
         boolean test(String value);
     }
 
-    private record PiiRule(String name, Pattern pattern, String replacement,
-                           StringPredicate validator) {
+    private record PiiRule(
+            String name, Pattern pattern, String replacement, StringPredicate validator) {
         PiiRule(String name, Pattern pattern, String replacement) {
             this(name, pattern, replacement, null);
         }

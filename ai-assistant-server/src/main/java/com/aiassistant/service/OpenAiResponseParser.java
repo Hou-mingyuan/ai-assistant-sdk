@@ -12,8 +12,8 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *   <li>让 {@code LlmService} 把"调用 LLM"和"解释 LLM 返回的 JSON 结构"两个关注点分开；
- *   <li>方便后续 Pipeline 化重构（PromptComposer / RequestEnricher /
- *       <b>ResponseParser</b> / ResponsePostProcessor）落地；
+ *   <li>方便后续 Pipeline 化重构（PromptComposer / RequestEnricher / <b>ResponseParser</b> /
+ *       ResponsePostProcessor）落地；
  *   <li>方便单测验证 token usage 解析、content 提取的边界场景。
  * </ul>
  *
@@ -21,7 +21,8 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *   <li>{@link #parseContent(String)} 取 {@code choices[0].message.content}；解析失败返回原始字符串。
- *   <li>{@link #parseUsage(String)} 取 {@code usage.prompt_tokens / completion_tokens}；解析失败返回 {@code [0, 0]}。
+ *   <li>{@link #parseUsage(String)} 取 {@code usage.prompt_tokens / completion_tokens}；解析失败返回 {@code
+ *       [0, 0]}。
  * </ul>
  *
  * <p>该类不持有任何业务状态，可被多个 service 共享。

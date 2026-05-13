@@ -57,16 +57,19 @@ public class ApiKeyRotator {
                 earliest = key;
             }
         }
-        return earliest != null ? earliest : apiKeys.get(keyIndex.getAndUpdate(i -> (i + 1) % size));
+        return earliest != null
+                ? earliest
+                : apiKeys.get(keyIndex.getAndUpdate(i -> (i + 1) % size));
     }
 
-    /**
-     * Marks a key as failed with exponential backoff: 1s -> 2s -> 4s -> 8s -> 16s -> 30s (cap).
-     */
+    /** Marks a key as failed with exponential backoff: 1s -> 2s -> 4s -> 8s -> 16s -> 30s (cap). */
     public void markFailed(String key) {
         long now = System.currentTimeMillis();
         KeyState prev = keyStates.get(key);
-        long cooldownMs = (prev != null) ? Math.min(prev.nextCooldownMs, MAX_COOLDOWN_MS) : INITIAL_COOLDOWN_MS;
+        long cooldownMs =
+                (prev != null)
+                        ? Math.min(prev.nextCooldownMs, MAX_COOLDOWN_MS)
+                        : INITIAL_COOLDOWN_MS;
         long until = now + cooldownMs;
         long nextCooldownMs = Math.min(cooldownMs * 2, MAX_COOLDOWN_MS);
         keyStates.put(key, new KeyState(until, nextCooldownMs));

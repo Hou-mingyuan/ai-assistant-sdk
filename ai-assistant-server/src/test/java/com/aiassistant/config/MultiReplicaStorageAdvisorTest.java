@@ -7,7 +7,6 @@ import com.aiassistant.memory.ConversationMemory;
 import com.aiassistant.rag.InMemoryVectorStore;
 import com.aiassistant.rag.VectorStore;
 import com.aiassistant.service.InMemorySessionStore;
-import com.aiassistant.service.SessionStore;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.spi.InMemoryConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
@@ -78,10 +77,7 @@ class MultiReplicaStorageAdvisorTest {
 
         List<String> warnings =
                 advisor.warningCodes(
-                        customVectorStore,
-                        new InMemorySessionStore(),
-                        null,
-                        customMemory);
+                        customVectorStore, new InMemorySessionStore(), null, customMemory);
 
         // VectorStore replaced -> no warning. SessionStore still InMemory -> warned.
         // TokenUsageTracker null -> not warned. ConversationMemoryProvider replaced -> not warned.

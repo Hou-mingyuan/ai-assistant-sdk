@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * SPI for persisting audit events. Default implementation logs to SLF4J;
- * replace with JDBC / Kafka / Elasticsearch for production use.
+ * SPI for persisting audit events. Default implementation logs to SLF4J; replace with JDBC / Kafka
+ * / Elasticsearch for production use.
  */
 public interface AuditEventStore {
 
