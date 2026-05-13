@@ -27,11 +27,20 @@ export default defineConfig({
         {
           text: 'Features',
           items: [
+            { text: 'UI Features (settings / sessions / shortcuts)', link: '/guide/ui-features' },
             { text: 'Chat & Streaming', link: '/guide/chat' },
             { text: 'Function Calling', link: '/guide/function-calling' },
             { text: 'MCP Server', link: '/guide/mcp-server' },
             { text: 'Plugin System', link: '/guide/plugins' },
             { text: 'Backend Architecture', link: '/guide/backend-architecture' },
+            { text: 'Virtual Scroll Strategy', link: '/guide/virtual-scroll-strategy' },
+          ],
+        },
+        {
+          text: 'Hardening',
+          items: [
+            { text: 'SSRF Allowlist', link: '/guide/ssrf-allowlist' },
+            { text: 'Multi-Replica Config Lint', link: '/guide/multi-replica-lint' },
           ],
         },
         {
