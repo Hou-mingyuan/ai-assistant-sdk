@@ -282,6 +282,8 @@ export type { RafBatch } from './composables/useRafBatch';
 export { useCommandPalette } from './composables/useCommandPalette';
 export type { UseCommandPaletteOptions } from './composables/useCommandPalette';
 export type { CommandItem } from './types/command-palette';
+export { useMarkdownWorker } from './composables/useMarkdownWorker';
+export type { UseMarkdownWorkerOptions } from './composables/useMarkdownWorker';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:
