@@ -2183,3 +2183,57 @@
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode.active {
   color: #ffffff;
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * H2 - Accessibility: focus-visible
+ *   给所有键盘可聚焦元素提供统一的 visible focus ring。
+ *   :focus-visible 仅在键盘导航时显示（鼠标点击不出），符合现代 a11y 最佳实践。
+ *
+ *   wrapper 内所有可交互元素：button / input / textarea / select / a[href]
+ *   / [tabindex]:not([tabindex="-1"]) / [role="button"] / [role="tab"]
+ *   / [role="menuitem"] / [role="menu"] / [role="dialog"]
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper button:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper input:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper textarea:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper select:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper a[href]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper [tabindex]:not([tabindex="-1"]):focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper [role="button"]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper [role="tab"]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper [role="menuitem"]:focus-visible {
+  outline: 2px solid var(--ai-gradient-1) !important;
+  outline-offset: 2px !important;
+  border-radius: var(--ai-radius-sm);
+  position: relative;
+  z-index: 1;
+}
+/* 鼠标点击时不显示 outline（仅键盘 focus 才显示） */
+.ai-assistant-wrapper.ai-assistant-wrapper button:focus:not(:focus-visible),
+.ai-assistant-wrapper.ai-assistant-wrapper [role="button"]:focus:not(:focus-visible),
+.ai-assistant-wrapper.ai-assistant-wrapper [role="menuitem"]:focus:not(:focus-visible) {
+  outline: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark button:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark input:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark textarea:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark select:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark a[href]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark [tabindex]:not([tabindex="-1"]):focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark [role="button"]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark [role="tab"]:focus-visible,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark [role="menuitem"]:focus-visible {
+  outline-color: rgba(56, 189, 248, 1) !important;
+}
+
+/* H2: prefers-reduced-motion 全局：所有动画 / 过渡 一律关闭 */
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper *,
+  .ai-assistant-wrapper.ai-assistant-wrapper *::before,
+  .ai-assistant-wrapper.ai-assistant-wrapper *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

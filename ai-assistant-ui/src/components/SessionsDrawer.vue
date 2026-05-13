@@ -35,6 +35,7 @@
               v-model="filterText"
               type="search"
               :placeholder="t.sessionsDrawerSearch || 'Filter by title…'"
+              :aria-label="t.sessionsDrawerSearch || 'Filter sessions'"
               class="ai-sessions-drawer-input"
             />
           </div>
@@ -77,6 +78,7 @@
                     type="text"
                     maxlength="80"
                     class="ai-sessions-drawer-rename-input"
+                    :aria-label="t.sessionsDrawerRename || 'Rename session'"
                     @keydown.escape.prevent="cancelRename"
                     @blur="commitRename(s.id)"
                   />
