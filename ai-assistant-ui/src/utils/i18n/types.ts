@@ -199,4 +199,9 @@ export interface I18nMessages {
   /** TTS 暂停/继续 */
   ttsPause: string;
   ttsResume: string;
+  /** 暗色/亮色一键切换按钮 tooltip */
+  themeToggleToDark: string;
+  themeToggleToLight: string;
+  /** 图片 lightbox 关闭按钮 */
+  imageLightboxClose: string;
 }

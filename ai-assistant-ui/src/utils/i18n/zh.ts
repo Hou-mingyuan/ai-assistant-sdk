@@ -173,4 +173,7 @@ export const zh: I18nMessages = {
   slashCmdTemplateDesc: 'Prompt 模板',
   ttsPause: '暂停朗读',
   ttsResume: '继续朗读',
+  themeToggleToDark: '切换到暗色',
+  themeToggleToLight: '切换到亮色',
+  imageLightboxClose: '关闭预览',
 };

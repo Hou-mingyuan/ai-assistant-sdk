@@ -172,4 +172,7 @@ export const ja: I18nMessages = {
   slashCmdTemplateDesc: 'プロンプトテンプレート',
   ttsPause: '読み上げを一時停止',
   ttsResume: '読み上げを再開',
+  themeToggleToDark: 'ダークモードに切替',
+  themeToggleToLight: 'ライトモードに切替',
+  imageLightboxClose: 'プレビューを閉じる',
 };

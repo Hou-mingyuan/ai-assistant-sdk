@@ -1078,3 +1078,261 @@
   color: var(--ai-gradient-1) !important;
   transform: translateY(-1px);
 }
+
+/* ────────────────────────────────────────────────────────────────
+ * 第三波 UX 现代化 #2 #6 #12 #14 #18 #20 #27
+ * ────────────────────────────────────────────────────────────────*/
+
+/* #2 模式按钮胶囊化（覆盖 03-input-popups.css 的 .ai-mode-bar/.ai-quick-actions）
+ * 用 wrapper 双重选择器获得 specificity，避开 !important 滥用 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
+  display: flex !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  background: transparent !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button {
+  flex: 0 0 auto !important;
+  padding: 5px 14px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--ai-border) !important;
+  background: var(--ai-glass-bg-soft) !important;
+  color: var(--ai-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button:hover:not(.active),
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button:hover:not(.active) {
+  background: rgba(14, 165, 233, 0.06) !important;
+  border-color: rgba(14, 165, 233, 0.3) !important;
+  color: var(--ai-text) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button.active,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button.active {
+  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.5) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-bar button,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(241, 245, 249, 0.7) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-bar button.active,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button.active {
+  color: #fff !important;
+}
+
+/* #6 顶栏图标按钮统一玻璃风格（所有 header 内 button） */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-personalize,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-diagnostics,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-batch-export-btn,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-btn,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-clear,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-expand,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-close,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-plugin-btn,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-theme-toggle {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--ai-text-muted) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-personalize-text,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-diagnostics-text {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button:hover {
+  background: rgba(14, 165, 233, 0.1) !important;
+  color: var(--ai-gradient-1) !important;
+  transform: translateY(-1px);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button.active,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button[aria-pressed="true"] {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(6, 182, 212, 0.1)) !important;
+  color: var(--ai-gradient-1) !important;
+}
+
+/* #12 滚动到底部按钮 - 玻璃质感圆形浮按钮 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-scroll-bottom-btn {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--ai-glass-border) !important;
+  background: var(--ai-glass-bg) !important;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  color: var(--ai-gradient-1) !important;
+  font-size: 16px !important;
+  cursor: pointer;
+  box-shadow: var(--ai-shadow-soft) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-scroll-bottom-btn:hover {
+  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
+  color: #fff !important;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px -4px rgba(14, 165, 233, 0.5) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-scroll-bottom-btn {
+  background: rgba(30, 41, 59, 0.85) !important;
+  color: var(--ai-gradient-1) !important;
+}
+
+/* #14 链接预览卡片化 - 消息正文里的 a[href] 自动 chip 样式 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]:not(.ai-link-bare) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  margin: 0 2px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(6, 182, 212, 0.04));
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  color: var(--ai-gradient-1) !important;
+  text-decoration: none !important;
+  font-size: 0.95em;
+  transition: all 0.15s ease;
+  word-break: break-all;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]:hover {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(6, 182, 212, 0.1));
+  border-color: var(--ai-gradient-1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.35);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]::before {
+  content: '🔗';
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-md a[href]:not(.ai-link-bare) {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(34, 211, 238, 0.06));
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+/* #18 图片附件点击放大 - 图片 hover 微缩放 + cursor: zoom-in */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md img,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble img,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-pending-images img {
+  border-radius: var(--ai-radius-sm);
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  max-width: 100%;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md img:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.18);
+}
+/* 全屏 lightbox 覆盖层（由 JS 创建） */
+.ai-image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  cursor: zoom-out;
+  animation: ai-lightbox-in 0.18s ease;
+}
+@keyframes ai-lightbox-in {
+  from { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+}
+.ai-image-lightbox-overlay img {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.6);
+}
+.ai-image-lightbox-close {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.ai-image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* #27 暗色一键切换按钮（在 #6 通用 header button 风格下额外微调） */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-theme-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* #20 响应式 - 窄屏（< 600px）自动全屏 + 隐藏拖拽 */
+@media (max-width: 600px) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    transform: none !important;
+  }
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab {
+    width: 52px !important;
+    height: 52px !important;
+    bottom: 20px !important;
+    right: 20px !important;
+  }
+  /* 拖拽手柄无意义 */
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-resize-handle {
+    display: none !important;
+  }
+  /* 顶栏标题字号下调 */
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-title {
+    font-size: 14px !important;
+  }
+  /* 多模型对比 / 模板对话 满屏 */
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-multi-compare-overlay,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-prompt-template-overlay {
+    padding: 0 !important;
+  }
+}

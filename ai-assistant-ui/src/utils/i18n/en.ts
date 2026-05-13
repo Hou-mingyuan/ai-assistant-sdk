@@ -177,4 +177,7 @@ export const en: I18nMessages = {
   slashCmdTemplateDesc: 'Prompt templates',
   ttsPause: 'Pause reading',
   ttsResume: 'Resume reading',
+  themeToggleToDark: 'Switch to dark',
+  themeToggleToLight: 'Switch to light',
+  imageLightboxClose: 'Close preview',
 };

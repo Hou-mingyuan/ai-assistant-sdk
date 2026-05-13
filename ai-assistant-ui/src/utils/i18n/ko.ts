@@ -172,4 +172,7 @@ export const ko: I18nMessages = {
   slashCmdTemplateDesc: '프롬프트 템플릿',
   ttsPause: '읽기 일시정지',
   ttsResume: '읽기 재개',
+  themeToggleToDark: '다크 모드로 전환',
+  themeToggleToLight: '라이트 모드로 전환',
+  imageLightboxClose: '미리보기 닫기',
 };

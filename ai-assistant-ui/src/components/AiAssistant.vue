@@ -84,11 +84,13 @@
           :loading="loading"
           :has-base-url="!!options.baseUrl"
           :header-plugins="getPlugins('header')"
+          :is-dark="isDark"
           :t="t"
           @pointerdown-header="onPanelHeaderPointerDown"
           @open-personalize="openPersonalize"
           @toggle-diagnostics="toggleDiagnostics"
           @toggle-panel-expand="togglePanelExpand"
+          @toggle-theme="toggleManualTheme"
           @run-plugin="runPlugin"
           @start-new-session="startNewSession"
           @toggle-batch-export-menu="toggleBatchExportMenu"
@@ -789,11 +791,37 @@ onUnmounted(() => {
   reducedMotionCleanup?.();
   pageVisibilityCleanup?.();
 });
+/**
+ * #27 用户在面板内一键切换的主题覆盖
+ * - null = 跟随 options.theme（默认）
+ * - 'light' / 'dark' = 用户显式覆盖（持久化到 localStorage）
+ */
+const THEME_OVERRIDE_KEY = 'ai-assistant-user-theme-override';
+const userThemeOverride = ref<'light' | 'dark' | null>(
+  (() => {
+    try {
+      const v = localStorage.getItem(THEME_OVERRIDE_KEY);
+      return v === 'light' || v === 'dark' ? v : null;
+    } catch {
+      return null;
+    }
+  })(),
+);
 const isDark = computed(() => {
+  if (userThemeOverride.value) return userThemeOverride.value === 'dark';
   if (options.theme === 'dark') return true;
   if (options.theme === 'auto') return systemDarkRef.value;
   return false;
 });
+function toggleManualTheme() {
+  const next = isDark.value ? 'light' : 'dark';
+  userThemeOverride.value = next;
+  try {
+    localStorage.setItem(THEME_OVERRIDE_KEY, next);
+  } catch (e) {
+    console.warn('[AiAssistant] persist theme override failed', e);
+  }
+}
 const isOpen = ref(false);
 /** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
 const fabHidden = ref(false);
@@ -1189,6 +1217,67 @@ onUnmounted(() => {
 });
 
 const panelRef = ref<HTMLElement>();
+
+/**
+ * #18 图片附件点击放大 - lightbox
+ * 监听 panel 内任何 img 的点击，符合条件（消息正文 / 待发送图片）时弹全屏预览。
+ * 单一 overlay 实例复用，DOM 直接挂 document.body 以摆脱 panel 的层级限制。
+ */
+let imageLightboxEl: HTMLDivElement | null = null;
+function closeImageLightbox() {
+  if (!imageLightboxEl) return;
+  (imageLightboxEl as unknown as { _aiTeardown?: () => void })._aiTeardown?.();
+  imageLightboxEl.remove();
+  imageLightboxEl = null;
+}
+function openImageLightbox(src: string) {
+  if (typeof document === 'undefined' || !src) return;
+  closeImageLightbox();
+  const overlay = document.createElement('div');
+  overlay.className = 'ai-image-lightbox-overlay';
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = '';
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'ai-image-lightbox-close';
+  closeBtn.setAttribute('aria-label', t.value.imageLightboxClose || 'Close');
+  closeBtn.textContent = '×';
+  overlay.appendChild(img);
+  overlay.appendChild(closeBtn);
+  const handleClick = (ev: Event) => {
+    if (ev.target === overlay || ev.target === closeBtn) closeImageLightbox();
+  };
+  const handleKey = (ev: KeyboardEvent) => {
+    if (ev.key === 'Escape') closeImageLightbox();
+  };
+  overlay.addEventListener('click', handleClick);
+  document.addEventListener('keydown', handleKey);
+  (overlay as unknown as { _aiTeardown?: () => void })._aiTeardown = () => {
+    overlay.removeEventListener('click', handleClick);
+    document.removeEventListener('keydown', handleKey);
+  };
+  document.body.appendChild(overlay);
+  imageLightboxEl = overlay;
+}
+function onPanelImageClick(ev: MouseEvent) {
+  const target = ev.target as HTMLElement;
+  if (!target || target.tagName !== 'IMG') return;
+  const img = target as HTMLImageElement;
+  if (!img.src) return;
+  if (img.closest('.ai-fab, .ai-assistant-avatar, .ai-image-lightbox-overlay')) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  openImageLightbox(img.src);
+}
+watch(panelRef, (el, oldEl) => {
+  if (oldEl) oldEl.removeEventListener('click', onPanelImageClick);
+  if (el) el.addEventListener('click', onPanelImageClick);
+}, { immediate: true });
+onUnmounted(() => {
+  if (panelRef.value) panelRef.value.removeEventListener('click', onPanelImageClick);
+  closeImageLightbox();
+});
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileUploading = ref(false);
 const selectMode = ref(false);

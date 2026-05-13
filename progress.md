@@ -278,3 +278,41 @@ ai-assistant-ui/
 - `npm test`: ✅ **213/213** 通过（从 195 增加 18 个新测试）
 - `npx vue-tsc --noEmit`: ✅ 0 errors
 - `npm run lint`: ✅ 0 errors（剩 1 个 pre-existing ConnectionDiagnostics warning，未动）
+
+## 2026-05-13 第三轮：UX 现代化（v2 科技蓝 + 第三波交互精修）
+
+用户反馈紫粉（v1）"娘们唧唧"，要求改色 + 继续推 UX 27 项清单的第三波。
+
+### 主题色 v2：sky tech blue
+
+- 主色梯度从 indigo/purple/pink (`#818cf8/#c084fc/#f472b6`) → sky/cyan/blue (`#0ea5e9/#06b6d4/#3b82f6`)
+- `09-modern-overhaul.css` 全文 hex + rgb 替换（72 行差异）+ 暗色模式同步用 sky-400 系
+- `ai-assistant-vue-playground/src/main.ts`: `primaryColor` 同步换色
+- commit `26649af` 已 push
+
+### UX 第三波（commit 待定）
+
+| # | 项 | 实现 |
+|---|----|------|
+| #2 | 模式按钮胶囊化 | `09` 高 specificity 重写 `.ai-mode-bar/.ai-quick-actions button` → 圆角 999px + 玻璃 + active 渐变填充 |
+| #6 | 顶栏图标统一玻璃风格 | `09` 统一为 28px 玻璃方块；隐藏 personalize/diagnostics 文字标签；hover 上浮 + 渐变 |
+| #12 | 滚动到底部按钮样式 | 业务逻辑已存在（`showScrollToBottomBtn` + `scrollToBottomClick`）；本轮补玻璃质感圆形 floating 样式 |
+| #14 | 链接预览卡片化 | `.ai-md a[href]` chip 样式：内联玻璃徽章 + 🔗 前缀图标 + hover 上浮，无需 JS |
+| #18 | 图片附件点击放大 | `panelRef` 事件委托：监听 `img.click` → 创建 `.ai-image-lightbox-overlay` 全屏覆盖（DOM 直挂 body 摆脱 z-index）；Esc/点击/×关闭；CSS hover 微缩放 |
+| #20 | 响应式 < 600px 全屏 | media query：panel 强制 100vw/100vh + 圆角归零 + 隐藏 resize handle + 标题字号下调 |
+| #27 | 暗色一键切换 | `AssistantHeader.vue` 加 theme-toggle 按钮（太阳/月亮 icon 自动切换）；`AiAssistant.vue` 加 `userThemeOverride` ref + `toggleManualTheme()`，覆盖 `options.theme`，持久化 `localStorage["ai-assistant-user-theme-override"]` |
+
+### 主动跳过
+
+- **#19 统一 Settings 抽屉**：refactor 涉及 PersonalizeDialog + ConnectionDiagnostics 合并，工作量较大；当前两个独立入口在新 `#6 顶栏统一` 后已无视觉混乱，推迟到独立 PR
+
+### i18n 新增（×4 语言共 12 键）
+
+- `themeToggleToDark` / `themeToggleToLight` / `imageLightboxClose`
+
+### 第三轮验证
+
+- `npm run build`: ✅ 通过；`style.css` 134.44 → 141.96 KB（+5.6%），主 bundle 576.00 → 581.26 KB（+0.9%）
+- `npm test`: ✅ **213/213** 通过（无新增测试，本轮主要 CSS + UI）
+- `npm run build:types` (vue-tsc): ✅ 0 errors
+- `npm run lint`: ✅ 0 new errors（pre-existing 1 error + 2 warnings 未动）
