@@ -717,30 +717,35 @@
   justify-content: flex-end;
   align-items: flex-start;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant {
-  display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
   max-width: 85%;
   margin-left: auto;
   min-width: 0;
   flex: 0 1 auto;
 }
-/* 助手消息：avatar 之外的所有兄弟（bubble / thinking-details / agent-steps / tool-calls）都
- * 需在 flex 容器里占满剩余空间，否则 min-content 会把 Chinese 文本挤成竖排。
- * 用 calc 减去 avatar(24)+margin(6) 与 padding(28) 的占位。 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-bubble,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-details,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-live,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-agent-steps,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-tool-calls {
-  flex: 1 1 calc(100% - 32px);
+/* 助手消息用 grid（avatar 在左列、其它所有兄弟（bubble / thinking / tool-calls / agent-steps）
+ * 在右列纵向堆叠），避免 flex 多子元素 min-content 互相压成竖排。 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant {
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr);
+  column-gap: 6px;
+  row-gap: 4px;
+  align-items: start;
+  justify-content: start;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant > .ai-assistant-avatar {
+  grid-column: 1;
+  grid-row: 1;
+  margin-right: 0 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant > *:not(.ai-assistant-avatar):not(.ai-msg-checkbox) {
+  grid-column: 2;
   min-width: 0;
-  max-width: calc(100% - 32px);
+  max-width: 100%;
+  flex: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble {
+  max-width: 100%;
 }
 
 /* #8 助手头像换成渐变 ✨ */
