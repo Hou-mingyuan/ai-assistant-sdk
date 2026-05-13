@@ -219,3 +219,5 @@ export type {
   McpInitializeResult,
   McpToolCallResult,
 } from './composables/useMcpClient';
+export { useMcpAutoPlugin } from './composables/useMcpAutoPlugin';
+export type { UseMcpAutoPluginOptions } from './composables/useMcpAutoPlugin';
