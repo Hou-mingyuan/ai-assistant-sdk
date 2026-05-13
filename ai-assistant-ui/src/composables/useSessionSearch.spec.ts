@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { nextTick, ref } from 'vue';
-import { useSessionSearch, highlightSearchInHtml } from './useSessionSearch';
+import { useSessionSearch, highlightSearchInHtml, buildSearchRegex } from './useSessionSearch';
 
 vi.mock('vue', async () => {
   const actual = await vi.importActual<typeof import('vue')>('vue');
@@ -237,5 +237,92 @@ describe('highlightSearchInHtml', () => {
     const html = '<p>price is $10.00</p>';
     const result = highlightSearchInHtml(html, '$10.00', false);
     expect(result).toContain('<mark class="ai-search-hl">$10.00</mark>');
+  });
+
+  /* H6: 三模式 options 测试 */
+  it('respects caseSensitive option', () => {
+    const html = '<p>Hello HELLO hello</p>';
+    const result = highlightSearchInHtml(html, 'hello', false, { caseSensitive: true });
+    /* 只匹配 lowercase 'hello' (1 处) */
+    expect(result.match(/<mark/g)?.length).toBe(1);
+  });
+
+  it('respects wholeWord option', () => {
+    const html = '<p>cat catalog cathedral cat</p>';
+    const result = highlightSearchInHtml(html, 'cat', false, { wholeWord: true });
+    /* 只匹配独立 'cat' (2 处)，不匹配 'catalog' / 'cathedral' 内的 'cat' */
+    expect(result.match(/<mark/g)?.length).toBe(2);
+  });
+
+  it('respects regex option for valid pattern', () => {
+    const html = '<p>err1 err99 error</p>';
+    const result = highlightSearchInHtml(html, 'err\\d+', false, { regex: true });
+    /* 匹配 err1 / err99 (2 处)，不匹配 error (无数字) */
+    expect(result.match(/<mark/g)?.length).toBe(2);
+  });
+
+  it('returns original html on invalid regex (graceful)', () => {
+    const html = '<p>foo bar</p>';
+    /* `[abc` 缺右括号 → invalid regex */
+    const result = highlightSearchInHtml(html, '[abc', false, { regex: true });
+    expect(result).toBe(html);
+  });
+});
+
+describe('buildSearchRegex', () => {
+  it('returns null on empty query', () => {
+    expect(buildSearchRegex('')).toBeNull();
+    expect(buildSearchRegex('', { regex: true })).toBeNull();
+  });
+
+  it('escapes special chars when regex=false', () => {
+    const re = buildSearchRegex('a.b+c');
+    expect(re).not.toBeNull();
+    expect(re!.test('aXbXXc')).toBe(false);
+    expect(re!.test('a.b+c')).toBe(true);
+  });
+
+  it('treats query as raw regex when regex=true', () => {
+    const re = buildSearchRegex('\\d+', { regex: true });
+    expect(re).not.toBeNull();
+    expect(re!.test('abc123')).toBe(true);
+    expect(re!.test('abc')).toBe(false);
+  });
+
+  it('returns null when regex=true and pattern is invalid', () => {
+    expect(buildSearchRegex('[abc', { regex: true })).toBeNull();
+  });
+
+  it('caseSensitive=true uses g flag only (no i)', () => {
+    const re = buildSearchRegex('Foo', { caseSensitive: true });
+    expect(re!.flags).toBe('g');
+    expect(re!.test('FOO')).toBe(false);
+    expect(re!.test('Foo')).toBe(true);
+  });
+
+  it('caseSensitive=false (default) adds i flag', () => {
+    const re = buildSearchRegex('foo');
+    /* JS RegExp.flags 按字母顺序规范化为 'gi'（而非源码里的 'ig'） */
+    expect(re!.flags).toBe('gi');
+    expect(re!.test('FOO')).toBe(true);
+  });
+
+  it('wholeWord wraps pattern in word boundaries', () => {
+    const re = buildSearchRegex('cat', { wholeWord: true });
+    expect(re!.test('cat sat')).toBe(true);
+    expect(re!.test('cattle')).toBe(false);
+  });
+
+  it('combines all three flags', () => {
+    /* regex + wholeWord + caseSensitive */
+    const re = buildSearchRegex('Err\\d+', {
+      caseSensitive: true,
+      wholeWord: true,
+      regex: true,
+    });
+    expect(re!.flags).toBe('g');
+    expect(re!.test('Err42 done')).toBe(true);
+    expect(re!.test('err42')).toBe(false); /* case sensitive */
+    expect(re!.test('xxxErr42')).toBe(false); /* whole word */
   });
 });

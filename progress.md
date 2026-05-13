@@ -402,10 +402,60 @@ ai-assistant-ui/
 5. **F3 发现已完整 + 仅补 visual polish**：搜索系统完整，新增的 ring pulse 仅作视觉强化
 6. **server 35 文件分 3 个 commit (A 真功能 / B 新文件 / C 格式化)**：替别人 commit 但保留清晰边界，便于将来 bisect
 
-### 后续可继续方向
+### 后续可继续方向（部分已在第五轮落地）
 
-- G1 历史会话抽屉（替代 tabs，可重命名/收藏/搜索）
-- G2 PWA service worker + manifest（离线缓存）
-- G3 a11y 全面审计 + 修补
-- G5 playground 加 admin dashboard 示例（用 D3 SDK 写演示）
-- F5 真实发版（v1.0.1 / v1.1.0）打 tag
+- ~~G1 历史会话抽屉~~ → 已落地 commit `104b4ba`
+- ~~G3 a11y 全面审计 + 修补~~ → 已落地 commit `683eca5` (H2 MVP)
+- ~~G5 playground 加 admin dashboard 示例~~ → 已落地 commit `6d4cdeb`
+- ~~F5 真实发版打 tag~~ → 已落地 commit `9d41d6f` (H3 v1.0.1)
+- G2 PWA service worker + manifest（离线缓存）→ 留待 H1
+
+## 2026-05-13 第五轮：会话治理 + 搜索强化 + a11y 兜底 + 真实发版
+
+承接第四轮"自行演进"，用户继续放权 → 推进 G/H 两簇 8 个 commit。本轮
+聚焦于把前几轮基础设施（D3 admin SDK / F2 bundle / E3 changelog / F5
+release）真正闭环、落地，并补 a11y 兜底。
+
+### Cluster G: 工程化护栏与文档（commits `9b5445f` `6d4cdeb` `104b4ba`）
+
+| ID | Commit | 价值 |
+|---|---|---|
+| G6 | `9b5445f` | CI ci.yml frontend job 加 bundle-size-check 步骤，超 +10% gzip 阻塞 PR |
+| G4 | `9b5445f` (合一) | progress.md 追加第四轮 17 commit 完整总结 |
+| G5 | `6d4cdeb` | playground 加 AdminDemoPanel.vue：5 endpoints 一键试调、token input、JSON pretty + 耗时统计；同时更新 bundle-size baseline |
+| G1 | `104b4ba` | SessionsDrawer.vue：齿轮菜单新增"All sessions"入口，按时间桶分组（今/昨/本周/更早），filter 搜索，hover-only 删除 |
+
+### Cluster H: 体验深化 + 真实发版（commits `9d41d6f` `9fe087d` `b800a53` `683eca5`）
+
+| ID | Commit | 价值 |
+|---|---|---|
+| H3 | `9d41d6f` | **首次真实跑通 release.mjs**：1.0.0 → v1.0.1，3 pom + package.json + lock + CHANGELOG 全自动同步，tag 已 push origin。publish.yml 仅在 GitHub Release 网页发布触发，所以 push tag 不会自动发 npm/docker，安全 |
+| H5 | `9fe087d` | SessionEntry 加 pinned，useMultiSession 新增 renameSession / togglePinSession；SessionsDrawer item 重构为 main + actions 组（pin ★ / rename ✎ / delete ×），inline rename input + Enter 提交 + Esc 取消；Pinned 分组永远置顶 |
+| H6 | `b800a53` | useSessionSearch 新增 buildSearchRegex 工具 + 3 toggle ref (caseSensitive / wholeWord / regex)；highlightSearchInHtml 加可选 options 参数（向后兼容）；搜索框旁加 Aa / W / .* 三个 toggle 按钮 |
+| H2 | `683eca5` | 全局 `:focus-visible` 科技蓝 ring + `:focus:not(:focus-visible)` 抑制鼠标焦点；全局 `@media (prefers-reduced-motion)` 强压动画/过渡到 0.01ms；SessionsDrawer aria-label 补漏 |
+
+### 第五轮验证
+
+| 指标 | 第四轮起点 | 第五轮终点 |
+|---|---|---|
+| 版本 | 1.0.0-SNAPSHOT | **v1.0.1** (tag 已推 origin) |
+| 单元测试 | 227/227 | 227/227（H6 改 useSessionSearch 内部逻辑但向后兼容 spec 全过） |
+| ESLint | 0/0 | 0/0 |
+| WCAG 2.4.7 Focus Visible | 部分 | ✅ 全覆盖 |
+| WCAG 2.3.3 Reduced Motion | ❌ | ✅ |
+| 会话管理能力 | tabs only | tabs + 抽屉 + 时间分组 + 收藏 + 重命名 + 内容搜索 |
+| 搜索能力 | substring | + caseSensitive / wholeWord / regex |
+| Settings 入口 | personalize + diagnostics + sessions（独立按钮 3 个）| 单齿轮 + popover 3 项菜单 |
+
+### 关键判断（第五轮）
+
+1. **G6 CI 集成最小化**：复用 ci.yml frontend job，append 一步而不是新建独立 workflow（避免重复 install / build）
+2. **G5 AdminDemoPanel 独立组件**：playground 主入口保持简洁；demo 折叠默认收起，不污染 AI 助手 demo 主线
+3. **H3 安全跑真发版**：审计了 publish.yml 的 trigger（`release: published`），确认 push tag 不会触发 npm publish / docker build；release.mjs 设计上不自动 push，由用户显式 `git push --follow-tags`
+4. **H5 inline edit + 公共 hover actions**：弃用 prompt() 原生 dialog；rename / pin / delete 三按钮 hover-only 显示，避免常驻干扰
+5. **H6 公共工具复用**：buildSearchRegex 同时被 searchMatchedIndices 和 highlightSearchInHtml 调用，保证两端 regex 完全一致，杜绝"匹配到但没高亮"或反之的逻辑漂移
+6. **H2 :focus-visible 不是 :focus**：键盘聚焦才显示 ring，鼠标点击不污染视觉，符合现代 a11y 最佳实践；prefers-reduced-motion 整段压扁是一行配置但覆盖所有 30+ 处动画
+
+### 累计 24 commit（D + E + F + G + H 簇）
+
+完整时间线见 git log；CHANGELOG.md 已由 E3 generate-changelog.mjs 自动维护。
