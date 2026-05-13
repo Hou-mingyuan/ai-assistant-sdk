@@ -15,6 +15,10 @@ const runE2eTests = args.has('--e2e') || args.has('--all')
 const runBundleSize = args.has('--bundle') || args.has('--all')
 /* J2: 集成 coverage-check 作为可选 lane。--all 时会先跑 test:coverage 生成 summary */
 const runCoverage = args.has('--coverage') || args.has('--all')
+/* K1: 多实例配置 lint：扫 .env / compose / helm 检查 in-process state 与 replicas>1 冲突 */
+const runMultiReplica = args.has('--multi-replica') || args.has('--all')
+/* K2: SSRF allowlist policy 单元测试（轻量，复用 ai-assistant-server JUnit） */
+const runSsrfTest = args.has('--ssrf') || args.has('--all')
 
 const checks = [
   {
@@ -106,6 +110,34 @@ if (runCoverage) {
   })
 }
 
+if (runMultiReplica) {
+  /* K1: 扫描配置文件，对「多实例 + 进程内状态」组合给出 warn/high finding；
+   * --strict 时高严重度阻塞 CI，本地默认仅 warn */
+  const strictFlag = args.has('--strict') ? ['--strict'] : []
+  checks.push({
+    name: 'multi-replica config lint',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/multi-replica-config-lint.mjs'), ...strictFlag],
+    cwd: root,
+  })
+}
+
+if (runSsrfTest) {
+  /* K2: 仅跑 SSRF 相关单测，避免完整 mvn test 几分钟级耗时 */
+  checks.push({
+    name: 'SSRF policy unit tests (allowlist + default)',
+    command: mavenCommand(),
+    args: [
+      'test',
+      '-Dtest=AllowlistSsrfPolicyTest',
+      '-Dspotless.check.skip=true',
+      '-Dcheckstyle.skip=true',
+      '-Djacoco.skip=true',
+    ],
+    cwd: path.join(root, 'ai-assistant-server'),
+  })
+}
+
 console.log('AI Assistant SDK health check')
 console.log(`Project root: ${root}`)
 console.log('')
@@ -135,10 +167,12 @@ if (
   !runPlaygroundBuild &&
   !runE2eTests &&
   !runBundleSize &&
-  !runCoverage
+  !runCoverage &&
+  !runMultiReplica &&
+  !runSsrfTest
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --ssrf, or --all to run more checks.',
   )
 }
 
