@@ -28,21 +28,14 @@
       @contextmenu.prevent="onFabContextMenu"
     >
       <svg
-        width="24"
-        height="24"
+        width="26"
+        height="26"
         viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        fill="currentColor"
         aria-hidden="true"
       >
-        <path
-          d="M6.2 6.6h11.6a2.7 2.7 0 0 1 2.7 2.7v4.9a2.7 2.7 0 0 1-2.7 2.7h-5.9l-4.2 3.3v-3.3H6.2a2.7 2.7 0 0 1-2.7-2.7V9.3a2.7 2.7 0 0 1 2.7-2.7Z"
-        />
-        <path d="M8 10.1h8" />
-        <path d="M8 13.2h5.7" />
+        <!-- Sparkle / star with 4 rays — modern AI assistant icon -->
+        <path d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z" />
       </svg>
     </button>
 
@@ -207,6 +200,19 @@
                 @click="applyPromptTemplate(tpl)"
               >
                 {{ tpl.label }}
+              </button>
+            </div>
+            <!-- 默认 starter 示例：仅当宿主未配置 promptTemplates 时显示，引导新用户上手 -->
+            <div v-if="promptTemplateList.length === 0 && mode === 'chat'" class="ai-empty-starters">
+              <button
+                v-for="(starter, si) in defaultStarters"
+                :key="si"
+                type="button"
+                class="ai-empty-starter"
+                @click="input = starter; focusInput()"
+              >
+                <span class="ai-empty-starter-icon">{{ starter.split(' ')[0] }}</span>
+                <span class="ai-empty-starter-text">{{ starter.split(' ').slice(1).join(' ') }}</span>
               </button>
             </div>
           </div>
@@ -792,6 +798,48 @@ const isOpen = ref(false);
 /** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
 const fabHidden = ref(false);
 const input = ref('');
+
+/**
+ * 默认 starter 示例：宿主没在 options.promptTemplates 配置时，空状态显示这些
+ * 引导新用户上手。emoji 前缀也用作图标。每一项点击后直接填入输入框（不自动发送）。
+ */
+const defaultStarters = computed<string[]>(() => {
+  const loc = options.locale ?? 'en';
+  const lib: Record<string, string[]> = {
+    zh: [
+      '💡 帮我写一封商务邮件',
+      '🔍 解释什么是 RAG 检索增强',
+      '📝 把这段文字翻译成英文：',
+      '✨ 给我推荐 3 本科幻小说',
+    ],
+    en: [
+      '💡 Help me write a professional email',
+      '🔍 Explain what RAG (retrieval augmented generation) is',
+      '📝 Translate this text into Chinese: ',
+      '✨ Recommend 3 sci-fi novels for me',
+    ],
+    ja: [
+      '💡 ビジネスメールを書いてください',
+      '🔍 RAGとは何か説明してください',
+      '📝 この文章を英語に翻訳してください：',
+      '✨ おすすめのSF小説を3冊教えてください',
+    ],
+    ko: [
+      '💡 비즈니스 이메일 작성을 도와주세요',
+      '🔍 RAG(검색 증강 생성)에 대해 설명해 주세요',
+      '📝 이 텍스트를 영어로 번역해 주세요:',
+      '✨ SF 소설 3권을 추천해 주세요',
+    ],
+  };
+  return lib[loc] ?? lib.en;
+});
+
+function focusInput() {
+  void nextTick(() => {
+    const el = document.querySelector(`.ai-assistant-wrapper .ai-footer-textarea`) as HTMLTextAreaElement | null;
+    el?.focus();
+  });
+}
 const loading = ref(false);
 const ctrlEnterToSend = ref(false);
 const soundEnabled = ref(false);
@@ -2463,3 +2511,4 @@ onUnmounted(() => {
 <style src="./styles/06-page-feedback.css"></style>
 <style src="./styles/07-voice-thinking.css"></style>
 <style src="./styles/08-late-additions.css"></style>
+<style src="./styles/09-modern-overhaul.css"></style>
