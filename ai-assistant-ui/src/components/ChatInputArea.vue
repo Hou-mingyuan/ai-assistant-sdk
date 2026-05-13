@@ -168,6 +168,32 @@
       </div>
     </div>
     <div class="ai-footer-model-row">
+      <div class="ai-mode-segmented" role="tablist" aria-label="Mode">
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'chat' }"
+          :aria-selected="mode === 'chat' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'chat')"
+        >{{ t.chat }}</button>
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'translate' }"
+          :aria-selected="mode === 'translate' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'translate')"
+        >{{ t.translate }}</button>
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'summarize' }"
+          :aria-selected="mode === 'summarize' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'summarize')"
+        >{{ t.summarize }}</button>
+      </div>
       <select
         v-if="showModelPicker && hasBaseUrl"
         :value="selectedModel"

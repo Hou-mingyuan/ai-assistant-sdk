@@ -211,7 +211,7 @@
                 :key="si"
                 type="button"
                 class="ai-empty-starter"
-                @click="input = starter; focusInput()"
+                @click="input = starter.split(' ').slice(1).join(' '); focusInput()"
               >
                 <span class="ai-empty-starter-icon">{{ starter.split(' ')[0] }}</span>
                 <span class="ai-empty-starter-text">{{ starter.split(' ').slice(1).join(' ') }}</span>
@@ -288,13 +288,6 @@
           </button>
         </div>
 
-        <!-- Mode buttons -->
-        <div class="ai-quick-actions ai-quick-actions-sticky">
-          <button type="button" :class="{ active: mode === 'chat' }" @click="onChangeMode('chat')">{{ t.chat }}</button>
-          <button type="button" :class="{ active: mode === 'translate' }" @click="onChangeMode('translate')">{{ t.translate }}</button>
-          <button type="button" :class="{ active: mode === 'summarize' }" @click="onChangeMode('summarize')">{{ t.summarize }}</button>
-        </div>
-
         <!-- Input -->
         <ChatInputArea
           v-model="input"
@@ -321,6 +314,7 @@
           :slash-commands="slashCmd.filteredCommands.value"
           :slash-selected-index="slashCmd.selectedIndex.value"
           @send="send"
+          @change-mode="onChangeMode"
           @clear-pending-image="clearPendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"

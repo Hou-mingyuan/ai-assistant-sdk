@@ -1370,3 +1370,181 @@
     padding: 0 !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * UX 第四波 - 顺眼调整 5 项
+ *   #A1 思考过程默认折叠为 inline chip（22px 高小标签，点开才占整行）
+ *   #A2 用户胶囊：右对齐 + 缩到 78% 宽 + 铅笔编辑仅 hover 显示
+ *   #A3 模式按钮已从 input 上方移到 model-row 内（CSS 在此渲染分段控件）
+ *   #A4 助手头像加 "AI" 字样
+ *   #A5 starter 已在 Vue 层去 emoji（无需 CSS）
+ * ════════════════════════════════════════════════════════════════ */
+
+/* —— #A1 思考过程折叠紧凑 —— 默认状态像一颗小灰药丸贴在助手头像右侧 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details {
+  border-radius: 999px !important;
+  background: transparent !important;
+  border: 1px solid var(--ai-border) !important;
+  padding: 0 !important;
+  margin: 0 0 6px !important;
+  display: inline-block;
+  width: auto;
+  max-width: fit-content;
+  font-size: 11px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details[open] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--ai-radius-sm) !important;
+  background: rgba(2, 132, 199, 0.04) !important;
+  border-color: rgba(2, 132, 199, 0.18) !important;
+  padding: 6px 10px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-summary {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px !important;
+  color: var(--ai-text-muted) !important;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-summary::-webkit-details-marker {
+  display: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details[open] .ai-thinking-summary {
+  padding: 0 0 4px;
+  border-bottom: 1px dashed rgba(2, 132, 199, 0.18);
+  margin-bottom: 4px;
+  width: 100%;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-icon {
+  width: 11px;
+  height: 11px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details:hover {
+  border-color: var(--ai-gradient-1) !important;
+  color: var(--ai-text) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-thinking-details {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-thinking-details[open] {
+  background: rgba(56, 189, 248, 0.06) !important;
+  border-color: rgba(56, 189, 248, 0.22) !important;
+}
+
+/* —— #A2 用户胶囊：80% 宽 + 铅笔只在 hover 显示 —— */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
+  max-width: 78% !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+/* 铅笔编辑按钮：默认透明，hover 整条用户消息时才显示 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-actions {
+  opacity: 0 !important;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user:hover .ai-msg-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user:focus-within .ai-msg-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-actions:focus-within {
+  opacity: 0.82 !important;
+  pointer-events: auto;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-edit {
+  background: transparent !important;
+  border: 0 !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  opacity: 0.7;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-edit:hover {
+  opacity: 1;
+  background: rgba(14, 165, 233, 0.08) !important;
+  transform: none;
+}
+
+/* —— #A3 分段式模式按钮 (model-row 内嵌) —— */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
+  display: inline-flex;
+  flex: 0 0 auto;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--ai-border);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 0;
+  margin-right: 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ai-text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment:hover:not(.active) {
+  color: var(--ai-text);
+  background: rgba(14, 165, 233, 0.06);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment.active {
+  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2));
+  color: #fff;
+  box-shadow: 0 1px 4px -1px rgba(14, 165, 233, 0.4);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segmented {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment {
+  color: rgba(241, 245, 249, 0.6);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment:hover:not(.active) {
+  background: rgba(14, 165, 233, 0.1);
+  color: rgba(241, 245, 249, 0.95);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment.active {
+  color: #fff;
+}
+
+/* —— #A4 助手头像加 "AI" 字样 —— 覆盖原 ::before 的纯圆点装饰 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  text-shadow: 0 1px 2px rgba(2, 132, 199, 0.4);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar::before {
+  content: 'AI' !important;
+  position: static !important;
+  inset: auto !important;
+  background: none !important;
+  border-radius: 0 !important;
+  width: auto !important;
+  height: auto !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-loading::before {
+  content: '...' !important;
+  letter-spacing: 1px;
+}
