@@ -1,0 +1,583 @@
+/* ============================================================================
+ * 11-refinement-and-performance.css
+ * ---------------------------------------------------------------------------
+ * UX 第七波 - 性能与精致度专项
+ *
+ * 用户反馈：
+ *   - "操作有点卡顿不够丝滑"
+ *   - "样式不够精致现代"
+ *   - "排版不够合理"
+ *   - "让用户体验感不好"
+ *
+ * 三条主线：
+ *   A. 性能：减少 backdrop-filter / 高 blur / 复杂阴影；启用 contain / will-change /
+ *      content-visibility；让动画走 compositor only。
+ *   B. 精致度：现代设计系统（Linear / Notion / Apple-level）的间距、阴影、圆角、
+ *      字体特性；色彩从基础灰 → 现代 slate 色系。
+ *   C. 排版：统一 4px 网格、line-height、letter-spacing、视觉层级。
+ *
+ * 加载在 09 / 10 之后，以更高的 specificity 覆盖之前的样式。
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * 字体与全局排版（B + C）
+ * ---------------------------------------------------------------------------
+ * Inter / SF Pro / system stack；启用 OpenType features 提升数字、连字、可读性。
+ * 调整 line-height、letter-spacing 走现代 design system 标尺。
+ * ============================================================================
+ */
+.ai-assistant-wrapper,
+.ai-panel {
+  font-family:
+    "Inter", "SF Pro Text", "Segoe UI Variable Display", "Segoe UI",
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-feature-settings:
+    "cv11" on,        /* alternate single-storey a */
+    "ss01" on,        /* upright dollar */
+    "calt" on,        /* contextual alternates */
+    "kern" on,        /* kerning */
+    "liga" on;        /* common ligatures */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 数字密集区域用 tabular-nums，避免抖动 */
+.ai-stream-progress,
+.ai-elapsed,
+.ai-token-count,
+.ai-msg-time,
+.ai-counter,
+.ai-progress-chip,
+.ai-session-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 正文加 1.55 行高，head 用更紧 letter-spacing */
+.ai-bubble {
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  font-size: 14px;
+}
+
+.ai-panel-title,
+.ai-panel-head h2,
+.ai-empty-state h3,
+.ai-empty h3 {
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+/* ============================================================================
+ * 现代阴影系统（B）
+ * ---------------------------------------------------------------------------
+ * 多层小 blur 比单层大 blur 更轻盈、性能更好（GPU 路径短）。
+ * ============================================================================
+ */
+:root {
+  --ai-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ai-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
+  --ai-shadow-md: 0 2px 4px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --ai-shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --ai-shadow-xl: 0 6px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.1);
+  --ai-shadow-glow-sky: 0 0 0 1px rgba(14, 165, 233, 0.16), 0 4px 12px -4px rgba(14, 165, 233, 0.32);
+  --ai-shadow-glow-sky-strong: 0 0 0 1px rgba(14, 165, 233, 0.28), 0 8px 20px -6px rgba(14, 165, 233, 0.42);
+}
+
+[data-theme="dark"] {
+  --ai-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 4px rgba(0, 0, 0, 0.18);
+  --ai-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.22);
+  --ai-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.32), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --ai-shadow-xl: 0 6px 12px rgba(0, 0, 0, 0.36), 0 12px 32px rgba(0, 0, 0, 0.32);
+  --ai-shadow-glow-sky: 0 0 0 1px rgba(56, 189, 248, 0.22), 0 4px 12px -4px rgba(56, 189, 248, 0.36);
+  --ai-shadow-glow-sky-strong: 0 0 0 1px rgba(56, 189, 248, 0.34), 0 8px 20px -6px rgba(56, 189, 248, 0.46);
+}
+
+/* ============================================================================
+ * 圆角统一（B）
+ * ---------------------------------------------------------------------------
+ * 8 / 12 / 16 / 20px 四档；不再出现 5/6/7/9 等碎值。
+ * ============================================================================
+ */
+:root {
+  --ai-radius-sm: 8px;
+  --ai-radius-md: 12px;
+  --ai-radius-lg: 16px;
+  --ai-radius-xl: 20px;
+  --ai-radius-full: 999px;
+}
+
+.ai-panel {
+  border-radius: var(--ai-radius-lg);
+  box-shadow: var(--ai-shadow-xl);
+}
+
+.ai-bubble {
+  border-radius: var(--ai-radius-md);
+}
+
+.ai-bubble.ai-msg-user .ai-bubble,
+.ai-msg-user .ai-bubble {
+  border-radius: var(--ai-radius-lg) var(--ai-radius-sm) var(--ai-radius-lg) var(--ai-radius-lg);
+}
+
+.ai-msg-assistant .ai-bubble {
+  border-radius: var(--ai-radius-sm) var(--ai-radius-lg) var(--ai-radius-lg) var(--ai-radius-lg);
+}
+
+/* 输入框、按钮等次级元素 */
+.ai-input,
+.ai-textarea,
+.ai-input-area textarea,
+.ai-chat-input textarea {
+  border-radius: var(--ai-radius-md);
+  box-shadow: var(--ai-shadow-xs);
+}
+
+.ai-btn,
+.ai-mode-bar button,
+.ai-quick-actions button {
+  border-radius: var(--ai-radius-sm);
+}
+
+/* ============================================================================
+ * 性能：CSS containment + content-visibility（A）
+ * ---------------------------------------------------------------------------
+ * - .ai-bubble 走 contain: content（限制 layout / paint 影响范围）
+ * - .ai-msg 走 content-visibility: auto（屏外消息不参与 layout / paint）
+ * - .ai-panel 走 contain: layout style（修改面板内不重排外部）
+ * - .ai-md 走 contain: layout（markdown 子树独立）
+ * ============================================================================
+ */
+.ai-msg {
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}
+
+.ai-bubble {
+  contain: content;
+}
+
+.ai-panel {
+  contain: layout style;
+}
+
+.ai-md {
+  contain: layout style;
+}
+
+/* ============================================================================
+ * 性能：will-change 提示（A）
+ * ---------------------------------------------------------------------------
+ * 仅在即将动画的元素上加；不全员撒以免内存爆。
+ * ============================================================================
+ */
+.ai-fab,
+.ai-thinking-pill,
+.ai-msg.ai-streaming .ai-avatar,
+.ai-modal,
+.ai-popover,
+.ai-sessions-drawer,
+.ai-scroll-to-bottom-btn,
+.ai-jump-bottom-btn {
+  will-change: transform, opacity;
+}
+
+/* 滚动容器加 overflow contain 优化滚动时重排 */
+.ai-body,
+.ai-messages {
+  overflow-anchor: auto;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* ============================================================================
+ * 性能：减少 backdrop-filter 范围（A）
+ * ---------------------------------------------------------------------------
+ * 大面积 backdrop-filter 是当前卡顿主因之一。改用预乘色 + opacity 模拟，
+ * 仅保留在 modal / popover 等小面积的玻璃感效果上。
+ * ============================================================================
+ */
+.ai-panel,
+.ai-bubble,
+.ai-mode-bar,
+.ai-quick-actions {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 把原玻璃感的元素换成实色背景 */
+.ai-panel {
+  background-color: #ffffff;
+}
+
+[data-theme="dark"] .ai-panel {
+  background-color: #0f172a;
+}
+
+.ai-bubble {
+  background-color: #ffffff;
+  box-shadow: var(--ai-shadow-xs);
+}
+
+[data-theme="dark"] .ai-bubble {
+  background-color: #1e293b;
+}
+
+.ai-msg-user .ai-bubble {
+  background-color: #f1f5f9;
+}
+
+[data-theme="dark"] .ai-msg-user .ai-bubble {
+  background-color: #1e293b;
+}
+
+/* 保留 modal / popover 的轻量玻璃质感，但收紧到 small surface */
+.ai-modal-backdrop,
+.ai-popover-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+/* ============================================================================
+ * 排版：消息间距 + 头像对齐（C）
+ * ---------------------------------------------------------------------------
+ * 4px 网格：8/12/16/20/24。统一 .ai-msg gap = 12px，.ai-body padding = 16px。
+ * ============================================================================
+ */
+.ai-body,
+.ai-messages {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0;
+}
+
+.ai-msg .ai-avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ai-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.ai-msg .ai-bubble {
+  padding: 10px 14px;
+  max-width: calc(100% - 40px);
+}
+
+/* 系统消息（系统提示、错误等）居中收窄 */
+.ai-msg.ai-msg-system .ai-bubble {
+  margin: 0 auto;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+}
+
+/* ============================================================================
+ * 排版：输入区精致化（C）
+ * ---------------------------------------------------------------------------
+ * 输入区一组按钮 + textarea 应该像一张卡片，不是散落的元素。
+ * ============================================================================
+ */
+.ai-chat-input,
+.ai-input-area {
+  padding: 12px 16px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+[data-theme="dark"] .ai-chat-input,
+[data-theme="dark"] .ai-input-area {
+  background: #0f172a;
+  border-top-color: #1e293b;
+}
+
+.ai-input-area textarea,
+.ai-chat-input textarea {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 40px;
+  resize: none;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+[data-theme="dark"] .ai-input-area textarea,
+[data-theme="dark"] .ai-chat-input textarea {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+/* ============================================================================
+ * 排版：顶栏紧凑化（C）
+ * ---------------------------------------------------------------------------
+ * 顶栏当前在多次迭代后已较拥挤；统一 padding 12px / 16px，icon 大小 16px。
+ * ============================================================================
+ */
+.ai-panel-head,
+.ai-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+[data-theme="dark"] .ai-panel-head,
+[data-theme="dark"] .ai-header {
+  border-bottom-color: #1e293b;
+}
+
+.ai-panel-head h2,
+.ai-header h2 {
+  font-size: 14px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.ai-panel-head button,
+.ai-header button {
+  padding: 6px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-panel-head button svg,
+.ai-header button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================================
+ * 模态 / popover 进入动画（B + A）
+ * ---------------------------------------------------------------------------
+ * 用 opacity + scale 走 compositor，避免 layout 抖动。
+ * ============================================================================
+ */
+@keyframes ai-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.ai-modal,
+.ai-popover,
+.ai-prompt-tpl-dialog,
+.ai-personalize-dialog,
+.ai-keyboard-shortcuts-dialog {
+  animation: ai-modal-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top center;
+}
+
+/* ============================================================================
+ * 颜色精修：slate 系列（B）
+ * ---------------------------------------------------------------------------
+ * 把硬灰色（#888 / #999 / #ccc）换成 slate-400/500/600 等更现代的色调。
+ * ============================================================================
+ */
+.ai-panel,
+.ai-body,
+.ai-messages {
+  color: #0f172a;
+}
+
+[data-theme="dark"] .ai-panel,
+[data-theme="dark"] .ai-body,
+[data-theme="dark"] .ai-messages {
+  color: #e2e8f0;
+}
+
+/* 二级文本（时间、状态等） */
+.ai-msg-time,
+.ai-secondary-text,
+.ai-hint,
+.ai-msg-meta {
+  color: #64748b;
+  font-size: 12px;
+}
+
+[data-theme="dark"] .ai-msg-time,
+[data-theme="dark"] .ai-secondary-text,
+[data-theme="dark"] .ai-hint,
+[data-theme="dark"] .ai-msg-meta {
+  color: #94a3b8;
+}
+
+/* ============================================================================
+ * 列表项 hover（B）
+ * ---------------------------------------------------------------------------
+ * 会话列表、Tab 列表、模板列表 hover 时背景轻拍打；不再用突兀的深色块。
+ * ============================================================================
+ */
+.ai-session-item,
+.ai-prompt-tpl-item,
+.ai-tab,
+.ai-list-item {
+  padding: 8px 10px;
+  border-radius: var(--ai-radius-sm);
+  transition: background-color 140ms ease;
+}
+
+.ai-session-item:hover,
+.ai-prompt-tpl-item:hover,
+.ai-tab:hover,
+.ai-list-item:hover {
+  background-color: rgba(14, 165, 233, 0.06);
+}
+
+.ai-session-item.active,
+.ai-prompt-tpl-item.active,
+.ai-tab.active,
+.ai-list-item.active {
+  background-color: rgba(14, 165, 233, 0.12);
+}
+
+/* ============================================================================
+ * 性能：高频元素不挂阴影（A）
+ * ---------------------------------------------------------------------------
+ * 持续动画 + 大阴影 = 卡顿核心。把流式过程中的元素阴影简化。
+ * ============================================================================
+ */
+.ai-msg.ai-streaming .ai-bubble {
+  box-shadow: none !important;
+}
+
+.ai-fab {
+  /* 复杂 box-shadow 改为 sharp + 一个 secondary 层即可 */
+  box-shadow:
+    0 6px 16px -4px rgba(14, 165, 233, 0.36),
+    0 2px 4px rgba(14, 165, 233, 0.18);
+}
+
+/* ============================================================================
+ * Empty-state 重设计（B + C）
+ * ---------------------------------------------------------------------------
+ * 之前 empty state 偏简陋；新设计有渐变文字 + 卡片化建议 + 适当呼吸感。
+ * ============================================================================
+ */
+.ai-empty,
+.ai-empty-state {
+  padding: 32px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-empty h3,
+.ai-empty-state h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ai-empty p,
+.ai-empty-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.ai-empty .ai-starters,
+.ai-empty-state .ai-starters,
+.ai-suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 360px;
+}
+
+.ai-empty .ai-starter,
+.ai-suggestion-chip {
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: var(--ai-radius-full);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+[data-theme="dark"] .ai-empty .ai-starter,
+[data-theme="dark"] .ai-suggestion-chip {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.ai-empty .ai-starter:hover,
+.ai-suggestion-chip:hover {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.32);
+  color: #0ea5e9;
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+ * 触发抑制（A）
+ * ---------------------------------------------------------------------------
+ * input/textarea 输入时不触发外部 transition；避免每字一帧重排。
+ * ============================================================================
+ */
+.ai-bubble:has(.ai-streaming-cursor),
+.ai-streaming {
+  transition-duration: 0ms !important;
+}
+
+/* ============================================================================
+ * Reduced motion 兜底（与 09/10 累加）
+ * ============================================================================
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ai-modal,
+  .ai-popover,
+  .ai-prompt-tpl-dialog,
+  .ai-personalize-dialog,
+  .ai-keyboard-shortcuts-dialog {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
