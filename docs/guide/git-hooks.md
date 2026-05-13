@@ -132,11 +132,42 @@ node scripts/project-health-check.mjs --coverage
 node scripts/project-health-check.mjs --all
 ```
 
+### CI 自动评论到 PR
+
+`bundle-size-check` 和 `coverage-check` 都支持 `--markdown` / `--markdown-out` 参数，
+CI workflow 在 PR 上跑完后自动把两个报表拼成一条**贴顶评论**（sticky comment，复用同一条 issue comment）：
+
+```
+<!-- ci-metrics-sticky -->
+
+### 📦 Bundle Size Report
+...
+
+### 🧪 Coverage Report
+...
+```
+
+实现细节：
+
+- 检测 PR 上是否已经有带 `<!-- ci-metrics-sticky -->` 标记的评论 —— 有则 update、无则 create。
+- 用 `actions/github-script@v7`，不依赖任何第三方 action（审计友好）。
+- 需要工作流权限 `pull-requests: write`（仅在 `frontend` job 内开启）。
+- push 到 main 不发评论（GitHub Actions `if: github.event_name == 'pull_request'`）。
+
+本地预览同样的 markdown：
+
+```bash
+node scripts/bundle-size-check.mjs --markdown
+node scripts/coverage-check.mjs --markdown
+```
+
 ## 相关文件
 
 - `scripts/install-git-hooks.mjs` — 安装器（含 `--force` / `--uninstall`）
 - `scripts/git-hooks/pre-commit.mjs` — 实际跑的检查逻辑
-- `scripts/coverage-check.mjs` — 覆盖率回归检测（J2）
+- `scripts/coverage-check.mjs` — 覆盖率回归检测（J2，含 `--markdown`）
 - `scripts/.coverage-baseline.json` — 覆盖率基线快照
-- `.github/workflows/ci.yml` — CI 兜底（spotless / coverage / e2e / bundle-size）
+- `scripts/bundle-size-check.mjs` — bundle gzip 守门（F2，含 `--markdown`，J1）
+- `scripts/.bundle-size-baseline.json` — bundle 基线快照
+- `.github/workflows/ci.yml` — CI 兜底 + PR sticky comment（spotless / coverage / e2e / bundle-size）
 - [Production Checklist](./production-checklist.md) — 发版前完整 checklist

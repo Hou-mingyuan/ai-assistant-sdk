@@ -22,6 +22,8 @@
  *   --metric <list>           只检查指定维度，逗号分隔，可选
  *                             statements/branches/functions/lines（默认全部）
  *   --json                    以 JSON 输出，不打印表格
+ *   --markdown                以 GitHub-flavored Markdown 输出（适合 PR comment）
+ *   --markdown-out <path>     写 Markdown 到指定文件
  *   --help, -h                显示帮助
  *
  * Baseline JSON 格式：
@@ -68,9 +70,13 @@ function parseArgs(argv) {
     else if (a === '--max-drop-percent') out.maxDropPercent = argv[++i];
     else if (a === '--metric') out.metric = argv[++i];
     else if (a === '--json') out.json = true;
-    else if (a === '--help' || a === '-h') {
+    else if (a === '--markdown') out.markdown = true;
+    else if (a === '--markdown-out') {
+      out.markdown = true;
+      out.markdownOut = argv[++i];
+    } else if (a === '--help' || a === '-h') {
       const src = fs.readFileSync(fileURLToPath(import.meta.url), 'utf-8');
-      console.log(src.split('\n').slice(1, 36).join('\n'));
+      console.log(src.split('\n').slice(1, 38).join('\n'));
       process.exit(0);
     }
   }
@@ -139,6 +145,90 @@ if (fs.existsSync(baselinePath)) {
 if (args.json) {
   process.stdout.write(JSON.stringify({ total: totalPct, files: filePcts, baseline }, null, 2));
   process.exit(0);
+}
+
+if (args.markdown) {
+  const md = renderMarkdown(totalPct, fileEntries, baseline, metrics, maxDrop);
+  if (args.markdownOut) {
+    fs.writeFileSync(args.markdownOut, md, 'utf-8');
+    console.log(`Markdown report written to ${args.markdownOut}`);
+  } else {
+    process.stdout.write(md);
+  }
+  const flaggedCount = countRegressions(totalPct, fileEntries, baseline, metrics, maxDrop);
+  if (flaggedCount > 0) {
+    process.stderr.write(
+      `${flaggedCount} regression(s) > ${maxDrop}pt drop vs baseline.\n`,
+    );
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
+function countRegressions(totalPct, fileEntries, baseline, metrics, maxDrop) {
+  if (!baseline) return 0;
+  let n = 0;
+  for (const m of metrics) {
+    const base = baseline.total?.[m];
+    if (base != null && totalPct[m] - base < -maxDrop) n++;
+  }
+  for (const [rel, pct] of fileEntries) {
+    const fbase = baseline.files?.[rel];
+    if (!fbase) continue;
+    for (const m of metrics) {
+      const base = fbase[m];
+      if (base != null && pct[m] - base < -maxDrop) n++;
+    }
+  }
+  return n;
+}
+
+function renderMarkdown(totalPct, fileEntries, baseline, metrics, maxDrop) {
+  const lines = [];
+  lines.push('### 🧪 Coverage Report');
+  lines.push('');
+  if (baseline) {
+    const totalLine = metrics
+      .map((m) => {
+        const cur = totalPct[m] ?? 0;
+        const base = baseline.total?.[m] ?? 0;
+        const diff = cur - base;
+        const arrow =
+          diff < -maxDrop ? '🚫' : diff < -0.05 ? '🔻' : diff > 0.05 ? '🟢' : '➖';
+        return `**${m}** ${cur.toFixed(2)}% ${arrow} ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}pt`;
+      })
+      .join(' · ');
+    lines.push(`**Total:** ${totalLine}`);
+  } else {
+    lines.push(
+      `**Total:** ${metrics.map((m) => `${m} ${totalPct[m].toFixed(2)}%`).join(' · ')} _(no baseline)_`,
+    );
+  }
+  lines.push('');
+  lines.push(`| File | ${metrics.map((m) => `${m} (Δ)`).join(' | ')} |`);
+  lines.push(`| --- | ${metrics.map(() => '---:').join(' | ')} |`);
+  for (const [rel, pct] of fileEntries) {
+    const fbase = baseline?.files?.[rel];
+    const cells = metrics
+      .map((m) => {
+        const cur = pct[m] ?? 0;
+        const base = fbase?.[m];
+        if (base == null) return `${cur.toFixed(2)}% (—)`;
+        const diff = cur - base;
+        const arrow =
+          diff < -maxDrop ? '🚫' : diff < -0.05 ? '🔻' : diff > 0.05 ? '🟢' : '➖';
+        return `${cur.toFixed(2)}% ${arrow} ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}pt`;
+      })
+      .join(' | ');
+    lines.push(`| \`${rel}\` | ${cells} |`);
+  }
+  lines.push('');
+  lines.push(
+    `<sub>Threshold: any metric dropping > **${maxDrop}pt** vs baseline fails the build. ` +
+      `Update baseline with \`node scripts/coverage-check.mjs --update-baseline && git add scripts/.coverage-baseline.json\`.</sub>`,
+  );
+  lines.push('');
+  return lines.join('\n');
 }
 
 function formatPct(n) {

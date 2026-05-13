@@ -17,6 +17,8 @@
  *   --ext <comma-list>     纳入统计的扩展名，默认 js,mjs,cjs,css
  *   --top N                最多显示前 N 个最大文件，默认 20
  *   --json                 以 JSON 输出，不打印表格
+ *   --markdown             以 GitHub-flavored Markdown 输出（适合 PR comment）
+ *   --markdown-out <path>  写 Markdown 到指定文件（与 --markdown 等价但有副本）
  *   --help, -h             显示帮助
  *
  * Baseline JSON 格式：
@@ -54,9 +56,13 @@ function parseArgs(argv) {
     else if (a === '--ext') out.ext = argv[++i];
     else if (a === '--top') out.top = argv[++i];
     else if (a === '--json') out.json = true;
-    else if (a === '--help' || a === '-h') {
+    else if (a === '--markdown') out.markdown = true;
+    else if (a === '--markdown-out') {
+      out.markdown = true;
+      out.markdownOut = argv[++i];
+    } else if (a === '--help' || a === '-h') {
       const src = fs.readFileSync(fileURLToPath(import.meta.url), 'utf-8');
-      console.log(src.split('\n').slice(1, 32).join('\n'));
+      console.log(src.split('\n').slice(1, 35).join('\n'));
       process.exit(0);
     }
   }
@@ -150,6 +156,94 @@ if (args.updateBaseline) {
 if (args.json) {
   process.stdout.write(JSON.stringify({ totals, entries, baseline }, null, 2));
   process.exit(0);
+}
+
+if (args.markdown) {
+  const md = renderMarkdown(entries, totals, baseline, maxDeltaPercent, topN);
+  if (args.markdownOut) {
+    fs.writeFileSync(args.markdownOut, md, 'utf-8');
+    console.log(`Markdown report written to ${args.markdownOut}`);
+  } else {
+    process.stdout.write(md);
+  }
+  /* Still compute overBudget so CI can fail when budget exceeded. */
+  const overBudgetCount = countOverBudget(entries, baseline, maxDeltaPercent);
+  if (overBudgetCount > 0) {
+    process.stderr.write(
+      `${overBudgetCount} file(s) exceed +${maxDeltaPercent}% gzip budget vs baseline.\n`,
+    );
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
+function countOverBudget(entries, baseline, maxPct) {
+  if (!baseline) return 0;
+  let n = 0;
+  for (const e of entries) {
+    const b = baseline.files?.[e.relative];
+    if (!b) continue;
+    if (((e.gzip - b.gzip) / b.gzip) * 100 > maxPct) n++;
+  }
+  return n;
+}
+
+function renderMarkdown(entries, totals, baseline, maxPct, top) {
+  const lines = [];
+  const baselineTotal = baseline
+    ? Object.values(baseline.files).reduce(
+        (acc, f) => ({ size: acc.size + (f.size || 0), gzip: acc.gzip + (f.gzip || 0) }),
+        { size: 0, gzip: 0 },
+      )
+    : null;
+  lines.push('### 📦 Bundle Size Report');
+  lines.push('');
+  if (baseline) {
+    const totalDeltaPct = ((totals.gzip - baselineTotal.gzip) / baselineTotal.gzip) * 100;
+    const trend =
+      Math.abs(totalDeltaPct) < 0.1
+        ? '➖ no change'
+        : totalDeltaPct > maxPct
+          ? `🚫 **+${totalDeltaPct.toFixed(2)}%** over +${maxPct}% budget`
+          : totalDeltaPct > 0
+            ? `⚠️ +${totalDeltaPct.toFixed(2)}%`
+            : `✅ ${totalDeltaPct.toFixed(2)}%`;
+    lines.push(
+      `**Total gzip:** ${formatKB(totals.gzip)} (raw ${formatKB(totals.size)}) — ` +
+        `vs baseline ${formatKB(baselineTotal.gzip)} → ${trend}`,
+    );
+  } else {
+    lines.push(`**Total gzip:** ${formatKB(totals.gzip)} (raw ${formatKB(totals.size)}) — _no baseline_`);
+  }
+  lines.push('');
+  lines.push('| File | Raw | Gzip | Δ gzip vs baseline |');
+  lines.push('| --- | ---: | ---: | ---: |');
+  for (const e of entries.slice(0, top)) {
+    const b = baseline?.files?.[e.relative];
+    let deltaCell = '—';
+    if (b) {
+      const diff = e.gzip - b.gzip;
+      if (Math.abs(diff) < 50) {
+        deltaCell = '±0.00 KB';
+      } else {
+        const sign = diff >= 0 ? '+' : '';
+        const pct = ((diff / b.gzip) * 100).toFixed(1);
+        const arrow = diff > 0 ? (diff / b.gzip > maxPct / 100 ? '🚫' : '🔺') : '🟢';
+        deltaCell = `${arrow} ${sign}${(diff / 1024).toFixed(2)} KB (${sign}${pct}%)`;
+      }
+    }
+    lines.push(`| \`${e.relative}\` | ${formatKB(e.size)} | ${formatKB(e.gzip)} | ${deltaCell} |`);
+  }
+  if (entries.length > top) {
+    lines.push(`| _…${entries.length - top} smaller files omitted (--top ${top})_ |  |  |  |`);
+  }
+  lines.push('');
+  lines.push(
+    `<sub>Budget: any single file gzip growing > **+${maxPct}%** vs baseline fails the build. ` +
+      `Update baseline with \`node scripts/bundle-size-check.mjs --update-baseline && git add scripts/.bundle-size-baseline.json\`.</sub>`,
+  );
+  lines.push('');
+  return lines.join('\n');
 }
 
 /* Pretty table */
