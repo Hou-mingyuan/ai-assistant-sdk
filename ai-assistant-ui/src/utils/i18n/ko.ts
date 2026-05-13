@@ -204,4 +204,6 @@ export const ko: I18nMessages = {
   kbdSelectSlash: '하이라이트된 명령 실행',
   kbdCancelSlash: '슬래시 명령 메뉴 닫기',
   kbdFootTip: 'Esc로 닫기 · Ctrl + /로 다시 열기',
+  codeFold: '접기',
+  codeUnfold: '펼치기',
 };

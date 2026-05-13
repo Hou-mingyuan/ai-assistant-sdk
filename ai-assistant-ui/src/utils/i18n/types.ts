@@ -244,4 +244,7 @@ export interface I18nMessages {
   kbdCancelSlash: string;
   /** E1: 底部提示 */
   kbdFootTip: string;
+  /** F4: 代码块折叠按钮文案（折叠态显示 "Unfold"，展开态显示 "Fold"） */
+  codeFold: string;
+  codeUnfold: string;
 }

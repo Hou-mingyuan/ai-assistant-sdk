@@ -209,4 +209,6 @@ export const en: I18nMessages = {
   kbdSelectSlash: 'Run highlighted command',
   kbdCancelSlash: 'Close slash command menu',
   kbdFootTip: 'Press Esc to close · Press Ctrl + / again to reopen',
+  codeFold: 'Fold',
+  codeUnfold: 'Unfold',
 };

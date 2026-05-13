@@ -2155,6 +2155,16 @@ function handleBodyClick(e: MouseEvent) {
     options.openCodeInIde?.({ code, language: lm ? lm[1] : undefined });
     return;
   }
+  /* F4: fold toggle - 折叠 / 展开长代码块 */
+  if (target.dataset.foldToggle === 'true') {
+    const wrap = target.closest('.ai-code-wrap');
+    if (wrap) {
+      const isFolded = wrap.classList.toggle('ai-code-folded');
+      target.setAttribute('aria-expanded', isFolded ? 'false' : 'true');
+      target.textContent = isFolded ? (t.value.codeUnfold || 'Unfold') : (t.value.codeFold || 'Fold');
+    }
+    return;
+  }
   if (target.dataset.copy === 'true') {
     const pre = target.closest('pre');
     const code = pre?.querySelector('code')?.textContent || '';

@@ -205,4 +205,6 @@ export const zh: I18nMessages = {
   kbdSelectSlash: '执行选中的斜杠命令',
   kbdCancelSlash: '关闭斜杠命令面板',
   kbdFootTip: '按 Esc 关闭 · 再次按 Ctrl + / 可重新打开',
+  codeFold: '折叠',
+  codeUnfold: '展开',
 };

@@ -67,23 +67,44 @@ function escapeAttr(s: string): string {
   return escapeHtml(s).replace(/'/g, '&#39;');
 }
 
-function toolbarHtml(copyLabel: string, showIde: boolean): string {
+function toolbarHtml(
+  copyLabel: string,
+  showIde: boolean,
+  lang: string,
+  foldable: boolean,
+  foldLabel: string,
+): string {
+  const langChip = lang
+    ? `<span class="ai-code-lang" aria-label="language: ${escapeAttr(lang)}">${escapeHtml(lang)}</span>`
+    : '';
+  const fold = foldable
+    ? `<button type="button" class="ai-code-fold-btn" data-fold-toggle="true" aria-label="${escapeAttr(foldLabel)}" aria-expanded="true">${escapeHtml(foldLabel)}</button>`
+    : '';
   const copy = `<button type="button" class="ai-code-copy" data-copy="true" aria-label="${escapeAttr(copyLabel)}">${escapeHtml(copyLabel)}</button>`;
   const ide = showIde
     ? '<button type="button" class="ai-code-ide" data-ide="true" aria-label="IDE">IDE</button>'
     : '';
-  return `<div class="ai-code-toolbar">${copy}${ide}</div>`;
+  return `<div class="ai-code-toolbar">${langChip}<span class="ai-code-toolbar-spacer"></span>${fold}${copy}${ide}</div>`;
 }
 
-function wrapPreBlocks(html: string, copyLabel: string, showIde: boolean): string {
+/** F4: 行数 ≥ 此值时默认显示折叠按钮（折叠展开是用户的事，默认仍展开） */
+const FOLDABLE_LINE_THRESHOLD = 20;
+
+function wrapPreBlocks(html: string, copyLabel: string, showIde: boolean, foldLabel: string): string {
   return html.replace(/<pre(\s[^>]*)?>([\s\S]*?)<\/pre>/gi, (_full, attrs, inner) => {
     const a = attrs ?? '';
     const lineCount = (inner.match(/\n/g)?.length ?? 0) + 1;
-    /* 行号使用 CSS counter（见 styles），这里只在需要时挂 data-lineno-count，
-       让 CSS 知道总行数（用于固定 gutter 宽度）。逻辑行 ≥ 2 才显示行号，
+    /* F4: 从 <code class="language-xxx"> 解析语言名给 toolbar 显示 chip */
+    const langMatch = inner.match(/<code[^>]*\bclass="[^"]*\blanguage-([\w+-]+)/i);
+    const lang = langMatch ? langMatch[1] : '';
+    const foldable = lineCount >= FOLDABLE_LINE_THRESHOLD;
+    /* 行号使用 CSS counter（见 styles）。逻辑行 ≥ 2 才显示行号，
        避免单行片段被加上多余的「1」前缀。 */
-    const wrapClass = lineCount >= 2 ? 'ai-code-wrap ai-code-lineno' : 'ai-code-wrap';
-    return `<div class="${wrapClass}" data-line-count="${lineCount}">${toolbarHtml(copyLabel, showIde)}<pre${a}>${inner}</pre></div>`;
+    const classes = ['ai-code-wrap'];
+    if (lineCount >= 2) classes.push('ai-code-lineno');
+    if (foldable) classes.push('ai-code-foldable');
+    const wrapClass = classes.join(' ');
+    return `<div class="${wrapClass}" data-line-count="${lineCount}"${lang ? ` data-lang="${escapeAttr(lang)}"` : ''}>${toolbarHtml(copyLabel, showIde, lang, foldable, foldLabel)}<pre${a}>${inner}</pre></div>`;
   });
 }
 
@@ -92,16 +113,22 @@ const PURIFY = {
   ADD_ATTR: [
     'data-ide',
     'data-copy',
+    'data-fold-toggle',
     'data-highlighted',
     'data-line-count',
+    'data-lang',
     'data-mermaid-src',
     'aria-label',
+    'aria-expanded',
     'class',
     'type',
   ],
 };
 
-export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: AiAssistantOptions) {
+export function useAiMarkdownRenderer(t: ComputedRef<I18nMessages>, options: AiAssistantOptions) {
+  function getFoldLabel(): string {
+    return t.value.codeFold || 'Fold';
+  }
   function renderContent(raw: string, copyCodeLabel: string, isStreamingLast: boolean): string {
     const src = raw ?? '';
     if (!src.trim()) {
@@ -109,9 +136,10 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
     }
 
     const ide = Boolean(options.openCodeInIde);
+    const foldLabel = getFoldLabel();
     /* 流式最后一气泡每帧变化，不进缓存，避免缓存膨胀与逐帧淘汰 */
     if (!isStreamingLast) {
-      const cacheKey = `${src}\0${copyCodeLabel}\0${ide}`;
+      const cacheKey = `${src}\0${copyCodeLabel}\0${ide}\0${foldLabel}`;
       const hit = renderCache.get(cacheKey);
       if (hit !== undefined) {
         renderCache.delete(cacheKey);
@@ -135,7 +163,7 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
       html = `<pre class="ai-md-fallback">${escapeHtml(src)}</pre>`;
     }
 
-    html = wrapPreBlocks(html, copyCodeLabel, ide);
+    html = wrapPreBlocks(html, copyCodeLabel, ide, foldLabel);
 
     if (isStreamingLast) {
       html += '<span class="ai-stream-caret" aria-hidden="true"></span>';
@@ -144,7 +172,7 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
     html = String(DOMPurify.sanitize(html, PURIFY));
 
     if (!isStreamingLast) {
-      const cacheKey = `${src}\0${copyCodeLabel}\0${ide}`;
+      const cacheKey = `${src}\0${copyCodeLabel}\0${ide}\0${foldLabel}`;
       if (renderCache.size >= CACHE_CAP) {
         const k = renderCache.keys().next().value;
         if (k !== undefined) {
@@ -195,7 +223,7 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
     } catch {
       html = `<pre class="ai-md-fallback">${escapeHtml(src)}</pre>`;
     }
-    html = wrapPreBlocks(html, copyCodeLabel, ide);
+    html = wrapPreBlocks(html, copyCodeLabel, ide, getFoldLabel());
     html += '<span class="ai-stream-caret" aria-hidden="true"></span>';
     html = String(DOMPurify.sanitize(html, PURIFY));
     lastStreamHtml = html;

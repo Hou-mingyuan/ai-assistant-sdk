@@ -204,4 +204,6 @@ export const ja: I18nMessages = {
   kbdSelectSlash: 'ハイライト中のコマンドを実行',
   kbdCancelSlash: 'スラッシュコマンドメニューを閉じる',
   kbdFootTip: 'Esc で閉じる · 再度 Ctrl + / で開く',
+  codeFold: '折りたたむ',
+  codeUnfold: '展開',
 };
