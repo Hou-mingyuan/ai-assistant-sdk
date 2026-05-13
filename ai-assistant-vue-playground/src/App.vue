@@ -18,6 +18,15 @@
         Admin Console
       </button>
       <span class="page-nav-spacer" />
+      <ColorThemeSwitcher v-model="theme" class="page-nav-theme" />
+      <button
+        type="button"
+        class="page-nav-cmdk"
+        title="打开命令面板 (Ctrl+K / ⌘+K)"
+        @click="cmd.toggle"
+      >
+        <span aria-hidden="true">⌘</span>K
+      </button>
       <a
         class="page-nav-hint"
         href="https://github.com/Hou-mingyuan/ai-assistant-sdk"
@@ -35,18 +44,113 @@
       </p>
       <p class="demo-hint">
         切到顶栏的 <strong>Admin Console</strong> 标签可看到本轮 K4 改进 -- 7 个 tab
-        覆盖 15 个 admin endpoint 的完整管理面板。
+        覆盖 15 个 admin endpoint 的完整管理面板。<br />
+        按 <kbd>Ctrl+K</kbd> / <kbd>⌘+K</kbd> 打开 K16 命令面板，
+        顶栏色块切换 K16 主题色，悬浮球 K13/K14/K15 微交互全部就绪。
       </p>
     </article>
 
     <AdminDemoPanel v-if="route === 'admin'" />
     <AiAssistant />
+
+    <CommandPalette v-model:open="cmd.open.value" :commands="cmd.commands.value" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import AdminDemoPanel from './AdminDemoPanel.vue';
+import CommandPalette from '../../ai-assistant-ui/src/components/CommandPalette.vue';
+import ColorThemeSwitcher from '../../ai-assistant-ui/src/components/ColorThemeSwitcher.vue';
+import { useCommandPalette } from '../../ai-assistant-ui/src/composables/useCommandPalette';
+
+/* K16 demo wiring: Color theme switcher controls the playground primary color
+ * via CSS variable update; useCommandPalette registers two demo commands. */
+const theme = ref<string>(localStorage.getItem('playground-theme') ?? 'sky');
+const themePalettes: Record<string, [string, string, string]> = {
+  sky: ['#0ea5e9', '#06b6d4', '#3b82f6'],
+  sunset: ['#f59e0b', '#f43f5e', '#a855f7'],
+  forest: ['#10b981', '#14b8a6', '#06b6d4'],
+  plum: ['#a855f7', '#ec4899', '#f43f5e'],
+  graphite: ['#64748b', '#475569', '#334155'],
+};
+
+watch(
+  theme,
+  (v) => {
+    localStorage.setItem('playground-theme', v);
+    const [from, , to] = themePalettes[v] ?? themePalettes.sky!;
+    document.documentElement.style.setProperty('--demo-primary-from', from);
+    document.documentElement.style.setProperty('--demo-primary-to', to);
+  },
+  { immediate: true },
+);
+
+const cmd = useCommandPalette({
+  shortcut: 'Ctrl+K',
+  commands: [
+    {
+      id: 'nav-demo',
+      label: '切换到 AI 助手 Demo',
+      group: '导航',
+      icon: '🤖',
+      shortcut: 'g d',
+      action: () => setRoute('demo'),
+    },
+    {
+      id: 'nav-admin',
+      label: '切换到 Admin Console',
+      group: '导航',
+      icon: '🛠',
+      shortcut: 'g a',
+      action: () => setRoute('admin'),
+    },
+    {
+      id: 'theme-sky',
+      label: '主题: Sky',
+      group: '主题',
+      icon: '🩵',
+      action: () => (theme.value = 'sky'),
+    },
+    {
+      id: 'theme-sunset',
+      label: '主题: Sunset',
+      group: '主题',
+      icon: '🌅',
+      action: () => (theme.value = 'sunset'),
+    },
+    {
+      id: 'theme-forest',
+      label: '主题: Forest',
+      group: '主题',
+      icon: '🌲',
+      action: () => (theme.value = 'forest'),
+    },
+    {
+      id: 'theme-plum',
+      label: '主题: Plum',
+      group: '主题',
+      icon: '🫐',
+      action: () => (theme.value = 'plum'),
+    },
+    {
+      id: 'open-github',
+      label: '打开 GitHub 仓库',
+      group: '外链',
+      icon: '🔗',
+      keywords: ['github', 'repo'],
+      action: () => window.open('https://github.com/Hou-mingyuan/ai-assistant-sdk', '_blank'),
+    },
+    {
+      id: 'open-docs',
+      label: '打开本地文档站',
+      group: '外链',
+      icon: '📖',
+      keywords: ['docs', 'guide'],
+      action: () => window.open('http://localhost:5174', '_blank'),
+    },
+  ],
+});
 
 type Route = 'demo' | 'admin';
 
@@ -130,6 +234,32 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onPopState));
   flex: 1;
 }
 
+.page-nav-theme {
+  margin-right: 8px;
+}
+
+.page-nav-cmdk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: #334155;
+  cursor: pointer;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  transition: all 0.15s ease;
+}
+
+.page-nav-cmdk:hover {
+  background: rgba(14, 165, 233, 0.10);
+  border-color: rgba(14, 165, 233, 0.32);
+  color: #0ea5e9;
+}
+
 .page-nav-hint {
   font-size: 0.8rem;
   color: #64748b;
@@ -154,10 +284,26 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onPopState));
 .demo-assistant-page-context h1 {
   margin: 0 0 0.5rem;
   font-size: 1.4rem;
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(
+    135deg,
+    var(--demo-primary-from, #0ea5e9),
+    var(--demo-primary-to, #06b6d4)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.demo-hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 2px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 4px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.75em;
+  font-weight: 500;
 }
 
 .demo-hint {
