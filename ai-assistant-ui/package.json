@@ -1,6 +1,6 @@
 {
   "name": "@ai-assistant/vue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Embeddable AI assistant widget for Vue 3 - translation, summarization, chat",
   "repository": {
