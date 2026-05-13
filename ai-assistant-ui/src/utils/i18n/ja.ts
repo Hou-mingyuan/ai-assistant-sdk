@@ -217,4 +217,7 @@ export const ja: I18nMessages = {
   sessionsDrawerPinned: 'ピン留め',
   sessionsDrawerPin: 'ピン留め / 解除',
   sessionsDrawerRename: '名前を変更',
+  searchCaseSensitive: '大文字小文字を区別 (Aa)',
+  searchWholeWord: '単語単位 (W)',
+  searchRegex: '正規表現 (.*?)',
 };

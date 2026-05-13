@@ -218,4 +218,7 @@ export const zh: I18nMessages = {
   sessionsDrawerPinned: '收藏',
   sessionsDrawerPin: '收藏/取消收藏',
   sessionsDrawerRename: '重命名',
+  searchCaseSensitive: '区分大小写 (Aa)',
+  searchWholeWord: '全字匹配 (W)',
+  searchRegex: '正则表达式 (.*)',
 };

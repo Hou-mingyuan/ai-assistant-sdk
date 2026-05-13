@@ -217,4 +217,7 @@ export const ko: I18nMessages = {
   sessionsDrawerPinned: '고정',
   sessionsDrawerPin: '고정 / 해제',
   sessionsDrawerRename: '이름 변경',
+  searchCaseSensitive: '대소문자 구분 (Aa)',
+  searchWholeWord: '단어 단위 (W)',
+  searchRegex: '정규 표현식 (.*?)',
 };

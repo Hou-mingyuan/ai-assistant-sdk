@@ -261,4 +261,8 @@ export interface I18nMessages {
   /** H5: pin / rename 按钮 aria 文案 */
   sessionsDrawerPin: string;
   sessionsDrawerRename: string;
+  /** H6: 搜索 三模式 toggle tooltip */
+  searchCaseSensitive: string;
+  searchWholeWord: string;
+  searchRegex: string;
 }

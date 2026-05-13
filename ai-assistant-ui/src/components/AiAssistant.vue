@@ -151,6 +151,31 @@
               <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
             </svg>
           </button>
+          <!-- H6: 三模式 toggle -->
+          <button
+            type="button"
+            class="ai-search-mode"
+            :class="{ active: searchCaseSensitive }"
+            :title="t.searchCaseSensitive || 'Case sensitive (Aa)'"
+            :aria-pressed="searchCaseSensitive ? 'true' : 'false'"
+            @click="searchCaseSensitive = !searchCaseSensitive"
+          >Aa</button>
+          <button
+            type="button"
+            class="ai-search-mode"
+            :class="{ active: searchWholeWord }"
+            :title="t.searchWholeWord || 'Whole word (\\b)'"
+            :aria-pressed="searchWholeWord ? 'true' : 'false'"
+            @click="searchWholeWord = !searchWholeWord"
+          >W</button>
+          <button
+            type="button"
+            class="ai-search-mode"
+            :class="{ active: searchRegex }"
+            :title="t.searchRegex || 'Regular expression (.*?)'"
+            :aria-pressed="searchRegex ? 'true' : 'false'"
+            @click="searchRegex = !searchRegex"
+          >.*</button>
         </div>
 
         <!-- AI streaming progress bar -->
@@ -1690,6 +1715,9 @@ const {
   totalMatches,
   currentMatchIdx,
   activeMatchGlobalIdx,
+  searchCaseSensitive,
+  searchWholeWord,
+  searchRegex,
   goNextMatch,
   goPrevMatch,
   resetSearch,
@@ -1716,7 +1744,11 @@ function renderBubble(content: string, globalIdx: number, isStreamingLast: boole
   }
   const q = debouncedSearchQuery.value.trim();
   if (q) {
-    html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value);
+    html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value, {
+      caseSensitive: searchCaseSensitive.value,
+      wholeWord: searchWholeWord.value,
+      regex: searchRegex.value,
+    });
   }
   return html;
 }

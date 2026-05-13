@@ -222,4 +222,7 @@ export const en: I18nMessages = {
   sessionsDrawerPinned: 'Pinned',
   sessionsDrawerPin: 'Pin / Unpin',
   sessionsDrawerRename: 'Rename',
+  searchCaseSensitive: 'Case sensitive (Aa)',
+  searchWholeWord: 'Whole word (W)',
+  searchRegex: 'Regular expression (.*?)',
 };

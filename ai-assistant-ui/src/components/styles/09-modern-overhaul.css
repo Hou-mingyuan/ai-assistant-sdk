@@ -2137,3 +2137,49 @@
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(34, 211, 238, 0.12));
   border-color: rgba(56, 189, 248, 0.5);
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * H6 - Search mode toggles (Aa / W / .*)
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 2px;
+  background: transparent;
+  border: 1px solid var(--ai-border);
+  border-radius: 5px;
+  color: var(--ai-text-muted);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode:hover {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.35);
+  color: var(--ai-gradient-1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode.active {
+  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 1px 4px -1px rgba(14, 165, 233, 0.5);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(241, 245, 249, 0.5);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: rgba(186, 230, 253, 1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode.active {
+  color: #ffffff;
+}

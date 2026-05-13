@@ -11,6 +11,37 @@ interface Message {
 const SEARCH_DEBOUNCE_MS = 200;
 
 /**
+ * H6: 构建搜索 RegExp。
+ * - regex=true 时把 query 当成 raw 正则；invalid → 返回 null（视为零匹配）
+ * - wholeWord=true 时在两端加 \b 单词边界
+ * - caseSensitive=false 时加 i flag
+ * - global flag 始终启用（匹配全部）
+ */
+export function buildSearchRegex(
+  query: string,
+  options: { caseSensitive?: boolean; wholeWord?: boolean; regex?: boolean } = {},
+): RegExp | null {
+  if (!query) return null;
+  const flags = (options.caseSensitive ? '' : 'i') + 'g';
+  try {
+    let pattern: string;
+    if (options.regex) {
+      pattern = query;
+    } else {
+      pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    if (options.wholeWord) {
+      pattern = `\\b(?:${pattern})\\b`;
+    } else {
+      pattern = `(${pattern})`;
+    }
+    return new RegExp(pattern, flags);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 会话内搜索 + 长会话仅挂载最近 N 条（与「显示更早消息」配合）。
  * 支持匹配计数、prev/next 跳转、高亮渲染。
  */
@@ -24,6 +55,10 @@ export function useSessionSearch(
   const chatSearchInput = ref('');
   const debouncedSearchQuery = ref('');
   const currentMatchIdx = ref(0);
+  /* H6: 三模式 toggle - 重置 chatSearchInput 时不重置，让用户偏好持久 */
+  const searchCaseSensitive = ref(false);
+  const searchWholeWord = ref(false);
+  const searchRegex = ref(false);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   watch(
@@ -44,12 +79,20 @@ export function useSessionSearch(
   });
 
   const searchMatchedIndices = computed(() => {
-    const q = debouncedSearchQuery.value.trim().toLowerCase();
+    const q = debouncedSearchQuery.value.trim();
     if (!q) return [] as number[];
+    const re = buildSearchRegex(q, {
+      caseSensitive: searchCaseSensitive.value,
+      wholeWord: searchWholeWord.value,
+      regex: searchRegex.value,
+    });
+    if (!re) return [] as number[];
     const result: number[] = [];
     const all = messages.value;
     for (let i = 0; i < all.length; i++) {
-      if ((all[i]?.content ?? '').toLowerCase().includes(q)) {
+      /* reset lastIndex 因为 RegExp 是 g flag 复用同一对象 */
+      re.lastIndex = 0;
+      if (re.test(all[i]?.content ?? '')) {
         result.push(i);
       }
     }
@@ -65,7 +108,7 @@ export function useSessionSearch(
 
   const plan = computed(() => {
     const all = messages.value;
-    const q = debouncedSearchQuery.value.trim().toLowerCase();
+    const q = debouncedSearchQuery.value.trim();
 
     if (all.length === 0) {
       return { offset: 0, list: [] as Message[], hiddenBefore: 0 };
@@ -156,6 +199,9 @@ export function useSessionSearch(
     totalMatches,
     currentMatchIdx,
     activeMatchGlobalIdx,
+    searchCaseSensitive,
+    searchWholeWord,
+    searchRegex,
     goNextMatch,
     goPrevMatch,
     resetSearch,
@@ -166,17 +212,26 @@ export function useSessionSearch(
 /**
  * 在已渲染的 HTML 文本节点中标记搜索匹配词。
  * 跳过 HTML 标签内部，仅处理可见文本。
+ *
+ * @param options H6 三模式（caseSensitive/wholeWord/regex），未传时
+ *                走老语义（case-insensitive substring）以保持兼容
  */
-export function highlightSearchInHtml(html: string, query: string, isActive: boolean): string {
+export function highlightSearchInHtml(
+  html: string,
+  query: string,
+  isActive: boolean,
+  options?: { caseSensitive?: boolean; wholeWord?: boolean; regex?: boolean },
+): string {
   if (!query) return html;
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`(${escaped})`, 'gi');
+  const re = buildSearchRegex(query, options ?? {});
+  if (!re) return html;
   const cls = isActive ? 'ai-search-hl ai-search-hl-active' : 'ai-search-hl';
   const parts = html.split(/(<[^>]+>)/);
   return parts
     .map((part) => {
       if (part.startsWith('<')) return part;
-      return part.replace(re, `<mark class="${cls}">$1</mark>`);
+      /* g flag 共享 lastIndex；用 String.replace 自动重置 */
+      return part.replace(re, (m) => `<mark class="${cls}">${m}</mark>`);
     })
     .join('');
 }
