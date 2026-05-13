@@ -241,6 +241,7 @@
             :on-bubble-context-menu="onBubbleContextMenu"
             :is-error-message="isErrorMessage"
             :virtual-slice="virtualSliceForList"
+            :on-measure-height="virtualScrollOption ? virtualScroll.updateMeasuredHeight : undefined"
             @show-all-older-messages="showAllOlderMessages"
             @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"

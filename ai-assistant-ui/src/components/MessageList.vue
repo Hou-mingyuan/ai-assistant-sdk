@@ -19,6 +19,7 @@
     v-for="(msg, idx) in renderedMessages"
     v-show="!isTransientAbort(msg)"
     :key="`${displayOffset + renderedStart + idx}-${msg.role}`"
+    :ref="(el) => attachMeasureRef(el, displayOffset + renderedStart + idx)"
     :class="[
       'ai-msg',
       msg.role,
@@ -266,7 +267,7 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue';
-import { computed, ref, watch, nextTick } from 'vue';
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
 
@@ -371,6 +372,16 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  /**
+   * D1: 真实高度测量回调。当宿主启用虚拟滚动时传入，
+   * MessageList 会给每条 v-for 渲染的消息挂 ResizeObserver，
+   * 在 contentRect 变化时回调宿主的 `virtualScroll.updateMeasuredHeight`，
+   * 让 spacer 计算从 90px 估算转为真实像素，消除长会话滚动跳动。
+   */
+  onMeasureHeight: {
+    type: Function as PropType<(globalIdx: number, height: number) => void>,
+    default: undefined,
+  },
 });
 
 /* When virtualization is active, slice the messages array to the visible
@@ -423,4 +434,32 @@ watch(
     });
   },
 );
+
+/* D1: ResizeObserver-based height measurement for virtual scroll precision.
+ * 仅当宿主传入 onMeasureHeight (即启用虚拟滚动) 时才创建 observer。
+ * 每条消息一个 RO，contentRect 变化时回调全局索引 + 真实像素高度。
+ * v-for ref function 在 mount 时传 el、unmount 时传 null，方便清理。 */
+const measureObservers = new Map<number, ResizeObserver>();
+function attachMeasureRef(el: unknown, globalIdx: number) {
+  if (typeof props.onMeasureHeight !== 'function' || typeof ResizeObserver === 'undefined') return;
+  const existing = measureObservers.get(globalIdx);
+  if (existing) {
+    existing.disconnect();
+    measureObservers.delete(globalIdx);
+  }
+  if (el && el instanceof Element) {
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = entry.contentRect.height || (entry.target as HTMLElement).offsetHeight;
+        if (h > 0) props.onMeasureHeight!(globalIdx, h);
+      }
+    });
+    obs.observe(el);
+    measureObservers.set(globalIdx, obs);
+  }
+}
+onBeforeUnmount(() => {
+  measureObservers.forEach((o) => o.disconnect());
+  measureObservers.clear();
+});
 </script>
