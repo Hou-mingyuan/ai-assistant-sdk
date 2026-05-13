@@ -1,0 +1,101 @@
+{
+  "updatedAt": "2026-05-13T08:05:24.402Z",
+  "files": {
+    "ai-assistant.mjs": {
+      "size": 588749,
+      "gzip": 132886
+    },
+    "ai-assistant.umd.cjs": {
+      "size": 398061,
+      "gzip": 121740
+    },
+    "style.css": {
+      "size": 142832,
+      "gzip": 23493
+    },
+    "swift-CKDkzyDD.js": {
+      "size": 18504,
+      "gzip": 5313
+    },
+    "css-BfkAEjG_.js": {
+      "size": 18382,
+      "gzip": 5152
+    },
+    "php-DzEOxdOo.js": {
+      "size": 13728,
+      "gzip": 3986
+    },
+    "cpp-DsR3fX9_.js": {
+      "size": 11495,
+      "gzip": 3567
+    },
+    "PromptTemplateDialog-K3Cj1K13.js": {
+      "size": 15397,
+      "gzip": 2996
+    },
+    "ruby-C9GshUWF.js": {
+      "size": 9017,
+      "gzip": 2808
+    },
+    "c-CLZggNyB.js": {
+      "size": 7733,
+      "gzip": 2713
+    },
+    "MultiModelCompare-iXYz2UAg.js": {
+      "size": 10406,
+      "gzip": 2443
+    },
+    "csharp-mFUWyZia.js": {
+      "size": 8261,
+      "gzip": 2118
+    },
+    "kotlin-Brwc6iD3.js": {
+      "size": 6800,
+      "gzip": 2021
+    },
+    "java-DnzAcMbn.js": {
+      "size": 5675,
+      "gzip": 1817
+    },
+    "rust-DA1uzOZh.js": {
+      "size": 5673,
+      "gzip": 1762
+    },
+    "ConnectionDiagnostics-LMcZ-7df.js": {
+      "size": 9503,
+      "gzip": 1724
+    },
+    "markdown-HImi50Ir.js": {
+      "size": 4873,
+      "gzip": 1549
+    },
+    "yaml-B3lG7A3_.js": {
+      "size": 4422,
+      "gzip": 1540
+    },
+    "PersonalizeDialog-DbPYXryk.js": {
+      "size": 4152,
+      "gzip": 1264
+    },
+    "go-CH3AFs0d.js": {
+      "size": 3023,
+      "gzip": 941
+    },
+    "PageSelectionBar-9OVADgpo.js": {
+      "size": 2760,
+      "gzip": 915
+    },
+    "InlineTranslatePopover-CH0z0Tlb.js": {
+      "size": 1664,
+      "gzip": 657
+    },
+    "ExportToast-DEDsfc1P.js": {
+      "size": 1066,
+      "gzip": 508
+    },
+    "_plugin-vue_export-helper-1tPrXgE0.js": {
+      "size": 191,
+      "gzip": 147
+    }
+  }
+}
