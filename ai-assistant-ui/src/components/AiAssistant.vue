@@ -86,7 +86,6 @@
           :diagnostics-open="diagnosticsOpen"
           :panel-expanded="panelExpanded"
           :select-mode="selectMode"
-          :code-wall-disabled="codeWallDisabled"
           :batch-export-menu-open="batchExportMenuOpen"
           :has-messages="messages.length > 0"
           :loading="loading"
@@ -104,7 +103,6 @@
           @batch-export-all-markdown="batchExportAllMarkdown"
           @batch-export-all-server="batchExportAllServer"
           @toggle-select-mode="toggleSelectMode"
-          @toggle-code-wall="onToggleCodeWall"
           @clear-messages="clearMessages"
           @close-panel="isOpen = false"
         />
@@ -159,6 +157,12 @@
           </button>
         </div>
 
+        <!-- AI streaming progress bar -->
+        <Transition name="ai-progress-fade">
+          <div v-if="loading" class="ai-progress-bar" role="progressbar" aria-valuetext="AI generating">
+            <div class="ai-progress-bar-fill"></div>
+          </div>
+        </Transition>
         <!-- Messages -->
         <div
           ref="bodyRef"
@@ -193,11 +197,6 @@
           </div>
           <div v-if="messages.length === 0" class="ai-empty">
             <p>{{ t.greeting }}</p>
-            <div class="ai-quick-actions">
-              <button type="button" @click="setMode('translate')">{{ t.translate }}</button>
-              <button type="button" @click="setMode('summarize')">{{ t.summarize }}</button>
-              <button type="button" @click="setMode('chat')">{{ t.chat }}</button>
-            </div>
             <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
               <button
                 v-for="(tpl, ti) in promptTemplateList"
@@ -266,31 +265,6 @@
           </button>
         </Transition>
 
-        <!-- Mode Bar -->
-        <div class="ai-mode-bar">
-          <button
-            v-for="m in modes"
-            :key="m.value"
-            type="button"
-            :class="{ active: mode === m.value }"
-            :aria-pressed="mode === m.value ? 'true' : 'false'"
-            @click="setMode(m.value)"
-          >
-            {{ m.label }}
-          </button>
-          <select v-if="mode === 'translate'" v-model="targetLang" class="ai-lang-select">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="es">Español</option>
-            <option value="pt">Português</option>
-            <option value="ru">Русский</option>
-            <option value="ar">العربية</option>
-          </select>
-        </div>
 
         <div v-if="mode === 'chat' && quickPrompts.length > 0" class="ai-quick-prompts">
           <button
@@ -304,34 +278,12 @@
           </button>
         </div>
 
-        <ConnectionDiagnostics
-          v-if="diagnosticsOpen"
-          :uid="uid"
-          :busy="diagnosticsBusy"
-          :copied="diagnosticsCopied"
-          :copy-message="diagnosticsCopyMessage"
-          :status-message="diagnosticsStatusMessage"
-          :last-error="modelListError"
-          :base-url="options.baseUrl"
-          :model-endpoint="diagnosticsModelEndpoint"
-          :token-text="diagnosticsTokenText"
-          :selected-model="selectedChatModel"
-          :model-count="modelChoices.length"
-          :last-checked="diagnosticsLastChecked"
-          :base-url-input="connectionBaseUrlInput"
-          :token-input="connectionTokenInput"
-          :persist-enabled="connectionPersistEnabled"
-          :config-message="connectionConfigMessage"
-          :t="t"
-          @refresh="runModelDiagnostics"
-          @copy="copyDiagnostics"
-          @close="diagnosticsOpen = false"
-          @test-config="testConnectionConfig"
-          @save-config="saveConnectionConfig"
-          @update:base-url-input="connectionBaseUrlInput = $event"
-          @update:token-input="connectionTokenInput = $event"
-          @update:persist-enabled="connectionPersistEnabled = $event"
-        />
+        <!-- Mode buttons -->
+        <div class="ai-quick-actions ai-quick-actions-sticky">
+          <button type="button" :class="{ active: mode === 'chat' }" @click="onChangeMode('chat')">{{ t.chat }}</button>
+          <button type="button" :class="{ active: mode === 'translate' }" @click="onChangeMode('translate')">{{ t.translate }}</button>
+          <button type="button" :class="{ active: mode === 'summarize' }" @click="onChangeMode('summarize')">{{ t.summarize }}</button>
+        </div>
 
         <!-- Input -->
         <ChatInputArea
@@ -351,14 +303,26 @@
           :selected-model="selectedChatModel"
           :model-choices="modelChoices"
           :model-list-message="modelListMessage"
+          :target-lang="targetLang"
+          :voice-supported="voiceSupported"
+          :voice-recording="voiceRecording"
           :t="t"
+          :slash-visible="slashCmd.visible.value"
+          :slash-commands="slashCmd.filteredCommands.value"
+          :slash-selected-index="slashCmd.selectedIndex.value"
           @send="send"
           @clear-pending-image="clearPendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
+          @toggle-voice="voiceToggle()"
+          @chat-image="readFileAsDataUrl"
+          @slash-keydown="onSlashKeydown"
+          @slash-select="onSlashSelect"
+          @slash-hover="onSlashHover"
           @update:ctrl-enter-to-send="ctrlEnterToSend = $event"
           @update:sound-enabled="soundEnabled = $event"
           @update:selected-model="selectedChatModel = $event"
+          @update:target-lang="targetLang = $event"
         >
           <template #footer-plugins>
             <button
@@ -372,6 +336,26 @@
               @click="runPlugin(pl)"
             >
               {{ pl.icon || pl.label.charAt(0) }}
+            </button>
+          </template>
+          <template #model-row-actions>
+            <button
+              type="button"
+              class="ai-code-wall-toggle"
+              :class="{ active: !codeWallDisabled }"
+              title="Code Wall"
+              @click="onToggleCodeWall"
+            >
+              ✦
+            </button>
+            <button
+              type="button"
+              class="ai-code-wall-toggle"
+              :class="{ active: soundEnabled }"
+              :title="soundEnabled ? t.soundOn : t.soundOff"
+              @click="soundEnabled = !soundEnabled"
+            >
+              {{ soundEnabled ? '🔔' : '🔕' }}
             </button>
           </template>
         </ChatInputArea>
@@ -403,12 +387,15 @@
       :selection-text="msgCtxMenu.selectionText"
       :has-base-url="!!options.baseUrl"
       :export-busy="exportServerBusy"
+      :tts-supported="tts.supported.value"
+      :tts-active="tts.speaking.value && tts.currentMessageIndex.value === msgCtxMenu.index"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
       @delete="deleteAssistantAt(msgCtxMenu.index)"
       @export="(fmt) => exportAssistantMessageServer(msgCtxMenu.index, fmt)"
       @fork="forkFromHere(msgCtxMenu.index)"
+      @tts="ttsToggleCurrent"
     />
 
     <PersonalizeDialog
@@ -419,6 +406,178 @@
       :max-chars="systemPromptMaxInputCharsResolved"
       :t="t"
       @close="personalizeOpen = false"
+    />
+
+    <!-- Cross-session Memory panel -->
+    <Transition name="ai-panel">
+      <div v-if="memoryOpen" class="ai-memory-overlay" @click.self="memoryOpen = false">
+        <div class="ai-memory-panel">
+          <div class="ai-memory-header">
+            <span class="ai-memory-title">{{ t.memoryLabel || '记忆管理' }}</span>
+            <button type="button" class="ai-memory-close" @click="memoryOpen = false">&times;</button>
+          </div>
+          <div class="ai-memory-body">
+            <div class="ai-memory-add-row">
+              <input
+                v-model="memoryNewText"
+                class="ai-memory-input"
+                :placeholder="t.memoryAddPlaceholder || '添加一条记忆…'"
+                @keydown.enter.prevent="addMemoryItem"
+              />
+              <button type="button" class="ai-memory-add-btn" :disabled="!memoryNewText.trim()" @click="addMemoryItem">+</button>
+            </div>
+            <div v-if="crossMemory.items.value.length === 0" class="ai-memory-empty">
+              {{ t.memoryEmpty || '暂无记忆条目' }}
+            </div>
+            <div v-for="m in crossMemory.items.value" :key="m.id" class="ai-memory-item">
+              <span class="ai-memory-item-text">{{ m.text }}</span>
+              <button type="button" class="ai-memory-item-del" @click="crossMemory.removeItem(m.id)">&times;</button>
+            </div>
+          </div>
+          <div v-if="crossMemory.items.value.length > 0" class="ai-memory-footer">
+            <button type="button" class="ai-memory-clear" @click="crossMemory.clearAll()">
+              {{ t.memoryClearAll || '清除全部' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Knowledge Base panel -->
+    <Transition name="ai-panel">
+      <div v-if="kbPanelOpen" class="ai-memory-overlay" @click.self="kbPanelOpen = false">
+        <div class="ai-memory-panel" style="width: min(420px, 92%)">
+          <div class="ai-memory-header">
+            <span class="ai-memory-title">{{ t.kbLabel || '知识库管理' }}</span>
+            <button type="button" class="ai-memory-close" @click="kbPanelOpen = false">&times;</button>
+          </div>
+          <div class="ai-memory-body">
+            <div class="ai-memory-add-row">
+              <input
+                v-model="kbNewName"
+                class="ai-memory-input"
+                :placeholder="t.kbAddPlaceholder || '新建知识库名称…'"
+                @keydown.enter.prevent="createKb"
+              />
+              <button type="button" class="ai-memory-add-btn" :disabled="!kbNewName.trim()" @click="createKb">+</button>
+            </div>
+            <input ref="kbFileInputRef" type="file" accept=".txt,.md,.pdf,.docx,.csv,.json" style="display:none" @change="onKbFileSelect" />
+            <div v-if="knowledgeBase.bases.value.length === 0" class="ai-memory-empty">
+              {{ t.kbEmpty || '暂无知识库' }}
+            </div>
+            <details v-for="kb in knowledgeBase.bases.value" :key="kb.id" class="ai-kb-item">
+              <summary class="ai-kb-summary">
+                <label class="ai-kb-toggle">
+                  <input type="checkbox" :checked="kb.enabled" @change="knowledgeBase.toggleBase(kb.id)" />
+                  <span class="ai-kb-name">{{ kb.name }}</span>
+                  <span class="ai-kb-count">({{ kb.docs.length }})</span>
+                </label>
+                <button type="button" class="ai-memory-item-del" @click.stop="knowledgeBase.deleteBase(kb.id)">&times;</button>
+              </summary>
+              <div class="ai-kb-docs">
+                <div v-for="doc in kb.docs" :key="doc.id" class="ai-kb-doc">
+                  <span class="ai-kb-doc-status" :class="'ai-kb-' + doc.status">
+                    {{ doc.status === 'ready' ? '✓' : doc.status === 'error' ? '✗' : '…' }}
+                  </span>
+                  <span class="ai-kb-doc-name">{{ doc.name }}</span>
+                  <span class="ai-kb-doc-size">{{ (doc.size / 1024).toFixed(1) }}KB</span>
+                  <button type="button" class="ai-memory-item-del" @click="knowledgeBase.removeDoc(kb.id, doc.id)">&times;</button>
+                </div>
+                <button type="button" class="ai-kb-upload-btn" @click="triggerKbUpload(kb.id)">
+                  + {{ t.kbUploadDoc || '上传文档' }}
+                </button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Plugins panel -->
+    <Transition name="ai-panel">
+      <div v-if="pluginsPanelOpen" class="ai-memory-overlay" @click.self="pluginsPanelOpen = false">
+        <div class="ai-memory-panel">
+          <div class="ai-memory-header">
+            <span class="ai-memory-title">{{ t.pluginsLabel || '插件管理' }}</span>
+            <button type="button" class="ai-memory-close" @click="pluginsPanelOpen = false">&times;</button>
+          </div>
+          <div class="ai-memory-body">
+            <div v-if="plugins.length === 0" class="ai-memory-empty">
+              {{ t.pluginsEmpty || '暂无已注册插件' }}
+            </div>
+            <div v-for="pl in plugins" :key="pl.id" class="ai-memory-item">
+              <span class="ai-memory-item-text">
+                <strong>{{ pl.label }}</strong>
+                <span style="opacity:0.6;font-size:11px;margin-left:4px">[{{ pl.position }}]</span>
+              </span>
+              <button type="button" class="ai-memory-item-del" @click="unregisterPlugin(pl.id)">&times;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- A1: Multi-model parallel compare overlay -->
+    <Transition name="ai-panel">
+      <MultiModelCompare
+        v-if="multiModelOpen"
+        :available-models="modelChoices"
+        :selected-models="multiModelChat.selectedModels.value"
+        :columns="multiModelChat.columns.value"
+        :is-running="multiModelChat.isRunning.value"
+        :max-columns="4"
+        :initial-prompt="input"
+        :t="t"
+        @close="closeMultiModelCompare"
+        @toggle-model="(m: string) => multiModelChat.toggleModel(m)"
+        @start="(p: string) => multiModelChat.start(p)"
+        @stop-one="(m: string) => multiModelChat.stopOne(m)"
+        @stop-all="multiModelChat.stopAll"
+      />
+    </Transition>
+
+    <!-- B7: Prompt template library overlay -->
+    <Transition name="ai-panel">
+      <PromptTemplateDialog
+        v-if="promptTemplateOpen"
+        :templates="promptTemplateLib.mergedTemplates.value"
+        :t="t"
+        @close="promptTemplateOpen = false"
+        @create-user="(tpl) => promptTemplateLib.addTemplate(tpl)"
+        @update-user="(id, patch) => promptTemplateLib.updateTemplate(id, patch)"
+        @delete-user="(id) => promptTemplateLib.deleteTemplate(id)"
+        @use="(rendered) => onPromptTemplateUse(rendered)"
+      />
+    </Transition>
+
+    <ConnectionDiagnostics
+      v-if="diagnosticsOpen"
+      :uid="uid"
+      :busy="diagnosticsBusy"
+      :copied="diagnosticsCopied"
+      :copy-message="diagnosticsCopyMessage"
+      :status-message="diagnosticsStatusMessage"
+      :last-error="modelListError"
+      :base-url="options.baseUrl"
+      :model-endpoint="diagnosticsModelEndpoint"
+      :token-text="diagnosticsTokenText"
+      :selected-model="selectedChatModel"
+      :model-count="modelChoices.length"
+      :last-checked="diagnosticsLastChecked"
+      :base-url-input="connectionBaseUrlInput"
+      :token-input="connectionTokenInput"
+      :persist-enabled="connectionPersistEnabled"
+      :config-message="connectionConfigMessage"
+      :is-dark="isDark"
+      :t="t"
+      @refresh="runModelDiagnostics"
+      @copy="copyDiagnostics"
+      @close="diagnosticsOpen = false"
+      @test-config="testConnectionConfig"
+      @save-config="saveConnectionConfig"
+      @update:base-url-input="connectionBaseUrlInput = $event"
+      @update:token-input="connectionTokenInput = $event"
+      @update:persist-enabled="connectionPersistEnabled = $event"
     />
 
     <ExportToast :text="exportToastText" :color="color" :is-dark="isDark" />
@@ -449,18 +608,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounted, defineAsyncComponent, type Ref } from 'vue';
 import FabContextMenu from './FabContextMenu.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
 import MessageList from './MessageList.vue';
 import AssistantHeader from './AssistantHeader.vue';
-import PersonalizeDialog from './PersonalizeDialog.vue';
-import InlineTranslatePopover from './InlineTranslatePopover.vue';
-import ExportToast from './ExportToast.vue';
-import PageSelectionBar from './PageSelectionBar.vue';
-import SessionTabs from './SessionTabs.vue';
-import ConnectionDiagnostics from './ConnectionDiagnostics.vue';
 import ChatInputArea from './ChatInputArea.vue';
+import SessionTabs from './SessionTabs.vue';
+import { useVoiceInput } from '../composables/useVoiceInput';
+import { useSlashCommands } from '../composables/useSlashCommands';
+import { useCrossSessionMemory } from '../composables/useCrossSessionMemory';
+import { useKnowledgeBase } from '../composables/useKnowledgeBase';
+import { useMultiModelChat } from '../composables/useMultiModelChat';
+import { useTextToSpeech } from '../composables/useTextToSpeech';
+import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
+import { useMermaidRenderer } from '../composables/useMermaidRenderer';
+const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
+const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
+const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
+const InlineTranslatePopover = defineAsyncComponent(() => import('./InlineTranslatePopover.vue'));
+const ExportToast = defineAsyncComponent(() => import('./ExportToast.vue'));
+const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.vue'));
+const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
@@ -470,7 +639,7 @@ import { useCodeWall } from '../composables/useCodeWall';
 import { usePanelGeometry } from '../composables/usePanelGeometry';
 import { useMsgContextMenu } from '../composables/useMsgContextMenu';
 import { getMessages } from '../utils/i18n';
-import type { Locale } from '../utils/i18n';
+import type { Locale, I18nMessages } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
@@ -498,12 +667,12 @@ import {
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed';
 
-import type { Message } from '../types/message';
+import { extractThinking, type Message } from '../types/message';
 
 const sessionTitle = ref('');
 const multiSessions = useMultiSession();
 providePluginRegistry();
-const { getPlugins } = usePluginRegistry();
+const { plugins, getPlugins, unregisterPlugin } = usePluginRegistry();
 const { streamWithFallback } = useStreamWithFallback();
 
 function makePluginContext(): PluginContext {
@@ -995,6 +1164,219 @@ const {
   stop: stopCodeWall,
 } = useCodeWall(codeWallCanvasRef, panelRef, reducedMotionRef, pageVisibleRef);
 
+const {
+  recording: voiceRecording,
+  supported: voiceSupported,
+  toggle: voiceToggle,
+} = useVoiceInput((text) => {
+  input.value += text;
+});
+
+const crossMemory = useCrossSessionMemory();
+const memoryOpen = ref(false);
+const memoryNewText = ref('');
+
+const pluginsPanelOpen = ref(false);
+
+const knowledgeBase = useKnowledgeBase();
+const kbPanelOpen = ref(false);
+const kbNewName = ref('');
+
+/**
+ * A1: 多模型并行对比面板状态。
+ *
+ * - `multiModelOpen` 由 `/compare` 斜杠命令或未来快捷键切换。
+ * - `multiModelChat` 内部独立管理 N 列流式响应；为避免与主面板的 systemPrompt
+ *   语义漂移，这里直接复用 `chatSystemPrompt` 和当前会话 history。
+ * - `parseChunk` 重用 `extractThinking`，让 `<think>` 块也能在对比列中
+ *   折叠展示，与主面板的渲染风格保持一致。
+ */
+const multiModelOpen = ref(false);
+const multiModelBaseUrl = computed(() => options.baseUrl ?? '');
+const multiModelToken = computed(() => options.accessToken);
+const multiModelHistory = computed(() =>
+  messages.value.map((m) => ({ role: m.role, content: m.contentArchive ?? m.content })),
+);
+const multiModelSystemPrompt = computed(() => chatSystemPrompt.value || undefined);
+const multiModelChat = useMultiModelChat({
+  baseUrl: multiModelBaseUrl,
+  token: multiModelToken,
+  history: multiModelHistory,
+  systemPrompt: multiModelSystemPrompt,
+  maxColumns: 4,
+  parseChunk: (raw: string) => {
+    const { content, thinking } = extractThinking(raw);
+    return { content, thinking };
+  },
+});
+
+function openMultiModelCompare() {
+  if (modelChoices.value.length > 1 && multiModelChat.selectedModels.value.length === 0) {
+    /* 默认选当前模型 + 第二个候选，方便用户立刻看到对比效果 */
+    const first = selectedChatModel.value || modelChoices.value[0];
+    const second = modelChoices.value.find((m) => m !== first);
+    multiModelChat.setSelectedModels(second ? [first, second] : [first]);
+  }
+  multiModelOpen.value = true;
+}
+function closeMultiModelCompare() {
+  multiModelOpen.value = false;
+  multiModelChat.stopAll();
+}
+
+/**
+ * A4: 文本转语音朗读。
+ *
+ * 同一条消息上重复点击会切换播放/停止；切换到其它消息则会自动停掉前一条。
+ * 当浏览器不支持 SpeechSynthesis（如部分嵌入式 webview）`ttsSupported` 为
+ * false，右键菜单中的「朗读」按钮会自动隐藏。
+ */
+const tts = useTextToSpeech();
+function ttsToggleCurrent() {
+  const idx = msgCtxMenu.value.index;
+  if (idx < 0) return;
+  const m = messages.value[idx];
+  if (!m) return;
+  const text = m.contentArchive ?? m.content;
+  closeMsgCtxMenu();
+  tts.toggleMessage(text, idx);
+}
+
+/**
+ * B7: Prompt 模板库。
+ *
+ * 把 `AiAssistantOptions.promptTemplates` 注入到 composable 作为只读「预置」段，
+ * 与用户在 localStorage 里保存的模板合并展示。「使用」按钮把渲染后的文本写入
+ * 主输入框，仍由用户决定何时发送，避免误触意外消耗 token。
+ */
+const promptTemplateOpen = ref(false);
+const presetPromptTemplates = computed(() =>
+  (options.promptTemplates ?? []).map((p, idx) => ({
+    id: `preset_${idx}`,
+    label: p.label,
+    template: p.template,
+    variables: p.variables,
+  })),
+);
+const promptTemplateLib = usePromptTemplateLibrary({
+  presetTemplates: presetPromptTemplates,
+});
+function onPromptTemplateUse(rendered: string) {
+  input.value = rendered;
+  promptTemplateOpen.value = false;
+}
+
+/**
+ * B8: Mermaid 渲染调度。
+ *
+ * `useAiMarkdownRenderer` 把 ```mermaid 围栏替换成 `.ai-mermaid-placeholder`
+ * 占位符，本 watch 在消息变更并完成 DOM 写入后扫描 bodyRef，调用
+ * `useMermaidRenderer.renderInside` 把它们替换为 SVG。
+ *
+ * - `loading` 期间不触发：流式中 mermaid 源码尚未闭合，提前渲染只会拿到语法错误
+ * - 失败/未安装 mermaid 时 placeholder 内容已 fallback 为可读源码，所以即便
+ *   这里完全不被调用页面也不会出现「空白方框」
+ */
+const mermaidRenderer = useMermaidRenderer();
+let mermaidRenderRaf = 0;
+function scheduleMermaidRender() {
+  if (mermaidRenderRaf) return;
+  mermaidRenderRaf = requestAnimationFrame(() => {
+    mermaidRenderRaf = 0;
+    void nextTick(() => {
+      void mermaidRenderer.renderInside(bodyRef.value);
+    });
+  });
+}
+watch(
+  () => [messages.value.length, loading.value],
+  ([, isLoading]) => {
+    if (isLoading) return;
+    scheduleMermaidRender();
+  },
+);
+function toggleKbPanel() { kbPanelOpen.value = !kbPanelOpen.value; }
+function createKb() {
+  const name = kbNewName.value.trim();
+  if (!name) return;
+  knowledgeBase.createBase(name);
+  kbNewName.value = '';
+}
+const kbFileInputRef = ref<HTMLInputElement>();
+const kbUploadTargetId = ref('');
+function onKbFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (file && kbUploadTargetId.value) {
+    knowledgeBase.addDoc(kbUploadTargetId.value, file);
+  }
+}
+function triggerKbUpload(baseId: string) {
+  kbUploadTargetId.value = baseId;
+  kbFileInputRef.value?.click();
+}
+function toggleMemoryPanel() { memoryOpen.value = !memoryOpen.value; }
+function addMemoryItem() {
+  const txt = memoryNewText.value.trim();
+  if (!txt) return;
+  crossMemory.addItem(txt, 'manual');
+  memoryNewText.value = '';
+}
+
+const slashCmd = useSlashCommands({
+  input,
+  t: computed(() => t.value) as unknown as Ref<I18nMessages>,
+  onClear: () => clearMessages(),
+  onNewSession: () => startNewSession(),
+  onExport: () => toggleBatchExportMenu(),
+  onChangeMode: (m) => onChangeMode(m),
+  extraCommands: [
+    {
+      name: '/memory',
+      get description() { return t.value.memoryLabel || '记忆管理'; },
+      icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+      action: () => { toggleMemoryPanel(); return true; },
+    },
+    {
+      name: '/kb',
+      get description() { return t.value.kbLabel || '知识库'; },
+      icon: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z',
+      action: () => { toggleKbPanel(); return true; },
+    },
+    {
+      name: '/plugins',
+      get description() { return t.value.pluginsLabel || '插件管理'; },
+      icon: 'M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z',
+      action: () => { pluginsPanelOpen.value = !pluginsPanelOpen.value; return true; },
+    },
+    {
+      name: '/compare',
+      get description() { return t.value.slashCmdCompareDesc || t.value.compareTitle || 'Compare models'; },
+      icon: 'M3 5h7v14H3V5zm11 0h7v6h-7V5zm0 8h7v6h-7v-6z',
+      action: () => { openMultiModelCompare(); return true; },
+    },
+    {
+      name: '/template',
+      get description() { return t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates'; },
+      icon: 'M14 3v4a1 1 0 0 0 1 1h4l-5-5zM5 3h7v5a2 2 0 0 0 2 2h5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 9h10v2H7v-2zm0 4h7v2H7v-2z',
+      action: () => { promptTemplateOpen.value = true; return true; },
+    },
+  ],
+});
+
+function onSlashKeydown(e: KeyboardEvent) {
+  slashCmd.handleKeydown(e);
+}
+function onSlashSelect(idx: number) {
+  slashCmd.selectedIndex.value = idx;
+  slashCmd.executeSelected();
+}
+function onSlashHover(idx: number) {
+  slashCmd.selectedIndex.value = idx;
+}
+watch(input, () => slashCmd.onInputChange());
+
 function onToggleCodeWall() {
   codeWallDisabled.value = !codeWallDisabled.value;
   if (codeWallDisabled.value) {
@@ -1064,7 +1446,7 @@ const {
   goPrevMatch,
   resetSearch,
   disposeSearch,
-} = useSessionSearch(messages, loading, renderAllMessages, MAX_RENDERED_MESSAGES);
+} = useSessionSearch(messages, loading, renderAllMessages, MAX_RENDERED_MESSAGES, panelRef);
 
 const showEarlierLabel = computed(() =>
   t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
@@ -1406,6 +1788,14 @@ function setMode(m: 'translate' | 'summarize' | 'chat') {
   mode.value = m;
 }
 
+function onChangeMode(m: 'translate' | 'summarize' | 'chat') {
+  if (m === mode.value) return;
+  if (messages.value.length > 0) {
+    startNewSession();
+  }
+  setMode(m);
+}
+
 function startNewSession() {
   saveCurrentSessionToMulti();
   multiSessions.createSession();
@@ -1555,7 +1945,7 @@ function handleBodyClick(e: MouseEvent) {
 
 async function copyMessage(text: string, globalIdx: number) {
   try {
-    await navigator.clipboard.writeText(text);
+    await writeClipboardText(text);
     copiedIndex.value = globalIdx;
     pendingTimers.push(
       window.setTimeout(() => {
@@ -1563,7 +1953,7 @@ async function copyMessage(text: string, globalIdx: number) {
       }, 1500),
     );
   } catch {
-    /* Clipboard may be blocked by browser permissions. */
+    reportAssistantError('clipboard', 'Copy failed');
   }
 }
 
@@ -1612,6 +2002,7 @@ watch(isOpen, (open) => {
       ensurePanelInViewport();
       saveFabPos(panelSnapshot.value?.edge);
       startCodeWall();
+      panelRef.value?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
     });
   } else {
     stopCodeWall();
@@ -1662,6 +2053,7 @@ const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendSt
   input,
   loading,
   sessionTitle,
+  activeSessionId: multiSessions.activeSessionId,
   mode,
   targetLang,
   chatSystemPrompt,
@@ -1695,6 +2087,11 @@ const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendSt
   setStreamStoppedByUser: (v) => {
     streamStoppedByUser = v;
   },
+  memoryPromptFragment: computed(() => {
+    const mem = crossMemory.memoryPromptFragment.value;
+    const rag = knowledgeBase.ragPromptFragment.value;
+    return [mem, rag].filter(Boolean).join('\n');
+  }),
 });
 
 async function processFileUpload(file: File) {
@@ -1790,7 +2187,9 @@ watch(
   },
 );
 
-watch(messages, removeTransientAssistantMessages, { deep: true, flush: 'sync' });
+watch(loading, (now, prev) => {
+  if (!now && prev) removeTransientAssistantMessages();
+});
 
 function trapFocus(e: KeyboardEvent) {
   if (e.key !== 'Tab' || !panelRef.value) return;
@@ -1841,6 +2240,23 @@ function onEscKeydown(e: KeyboardEvent) {
     isOpen.value = !isOpen.value;
     return;
   }
+
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl && e.shiftKey && !e.altKey && isOpen.value) {
+    switch (e.key.toLowerCase()) {
+      case 'l': e.preventDefault(); clearMessages(); return;
+      case 'n': e.preventDefault(); startNewSession(); return;
+      case 'f': {
+        e.preventDefault();
+        const searchEl = wrapperRef.value?.querySelector<HTMLInputElement>('.ai-chat-search-input');
+        if (searchEl) searchEl.focus();
+        return;
+      }
+      case 's': e.preventDefault(); toggleBatchExportMenu(); return;
+      case 'm': e.preventDefault(); toggleMemoryPanel(); return;
+    }
+  }
+
   if (e.key !== 'Escape') return;
   if (inlineTranslatePopover.value.show) {
     e.preventDefault();

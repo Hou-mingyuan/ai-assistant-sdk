@@ -9,6 +9,33 @@ import type { I18nMessages } from '../utils/i18n';
 const renderCache = new Map<string, string>();
 const CACHE_CAP = 250;
 
+/**
+ * Mermaid sentinel：highlight 阶段无法直接返回非高亮内容（marked-highlight 会
+ * 把返回值塞进 `<code class="language-mermaid">`），因此我们在源码上做识别，
+ * 把 ```mermaid 代码块替换为带 source 的 placeholder div，绕过 marked 解析。
+ * 真正的 SVG 渲染在浏览器侧由 `useMermaidRenderer` 负责（动态 import）。
+ */
+const MERMAID_FENCE_RE = /(^|\n)```mermaid\s*\n([\s\S]*?)\n?```\s*(?=\n|$)/g;
+
+function encodeMermaidSource(src: string): string {
+  /* 用 base64 避免 source 里的 HTML / 引号转义 */
+  if (typeof btoa === 'function') {
+    try {
+      return btoa(unescape(encodeURIComponent(src)));
+    } catch {
+      /* fallthrough */
+    }
+  }
+  return encodeURIComponent(src);
+}
+
+function extractMermaidBlocks(src: string): string {
+  return src.replace(MERMAID_FENCE_RE, (_, lead: string, body: string) => {
+    const encoded = encodeMermaidSource(body);
+    return `${lead}\n<div class="ai-mermaid-placeholder" data-mermaid-src="${encoded}">${escapeHtml(body)}</div>\n`;
+  });
+}
+
 const markedFull = new Marked(
   markedHighlight({
     emptyLangClass: 'hljs',
@@ -51,13 +78,27 @@ function toolbarHtml(copyLabel: string, showIde: boolean): string {
 function wrapPreBlocks(html: string, copyLabel: string, showIde: boolean): string {
   return html.replace(/<pre(\s[^>]*)?>([\s\S]*?)<\/pre>/gi, (_full, attrs, inner) => {
     const a = attrs ?? '';
-    return `<div class="ai-code-wrap">${toolbarHtml(copyLabel, showIde)}<pre${a}>${inner}</pre></div>`;
+    const lineCount = (inner.match(/\n/g)?.length ?? 0) + 1;
+    /* 行号使用 CSS counter（见 styles），这里只在需要时挂 data-lineno-count，
+       让 CSS 知道总行数（用于固定 gutter 宽度）。逻辑行 ≥ 2 才显示行号，
+       避免单行片段被加上多余的「1」前缀。 */
+    const wrapClass = lineCount >= 2 ? 'ai-code-wrap ai-code-lineno' : 'ai-code-wrap';
+    return `<div class="${wrapClass}" data-line-count="${lineCount}">${toolbarHtml(copyLabel, showIde)}<pre${a}>${inner}</pre></div>`;
   });
 }
 
 const PURIFY = {
   ADD_TAGS: ['button', 'mark'],
-  ADD_ATTR: ['data-ide', 'data-copy', 'data-highlighted', 'aria-label', 'class', 'type'],
+  ADD_ATTR: [
+    'data-ide',
+    'data-copy',
+    'data-highlighted',
+    'data-line-count',
+    'data-mermaid-src',
+    'aria-label',
+    'class',
+    'type',
+  ],
 };
 
 export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: AiAssistantOptions) {
@@ -79,12 +120,16 @@ export function useAiMarkdownRenderer(_t: ComputedRef<I18nMessages>, options: Ai
       }
     }
 
+    /* 非流式时把 mermaid 围栏先抽走，避免被 marked-highlight 当成普通代码块。
+       流式期间不抽：内容尚未闭合，提前替换会渲染半截图谋反而更糟。 */
+    const preprocessed = isStreamingLast ? src : extractMermaidBlocks(src);
+
     let html: string;
     try {
       html = (
         isStreamingLast
-          ? markedStreamOnly.parse(src, { async: false })
-          : markedFull.parse(src, { async: false })
+          ? markedStreamOnly.parse(preprocessed, { async: false })
+          : markedFull.parse(preprocessed, { async: false })
       ) as string;
     } catch {
       html = `<pre class="ai-md-fallback">${escapeHtml(src)}</pre>`;

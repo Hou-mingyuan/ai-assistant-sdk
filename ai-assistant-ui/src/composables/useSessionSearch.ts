@@ -19,6 +19,7 @@ export function useSessionSearch(
   _loading: Ref<boolean>,
   renderAllMessages: Ref<boolean>,
   maxRendered: number,
+  panelRoot?: Ref<HTMLElement | undefined>,
 ) {
   const chatSearchInput = ref('');
   const debouncedSearchQuery = ref('');
@@ -126,7 +127,8 @@ export function useSessionSearch(
     const gIdx = activeMatchGlobalIdx.value;
     if (gIdx < 0) return;
     nextTick(() => {
-      const el = document.querySelector(`[data-ai-msg-global-idx="${gIdx}"]`);
+      const root = panelRoot?.value ?? document;
+      const el = root.querySelector(`[data-ai-msg-global-idx="${gIdx}"]`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   }

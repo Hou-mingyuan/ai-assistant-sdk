@@ -1,5 +1,6 @@
 <template>
   <Teleport to="body">
+    <Transition name="ai-modal">
     <div
       v-if="open"
       class="ai-personalize-overlay"
@@ -51,6 +52,7 @@
         </div>
       </div>
     </div>
+    </Transition>
   </Teleport>
 </template>
 

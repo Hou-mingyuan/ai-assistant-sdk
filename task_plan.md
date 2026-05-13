@@ -150,6 +150,61 @@
 剩余：
 - README 中配置、部署和高级能力说明仍可继续逐段迁移，但本轮已经先处理最明显的 API 重复段。
 
+---
+
+## 第二轮：AI 助手进化功能（2026-05-13 启动）
+
+### 起因
+
+用户在新会话中要求"全部按顺序开始"实现上一轮设计但尚未落地的 11 项进化能力（A1-A4 / B5-B8 / C9-C11）。
+经审计 `ai-assistant-ui/src` 当前实现，发现 5 项已存在或本质完成（B5/B6/C11 + A2/A3/A4 部分），真实缺口 6 项。
+
+### 已存在能力（跳过或仅微调）
+
+| 项 | 现状 | 文件 |
+|----|------|------|
+| B5 会话搜索 | composable + highlight 已 export | `useSessionSearch.ts` |
+| B6 消息编辑/重生成 | 完整 | `useChatOrchestrator.ts` `MessageList.vue` `MessageContextMenu.vue` |
+| C11 i18n | zh/en/ja/ko 4 语言 + types.ts | `utils/i18n/` |
+| A2 RAG（前端管理） | LocalStorage 模拟 + ragPromptFragment | `useKnowledgeBase.ts` |
+| A3 插件注册 | header/footer/context 按钮注册器 | `usePluginRegistry.ts` |
+| A4 语音输入 | 完整 | `useVoiceInput.ts` |
+
+### 本轮真实缺口（按执行顺序）
+
+| # | 任务 | 关键文件（新增/修改） | 验证 |
+|---|------|---------------------|------|
+| A1 | 多模型并行对话 | new `useMultiModelChat.ts` + new `MultiModelCompare.vue` + `AiAssistant.vue` + `useSlashCommands.ts` + 4×i18n + CSS | build:lib |
+| A4-TTS | 文本转语音朗读 | new `useTextToSpeech.ts` + `MessageContextMenu.vue` + `useMsgContextMenu.ts` + 4×i18n + CSS | build:lib |
+| B7 | Prompt 模板管理 UI | new `usePromptTemplateLibrary.ts` + new `PromptTemplateDialog.vue` + `AiAssistant.vue` + `useSlashCommands.ts` + 4×i18n + CSS | build:lib |
+| B8 | 代码块增强 (Mermaid + 行号) | `useAiMarkdownRenderer.ts` + 动态 import `mermaid` + CSS | build:lib |
+| C10 | 性能优化 (虚拟滚动) | new `useVirtualScroll.ts` + `MessageList.vue` + worker 化（如有时间） | build:lib |
+| A2 后端集成 | RAG 真后端调用 | `useKnowledgeBase.ts` + `utils/api.ts`（如后端已有端点） | findings.md 记录 |
+| A3 真 MCP 客户端 | MCP JSON-RPC 客户端 | new `useMcpClient.ts` + 与 `usePluginRegistry` 打通 | build:lib |
+| C9 测试补全 | 为 A1/A4/B7/C10 各加 `.spec.ts` | new `*.spec.ts` 文件 | `npm test` |
+
+### 阶段 12：本轮所有 8 项任务
+
+状态：全部完成 ✅
+
+| 阶段 | 任务 | 状态 | 关键文件 |
+|------|------|------|---------|
+| 12.1 | A1 多模型并行对话 | ✅ | `useMultiModelChat.ts` + `MultiModelCompare.vue` + `AiAssistant.vue` + 4×i18n |
+| 12.2 | A4 TTS 朗读 | ✅ | `useTextToSpeech.ts` + `MessageContextMenu.vue` |
+| 12.3 | B7 Prompt 模板管理 UI | ✅ | `usePromptTemplateLibrary.ts` + `PromptTemplateDialog.vue` + 4×i18n |
+| 12.4 | B8 代码块增强（Mermaid + 行号） | ✅ | `useAiMarkdownRenderer.ts` + `useMermaidRenderer.ts` + CSS + vite.config |
+| 12.5 | C10 性能优化基础设施 | ✅ | `useMessageVirtualScroll.ts`（opt-in，不接入 MessageList） |
+| 12.6 | A2 RAG 后端集成 | ⚠ 不做 | 架构语义不匹配，详见 findings.md |
+| 12.7 | A3 真 MCP 客户端 | ✅ | `useMcpClient.ts` |
+| 12.8 | C9 测试补全 | ✅ | 5 个新增 `.spec.ts` 共 41 个测试 |
+
+### 最终验证
+
+- `npm run build:lib`：✅ 通过；新增 chunks `MultiModelCompare` (10.41 KB) + `PromptTemplateDialog` (15.40 KB)
+- `npm test`：✅ 195/195 全过（之前 155）
+- `ReadLints`：✅ 新增文件 0 lint 错误
+- 工作区无 commit / push，等待用户审阅
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

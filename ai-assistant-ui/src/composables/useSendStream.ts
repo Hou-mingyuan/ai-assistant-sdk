@@ -24,8 +24,9 @@ import { type ComputedRef, type Ref } from 'vue';
 import type { AiAssistantOptions } from '../index';
 import type { ChatPayload, UrlPreviewResult } from '../utils/api';
 import type { I18nMessages } from '../utils/i18n';
-import type { Message } from '../types/message';
+import { type Message, extractThinking, extractToolCalls, extractAgentSteps } from '../types/message';
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
+import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
 
 /** Brace / bracket balance counter shared by {@link stripInternalToolTrace}. */
 export function countBraceBalance(text: string): number {
@@ -65,7 +66,7 @@ export function stripInternalToolTrace(message: string): string {
       /^`?cap_[\w-]+`?\s*(?:\(|\{|\[|$)/i.test(compact);
 
     if (isToolTrace) {
-      droppingToolJson = /[\{\[]/.test(trimmed) && !/[\}\]]\s*`?$/.test(trimmed);
+      droppingToolJson = /[{[]/.test(trimmed) && !/[}\]]\s*`?$/.test(trimmed);
       braceBalance = countBraceBalance(trimmed);
       continue;
     }
@@ -139,6 +140,8 @@ export interface UseSendStreamDeps {
   loading: Ref<boolean>;
   /** Session header label (auto-set from first user prompt). */
   sessionTitle: Ref<string>;
+  /** Active multi-session id, sent as `sessionId` for server-side memory. */
+  activeSessionId: Ref<string>;
   /** Current request action: translate / summarize / chat. */
   mode: Ref<'translate' | 'summarize' | 'chat'>;
   /** Translation target locale (used only when `mode === 'translate'`). */
@@ -206,6 +209,8 @@ export interface UseSendStreamDeps {
   getStreamStoppedByUser: () => boolean;
   /** Set the stop flag (true on user-stop, false on each new send). */
   setStreamStoppedByUser: (stopped: boolean) => void;
+  /** Cross-session memory fragment to prepend to systemPrompt. */
+  memoryPromptFragment?: Ref<string>;
 }
 
 export function useSendStream(deps: UseSendStreamDeps) {
@@ -227,9 +232,16 @@ export function useSendStream(deps: UseSendStreamDeps) {
     function flush() {
       raf = 0;
       const prev = deps.messages.value[msgIndex];
+      const sanitized = sanitizeAssistantContent(pending, tNow());
+      const { thinking, content: afterThink } = extractThinking(sanitized);
+      const { content: afterTools, toolCalls } = extractToolCalls(afterThink);
+      const { content, steps } = extractAgentSteps(afterTools);
       deps.messages.value[msgIndex] = {
         role: 'assistant',
-        content: sanitizeAssistantContent(pending, tNow()),
+        content,
+        thinking: thinking || prev?.thinking,
+        toolCalls: toolCalls.length > 0 ? toolCalls : prev?.toolCalls,
+        agentSteps: steps.length > 0 ? steps : prev?.agentSteps,
         timestamp: prev?.timestamp,
         contentArchive: prev?.contentArchive,
         feedback: prev?.feedback,
@@ -244,10 +256,20 @@ export function useSendStream(deps: UseSendStreamDeps) {
     } finally {
       if (raf) cancelAnimationFrame(raf);
       pending = sanitizeAssistantContent(pending, tNow());
+      const { thinking, content: afterThinkFinal } = extractThinking(pending);
+      const { content: afterToolsFinal, toolCalls } = extractToolCalls(afterThinkFinal);
+      const { content, steps } = extractAgentSteps(afterToolsFinal);
       const prevDone = deps.messages.value[msgIndex];
+      const finalToolCalls = toolCalls.length > 0 ? toolCalls : prevDone?.toolCalls;
+      if (finalToolCalls) finalToolCalls.forEach((tc) => { if (tc.status === 'running') tc.status = 'done'; });
+      const finalSteps = steps.length > 0 ? steps : prevDone?.agentSteps;
+      if (finalSteps) finalSteps.forEach((s) => { if (s.status === 'running') s.status = 'done'; });
       deps.messages.value[msgIndex] = {
         role: 'assistant',
-        content: pending,
+        content,
+        thinking: thinking || prevDone?.thinking,
+        toolCalls: finalToolCalls,
+        agentSteps: finalSteps,
         timestamp: prevDone?.timestamp,
         contentArchive: prevDone?.contentArchive,
         feedback: prevDone?.feedback,
@@ -327,8 +349,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
     };
     if (imageForPayload) payload.imageData = imageForPayload;
     if (deps.mode.value === 'chat') {
+      const memFrag = deps.memoryPromptFragment?.value ?? '';
       const sp = deps.chatSystemPrompt.value.trim();
-      if (sp) payload.systemPrompt = sp;
+      const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
+      if (combinedSp) payload.systemPrompt = combinedSp;
       const mid = deps.selectedChatModel.value.trim();
       if (mid && deps.modelChoices.value.includes(mid)) payload.model = mid;
     }
@@ -338,6 +362,24 @@ export function useSendStream(deps: UseSendStreamDeps) {
         content: m.contentArchive ?? m.content,
       }));
     }
+
+    if (deps.options.pageContextBlocks?.length) {
+      const minChars = deps.options.pageContextMinUserChars ?? 0;
+      if (text.length >= minChars) {
+        const ctxOpts = {
+          blocks: deps.options.pageContextBlocks,
+          maxCharsPerBlock: deps.options.pageContextMaxCharsPerBlock,
+          maxTotalChars: deps.options.pageContextMaxTotalChars,
+        };
+        const ctx = deps.options.smartPageContext
+          ? collectSmartPageContext(ctxOpts)
+          : collectPageContextText(ctxOpts);
+        if (ctx) payload.pageContext = ctx;
+      }
+    }
+
+    const sid = deps.activeSessionId.value;
+    if (sid) payload.sessionId = sid;
 
     deps.emitSend({ action: deps.mode.value, text });
 

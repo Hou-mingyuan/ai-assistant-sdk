@@ -35,6 +35,15 @@
           <button type="button" role="menuitem" class="ai-fab-ctx-item" @click="$emit('fork')">
             <span class="ai-fab-ctx-label">{{ t.msgCtxFork }}</span>
           </button>
+          <button
+            v-if="ttsSupported"
+            type="button"
+            role="menuitem"
+            class="ai-fab-ctx-item"
+            @click="$emit('tts')"
+          >
+            <span class="ai-fab-ctx-label">{{ ttsActive ? t.ttsStop : t.ttsPlay }}</span>
+          </button>
           <template v-if="hasBaseUrl">
             <button
               type="button"
@@ -77,16 +86,21 @@
 import type { I18nMessages } from '../utils/i18n';
 import type { ExportFormat } from '../utils/api';
 
-defineProps<{
-  show: boolean;
-  x: number;
-  y: number;
-  color: string;
-  selectionText: string;
-  hasBaseUrl: boolean;
-  exportBusy: boolean;
-  t: I18nMessages;
-}>();
+withDefaults(
+  defineProps<{
+    show: boolean;
+    x: number;
+    y: number;
+    color: string;
+    selectionText: string;
+    hasBaseUrl: boolean;
+    exportBusy: boolean;
+    t: I18nMessages;
+    ttsSupported?: boolean;
+    ttsActive?: boolean;
+  }>(),
+  { ttsSupported: false, ttsActive: false },
+);
 
 defineEmits<{
   (e: 'copy'): void;
@@ -94,5 +108,6 @@ defineEmits<{
   (e: 'delete'): void;
   (e: 'export', fmt: ExportFormat): void;
   (e: 'fork'): void;
+  (e: 'tts'): void;
 }>();
 </script>

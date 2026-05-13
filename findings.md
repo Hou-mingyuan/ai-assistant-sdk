@@ -166,3 +166,99 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 
 验证：
 - 已运行 `node scripts/project-health-check.mjs --docs`，版本一致性检查和文档站构建均通过。
+
+---
+
+## 2026-05-13 第二轮：进化功能审计与决策
+
+### 审计起点
+
+用户在新会话首条消息要求「全部按顺序开始」实现上轮（5-12）设计的 11 项 AI 助手进化功能（A1-A4 / B5-B8 / C9-C11）。
+不能盲目按顺序开干，必须先盘点 `ai-assistant-ui/src` 现状，避免重复造轮子。
+
+### 现状审计结果
+
+| 候选项 | 现状文件 | 真实缺口 |
+|--------|----------|----------|
+| A1 多模型并行对话 | — | **完全缺失** |
+| A2 RAG/知识库 | `useKnowledgeBase.ts`（LocalStorage 模拟） | 与后端 RAG 语义不匹配，见下文 |
+| A3 MCP 工具集成 | `usePluginRegistry.ts`（按钮注册器） | 缺真 MCP 协议客户端 |
+| A4 语音输入 + TTS | `useVoiceInput.ts`（仅输入端） | TTS 朗读完全缺失 |
+| B5 会话搜索 | `useSessionSearch.ts` + `highlightSearchInHtml` 已 export | ✅ 已完整 |
+| B6 消息编辑/重生成 | `useChatOrchestrator.ts` + `MessageList.vue` + `MessageContextMenu.vue` | ✅ 已完整 |
+| B7 Prompt 模板库 | `options.promptTemplates`（预置） | 缺用户侧管理 UI |
+| B8 代码块增强 | `useCodeWall.ts` + 复制按钮 + IDE 按钮 | 缺 Mermaid / 行号 |
+| C9 测试覆盖 | 5 个 `.spec.ts` + 根目录 e2e | 新增 composable 缺测试 |
+| C10 性能优化 | rAF + perfMetrics + `MAX_RENDERED_MESSAGES = 60` | 缺虚拟滚动 |
+| C11 i18n 补全 | zh/en/ja/ko 4 语言完整 | ✅ 已完整 |
+
+### A2 RAG 决策（不对接）
+
+**事实**：
+- 前端 `useKnowledgeBase.ts` 已实现：用户在本浏览器创建多个「知识库」、上传文件（仅记录元数据）、勾选启用 → 通过 `ragPromptFragment` 注入 system prompt 提示 LLM。
+- 后端 `RagService.java`（在 `ai-assistant-server/.../rag/`）有完整 ingest/retrieveContext，但**唯一对外端点是 `POST /admin/rag/ingest` + `GET /admin/rag/stats`**（在 `AdminDashboardController.java`）。
+- 这两个端点都在 `@RequestMapping("/admin")` 下，需要 admin 权限；接入后**全局共享**索引（所有终端用户访问到同一份向量库）。
+
+**冲突点**：
+- 前端组件库的 `useKnowledgeBase` 设计目标是「每个浏览器用户管理自己的知识库」（不需 admin 权限、不污染他人）。
+- 后端 admin RAG 设计目标是「运营方一次性灌入文档，所有用户共享检索」。
+- 两者语义、权限、生命周期都不同，不能直接桥接。
+
+**决策**：
+- 本轮保持 `useKnowledgeBase` 当前实现不变（LocalStorage + prompt 注入）。
+- 不在 `utils/api.ts` 增加 `/admin/rag/ingest` 包装；如需要，宿主应用按需直接调用。
+- 后续若要做「用户私有 RAG」，需在 server 端新增 `/users/{userId}/rag/ingest` 端点 + 隔离命名空间，那是后端独立工程。
+
+### A3 MCP 客户端落地
+
+**事实**：
+- 后端已有 `McpServerController.java`（`@RequestMapping("/mcp")`），把所有 `AssistantCapability` 暴露为 MCP tools，**自身是 MCP server**，不是 client。
+- 协议版本 `2025-03-26`；支持 `initialize` / `tools/list` / `tools/call`。
+
+**实施**：
+- 新增 `useMcpClient.ts`（HTTP JSON-RPC client）+ `useMcpClient.spec.ts`。
+- 默认指向 `/ai-assistant/mcp`（即 SDK 自己的后端），但 endpoint 可任意覆盖以连接外部 MCP server（如 织信、其它服务）。
+- 不支持 SSE streaming（多数 MCP server HTTP-only 即可工作；如需，宿主自接 EventSource）。
+- **不主动接入 AiAssistant.vue**：MCP tools 暴露后如何用（自动调用 / 显示成插件按钮 / 集成到 Function Calling）是产品决策，本轮把基础设施落地，留待后续 UX 设计。
+
+### B7 Prompt 模板：用户库 vs 后端模板
+
+**事实**：
+- 后端有 `PromptTemplateController.java`：`GET /templates` `POST /templates/{name}/render` `POST /templates`，是「服务端共享模板库」。
+- 前端 `options.promptTemplates` 是「编译期由宿主预置」，运行时只读。
+- 本轮新增的 `usePromptTemplateLibrary` 是「用户私有 + LocalStorage」。
+
+**三层并存**的合理性：
+- **服务端 PromptTemplateController**：运营人员维护的「官方模板」，可后续通过 `fetchPromptTemplates(baseUrl)` API 拉取（本轮未实现该 fetch 函数）。
+- **options.promptTemplates**：宿主应用按业务定制的预置模板（如「合同审查」「代码 review」）。
+- **usePromptTemplateLibrary**：用户个人收藏的 prompt。
+
+三者在 `PromptTemplateDialog.vue` 中已通过 `mergedTemplates` 合并展示（preset → user），未来如要并入服务端模板只需扩展 composable 的 source 字段，无需重构 UI。
+
+### B8 Mermaid 作为可选 peer
+
+**为什么不直接加进 dependencies**：
+- mermaid 完整 bundle 约 600 KB（gzip ~180 KB），强制依赖会显著拖累不需要图表的宿主。
+- 改为 `import('mermaid')` 动态加载 + 标记 `external`，使「需要 mermaid 的宿主自己 npm i 即可生效，不需要的宿主完全无感」。
+
+**失败降级**：
+- `useMermaidRenderer.renderInside` 在动态 import 失败时把所有 placeholder 内容设为 `<pre>` 显示原始源码，用户至少能读到 Mermaid 文本，不会出现空白方框。
+
+### C10 不接入 MessageList 的理由
+
+- `useMessageVirtualScroll` 是纯算法 composable，已写 7 个单测覆盖所有边界（启用阈值、scroll 位移、高度测量、过末尾 clamp）。
+- 真要接入 MessageList 需要：a) 在外层挂 scroll listener；b) 测量每条消息渲染后的实际高度并 feedback；c) 渲染 spacer 占位；d) 处理 `hiddenOlderCount` 与 virtual window 的优先级冲突。
+- 这是独立的 200 行级别改动，且会破坏现有 `MAX_RENDERED_MESSAGES = 60` 折叠的契约（哪些消息可见？哪些被折叠？）。
+- 本轮先把工具做完备，留专项 PR 接入，避免单次 PR 风险面过大。
+
+### 跳过的「测试型」工作
+
+- B8 `useMermaidRenderer.spec.ts` 未写：mermaid 是可选 peer，测试需要 mock dynamic import + jsdom 不支持的 SVG 渲染，性价比低。已通过手动审阅 + 边界路径设计（fallback / error）保证健壮性。
+
+### 未引入的破坏性变更
+
+- 没有删除任何现有 API。
+- 没有修改任何现有 spec.ts。
+- 没有破坏现有 6 个预先存在的 vue-tsc 类型错误（pre-existing，与本轮无关）。
+- 没有动后端代码（仅 audit 后端 controller 端点结构）。
+- 没有 commit / push，保持工作区干净待审阅。

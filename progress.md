@@ -114,3 +114,110 @@
 - 已最终再次运行 `node scripts/project-health-check.mjs --docs`，版本一致性检查和 VitePress 文档站构建均通过。
 - `docs/.vitepress/cache/` 是文档构建生成缓存，不应提交。
 - 本轮未创建 git commit 或 push；原因是提交前必须获得用户显式确认。
+
+---
+
+## 2026-05-13 第二轮：AI 助手进化功能
+
+用户接续 5-12 上轮的「10 项进化功能」要求继续推进，最初列出 11 项候选（A1-A4/B5-B8/C9-C11）。
+经审计发现 B5/B6/C11/A4 输入端/usePluginRegistry/useKnowledgeBase 已存在，真实缺口 6 项 + 1 项测试补全。
+
+### 已落地
+
+#### A1：多模型并行对话
+- 新增 `useMultiModelChat.ts` composable：N 列独立 AbortController + rAF 节流刷新
+- 新增 `MultiModelCompare.vue` 覆盖面板：网格布局，1-4 列自适应，每列含模型名/spinner/计时/停止按钮
+- 集成入 `AiAssistant.vue`：默认选当前模型 + 第二个候选；通过 `/compare` 斜杠命令打开
+- 补全 4×i18n（zh/en/ja/ko）共 8 个文案键
+- 构建产物：`MultiModelCompare-iXYz2UAg.js` 10.41 KB（gzip 2.47 KB）
+
+#### A4：TTS 文本转语音
+- 新增 `useTextToSpeech.ts` composable：SpeechSynthesis API + 自动语言检测（CJK/ja/ko/en）
+- 朗读前剥离 Markdown 与代码块，避免逐字念出语法字符
+- `MessageContextMenu.vue` 新增「朗读 / 停止朗读」菜单项（自动检测浏览器支持）
+- 同条消息重复点击切换播放/停止，切换到其它条自动取消上一条
+
+#### B7：Prompt 模板管理 UI
+- 新增 `usePromptTemplateLibrary.ts` composable：LocalStorage 持久化用户模板，与 options 预置模板合并展示
+- 新增 `PromptTemplateDialog.vue`：左侧列表 + 右侧编辑器（名称/模板/变量定义/填写表单/预览/动作）
+- 通过 `/template` 斜杠命令打开；点「使用」后渲染后的文本写入主输入框
+- 渲染函数 `renderPromptTemplate({{var}})` 已 export 供宿主复用
+- 构建产物：`PromptTemplateDialog-K3Cj1K13.js` 15.40 KB（gzip 3.02 KB）
+
+#### B8：代码块 Mermaid + 行号
+- `useAiMarkdownRenderer.ts` 新增 `extractMermaidBlocks`：把 ```mermaid 围栏替换成 `<div class="ai-mermaid-placeholder">` 占位符
+- 新增 `useMermaidRenderer.ts`：动态 `import('mermaid')`（可选 peer）→ 调 mermaid.render 把占位符替换为 SVG；未安装时降级显示源码
+- 在 `vite.config.ts` 把 `mermaid` 标记为 external，避免 build 时 resolve 失败
+- 行号通过 CSS counter 实现（`.ai-code-wrap.ai-code-lineno`），逻辑行 ≥ 2 时启用，单行片段不挂行号
+- 整套 CSS 新增 `08-late-additions.css` 末尾约 100 行（亮色 + 暗色双适配）
+
+#### C10：性能优化基础设施
+- 新增 `useMessageVirtualScroll.ts` 纯算法 composable（不直接操作 DOM，可在 jsdom 单测）
+- 索引窗口 + 高度测量缓存 + overscan + 自动失活（消息数 ≤ 60 时降级全量渲染，与现有 `MAX_RENDERED_MESSAGES = 60` 一致）
+- 本轮**不强制接入** MessageList：作为 opt-in 工具暴露给宿主，避免破坏现有 UI 行为；后续可由专项 PR 接入
+
+#### A2：RAG 后端架构对齐
+- 审计 `ai-assistant-server` 发现 RAG 端点是 `POST /admin/rag/ingest`（管理员端点，全局共享知识库）
+- 前端 `useKnowledgeBase` 当前 LocalStorage + ragPromptFragment 模式是**用户级私有知识库**语义，与后端 admin RAG 不是同一概念
+- 本轮**不对接**，避免把"用户私有"误连到"全局共享"。详细决策见 `findings.md`「A2 RAG 决策」段
+
+#### A3：MCP 客户端 composable
+- 新增 `useMcpClient.ts`：HTTP JSON-RPC 客户端，可连任何兼容 MCP server（默认指向自家 `/ai-assistant/mcp`）
+- 提供 `initialize` / `listTools` / `callTool` / `reset`，错误抛 `McpRpcError`
+- 支持自定义 `fetchImpl`（SSR / 测试可注入）、`timeoutMs`、`token`（双头注入 `Authorization: Bearer` + `X-AI-Token`）
+- 本轮**不强制接入** AiAssistant：作为独立工具暴露，宿主可通过 `usePluginRegistry` 把 MCP tool 注册成按钮
+
+#### C9：测试补全
+- 新增 5 个 `.spec.ts`：A1/A4/B7/C10/A3 共 41 个新测试
+- 总测试数 155 → 195，全部通过
+
+### 验证
+
+- `npm run build:lib`：✅ 通过（产物 `ai-assistant.mjs` 542 → 564 KB，gzip 124 → 130 KB；其它都是独立 chunk）
+- `npm test`：✅ 195/195 全通过
+- `ReadLints` 对所有新增文件：✅ 无 lint 错误
+- 现有 5 个预先存在的 vue-tsc 类型错误（`plugins.value` / `slashCommands undefined` / `useVoiceInput`）**与本轮无关**，未处理
+
+### 新增文件清单
+
+```
+ai-assistant-ui/src/composables/
+├── useMultiModelChat.ts            (A1)
+├── useMultiModelChat.spec.ts       (A1)
+├── useTextToSpeech.ts              (A4)
+├── useTextToSpeech.spec.ts         (A4)
+├── usePromptTemplateLibrary.ts     (B7)
+├── usePromptTemplateLibrary.spec.ts(B7)
+├── useMermaidRenderer.ts           (B8)
+├── useMessageVirtualScroll.ts      (C10)
+├── useMessageVirtualScroll.spec.ts (C10)
+├── useMcpClient.ts                 (A3)
+└── useMcpClient.spec.ts            (A3)
+
+ai-assistant-ui/src/components/
+├── MultiModelCompare.vue           (A1)
+└── PromptTemplateDialog.vue        (B7)
+```
+
+### 修改文件清单
+
+```
+ai-assistant-ui/
+├── src/components/AiAssistant.vue          # 接入 A1/A4/B7/B8 + 2 个斜杠命令
+├── src/components/MessageContextMenu.vue   # 新增 TTS 朗读按钮
+├── src/composables/useAiMarkdownRenderer.ts# Mermaid 占位符抽取 + 行号支持
+├── src/components/styles/08-late-additions.css # Mermaid + 行号 CSS
+├── src/utils/i18n/{types,zh,en,ja,ko}.ts   # 17 个新 i18n 键
+├── src/index.ts                            # export 新 composable + 类型
+└── vite.config.ts                          # mermaid 标记为 external
+```
+
+### 跳过 / 不做的项
+
+- **A2 后端 RAG 真对接**：架构语义不匹配，详见 findings.md。
+- **A4 BBTSU 朗读 / 暂停**：composable 已实现 pause/resume，但 UI 只暴露播放/停止两态；后续如需可补「暂停」按钮。
+- **B8 PlantUML**：仅做了 Mermaid；PlantUML 需要后端渲染或单独 client，未做。
+- **B8 「运行代码片段」**：浏览器侧运行 JavaScript/CSS 片段是另一个独立工程（沙箱、CSP 等），未做。
+- **C10 真接入 MessageList**：composable 已就绪，但实际接入会大改 MessageList 的渲染逻辑，留作专项 PR。
+- **C10 Markdown Worker 化**：与 hljs 的动态语言加载冲突较大，性价比低，未做。
+- **B5/B6/C11**：现状已完整或基本完整，未做新增（详见审计表格）。

@@ -58,10 +58,14 @@ export default defineConfig({
         cssCodeSplit: false,
         minify: 'terser',
         rollupOptions: {
-          external: ['vue', 'html2canvas'],
+          /* `mermaid` is an OPTIONAL peer: only loaded at runtime by
+             `useMermaidRenderer` when the host project has it installed.
+             Externalizing keeps the library bundle small and avoids the
+             "cannot resolve mermaid" build error when the host opts out. */
+          external: ['vue', 'html2canvas', 'mermaid'],
           output: {
             exports: 'named',
-            globals: { vue: 'Vue', html2canvas: 'html2canvas' },
+            globals: { vue: 'Vue', html2canvas: 'html2canvas', mermaid: 'mermaid' },
           },
         },
       },

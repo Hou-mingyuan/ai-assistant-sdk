@@ -107,6 +107,8 @@ export interface I18nMessages {
   exportServerXlsx: string;
   exportServerDocx: string;
   exportServerPdf: string;
+  selectModeToggle: string;
+  translateTo: string;
   /** 助手气泡右键 */
   msgCtxCopy: string;
   msgCtxDelete: string;
@@ -150,4 +152,48 @@ export interface I18nMessages {
   soundOff: string;
   ctrlEnterMode: string;
   enterMode: string;
+  thinkingLabel: string;
+  thinkingLive: string;
+  memoryLabel: string;
+  memoryAddPlaceholder: string;
+  memoryEmpty: string;
+  memoryClearAll: string;
+  toolResult: string;
+  kbLabel: string;
+  kbAddPlaceholder: string;
+  kbEmpty: string;
+  kbUploadDoc: string;
+  pluginsLabel: string;
+  pluginsEmpty: string;
+  /** 多模型并行对比 */
+  compareTitle: string;
+  compareSelectModels: string;
+  compareModelsHint: string;
+  compareEmpty: string;
+  compareHint: string;
+  startCompare: string;
+  stopAll: string;
+  /** 斜杠命令面板里的描述 */
+  slashCmdCompareDesc: string;
+  /** Prompt 模板库 */
+  tplDialogTitle: string;
+  tplCreate: string;
+  tplEmpty: string;
+  tplLabel: string;
+  tplBody: string;
+  tplBodyHint: string;
+  tplVariables: string;
+  tplVarLabelPlaceholder: string;
+  tplVarDefaultPlaceholder: string;
+  tplFillVars: string;
+  tplPreview: string;
+  tplSave: string;
+  tplDelete: string;
+  tplUse: string;
+  tplSelectHint: string;
+  tplPresetBadge: string;
+  tplUserBadge: string;
+  tplNewDefaultLabel: string;
+  tplNewDefaultBody: string;
+  slashCmdTemplateDesc: string;
 }

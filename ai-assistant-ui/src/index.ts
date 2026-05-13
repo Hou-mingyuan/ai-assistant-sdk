@@ -1,6 +1,7 @@
 import type { App } from 'vue';
 import { createApp } from 'vue';
 import AiAssistant from './components/AiAssistant.vue';
+import type { PageContextBlock } from './utils/pageContextDom';
 
 export interface AiAssistantOptions {
   baseUrl?: string;
@@ -72,6 +73,23 @@ export interface AiAssistantOptions {
   showModelPicker?: boolean;
   /** 记住所选模型的 localStorage key，默认 `ai-assistant-selected-model` */
   selectedModelStorageKey?: string;
+  /**
+   * DOM 选择器列表，每个条目匹配页面上的一个区块，发送时自动采集其文本作为上下文
+   * 注入 LLM 系统提示，让助手"看到"当前页面内容。
+   */
+  pageContextBlocks?: PageContextBlock[];
+  /**
+   * 为 true 时，除了 block 文本还附带 URL 和 document.title。默认 false。
+   */
+  smartPageContext?: boolean;
+  /**
+   * 用户输入少于此字符数时跳过页面上下文采集（避免简短闲聊也携带大段上下文）。默认 0（始终采集）。
+   */
+  pageContextMinUserChars?: number;
+  /** 每个 block 最大采集字符，默认 3000 */
+  pageContextMaxCharsPerBlock?: number;
+  /** 所有 block 合计最大字符，默认 6000 */
+  pageContextMaxTotalChars?: number;
 }
 
 const defaultOptions: AiAssistantOptions = {
@@ -153,6 +171,8 @@ export type { StreamOptions } from './composables/useAiAssistant';
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api';
 export { uploadFile, fetchUrlPreview, fetchModels, postServerExport } from './utils/api';
 export type { ModelsListResult } from './utils/api';
+export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
+export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
 export { captureScreenshot } from './utils/pageScreenshot';
 export { extractStructuredData } from './utils/pageStructuredData';
 export {
@@ -169,3 +189,33 @@ export { createStreamTracker } from './utils/perfMetrics';
 export type { StreamMetrics } from './utils/perfMetrics';
 export { useMultiSession } from './composables/useMultiSession';
 export type { SessionEntry } from './composables/useMultiSession';
+export { useMultiModelChat } from './composables/useMultiModelChat';
+export type {
+  MultiModelColumn,
+  UseMultiModelChatOptions,
+} from './composables/useMultiModelChat';
+export { useTextToSpeech } from './composables/useTextToSpeech';
+export type { TtsSpeakOptions } from './composables/useTextToSpeech';
+export {
+  usePromptTemplateLibrary,
+  renderPromptTemplate,
+} from './composables/usePromptTemplateLibrary';
+export type {
+  PromptTemplate,
+  PromptTemplateVariable,
+  UsePromptTemplateLibraryOptions,
+} from './composables/usePromptTemplateLibrary';
+export { useMermaidRenderer } from './composables/useMermaidRenderer';
+export type { MermaidRenderOptions } from './composables/useMermaidRenderer';
+export { useMessageVirtualScroll } from './composables/useMessageVirtualScroll';
+export type {
+  UseMessageVirtualScrollOptions,
+  VirtualWindow,
+} from './composables/useMessageVirtualScroll';
+export { useMcpClient, McpRpcError } from './composables/useMcpClient';
+export type {
+  McpClientOptions,
+  McpTool,
+  McpInitializeResult,
+  McpToolCallResult,
+} from './composables/useMcpClient';

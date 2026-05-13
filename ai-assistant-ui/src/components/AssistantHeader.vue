@@ -4,8 +4,8 @@
     :class="{ 'ai-header-dragging': panelDragging }"
     @pointerdown="emit('pointerdown-header', $event)"
   >
-    <span :id="`${uid}-title`" class="ai-title" :title="sessionTitle || t.title">
-      {{ sessionTitle || t.title }}
+    <span :id="`${uid}-title`" class="ai-title" :title="t.title">
+      {{ t.title }}
     </span>
     <span class="ai-header-spacer" aria-hidden="true" />
     <div class="ai-header-actions">
@@ -62,43 +62,6 @@
           <path d="M18 7v4" />
         </svg>
         <span class="ai-header-diagnostics-text">{{ t.diagnosticsTitle }}</span>
-      </button>
-      <button
-        type="button"
-        class="ai-expand"
-        :title="panelExpanded ? t.shrinkPanel : t.expandPanel"
-        :aria-label="panelExpanded ? t.shrinkPanel : t.expandPanel"
-        :aria-pressed="panelExpanded ? 'true' : 'false'"
-        @click.stop="emit('toggle-panel-expand')"
-      >
-        <!-- 与常见系统控件一致：单框=全屏，双框错位=退出全屏 -->
-        <svg
-          v-if="!panelExpanded"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="5" y="5" width="14" height="14" rx="2.5" />
-        </svg>
-        <svg
-          v-else
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="4" y="9" width="11" height="11" rx="2.25" />
-          <rect x="9" y="4" width="11" height="11" rx="2.25" />
-        </svg>
       </button>
       <button
         v-for="pl in headerPlugins"
@@ -161,19 +124,12 @@
         type="button"
         class="ai-header-btn"
         :class="{ active: selectMode }"
-        :title="selectMode ? t.closePanel : t.msgCtxDelete"
+        :title="t.selectModeToggle"
+        :aria-label="t.selectModeToggle"
+        :aria-pressed="selectMode"
         @click="emit('toggle-select-mode')"
       >
         ☑
-      </button>
-      <button
-        type="button"
-        class="ai-header-btn"
-        :class="{ active: !codeWallDisabled }"
-        title="Code Wall"
-        @click="emit('toggle-code-wall')"
-      >
-        ✦
       </button>
       <button
         v-if="hasMessages"
@@ -184,6 +140,42 @@
         @click="emit('clear-messages')"
       >
         &#x1f5d1;
+      </button>
+      <button
+        type="button"
+        class="ai-expand"
+        :title="panelExpanded ? t.shrinkPanel : t.expandPanel"
+        :aria-label="panelExpanded ? t.shrinkPanel : t.expandPanel"
+        :aria-pressed="panelExpanded ? 'true' : 'false'"
+        @click.stop="emit('toggle-panel-expand')"
+      >
+        <svg
+          v-if="!panelExpanded"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="5" y="5" width="14" height="14" rx="2.5" />
+        </svg>
+        <svg
+          v-else
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="4" y="9" width="11" height="11" rx="2.25" />
+          <rect x="9" y="4" width="11" height="11" rx="2.25" />
+        </svg>
       </button>
       <button
         type="button"
@@ -235,10 +227,6 @@ defineProps({
     type: Boolean,
     required: true,
   },
-  codeWallDisabled: {
-    type: Boolean,
-    required: true,
-  },
   batchExportMenuOpen: {
     type: Boolean,
     required: true,
@@ -277,7 +265,6 @@ const emit = defineEmits<{
   (e: 'batch-export-all-markdown'): void;
   (e: 'batch-export-all-server', kind: 'xlsx' | 'docx' | 'pdf'): void;
   (e: 'toggle-select-mode'): void;
-  (e: 'toggle-code-wall'): void;
   (e: 'clear-messages'): void;
   (e: 'close-panel'): void;
 }>();

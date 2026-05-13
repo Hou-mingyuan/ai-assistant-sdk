@@ -13,7 +13,7 @@
   display: flex;
   gap: 4px;
   padding: 8px 12px;
-  border-top: 1px solid color-mix(in srgb, var(--primary, #6366f1) 12%, #e2e8f0);
+  border-top: none;
   background:
     repeating-linear-gradient(90deg, transparent 0 10px, rgba(99, 102, 241, 0.03) 10px 11px),
     linear-gradient(180deg, #eef2f7, #e5ecf4);
@@ -27,6 +27,10 @@
   cursor: pointer;
   font-size: 12px;
   transition: all 0.15s;
+}
+.ai-mode-bar button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: color-mix(in srgb, var(--primary, #6366f1) 28%, #cbd5e1);
 }
 .ai-mode-bar button.active {
   background: var(--primary, #6366f1);
@@ -53,7 +57,6 @@
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid color-mix(in srgb, var(--primary, #6366f1) 12%, #e2e8f0);
   background: linear-gradient(0deg, rgba(248, 250, 252, 0.65), transparent);
 }
 .ai-footer textarea {
@@ -68,8 +71,13 @@
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary, #6366f1) 4%, transparent) inset;
 }
+.ai-footer textarea::placeholder {
+  color: color-mix(in srgb, var(--primary, #6366f1) 18%, #64748b);
+  opacity: 1;
+}
 .ai-footer textarea:focus {
   border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 18%, transparent);
 }
 .ai-upload {
   width: 36px;
@@ -195,19 +203,10 @@
   backdrop-filter: blur(12px) saturate(1.05);
   box-shadow:
     0 1px #ffffff14 inset,
-    0 -1px rgba(69, 150, 96, 0.28) inset,
     0 0 28px -14px rgba(65, 180, 112, 0.28);
 }
 .ai-dark .ai-header:after {
-  opacity: 0.4;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(46, 125, 78, 0.22),
-    rgba(128, 190, 146, 0.26),
-    rgba(46, 125, 78, 0.22),
-    transparent
-  );
+  display: none;
 }
 .ai-dark .ai-body {
   scrollbar-color: color-mix(in srgb, var(--primary) 50%, #64748b) transparent;
