@@ -10,6 +10,8 @@ export interface SessionEntry {
   title: string;
   messages: SessionMessage[];
   createdAt: number;
+  /** H5: 收藏标记 - 真值时在 SessionsDrawer 顶部"Pinned"分组显示 */
+  pinned?: boolean;
 }
 
 type SessionMessage = PersistableChatMessage & {
@@ -155,6 +157,23 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     }
   }
 
+  /** H5: 用户手动重命名某条会话。覆盖自动 title（区别于 updateActiveTitle 的 if-empty 语义）。 */
+  function renameSession(id: string, title: string) {
+    const s = sessions.value.find((x) => x.id === id);
+    if (!s) return;
+    const trimmed = title.trim().slice(0, 80);
+    s.title = trimmed;
+    saveSessionsImmediate();
+  }
+
+  /** H5: 收藏 / 取消收藏。pinned 会话在 SessionsDrawer 优先展示。 */
+  function togglePinSession(id: string) {
+    const s = sessions.value.find((x) => x.id === id);
+    if (!s) return;
+    s.pinned = !s.pinned;
+    saveSessionsImmediate();
+  }
+
   function forkFromMessage(sessionId: string, messageIndex: number): SessionEntry | null {
     const src = sessions.value.find((s) => s.id === sessionId);
     if (!src || messageIndex < 0 || messageIndex >= src.messages.length) return null;
@@ -187,6 +206,8 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     getActiveSession,
     updateActiveMessages,
     updateActiveTitle,
+    renameSession,
+    togglePinSession,
     forkFromMessage,
     saveSessions,
     cleanup,

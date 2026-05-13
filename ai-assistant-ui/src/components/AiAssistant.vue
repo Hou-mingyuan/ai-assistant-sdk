@@ -583,6 +583,8 @@
       @close="sessionsDrawerOpen = false"
       @pick="switchToSession"
       @delete="deleteSessionTab"
+      @toggle-pin="multiSessions.togglePinSession"
+      @rename="multiSessions.renameSession"
     />
 
     <ConnectionDiagnostics

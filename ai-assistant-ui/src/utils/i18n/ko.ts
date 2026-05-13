@@ -214,4 +214,7 @@ export const ko: I18nMessages = {
   sessionsDrawerYesterday: '어제',
   sessionsDrawerThisWeek: '이번 주',
   sessionsDrawerOlder: '이전',
+  sessionsDrawerPinned: '고정',
+  sessionsDrawerPin: '고정 / 해제',
+  sessionsDrawerRename: '이름 변경',
 };

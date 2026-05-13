@@ -214,4 +214,7 @@ export const ja: I18nMessages = {
   sessionsDrawerYesterday: '昨日',
   sessionsDrawerThisWeek: '今週',
   sessionsDrawerOlder: 'それ以前',
+  sessionsDrawerPinned: 'ピン留め',
+  sessionsDrawerPin: 'ピン留め / 解除',
+  sessionsDrawerRename: '名前を変更',
 };

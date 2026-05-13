@@ -256,4 +256,9 @@ export interface I18nMessages {
   sessionsDrawerYesterday: string;
   sessionsDrawerThisWeek: string;
   sessionsDrawerOlder: string;
+  /** H5: pinned 会话分组标题 */
+  sessionsDrawerPinned: string;
+  /** H5: pin / rename 按钮 aria 文案 */
+  sessionsDrawerPin: string;
+  sessionsDrawerRename: string;
 }

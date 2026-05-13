@@ -219,4 +219,7 @@ export const en: I18nMessages = {
   sessionsDrawerYesterday: 'Yesterday',
   sessionsDrawerThisWeek: 'This week',
   sessionsDrawerOlder: 'Older',
+  sessionsDrawerPinned: 'Pinned',
+  sessionsDrawerPin: 'Pin / Unpin',
+  sessionsDrawerRename: 'Rename',
 };

@@ -215,4 +215,7 @@ export const zh: I18nMessages = {
   sessionsDrawerYesterday: '昨天',
   sessionsDrawerThisWeek: '本周',
   sessionsDrawerOlder: '更早',
+  sessionsDrawerPinned: '收藏',
+  sessionsDrawerPin: '收藏/取消收藏',
+  sessionsDrawerRename: '重命名',
 };

@@ -2021,18 +2021,11 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  width: 100%;
-  padding: 8px 36px 8px 10px;
-  text-align: left;
+  align-items: stretch;
+  gap: 0;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--ai-text);
   transition: all 0.12s ease;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover {
@@ -2043,6 +2036,36 @@
   background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(6, 182, 212, 0.08));
   border-color: var(--ai-gradient-1);
 }
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ai-text);
+  min-width: 0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-edit {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--ai-gradient-1);
+  border-radius: 5px;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2051,17 +2074,34 @@
   line-height: 1.4;
   word-break: break-word;
 }
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-pin {
+  display: inline-block;
+  margin-right: 4px;
+  color: #f59e0b;
+  font-size: 11px;
+  vertical-align: 1px;
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-meta {
   font-size: 11px;
   color: var(--ai-text-muted);
   font-variant-numeric: tabular-nums;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-delete {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover .ai-sessions-drawer-item-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item.is-editing .ai-sessions-drawer-item-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-actions:focus-within {
+  opacity: 1;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act {
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2069,18 +2109,20 @@
   border: 0;
   border-radius: 4px;
   color: var(--ai-text-muted);
-  font-size: 16px;
+  font-size: 13px;
   cursor: pointer;
-  opacity: 0;
   transition: all 0.12s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover .ai-sessions-drawer-item-delete {
-  opacity: 0.85;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act:hover {
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--ai-gradient-1);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-delete:hover {
-  background: rgba(239, 68, 68, 0.1);
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act.active {
+  color: #f59e0b;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act.ai-sessions-drawer-item-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
   color: rgb(239, 68, 68);
-  opacity: 1;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-input {
   background: rgba(255, 255, 255, 0.04);
