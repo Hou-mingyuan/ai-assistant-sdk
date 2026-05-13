@@ -1597,12 +1597,6 @@ function onToggleCodeWall() {
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
 
 
-const modes = computed(() => [
-  { value: 'translate' as const, label: t.value.translate },
-  { value: 'summarize' as const, label: t.value.summarize },
-  { value: 'chat' as const, label: t.value.chat },
-]);
-
 const placeholder = computed(() => t.value.placeholder[mode.value] || t.value.placeholder.chat);
 
 const quickPrompts = computed(() => {

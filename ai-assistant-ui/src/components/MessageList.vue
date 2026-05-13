@@ -17,8 +17,8 @@
   ></div>
   <div
     v-for="(msg, idx) in renderedMessages"
-    :key="`${displayOffset + renderedStart + idx}-${msg.role}`"
     v-show="!isTransientAbort(msg)"
+    :key="`${displayOffset + renderedStart + idx}-${msg.role}`"
     :class="[
       'ai-msg',
       msg.role,

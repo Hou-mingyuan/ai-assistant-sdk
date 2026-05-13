@@ -1,6 +1,5 @@
 <template>
   <Teleport to="body">
-    <Transition name="ai-modal">
     <div
       class="ai-personalize-overlay"
       :class="{ 'ai-dark': isDark }"
@@ -121,7 +120,6 @@
         </div>
       </div>
     </div>
-    </Transition>
   </Teleport>
 </template>
 
