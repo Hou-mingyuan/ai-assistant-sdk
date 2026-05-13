@@ -563,6 +563,14 @@
       />
     </Transition>
 
+    <KeyboardShortcutsDialog
+      v-if="keyboardHelpOpen"
+      :open="keyboardHelpOpen"
+      :is-dark="isDark"
+      :t="t"
+      @close="keyboardHelpOpen = false"
+    />
+
     <ConnectionDiagnostics
       v-if="diagnosticsOpen"
       :uid="uid"
@@ -644,6 +652,7 @@ const InlineTranslatePopover = defineAsyncComponent(() => import('./InlineTransl
 const ExportToast = defineAsyncComponent(() => import('./ExportToast.vue'));
 const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.vue'));
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
+const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
@@ -959,6 +968,7 @@ const selectedModelStorageKeyResolved = computed(
   () => options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
 );
 const diagnosticsOpen = ref(false);
+const keyboardHelpOpen = ref(false);
 const diagnosticsBusy = ref(false);
 const diagnosticsCopied = ref(false);
 const diagnosticsCopyMessage = ref('');
@@ -2505,6 +2515,13 @@ function onEscKeydown(e: KeyboardEvent) {
     }
   }
 
+  /* E1: Ctrl+/ (or Cmd+/) toggles keyboard shortcuts cheat sheet */
+  if (ctrl && !e.shiftKey && !e.altKey && e.key === '/' && isOpen.value) {
+    e.preventDefault();
+    keyboardHelpOpen.value = !keyboardHelpOpen.value;
+    return;
+  }
+
   if (e.key !== 'Escape') return;
   if (inlineTranslatePopover.value.show) {
     e.preventDefault();
@@ -2529,6 +2546,11 @@ function onEscKeydown(e: KeyboardEvent) {
   if (diagnosticsOpen.value) {
     e.preventDefault();
     diagnosticsOpen.value = false;
+    return;
+  }
+  if (keyboardHelpOpen.value) {
+    e.preventDefault();
+    keyboardHelpOpen.value = false;
     return;
   }
   if (isOpen.value) {

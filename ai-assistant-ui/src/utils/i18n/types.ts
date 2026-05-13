@@ -216,4 +216,30 @@ export interface I18nMessages {
   streamProgressChars: string;
   /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
   settingsLabel: string;
+  /** E1: Keyboard shortcuts dialog title */
+  kbdTitle: string;
+  /** E1: Group headings */
+  kbdGroupGlobal: string;
+  kbdGroupInput: string;
+  kbdGroupSlash: string;
+  /** E1: Each shortcut description (all optional with fallback in template) */
+  kbdOpenHelp: string;
+  kbdClearMessages: string;
+  kbdNewSession: string;
+  kbdFocusSearch: string;
+  kbdToggleExport: string;
+  kbdToggleMemory: string;
+  kbdCloseOverlay: string;
+  kbdSendEnter: string;
+  kbdSendCtrlEnter: string;
+  kbdBold: string;
+  kbdItalic: string;
+  kbdCode: string;
+  kbdLink: string;
+  kbdOpenSlash: string;
+  kbdNavigateSlash: string;
+  kbdSelectSlash: string;
+  kbdCancelSlash: string;
+  /** E1: 底部提示 */
+  kbdFootTip: string;
 }

@@ -1734,3 +1734,86 @@
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(34, 211, 238, 0.1));
   color: #ffffff;
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * E1 - Keyboard Shortcuts Cheat Sheet
+ *   Ctrl + / opens; modal复用 personalize overlay & dialog 外壳
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-dialog {
+  max-width: 580px !important;
+  width: min(580px, calc(100vw - 32px)) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-group-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ai-gradient-1);
+  border-bottom: 1px solid var(--ai-border);
+  padding-bottom: 4px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: 6px 16px;
+  align-items: baseline;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-row {
+  display: contents;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-keys {
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+  align-items: center;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 7px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ai-text);
+  background: linear-gradient(180deg, #ffffff, #f1f5f9);
+  border: 1px solid var(--ai-border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ai-text);
+  line-height: 1.55;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-foot {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ai-border);
+  font-size: 11px;
+  color: var(--ai-text-muted);
+  text-align: center;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-kbd-key {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+  color: rgba(241, 245, 249, 0.95);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
