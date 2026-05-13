@@ -715,17 +715,32 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user {
   display: flex;
   justify-content: flex-end;
+  align-items: flex-start;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant {
   display: flex;
   justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
   max-width: 85%;
   margin-left: auto;
+  min-width: 0;
+  flex: 0 1 auto;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble {
-  max-width: 92%;
+/* 助手消息：avatar 之外的所有兄弟（bubble / thinking-details / agent-steps / tool-calls）都
+ * 需在 flex 容器里占满剩余空间，否则 min-content 会把 Chinese 文本挤成竖排。
+ * 用 calc 减去 avatar(24)+margin(6) 与 padding(28) 的占位。 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-details,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-thinking-live,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-agent-steps,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-tool-calls {
+  flex: 1 1 calc(100% - 32px);
+  min-width: 0;
+  max-width: calc(100% - 32px);
 }
 
 /* #8 助手头像换成渐变 ✨ */
