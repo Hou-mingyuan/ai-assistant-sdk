@@ -8,11 +8,13 @@
         <code>/ai-assistant</code>。
       </p>
     </article>
+    <AdminDemoPanel />
     <AiAssistant />
   </div>
 </template>
 
 <script setup lang="ts">
+import AdminDemoPanel from './AdminDemoPanel.vue';
 </script>
 
 <style scoped>
