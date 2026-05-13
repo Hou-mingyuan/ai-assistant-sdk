@@ -42,6 +42,10 @@ export default defineConfig({
             { text: 'Kubernetes', link: '/guide/kubernetes' },
           ],
         },
+        {
+          text: 'Contributing',
+          items: [{ text: 'Git Hooks (pre-commit)', link: '/guide/git-hooks' }],
+        },
       ],
       '/api/': [
         {

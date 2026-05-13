@@ -20,6 +20,7 @@ README 只作为项目总览和常用入口。更完整、可导航的安装、�
 | 对接聊天、流式输出或管理接口 | [API 文档](docs/api/index.md) |
 | 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) |
 | 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
+| 贡献代码 / 安装本地 pre-commit hook | [Git Hooks 指引](docs/guide/git-hooks.md) |
 
 如果你是第一次接入，建议先按"后端 Starter 集成"和"独立服务部署"二选一，不要同时混用两条路径。
 

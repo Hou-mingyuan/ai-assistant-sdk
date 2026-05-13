@@ -32,8 +32,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check standalone smoke script syntax
-        run: node --check scripts/smoke-standalone-service.mjs
+      - name: Check all repo scripts syntax (.mjs)
+        # Matches every .mjs under scripts/ and scripts/git-hooks/. Cheap (~1s) and
+        # catches typos in maintenance scripts (release, bundle-size, changelog,
+        # health-check, pre-commit hook) before they break developers locally.
+        run: |
+          set -e
+          for f in scripts/*.mjs scripts/git-hooks/*.mjs; do
+            [ -f "$f" ] || continue
+            echo "  - $f"
+            node --check "$f"
+          done
 
       - name: Check package version consistency
         run: node scripts/check-version-consistency.mjs
