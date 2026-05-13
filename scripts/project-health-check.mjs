@@ -11,6 +11,8 @@ const runUiTests = args.has('--ui-test') || args.has('--all')
 const runServerTests = args.has('--server-test') || args.has('--all')
 const runPlaygroundBuild = args.has('--playground-build') || args.has('--all')
 const runE2eTests = args.has('--e2e') || args.has('--all')
+/* I4: 集成 F2 bundle-size-check 作为可选 lane。需要 ai-assistant-ui/dist 已构建 */
+const runBundleSize = args.has('--bundle') || args.has('--all')
 
 const checks = [
   {
@@ -66,6 +68,24 @@ if (runE2eTests) {
   })
 }
 
+if (runBundleSize) {
+  /* --all 时 build:lib 先做以保证 dist 是最新；单独 --bundle 时假设 dist 已存在 */
+  if (args.has('--all')) {
+    checks.push({
+      name: 'frontend build:lib (for bundle-size baseline)',
+      command: npmCommand(),
+      args: ['run', 'build:lib'],
+      cwd: path.join(root, 'ai-assistant-ui'),
+    })
+  }
+  checks.push({
+    name: 'bundle size watchdog',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/bundle-size-check.mjs'), '--max-delta-percent', '10'],
+    cwd: root,
+  })
+}
+
 console.log('AI Assistant SDK health check')
 console.log(`Project root: ${root}`)
 console.log('')
@@ -88,9 +108,9 @@ for (const check of checks) {
   console.log('')
 }
 
-if (!runDocs && !runUiTests && !runServerTests && !runPlaygroundBuild && !runE2eTests) {
+if (!runDocs && !runUiTests && !runServerTests && !runPlaygroundBuild && !runE2eTests && !runBundleSize) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, or --all to run more checks.',
   )
 }
 
