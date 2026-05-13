@@ -1103,6 +1103,20 @@
  * 第三波 UX 现代化 #2 #6 #12 #14 #18 #20 #27
  * ────────────────────────────────────────────────────────────────*/
 
+/* 杜绝任何意外的横向溢出 — empty state、mode-bar、thinking 等都不该撑出滚动条 */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-body,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  overflow-x: hidden !important;
+  max-width: 100%;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
+  flex-wrap: wrap !important;
+  max-width: 100% !important;
+}
+
 /* #2 模式按钮胶囊化（覆盖 03-input-popups.css 的 .ai-mode-bar/.ai-quick-actions）
  * 用 wrapper 双重选择器获得 specificity，避开 !important 滥用 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar,
