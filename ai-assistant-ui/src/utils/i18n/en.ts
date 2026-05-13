@@ -175,4 +175,6 @@ export const en: I18nMessages = {
   tplNewDefaultLabel: 'New template',
   tplNewDefaultBody: 'Act as {{role}} and give a concise answer about {{topic}}.',
   slashCmdTemplateDesc: 'Prompt templates',
+  ttsPause: 'Pause reading',
+  ttsResume: 'Resume reading',
 };

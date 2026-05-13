@@ -20,6 +20,7 @@ import {
   streamChat,
   uploadFile,
   postServerExport,
+  fetchPromptTemplates,
 } from './api';
 
 beforeEach(() => {
@@ -404,3 +405,63 @@ function exportResponse(blob: Blob, contentDisposition: string | null) {
     },
   };
 }
+
+describe('fetchPromptTemplates', () => {
+  it('parses a flat array of templates from the server', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve([
+        { name: 'translate', template: 'Translate: {{text}}', hasFewShot: false },
+        { name: 'summarize', template: 'Summarize: {{text}}', hasFewShot: true },
+      ]),
+    });
+    const r = await fetchPromptTemplates('/ai', 'tk');
+    expect(r.success).toBe(true);
+    expect(r.templates).toHaveLength(2);
+    expect(r.templates?.[0].name).toBe('translate');
+    expect(r.templates?.[1].hasFewShot).toBe(true);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toContain('/templates');
+    expect((init as RequestInit).headers).toMatchObject({ 'X-AI-Token': 'tk' });
+  });
+
+  it('returns success=false on non-2xx', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Down' });
+    const r = await fetchPromptTemplates('/ai');
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/503/);
+  });
+
+  it('returns success=false when the response is not an array', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ oops: true }),
+    });
+    const r = await fetchPromptTemplates('/ai');
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/array/i);
+  });
+
+  it('skips malformed entries (missing name or template)', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve([
+        { name: 'ok', template: 'fine' },
+        { name: 'no-tpl' },
+        { template: 'no-name' },
+        null,
+        { name: 'good2', template: 't' },
+      ]),
+    });
+    const r = await fetchPromptTemplates('/ai');
+    expect(r.success).toBe(true);
+    expect(r.templates?.map((t) => t.name)).toEqual(['ok', 'good2']);
+  });
+
+  it('returns success=false on network error', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('connection refused'));
+    const r = await fetchPromptTemplates('/ai');
+    expect(r.success).toBe(false);
+    expect(r.error).toMatch(/connection refused/);
+  });
+});

@@ -171,4 +171,6 @@ export const zh: I18nMessages = {
   tplNewDefaultLabel: '新模板',
   tplNewDefaultBody: '请你扮演 {{role}}，针对 {{topic}} 给出一段简明回答。',
   slashCmdTemplateDesc: 'Prompt 模板',
+  ttsPause: '暂停朗读',
+  ttsResume: '继续朗读',
 };

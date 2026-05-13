@@ -152,6 +152,58 @@ export async function postServerExport(
   return { ok: true };
 }
 
+export interface PromptTemplateEntry {
+  name: string;
+  template: string;
+  hasFewShot?: boolean;
+}
+
+export interface PromptTemplatesListResult {
+  success: boolean;
+  templates?: PromptTemplateEntry[];
+  error?: string;
+}
+
+/**
+ * Fetch the server-side prompt template registry (`GET /templates`).
+ *
+ * The endpoint returns a flat JSON array (not wrapped in `{success, ...}`), so
+ * this helper normalises both successful and failed responses into the same
+ * `PromptTemplatesListResult` shape used by the UI layer.
+ */
+export async function fetchPromptTemplates(
+  baseUrl: string,
+  token?: string,
+): Promise<PromptTemplatesListResult> {
+  const headers: Record<string, string> = {};
+  const normalizedToken = normalizeToken(token);
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
+  try {
+    const res = await fetch(apiUrl(baseUrl, '/templates'), {
+      headers,
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      return { success: false, error: 'Unexpected response: expected an array' };
+    }
+    const templates: PromptTemplateEntry[] = data
+      .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+      .map((item) => ({
+        name: typeof item.name === 'string' ? item.name : '',
+        template: typeof item.template === 'string' ? item.template : '',
+        hasFewShot: item.hasFewShot === true,
+      }))
+      .filter((t) => t.name && t.template);
+    return { success: true, templates };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /** Fetch the list of available models from the server. */
 export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
   const headers: Record<string, string> = {};

@@ -170,4 +170,6 @@ export const ko: I18nMessages = {
   tplNewDefaultLabel: '새 템플릿',
   tplNewDefaultBody: '{{role}} 역할로 {{topic}}에 대해 간결하게 답변해 주세요.',
   slashCmdTemplateDesc: '프롬프트 템플릿',
+  ttsPause: '읽기 일시정지',
+  ttsResume: '읽기 재개',
 };

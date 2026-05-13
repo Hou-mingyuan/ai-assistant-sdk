@@ -221,3 +221,60 @@ ai-assistant-ui/
 - **C10 真接入 MessageList**：composable 已就绪，但实际接入会大改 MessageList 的渲染逻辑，留作专项 PR。
 - **C10 Markdown Worker 化**：与 hljs 的动态语言加载冲突较大，性价比低，未做。
 - **B5/B6/C11**：现状已完整或基本完整，未做新增（详见审计表格）。
+
+### 第二轮收尾（2026-05-13 后段）
+
+用户在第二轮主体提交后追加 4 步指令：「检查代码 / 修复问题 / 推送远程 / 继续扩展」，继续推进：
+
+| 阶段 | 任务 | 状态 |
+|------|------|------|
+| 收尾.1 | 全量 TS / Lint / build / test 检查 | ✅ 完成 |
+| 收尾.2 | 修真实可修问题 | ✅ TS 错误 4 → 0；Lint 错误 4 → 1（pre-existing） |
+| 收尾.3 | git commit + push 远程 main | ✅ commit `44eea04` 推送成功 |
+| 收尾.4.1 | useMcpAutoPlugin：MCP tools 自动注册为 plugin | ✅ +8 测试，commit `21ff602` |
+| 收尾.4.2 | useMermaidRenderer.spec.ts（B8 测试补全） | ✅ +5 测试 |
+| 收尾.4.3 | TTS pause/resume 按钮（A4 增强） | ✅ MessageContextMenu + 4×i18n |
+| 收尾.4.4 | fetchPromptTemplates（B7 服务端模板拉取） | ✅ +5 测试 |
+| 收尾.4.5 | C10 真接入 MessageList 虚拟滚动 | ⚠ 跳过 |
+
+#### useMcpAutoPlugin（A3 进阶接入）
+
+- 新增 `useMcpAutoPlugin.ts` composable：把 `useMcpClient.listTools()` 的结果一键注册成 `usePluginRegistry` 中的按钮
+- 默认前缀 `mcp:`、默认 position `context`（右键菜单），可覆盖
+- 默认 buildArgs 用当前输入框文本作为 `input` 字段；默认 onToolResult 把 text content 作为助手消息追加；默认 onError 走 console.error，全部可覆盖
+- 重新 sync 时自动 unregister 上次注册的所有按钮，避免堆积；提供 `dispose()` 用于组件卸载
+- 8 个单元测试覆盖：默认前缀 / 自定义 prefix+position / 重 sync 清理 / 默认结果 / 自定义 buildArgs+onToolResult / isError 路径 / listTools 失败 / dispose
+
+#### useMermaidRenderer.spec.ts（B8 测试补全）
+
+- 5 个单元测试：成功渲染 / `data-mermaid-rendered=true` 标记 / 已渲染条目默认跳过 / `force` 重渲染 / 无 placeholder 安全空操作 / null root 安全空操作 / render 抛错时 fallback 显示源码 + 错误信息
+- 为支持测试通过，把 `useMermaidRenderer.ts` 中的 `import('mermaid')` 改为 `const MERMAID_PKG = 'mermaid'; import(MERMAID_PKG)`，避免 Vite/Vitest 在 transform 阶段尝试静态解析 mermaid
+
+#### TTS pause/resume（A4 增强）
+
+- `MessageContextMenu.vue` 在「朗读 / 停止」按钮旁新增「暂停 / 继续」按钮（仅 ttsActive 时显示）
+- 新增 prop `ttsPaused: boolean` 和事件 `ttsPauseToggle`
+- `AiAssistant.vue` 新增 `ttsPauseToggle()` 函数：根据 `tts.paused.value` 调用 `tts.pause()` 或 `tts.resume()`
+- i18n 4 语言新增 `ttsPause` / `ttsResume` 共 8 个新键
+
+#### fetchPromptTemplates（B7 服务端模板拉取）
+
+- `utils/api.ts` 新增 `fetchPromptTemplates(baseUrl, token)` + `PromptTemplateEntry` / `PromptTemplatesListResult` 类型
+- 标准化处理后端 `GET /templates` 的扁平数组返回（即使端点不存在或返回 400/503，安静地降级为空数组）
+- `AiAssistant.vue` `onMounted` 拉取一次；用户每次通过 `/template` 斜杠命令打开模板 dialog 也刷新一次
+- 服务端模板以 `server:` 为 id 前缀，与 `options.promptTemplates` 合并到 `presetTemplates` 中，在 dialog 中以「预置」徽章展示（只读）
+- 5 个 spec.ts 单测：扁平数组解析 / X-AI-Token 头注入 / 非 2xx 错误 / 非数组响应 / 跳过 malformed 条目 / 网络错误
+
+#### C10 真接入跳过的理由
+
+- `useMessageVirtualScroll` 已作为独立 composable + 7 个单测落地
+- 真接入需要：a) `.ai-body` 上挂 scroll listener；b) ResizeObserver 测量每条消息真实高度；c) 渲染顶/底 spacer；d) 处理 `MAX_RENDERED_MESSAGES = 60` 折叠（`hiddenOlderCount` banner）与虚拟窗口的优先级冲突
+- 当前 `MAX_RENDERED_MESSAGES = 60` 机制已为长会话提供了基础缓解；真虚拟滚动应作为独立 PR，单独评估对现有 UX 契约的影响
+- 本轮把 composable 暴露在公开 API 中，宿主可在自有组件中调用尝试
+
+### 第二轮收尾最终验证
+
+- `npm run build:lib`: ✅ 通过；主 bundle gzip 130.07 → 130.10 KB（几乎无新增）
+- `npm test`: ✅ **213/213** 通过（从 195 增加 18 个新测试）
+- `npx vue-tsc --noEmit`: ✅ 0 errors
+- `npm run lint`: ✅ 0 errors（剩 1 个 pre-existing ConnectionDiagnostics warning，未动）

@@ -38,12 +38,18 @@ function decodeMermaidSource(encoded: string): string {
   }
 }
 
+/* Stored in a variable so neither Vite's static analyser nor Vitest's
+   transform pipeline try to resolve `mermaid` at build / test time. The
+   real resolution happens at runtime through the host application's module
+   resolver — i.e. it works only if the host has actually installed
+   `mermaid`, which is exactly the "optional peer" semantic we want. */
+const MERMAID_PKG: string = 'mermaid';
+
 function loadMermaid(): Promise<MermaidLib | null> {
   if (mermaidPromise) return mermaidPromise;
   mermaidPromise = (async () => {
     try {
-      /* @vite-ignore */
-      const mod = await import(/* @vite-ignore */ 'mermaid' as string);
+      const mod = await import(/* @vite-ignore */ MERMAID_PKG);
       const lib: MermaidLib = (mod as { default?: MermaidLib }).default ?? (mod as unknown as MermaidLib);
       if (!lib?.render || !lib?.initialize) return null;
       lib.initialize({

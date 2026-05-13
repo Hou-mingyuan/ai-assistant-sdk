@@ -170,4 +170,6 @@ export const ja: I18nMessages = {
   tplNewDefaultLabel: '新しいテンプレート',
   tplNewDefaultBody: '{{role}} として、{{topic}} について簡潔に回答してください。',
   slashCmdTemplateDesc: 'プロンプトテンプレート',
+  ttsPause: '読み上げを一時停止',
+  ttsResume: '読み上げを再開',
 };

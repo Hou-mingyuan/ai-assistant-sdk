@@ -389,6 +389,7 @@
       :export-busy="exportServerBusy"
       :tts-supported="tts.supported.value"
       :tts-active="tts.speaking.value && tts.currentMessageIndex.value === msgCtxMenu.index"
+      :tts-paused="tts.paused.value"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
@@ -396,6 +397,7 @@
       @export="(fmt) => exportAssistantMessageServer(msgCtxMenu.index, fmt)"
       @fork="forkFromHere(msgCtxMenu.index)"
       @tts="ttsToggleCurrent"
+      @tts-pause-toggle="ttsPauseToggle"
     />
 
     <PersonalizeDialog
@@ -631,7 +633,7 @@ const ExportToast = defineAsyncComponent(() => import('./ExportToast.vue'));
 const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.vue'));
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 import type { AiAssistantOptions } from '../index';
-import { uploadFile, fetchUrlPreview, fetchModels } from '../utils/api';
+import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
@@ -1241,6 +1243,11 @@ function ttsToggleCurrent() {
   closeMsgCtxMenu();
   tts.toggleMessage(text, idx);
 }
+function ttsPauseToggle() {
+  closeMsgCtxMenu();
+  if (tts.paused.value) tts.resume();
+  else tts.pause();
+}
 
 /**
  * B7: Prompt 模板库。
@@ -1250,17 +1257,39 @@ function ttsToggleCurrent() {
  * 主输入框，仍由用户决定何时发送，避免误触意外消耗 token。
  */
 const promptTemplateOpen = ref(false);
-const presetPromptTemplates = computed(() =>
-  (options.promptTemplates ?? []).map((p, idx) => ({
+/**
+ * 服务端 `/templates` 端点暴露的官方模板。失败 / 端点不存在时安静地为空，
+ * 不影响 options 预置模板和用户自建模板的展示。
+ */
+const serverPromptTemplates = ref<{ id: string; label: string; template: string }[]>([]);
+const presetPromptTemplates = computed(() => {
+  const opt = (options.promptTemplates ?? []).map((p, idx) => ({
     id: `preset_${idx}`,
     label: p.label,
     template: p.template,
     variables: p.variables,
-  })),
-);
+  }));
+  return [...serverPromptTemplates.value, ...opt];
+});
 const promptTemplateLib = usePromptTemplateLibrary({
   presetTemplates: presetPromptTemplates,
 });
+
+async function refreshServerPromptTemplates() {
+  if (!options.baseUrl) return;
+  try {
+    const r = await fetchPromptTemplates(options.baseUrl, options.accessToken);
+    if (r.success && r.templates) {
+      serverPromptTemplates.value = r.templates.map((t) => ({
+        id: `server:${t.name}`,
+        label: t.name,
+        template: t.template,
+      }));
+    }
+  } catch {
+    /* ignore: server templates are optional */
+  }
+}
 function onPromptTemplateUse(rendered: string) {
   input.value = rendered;
   promptTemplateOpen.value = false;
@@ -1360,7 +1389,7 @@ const slashCmd = useSlashCommands({
       name: '/template',
       get description() { return t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates'; },
       icon: 'M14 3v4a1 1 0 0 0 1 1h4l-5-5zM5 3h7v5a2 2 0 0 0 2 2h5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 9h10v2H7v-2zm0 4h7v2H7v-2z',
-      action: () => { promptTemplateOpen.value = true; return true; },
+      action: () => { void refreshServerPromptTemplates(); promptTemplateOpen.value = true; return true; },
     },
   ],
 });
@@ -2336,6 +2365,7 @@ onMounted(() => {
     /* ignore */
   }
   loadFabPos();
+  void refreshServerPromptTemplates();
   window.addEventListener('resize', onWinResize);
   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);

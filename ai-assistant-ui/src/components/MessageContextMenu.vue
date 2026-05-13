@@ -44,6 +44,15 @@
           >
             <span class="ai-fab-ctx-label">{{ ttsActive ? t.ttsStop : t.ttsPlay }}</span>
           </button>
+          <button
+            v-if="ttsSupported && ttsActive"
+            type="button"
+            role="menuitem"
+            class="ai-fab-ctx-item"
+            @click="$emit('ttsPauseToggle')"
+          >
+            <span class="ai-fab-ctx-label">{{ ttsPaused ? t.ttsResume : t.ttsPause }}</span>
+          </button>
           <template v-if="hasBaseUrl">
             <button
               type="button"
@@ -98,8 +107,9 @@ withDefaults(
     t: I18nMessages;
     ttsSupported?: boolean;
     ttsActive?: boolean;
+    ttsPaused?: boolean;
   }>(),
-  { ttsSupported: false, ttsActive: false },
+  { ttsSupported: false, ttsActive: false, ttsPaused: false },
 );
 
 defineEmits<{
@@ -109,5 +119,6 @@ defineEmits<{
   (e: 'export', fmt: ExportFormat): void;
   (e: 'fork'): void;
   (e: 'tts'): void;
+  (e: 'ttsPauseToggle'): void;
 }>();
 </script>

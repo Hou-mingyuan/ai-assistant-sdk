@@ -196,4 +196,7 @@ export interface I18nMessages {
   tplNewDefaultLabel: string;
   tplNewDefaultBody: string;
   slashCmdTemplateDesc: string;
+  /** TTS 暂停/继续 */
+  ttsPause: string;
+  ttsResume: string;
 }

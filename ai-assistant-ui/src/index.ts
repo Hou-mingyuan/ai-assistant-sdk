@@ -169,8 +169,18 @@ export { usePageSelection } from './composables/usePageSelection';
 export type { PageSelectionState } from './composables/usePageSelection';
 export type { StreamOptions } from './composables/useAiAssistant';
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api';
-export { uploadFile, fetchUrlPreview, fetchModels, postServerExport } from './utils/api';
-export type { ModelsListResult } from './utils/api';
+export {
+  uploadFile,
+  fetchUrlPreview,
+  fetchModels,
+  fetchPromptTemplates,
+  postServerExport,
+} from './utils/api';
+export type {
+  ModelsListResult,
+  PromptTemplateEntry,
+  PromptTemplatesListResult,
+} from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
 export { captureScreenshot } from './utils/pageScreenshot';
