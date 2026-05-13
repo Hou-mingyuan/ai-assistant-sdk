@@ -55,6 +55,23 @@ public class ExportPdfWriter {
                     });
     private static final int MAX_IMAGE_REDIRECTS = 5;
 
+    /**
+     * 缓存解析到的 Unicode 字体原始字节，避免每次导出 PDF 都重新读取约 10MB 的 NotoSansSC
+     * 字体文件。键是 properties.getExportPdfUnicodeFont() 的字面值（spec），便于宿主切换
+     * 字体时自动失效。PDType0Font.load 仍需要每个 PDDocument 调用一次（字体是 doc-bound），
+     * 所以这里只缓存字节，不缓存 Font 实例。
+     *
+     * <p>Map 永远不会成长到超过几个条目（一个 spec 一份），生产场景下基本就是 1 条；
+     * 一旦缓存命中，单次 PDF 导出节省 ~10MB 的 IO 与解压时间。
+     */
+    private static final ConcurrentHashMap<String, byte[]> FONT_BYTES_CACHE =
+            new ConcurrentHashMap<>();
+
+    /** 故意保留 public，方便宿主在热部署 / 单测里手动失效缓存。 */
+    public static void clearFontCache() {
+        FONT_BYTES_CACHE.clear();
+    }
+
     private final AiAssistantProperties properties;
     private volatile HttpClient httpClient;
 
@@ -212,10 +229,23 @@ public class ExportPdfWriter {
     private FontCtx loadFont(PDDocument doc) throws Exception {
         String spec = properties.getExportPdfUnicodeFont();
         if (spec != null && !spec.isBlank()) {
-            try (InputStream in = openFontStream(spec)) {
-                if (in != null) {
-                    PDType0Font t0 = PDType0Font.load(doc, in);
-                    return new FontCtx() {
+            byte[] cached = FONT_BYTES_CACHE.get(spec);
+            if (cached == null) {
+                /* 第一次命中此 spec：从 classpath / file 读字节后缓存。
+                 * 用 putIfAbsent 而非简单赋值，避免并发首次加载浪费两份内存。 */
+                try (InputStream in = openFontStream(spec)) {
+                    if (in != null) {
+                        cached = in.readAllBytes();
+                        FONT_BYTES_CACHE.putIfAbsent(spec, cached);
+                        cached = FONT_BYTES_CACHE.get(spec);
+                    }
+                }
+            }
+            if (cached != null) {
+                /* PDType0Font.load 需要 PDDocument 上下文（字体会嵌入到 doc），
+                 * 不能跨 doc 复用 Font 实例；但底层字节复用已经节省了大头 IO。 */
+                PDType0Font t0 = PDType0Font.load(doc, new ByteArrayInputStream(cached));
+                return new FontCtx() {
                         public void useFont(PDPageContentStream cs, float size) throws Exception {
                             cs.setFont(t0, size);
                         }
@@ -224,13 +254,12 @@ public class ExportPdfWriter {
                             cs.showText(line);
                         }
 
-                        public float stringWidth(String text, float fontSize) throws IOException {
-                            return (text == null || text.isEmpty())
-                                    ? 0f
-                                    : t0.getStringWidth(text) / 1000f * fontSize;
-                        }
-                    };
-                }
+                    public float stringWidth(String text, float fontSize) throws IOException {
+                        return (text == null || text.isEmpty())
+                                ? 0f
+                                : t0.getStringWidth(text) / 1000f * fontSize;
+                    }
+                };
             }
         }
         PDType1Font helv = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
