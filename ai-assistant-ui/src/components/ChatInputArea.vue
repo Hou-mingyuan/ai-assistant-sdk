@@ -210,6 +210,26 @@
         </template>
       </select>
       <span class="ai-model-row-spacer" />
+      <button
+        v-if="pageContextConfigured"
+        type="button"
+        class="ai-page-context-badge"
+        :class="{ 'ai-page-context-badge-off': !pageContextEnabled }"
+        :title="pageContextEnabled
+          ? (t.pageContextOnTooltip || 'Page context will be attached to your next message')
+          : (t.pageContextOffTooltip || 'Page context attachment is disabled')"
+        :aria-pressed="pageContextEnabled ? 'true' : 'false'"
+        @click="$emit('togglePageContext')"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
+        </svg>
+        <span class="ai-page-context-badge-label">
+          {{ pageContextEnabled
+            ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
+            : (t.pageContextOff || 'Context off') }}
+        </span>
+      </button>
       <slot name="model-row-actions" />
     </div>
   </div>
@@ -244,6 +264,9 @@ const props = defineProps<{
   slashVisible?: boolean;
   slashCommands?: SlashCommand[];
   slashSelectedIndex?: number;
+  pageContextConfigured?: boolean;
+  pageContextEnabled?: boolean;
+  pageContextBlockCount?: number;
 }>();
 
 const emit = defineEmits<{
@@ -262,6 +285,7 @@ const emit = defineEmits<{
   slashKeydown: [event: KeyboardEvent];
   slashSelect: [index: number];
   slashHover: [index: number];
+  togglePageContext: [];
 }>();
 
 const fileInputRef = ref<HTMLInputElement>();

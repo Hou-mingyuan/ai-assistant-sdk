@@ -313,8 +313,12 @@
           :slash-visible="slashCmd.visible.value"
           :slash-commands="slashCmd.filteredCommands.value"
           :slash-selected-index="slashCmd.selectedIndex.value"
+          :page-context-configured="pageContextConfigured"
+          :page-context-enabled="!pageContextDisabledOverride"
+          :page-context-block-count="options.pageContextBlocks?.length ?? 0"
           @send="send"
           @change-mode="onChangeMode"
+          @toggle-page-context="togglePageContext"
           @clear-pending-image="clearPendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
@@ -1599,6 +1603,17 @@ const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,
 
 const placeholder = computed(() => t.value.placeholder[mode.value] || t.value.placeholder.chat);
 
+/**
+ * D4: 用户对自动页面上下文的临时开关。默认 false（即上下文自动附带）。
+ * 配置在 options.pageContextBlocks 之外，只影响本次会话的 send，不持久化。
+ * 当宿主未配置 pageContextBlocks 时该开关无意义（UI 也不会显示）。
+ */
+const pageContextDisabledOverride = ref(false);
+const pageContextConfigured = computed(() => (options.pageContextBlocks?.length ?? 0) > 0);
+function togglePageContext() {
+  pageContextDisabledOverride.value = !pageContextDisabledOverride.value;
+}
+
 const quickPrompts = computed(() => {
   const q = options.quickPrompts;
   if (!Array.isArray(q)) return [];
@@ -2294,6 +2309,7 @@ const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendSt
     const rag = knowledgeBase.ragPromptFragment.value;
     return [mem, rag].filter(Boolean).join('\n');
   }),
+  pageContextEnabled: computed(() => !pageContextDisabledOverride.value),
 });
 
 async function processFileUpload(file: File) {

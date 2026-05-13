@@ -204,4 +204,12 @@ export interface I18nMessages {
   themeToggleToLight: string;
   /** 图片 lightbox 关闭按钮 */
   imageLightboxClose: string;
+  /** D4: 页面上下文徽章 - 已开启时显示的简短文案，例如 "上下文" / "Context" */
+  pageContextOn: string;
+  /** D4: 页面上下文徽章 - 已关闭时显示的文案，例如 "上下文已关" / "Context off" */
+  pageContextOff: string;
+  /** D4: 页面上下文徽章 - 已开启时的 hover tooltip */
+  pageContextOnTooltip: string;
+  /** D4: 页面上下文徽章 - 已关闭时的 hover tooltip */
+  pageContextOffTooltip: string;
 }

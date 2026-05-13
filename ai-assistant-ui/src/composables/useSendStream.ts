@@ -211,6 +211,13 @@ export interface UseSendStreamDeps {
   setStreamStoppedByUser: (stopped: boolean) => void;
   /** Cross-session memory fragment to prepend to systemPrompt. */
   memoryPromptFragment?: Ref<string>;
+  /**
+   * User-toggled override for page-context attachment. When `false`, the
+   * automatic `pageContextBlocks` collection is skipped for this send even if
+   * `options.pageContextBlocks` is configured. Defaults to enabled when this
+   * ref is omitted.
+   */
+  pageContextEnabled?: Ref<boolean>;
 }
 
 export function useSendStream(deps: UseSendStreamDeps) {
@@ -363,7 +370,8 @@ export function useSendStream(deps: UseSendStreamDeps) {
       }));
     }
 
-    if (deps.options.pageContextBlocks?.length) {
+    const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
+    if (pageContextEnabled && deps.options.pageContextBlocks?.length) {
       const minChars = deps.options.pageContextMinUserChars ?? 0;
       if (text.length >= minChars) {
         const ctxOpts = {

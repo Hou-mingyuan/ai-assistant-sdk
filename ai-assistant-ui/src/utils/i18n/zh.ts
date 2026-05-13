@@ -176,4 +176,8 @@ export const zh: I18nMessages = {
   themeToggleToDark: '切换到暗色',
   themeToggleToLight: '切换到亮色',
   imageLightboxClose: '关闭预览',
+  pageContextOn: '上下文',
+  pageContextOff: '上下文已关',
+  pageContextOnTooltip: '发送时会自动附带当前页面文本作为上下文，点击可临时关闭',
+  pageContextOffTooltip: '当前已关闭页面上下文附带，点击可重新开启',
 };

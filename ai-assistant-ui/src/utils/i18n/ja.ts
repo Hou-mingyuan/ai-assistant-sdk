@@ -175,4 +175,8 @@ export const ja: I18nMessages = {
   themeToggleToDark: 'ダークモードに切替',
   themeToggleToLight: 'ライトモードに切替',
   imageLightboxClose: 'プレビューを閉じる',
+  pageContextOn: 'コンテキスト',
+  pageContextOff: 'コンテキスト OFF',
+  pageContextOnTooltip: '送信時に現在のページ本文がコンテキストとして添付されます。クリックで一時的に無効化。',
+  pageContextOffTooltip: 'ページコンテキストの添付は無効化されています。クリックで再有効化。',
 };
