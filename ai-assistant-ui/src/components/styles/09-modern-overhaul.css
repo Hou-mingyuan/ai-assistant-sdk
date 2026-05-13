@@ -1617,3 +1617,47 @@
   border-color: rgba(255, 255, 255, 0.32);
   color: rgba(241, 245, 249, 0.92);
 }
+
+/* ════════════════════════════════════════════════════════════════
+ * D5 - 流式生成进度小注脚
+ *   只在 active streaming 时显示，每秒 tick 一次
+ *   显示在助手 bubble 右下角 stop 按钮旁
+ * ════════════════════════════════════════════════════════════════ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-stream-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-text-muted);
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 999px;
+  line-height: 1.4;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-stream-progress-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ai-gradient-1);
+  box-shadow: 0 0 6px rgba(14, 165, 233, 0.6);
+  animation: ai-stream-progress-pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes ai-stream-progress-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-stream-progress {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(241, 245, 249, 0.6);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-stream-progress-dot {
+  background: rgba(56, 189, 248, 1);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
+}

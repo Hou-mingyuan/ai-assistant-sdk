@@ -19,7 +19,7 @@
  * `sanitizeAssistantContent`) are re-exported from the hook so the SFC
  * template can keep its existing prop bindings unchanged.
  */
-import { type ComputedRef, type Ref } from 'vue';
+import { type ComputedRef, type Ref, ref } from 'vue';
 
 import type { AiAssistantOptions } from '../index';
 import type { ChatPayload, UrlPreviewResult } from '../utils/api';
@@ -221,6 +221,15 @@ export interface UseSendStreamDeps {
 }
 
 export function useSendStream(deps: UseSendStreamDeps) {
+  /**
+   * D5: 流式生成的起始时间戳（ms epoch）。
+   * - send() 入口设为 Date.now()
+   * - finally 块（包括 success / abort / error）设为 null
+   * 模板侧 (`MessageList`) 用 (nowTick - streamStartedAt) 算 elapsed 秒数，
+   * 配合 `msg.content.length` 给出"已生成 X 字 · Y.Ys"工具感反馈。
+   */
+  const streamStartedAt = ref<number | null>(null);
+
   function tNow(): I18nMessages {
     return deps.t.value;
   }
@@ -430,6 +439,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
     }
 
     deps.setStreamStoppedByUser(false);
+    streamStartedAt.value = Date.now();
     const controller = new AbortController();
     deps.setStreamAbortController(controller);
     try {
@@ -500,6 +510,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
     } finally {
       deps.setStreamAbortController(null);
       deps.setStreamStoppedByUser(false);
+      streamStartedAt.value = null;
       deps.loading.value = false;
       deps.playNotificationSound();
       deps.scrollToBottom(false);
@@ -515,6 +526,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
   return {
     send,
+    streamStartedAt,
     sanitizeAssistantContent: sanitizeForTemplate,
     hasVisibleAssistantContent: hasVisibleForTemplate,
   };

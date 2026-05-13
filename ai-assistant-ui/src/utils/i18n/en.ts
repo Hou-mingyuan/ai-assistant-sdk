@@ -184,4 +184,5 @@ export const en: I18nMessages = {
   pageContextOff: 'Context off',
   pageContextOnTooltip: 'Page text will be attached as context on your next message. Click to disable.',
   pageContextOffTooltip: 'Page-context attachment is disabled. Click to re-enable.',
+  streamProgressChars: 'chars',
 };

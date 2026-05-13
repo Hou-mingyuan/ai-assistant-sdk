@@ -164,6 +164,21 @@
         formatRelativeTime(msg.timestamp)
       }}</span>
     </template>
+    <span
+      v-if="
+        isActiveStreaming(displayOffset + renderedStart + idx, msg)
+        && streamStartedAt != null
+        && streamingNowMs > 0
+      "
+      class="ai-stream-progress"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="ai-stream-progress-dot" aria-hidden="true"></span>
+      {{ msg.content.length }} {{ t.streamProgressChars || 'chars' }}
+      ·
+      {{ ((streamingNowMs - streamStartedAt) / 1000).toFixed(1) }}s
+    </span>
     <button
       v-if="isActiveStreaming(displayOffset + renderedStart + idx, msg)"
       type="button"
@@ -347,6 +362,14 @@ const props = defineProps({
   virtualSlice: {
     type: Object as PropType<VirtualSlice | null>,
     default: null,
+  },
+  streamStartedAt: {
+    type: Number as PropType<number | null>,
+    default: null,
+  },
+  streamingNowMs: {
+    type: Number,
+    default: 0,
   },
 });
 

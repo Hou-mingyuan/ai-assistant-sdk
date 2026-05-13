@@ -212,4 +212,6 @@ export interface I18nMessages {
   pageContextOnTooltip: string;
   /** D4: 页面上下文徽章 - 已关闭时的 hover tooltip */
   pageContextOffTooltip: string;
+  /** D5: 流式生成进度的字数单位，例如 "字" / "chars" */
+  streamProgressChars: string;
 }

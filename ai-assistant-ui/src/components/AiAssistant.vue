@@ -231,6 +231,8 @@
             :copied-index="copiedIndex"
             :show-earlier-label="showEarlierLabel"
             :t="t"
+            :stream-started-at="streamStartedAt"
+            :streaming-now-ms="streamingNowMs"
             :is-transient-abort="isTransientAbortAssistantMessage"
             :is-active-streaming="isActiveStreamingAssistant"
             :has-visible-content="hasVisibleAssistantContent"
@@ -2265,7 +2267,29 @@ function isActiveStreamingAssistant(globalIdx: number, msg: Message): boolean {
   return loading.value && msg.role === 'assistant' && globalIdx === messages.value.length - 1;
 }
 
-const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
+/**
+ * D5: 流式生成进度的 1Hz tick。
+ * 仅在 streamStartedAt 非 null 时（即正在流式生成）启用，避免 idle 状态下白白消耗主线程；
+ * 用 `Date.now()` 而不是 `performance.now()`，与 useSendStream 的起始时间戳保持同一时钟。
+ */
+const streamingNowMs = ref<number>(Date.now());
+let streamingTickHandle: ReturnType<typeof setInterval> | null = null;
+function startStreamingTick() {
+  if (streamingTickHandle != null) return;
+  streamingNowMs.value = Date.now();
+  streamingTickHandle = setInterval(() => {
+    streamingNowMs.value = Date.now();
+  }, 1000);
+}
+function stopStreamingTick() {
+  if (streamingTickHandle != null) {
+    clearInterval(streamingTickHandle);
+    streamingTickHandle = null;
+  }
+}
+onUnmounted(() => stopStreamingTick());
+
+const { send, streamStartedAt, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
   messages,
   input,
   loading,
@@ -2310,6 +2334,11 @@ const { send, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendSt
     return [mem, rag].filter(Boolean).join('\n');
   }),
   pageContextEnabled: computed(() => !pageContextDisabledOverride.value),
+});
+
+watch(streamStartedAt, (v) => {
+  if (v != null) startStreamingTick();
+  else stopStreamingTick();
 });
 
 async function processFileUpload(file: File) {
