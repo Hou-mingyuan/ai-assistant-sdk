@@ -324,6 +324,11 @@ export type {
   UseCrossSessionSearchOptions,
   UseCrossSessionSearchReturn,
 } from './composables/useCrossSessionSearch';
+/* K40: pure-function line-level diff (LCS DP + side-by-side row layout).
+ * Standalone so consumers can build their own diff dialog or feed any
+ * source/target pair (file revisions / API responses / etc.). */
+export { diffLines, opsToRows, summariseRows } from './composables/useLineDiff';
+export type { DiffOp, DiffOpEntry, SideBySideRow, DiffSummary } from './composables/useLineDiff';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:

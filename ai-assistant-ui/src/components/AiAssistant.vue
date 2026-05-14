@@ -463,6 +463,8 @@
       :tts-supported="tts.supported.value"
       :tts-active="tts.speaking.value && tts.currentMessageIndex.value === msgCtxMenu.index"
       :tts-paused="tts.paused.value"
+      :compare-mark-active="compareLeft !== null"
+      :compare-mark-active-for-this="compareLeft?.msgIndex === msgCtxMenu.index"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
@@ -471,6 +473,21 @@
       @fork="forkFromHere(msgCtxMenu.index)"
       @tts="ttsToggleCurrent"
       @tts-pause-toggle="ttsPauseToggle"
+      @compare-mark="onCompareMark"
+      @compare-with="onCompareWith"
+    />
+
+    <CompareRegionsDialog
+      v-if="compareDialogOpen"
+      :open="compareDialogOpen"
+      :is-dark="isDark"
+      :t="t"
+      :left-text="compareLeft?.content ?? ''"
+      :right-text="compareRight?.content ?? ''"
+      :left-label="compareLeft?.label"
+      :right-label="compareRight?.label"
+      @close="compareDialogOpen = false"
+      @swap="onCompareSwap"
     />
 
     <PersonalizeDialog
@@ -644,6 +661,7 @@ import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll'
 import { useCommandPalette } from '../composables/useCommandPalette';
 import type { CommandItem } from '../types/command-palette';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
+const CompareRegionsDialog = defineAsyncComponent(() => import('./CompareRegionsDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
 const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
 /* K34: ExportToast / PageSelectionBar / InlineTranslatePopover moved into
@@ -1525,6 +1543,66 @@ function ttsPauseToggle() {
   closeMsgCtxMenu();
   if (tts.paused.value) tts.resume();
   else tts.pause();
+}
+
+/**
+ * K40: CompareRegionsView 状态管理。
+ *
+ * - compareLeft: 第一次点击「Mark as Compare A」记下的 (msgIndex, content, label)。
+ *   再次点击同一条 = 取消标记；点其它条 = 替换。
+ * - compareRight: 「Compare A vs this」时填入第二条；触发对话框打开。
+ * - swap: 对话框里的 A ⇄ B 互换按钮。
+ *
+ * 这里只支持「整条 assistant 消息」级别 compare（覆盖 90% 的诊断需求）；
+ * 代码块 / 选区粒度的 compare 留给 future K（需要 mark anchor + selection
+ * range 的 lift up，是个独立设计）。
+ */
+interface CompareSide {
+  msgIndex: number;
+  content: string;
+  label: string;
+}
+const compareLeft = ref<CompareSide | null>(null);
+const compareRight = ref<CompareSide | null>(null);
+const compareDialogOpen = ref(false);
+function buildCompareLabel(idx: number, role: string): string {
+  const fmt = t.value.compareDialogMsgLabel || 'Msg #{idx} ({role})';
+  return fmt.replace('{idx}', String(idx + 1)).replace('{role}', role);
+}
+function onCompareMark() {
+  const idx = msgCtxMenu.value.index;
+  if (idx < 0) return;
+  closeMsgCtxMenu();
+  const m = messages.value[idx];
+  if (!m) return;
+  if (compareLeft.value?.msgIndex === idx) {
+    compareLeft.value = null;
+    return;
+  }
+  compareLeft.value = {
+    msgIndex: idx,
+    content: m.contentArchive ?? m.content ?? '',
+    label: buildCompareLabel(idx, m.role),
+  };
+}
+function onCompareWith() {
+  const idx = msgCtxMenu.value.index;
+  closeMsgCtxMenu();
+  if (idx < 0 || !compareLeft.value) return;
+  const m = messages.value[idx];
+  if (!m) return;
+  compareRight.value = {
+    msgIndex: idx,
+    content: m.contentArchive ?? m.content ?? '',
+    label: buildCompareLabel(idx, m.role),
+  };
+  compareDialogOpen.value = true;
+}
+function onCompareSwap() {
+  const left = compareLeft.value;
+  const right = compareRight.value;
+  compareLeft.value = right;
+  compareRight.value = left;
 }
 
 /**

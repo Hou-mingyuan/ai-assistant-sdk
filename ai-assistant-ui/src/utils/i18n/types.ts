@@ -151,6 +151,18 @@ export interface I18nMessages {
   kbDropIngested?: string;
   /** K39: cross-session message search results badge inside SessionsDrawer. */
   sessionsDrawerMatchesCount?: string;
+  /** K40: CompareRegionsDialog labels + MessageContextMenu compare actions. */
+  msgCtxCompareMark?: string;
+  msgCtxCompareUnmark?: string;
+  msgCtxCompareWith?: string;
+  compareDialogTitle?: string;
+  compareDialogEmpty?: string;
+  compareDialogHideEqual?: string;
+  compareDialogSwap?: string;
+  compareDialogLeftDefault?: string;
+  compareDialogRightDefault?: string;
+  /** Placeholders: {idx} = 1-based, {role} = 'user'|'assistant' */
+  compareDialogMsgLabel?: string;
   micStart: string;
   micStop: string;
   newSession: string;

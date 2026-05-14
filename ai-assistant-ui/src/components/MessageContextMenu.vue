@@ -36,6 +36,32 @@
             <span class="ai-fab-ctx-label">{{ t.msgCtxFork }}</span>
           </button>
           <button
+            type="button"
+            role="menuitem"
+            class="ai-fab-ctx-item"
+            :class="{ 'ai-fab-ctx-item-active': compareMarkActiveForThis }"
+            @click="$emit('compareMark')"
+          >
+            <span class="ai-fab-ctx-label">
+              {{
+                compareMarkActiveForThis
+                  ? t.msgCtxCompareUnmark || 'Unmark as Compare A'
+                  : t.msgCtxCompareMark || 'Mark as Compare A'
+              }}
+            </span>
+          </button>
+          <button
+            v-if="compareMarkActive && !compareMarkActiveForThis"
+            type="button"
+            role="menuitem"
+            class="ai-fab-ctx-item"
+            @click="$emit('compareWith')"
+          >
+            <span class="ai-fab-ctx-label">
+              {{ t.msgCtxCompareWith || 'Compare A vs this' }}
+            </span>
+          </button>
+          <button
             v-if="ttsSupported"
             type="button"
             role="menuitem"
@@ -108,8 +134,18 @@ withDefaults(
     ttsSupported?: boolean;
     ttsActive?: boolean;
     ttsPaused?: boolean;
+    /** K40: any message is currently marked as compare-A. */
+    compareMarkActive?: boolean;
+    /** K40: THIS specific message is the current compare-A. */
+    compareMarkActiveForThis?: boolean;
   }>(),
-  { ttsSupported: false, ttsActive: false, ttsPaused: false },
+  {
+    ttsSupported: false,
+    ttsActive: false,
+    ttsPaused: false,
+    compareMarkActive: false,
+    compareMarkActiveForThis: false,
+  },
 );
 
 defineEmits<{
@@ -120,5 +156,9 @@ defineEmits<{
   (e: 'fork'): void;
   (e: 'tts'): void;
   (e: 'ttsPauseToggle'): void;
+  /** K40: mark / unmark this message as the left side of a comparison. */
+  (e: 'compareMark'): void;
+  /** K40: open the compare dialog with previously-marked A vs this msg. */
+  (e: 'compareWith'): void;
 }>();
 </script>
