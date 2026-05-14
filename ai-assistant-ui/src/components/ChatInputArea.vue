@@ -220,6 +220,19 @@
           </svg>
         </button>
         <button
+          v-if="voiceSupported && mode === 'chat'"
+          class="ai-voice-loop"
+          :class="{ active: voiceConversationActive }"
+          type="button"
+          :disabled="loading"
+          :title="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
+          :aria-label="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
+          :aria-pressed="voiceConversationActive ? 'true' : 'false'"
+          @click="$emit('toggleVoiceConversation')"
+        >
+          ↻
+        </button>
+        <button
           class="ai-send"
           type="button"
           :style="{ backgroundColor: color }"
@@ -347,6 +360,7 @@ const props = withDefaults(
     targetLang: string;
     voiceSupported: boolean;
     voiceRecording: boolean;
+    voiceConversationActive: boolean;
     t: I18nMessages;
     slashVisible?: boolean;
     slashCommands?: SlashCommand[];
@@ -386,6 +400,7 @@ const emit = defineEmits<{
   fileUpload: [file: File];
   pasteImage: [event: ClipboardEvent];
   toggleVoice: [];
+  toggleVoiceConversation: [];
   chatImage: [file: File];
   slashKeydown: [event: KeyboardEvent];
   slashSelect: [index: number];

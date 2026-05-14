@@ -21,7 +21,8 @@
 }
 
 /* 鈹€鈹€ Microphone button 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
-.ai-mic {
+.ai-mic,
+.ai-voice-loop {
   background: none;
   border: none;
   cursor: pointer;
@@ -33,13 +34,19 @@
     opacity 0.12s,
     background 0.12s;
 }
-.ai-mic:hover {
+.ai-mic:hover,
+.ai-voice-loop:hover {
   opacity: 1;
 }
 .ai-mic.recording {
   opacity: 1;
   color: #ef4444;
   animation: ai-mic-pulse 1s ease-in-out infinite;
+}
+.ai-voice-loop.active {
+  opacity: 1;
+  color: var(--ai-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.12);
 }
 @keyframes ai-mic-pulse {
   0%,

@@ -112,6 +112,8 @@ export const ko: I18nMessages = {
   thumbsDown: '도움이 안 됐어요',
   micStart: '음성 입력',
   micStop: '녹음 중지',
+  voiceLoopOn: '음성 대화: 켜짐',
+  voiceLoopOff: '음성 대화: 꺼짐',
   newSession: '새 채팅',
   msgCtxFork: '여기서 분기',
   msgCtxEdit: '편집 후 재전송',

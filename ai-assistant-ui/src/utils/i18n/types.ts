@@ -187,6 +187,8 @@ export interface I18nMessages {
   compareDialogAllColumnsHint?: string;
   micStart: string;
   micStop: string;
+  voiceLoopOn: string;
+  voiceLoopOff: string;
   newSession: string;
   msgCtxFork: string;
   msgCtxEdit: string;

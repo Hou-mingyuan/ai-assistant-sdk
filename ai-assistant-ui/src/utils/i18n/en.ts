@@ -117,6 +117,8 @@ export const en: I18nMessages = {
   thumbsDown: 'Not helpful',
   micStart: 'Voice input',
   micStop: 'Stop recording',
+  voiceLoopOn: 'Voice conversation: ON',
+  voiceLoopOff: 'Voice conversation: OFF',
   newSession: 'New chat',
   msgCtxFork: 'Fork from here',
   msgCtxEdit: 'Edit & resend',

@@ -112,6 +112,8 @@ export const ja: I18nMessages = {
   thumbsDown: '役に立たなかった',
   micStart: '音声入力',
   micStop: '録音停止',
+  voiceLoopOn: '音声会話：ON',
+  voiceLoopOff: '音声会話：OFF',
   newSession: '新しいチャット',
   msgCtxFork: 'ここから分岐',
   msgCtxEdit: '編集して再送信',

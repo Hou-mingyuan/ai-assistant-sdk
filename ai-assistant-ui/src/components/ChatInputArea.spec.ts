@@ -47,6 +47,7 @@ function mountInput(overrides: Partial<Record<string, unknown>> = {}) {
       targetLang: 'en',
       voiceSupported: false,
       voiceRecording: false,
+      voiceConversationActive: false,
       t: stubI18n,
       ...overrides,
     },

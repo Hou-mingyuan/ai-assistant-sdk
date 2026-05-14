@@ -254,7 +254,8 @@
 
 /* 附件 / 麦克风：保持原有圆形无边框设计，仅 hover 用主色提示 */
 .ai-assistant-wrapper .ai-attach-image,
-.ai-assistant-wrapper .ai-mic {
+.ai-assistant-wrapper .ai-mic,
+.ai-assistant-wrapper .ai-voice-loop {
   color: var(--ai-text-muted) !important;
   transition:
     color 0.15s ease,
@@ -262,7 +263,8 @@
 }
 
 .ai-assistant-wrapper .ai-attach-image:hover:not(:disabled),
-.ai-assistant-wrapper .ai-mic:hover:not(:disabled) {
+.ai-assistant-wrapper .ai-mic:hover:not(:disabled),
+.ai-assistant-wrapper .ai-voice-loop:hover:not(:disabled) {
   color: var(--ai-gradient-1) !important;
   transform: scale(1.08);
 }
@@ -574,6 +576,7 @@
 
 .ai-assistant-wrapper.ai-dark .ai-attach-image,
 .ai-assistant-wrapper.ai-dark .ai-mic,
+.ai-assistant-wrapper.ai-dark .ai-voice-loop,
 .ai-assistant-wrapper.ai-dark .ai-upload,
 .ai-assistant-wrapper.ai-dark .ai-upload-inline {
   background: rgba(30, 41, 59, 0.6) !important;

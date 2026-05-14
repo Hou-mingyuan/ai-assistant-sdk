@@ -113,6 +113,8 @@ export const zh: I18nMessages = {
   thumbsDown: '没帮助',
   micStart: '语音输入',
   micStop: '停止录音',
+  voiceLoopOn: '语音对话：开',
+  voiceLoopOff: '语音对话：关',
   newSession: '新对话',
   msgCtxFork: '从此处分叉',
   msgCtxEdit: '编辑并重发',

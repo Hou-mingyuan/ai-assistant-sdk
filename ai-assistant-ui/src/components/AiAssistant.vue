@@ -376,6 +376,7 @@
           :target-lang="targetLang"
           :voice-supported="voiceSupported"
           :voice-recording="voiceRecording"
+          :voice-conversation-active="voiceConversationActive"
           :t="t"
           :slash-visible="slashCmd.visible.value"
           :slash-commands="slashCmd.filteredCommands.value"
@@ -391,6 +392,7 @@
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
           @toggle-voice="voiceToggle()"
+          @toggle-voice-conversation="toggleVoiceConversation"
           @chat-image="readFileAsDataUrl"
           @slash-keydown="onSlashKeydown"
           @slash-select="onSlashSelect"
@@ -730,6 +732,10 @@ import AssistantHeader from './AssistantHeader.vue';
 import ChatInputArea from './ChatInputArea.vue';
 import SessionTabs from './SessionTabs.vue';
 import { useVoiceInput } from '../composables/useVoiceInput';
+import {
+  appendVoiceTranscript,
+  shouldAutoSendVoiceTranscript,
+} from '../composables/useVoiceConversation';
 import { useSlashCommands } from '../composables/useSlashCommands';
 import { useCrossSessionMemory } from '../composables/useCrossSessionMemory';
 import { useKnowledgeBase } from '../composables/useKnowledgeBase';
@@ -1468,10 +1474,36 @@ const {
 const {
   recording: voiceRecording,
   supported: voiceSupported,
-  toggle: voiceToggle,
+  toggle: toggleVoiceRecognition,
 } = useVoiceInput((text) => {
-  input.value += text;
+  input.value = appendVoiceTranscript(input.value, text);
+  if (
+    shouldAutoSendVoiceTranscript({
+      active: voiceConversationActive.value,
+      mode: mode.value,
+      hasBaseUrl: !!options.baseUrl,
+      loading: loading.value,
+      transcript: text,
+    })
+  ) {
+    void nextTick(() => {
+      if (input.value.trim() && !loading.value) void send();
+    });
+  }
 });
+const voiceConversationActive = ref(false);
+function voiceToggle() {
+  toggleVoiceRecognition({
+    continuous: voiceConversationActive.value,
+    interimResults: voiceConversationActive.value,
+  });
+}
+function toggleVoiceConversation() {
+  voiceConversationActive.value = !voiceConversationActive.value;
+  if (!voiceConversationActive.value && voiceRecording.value) {
+    toggleVoiceRecognition();
+  }
+}
 
 const crossMemory = useCrossSessionMemory();
 const memoryOpen = ref(false);
@@ -1866,7 +1898,7 @@ function onCompareClearSet() {
  * 自动朗读（受 audioAutoRead 偏好门控）。可手动 toggleMessage 取消。
  */
 watch(loading, (now, prev) => {
-  if (!audioAutoRead.value) return;
+  if (!audioAutoRead.value && !voiceConversationActive.value) return;
   if (prev !== true || now !== false) return;
   if (!tts.supported.value) return;
   const idx = messages.value.length - 1;
