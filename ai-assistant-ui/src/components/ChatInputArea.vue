@@ -309,40 +309,46 @@ import { ref } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SlashCommand } from '../composables/useSlashCommands';
 
-const props = defineProps<{
-  modelValue: string;
-  mode: 'translate' | 'summarize' | 'chat';
-  loading: boolean;
-  ctrlEnterToSend: boolean;
-  soundEnabled: boolean;
-  color: string;
-  placeholder: string;
-  charCountLabel: string;
-  charCountNearLimit: boolean;
-  pendingImageThumb: string | null;
-  acceptTypes: string;
-  hasBaseUrl: boolean;
-  showModelPicker: boolean;
-  selectedModel: string;
-  modelChoices: string[];
-  modelListMessage: string;
-  targetLang: string;
-  voiceSupported: boolean;
-  voiceRecording: boolean;
-  t: I18nMessages;
-  slashVisible?: boolean;
-  slashCommands?: SlashCommand[];
-  slashSelectedIndex?: number;
-  pageContextConfigured?: boolean;
-  pageContextEnabled?: boolean;
-  pageContextBlockCount?: number;
-  /**
-   * K36: 启用 terminal-style ↑/↓ prompt 历史回放。父组件需 wire 对应
-   * historyOlder / historyNewer / historyReset 事件到 usePromptHistory。
-   * 默认开启；setter 为 false 时本组件零行为变化。
-   */
-  historyEnabled?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    mode: 'translate' | 'summarize' | 'chat';
+    loading: boolean;
+    ctrlEnterToSend: boolean;
+    soundEnabled: boolean;
+    color: string;
+    placeholder: string;
+    charCountLabel: string;
+    charCountNearLimit: boolean;
+    pendingImageThumb: string | null;
+    acceptTypes: string;
+    hasBaseUrl: boolean;
+    showModelPicker: boolean;
+    selectedModel: string;
+    modelChoices: string[];
+    modelListMessage: string;
+    targetLang: string;
+    voiceSupported: boolean;
+    voiceRecording: boolean;
+    t: I18nMessages;
+    slashVisible?: boolean;
+    slashCommands?: SlashCommand[];
+    slashSelectedIndex?: number;
+    pageContextConfigured?: boolean;
+    pageContextEnabled?: boolean;
+    pageContextBlockCount?: number;
+    /**
+     * K36: 启用 terminal-style ↑/↓ prompt 历史回放。父组件需 wire 对应
+     * historyOlder / historyNewer / historyReset 事件到 usePromptHistory。
+     * K44 修：Vue 3 给 Boolean 类型 prop 自动默认 false，所以必须 withDefaults
+     * 显式默认为 true，否则上层 host 不传 prop 时回放就被错误禁用。
+     */
+    historyEnabled?: boolean;
+  }>(),
+  {
+    historyEnabled: true,
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -454,7 +460,7 @@ function onTextareaKeydown(e: KeyboardEvent) {
       return;
     }
   }
-  if (props.historyEnabled !== false && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+  if (props.historyEnabled && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
     if (e.key === 'ArrowUp') {
       const empty = !props.modelValue || !props.modelValue.trim();
       if (empty || recallActive.value) {
