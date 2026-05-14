@@ -573,6 +573,13 @@
       :is-dark="isDark"
       :t="t"
     />
+
+    <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
+    <CommandPalette
+      :open="cmdPalette.open.value"
+      :commands="cmdPalette.commands.value"
+      @update:open="(v) => (cmdPalette.open.value = v)"
+    />
   </div>
 </template>
 
@@ -593,6 +600,8 @@ import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll';
+import { useCommandPalette } from '../composables/useCommandPalette';
+import type { CommandItem } from '../types/command-palette';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
 const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
@@ -608,6 +617,9 @@ const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue')
 const AssistantInlineOverlays = defineAsyncComponent(
   () => import('./AssistantInlineOverlays.vue'),
 );
+/* K23: CommandPalette (Ctrl+K / ⌘+K) — flagship VSCode-style command runner
+ * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
+const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
@@ -2160,7 +2172,134 @@ function onPageSelAction(action: 'ask' | 'translate' | 'summarize') {
   });
 }
 
-defineExpose({ isOpen, messages, mode, targetLang, clearMessages });
+/* K23: CommandPalette wiring
+ * --------------------------
+ * Registers Ctrl+K / ⌘+K as a global shortcut that opens a VSCode-style
+ * command palette. Each command is a thin wrapper around an existing action
+ * (clearMessages / startNewSession / toggleManualTheme / ...) so we don't
+ * duplicate behaviour — Ctrl+K is purely a discoverability surface.
+ *
+ * Why register lazily inside a watch on isOpen instead of upfront:
+ *   most commands are no-ops or wrong-context when the panel is closed
+ *   (e.g. "Clear chat" with no panel visible). Keeping them gated by the
+ *   panel state avoids surprise execution.
+ */
+const cmdPalette = useCommandPalette();
+
+const builtInCommands = computed<CommandItem[]>(() => [
+  {
+    id: 'ai.toggle-panel',
+    label: isOpen.value ? (t.value.closePanel || '关闭面板') : (t.value.fabOpen || '打开 AI 助手'),
+    group: '面板',
+    icon: isOpen.value ? '✕' : '✨',
+    shortcut: 'Esc / Ctrl+/',
+    action: () => {
+      isOpen.value = !isOpen.value;
+    },
+  },
+  {
+    id: 'ai.new-session',
+    label: '新建会话 / New session',
+    group: '会话',
+    icon: '➕',
+    keywords: ['new', 'session', '新建', '会话', '清空'],
+    action: () => {
+      startNewSession();
+    },
+  },
+  {
+    id: 'ai.clear',
+    label: '清空当前会话 / Clear current chat',
+    group: '会话',
+    icon: '🗑',
+    keywords: ['clear', '清空', 'reset'],
+    action: () => {
+      clearMessages();
+    },
+  },
+  {
+    id: 'ai.toggle-theme',
+    label: isDark.value ? '切换到浅色 / Light mode' : '切换到深色 / Dark mode',
+    group: '外观',
+    icon: isDark.value ? '☀️' : '🌙',
+    keywords: ['theme', 'dark', 'light', '主题', '暗黑', '浅色'],
+    action: () => {
+      toggleManualTheme();
+    },
+  },
+  {
+    id: 'ai.open-personalize',
+    label: '个性化 / Personalize',
+    group: '设置',
+    icon: '⚙️',
+    keywords: ['personalize', 'settings', '个性化', '系统提示词'],
+    action: () => {
+      openPersonalize();
+    },
+  },
+  {
+    id: 'ai.open-diagnostics',
+    label: '连接诊断 / Connection diagnostics',
+    group: '设置',
+    icon: '🔍',
+    keywords: ['diagnostics', 'health', '连接', '诊断'],
+    action: () => {
+      diagnosticsOpen.value = true;
+    },
+  },
+  {
+    id: 'ai.open-sessions',
+    label: '所有会话 / All sessions',
+    group: '会话',
+    icon: '📚',
+    keywords: ['sessions', '会话', '抽屉'],
+    action: () => {
+      sessionsDrawerOpen.value = true;
+    },
+  },
+  {
+    id: 'ai.open-memory',
+    label: t.value.memoryLabel || '记忆管理 / Memory',
+    group: '知识',
+    icon: '🧠',
+    keywords: ['memory', '记忆', '事实'],
+    action: () => {
+      memoryOpen.value = true;
+    },
+  },
+  {
+    id: 'ai.open-kb',
+    label: t.value.kbLabel || '知识库管理 / Knowledge base',
+    group: '知识',
+    icon: '📖',
+    keywords: ['kb', 'knowledge', '知识库', 'rag'],
+    action: () => {
+      kbPanelOpen.value = true;
+    },
+  },
+  {
+    id: 'ai.open-keyboard-help',
+    label: '键盘快捷键 / Keyboard shortcuts',
+    group: '帮助',
+    icon: '⌨️',
+    shortcut: 'Shift+?',
+    keywords: ['keyboard', 'shortcut', 'help', '快捷键', '帮助'],
+    action: () => {
+      keyboardHelpOpen.value = true;
+    },
+  },
+]);
+
+watch(
+  builtInCommands,
+  (cmds) => {
+    cmdPalette.clear();
+    cmdPalette.register(cmds);
+  },
+  { immediate: true },
+);
+
+defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });
 
 watch(panelExpanded, () => {
   if (isOpen.value) {
