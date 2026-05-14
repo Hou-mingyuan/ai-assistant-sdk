@@ -349,6 +349,19 @@
   line-height: 18px;
   padding: 0;
 }
+.ai-pending-image-edit {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+}
 .ai-pending-image-remove {
   background: none;
   border: none;

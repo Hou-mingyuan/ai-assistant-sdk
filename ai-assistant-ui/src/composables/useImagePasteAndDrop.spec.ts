@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeContainSize, shouldDownscaleImage } from './useImagePasteAndDrop';
+import {
+  computeContainSize,
+  shouldDownscaleImage,
+  useImagePasteAndDrop,
+} from './useImagePasteAndDrop';
 
 describe('computeContainSize', () => {
   it('keeps images within the target long edge while preserving aspect ratio', () => {
@@ -20,5 +24,18 @@ describe('shouldDownscaleImage', () => {
       false,
     );
     expect(shouldDownscaleImage(6 * 1024 * 1024, 1600, 1200, 4 * 1024 * 1024, 2048)).toBe(false);
+  });
+});
+
+describe('replacePendingImageDataUrl', () => {
+  it('is exposed for editing an existing pending image', () => {
+    const api = useImagePasteAndDrop({
+      loading: { value: false },
+      messages: { value: [] },
+      errorPrefix: { value: 'Error' },
+      processFileUpload: () => undefined,
+    });
+
+    expect(typeof api.replacePendingImageDataUrl).toBe('function');
   });
 });

@@ -389,6 +389,7 @@
           @toggle-page-context="togglePageContext"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
+          @edit-pending-image="openAnnotationForPendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
           @toggle-voice="voiceToggle()"
@@ -702,6 +703,16 @@
       @page-sel-action="onPageSelAction"
     />
 
+    <ImageAnnotationDialog
+      v-if="annotationOpen"
+      :open="annotationOpen"
+      :image-src="annotationImageSrc"
+      :is-dark="isDark"
+      :t="t"
+      @close="closeAnnotationDialog"
+      @save="onAnnotationSave"
+    />
+
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
     <CommandPalette
       :open="cmdPalette.open.value"
@@ -759,6 +770,7 @@ const AssistantBottomTransients = defineAsyncComponent(
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
 const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
+const ImageAnnotationDialog = defineAsyncComponent(() => import('./ImageAnnotationDialog.vue'));
 /* K21 Phase 1: extracted ~135 lines of repetitive memory/kb/plugins panel
  * template into AssistantInlineOverlays. Lazy-loaded so the initial chunk
  * stays slim (only paid for when a user opens one of those panels). */
@@ -1443,6 +1455,7 @@ const {
   onPasteImage,
   readFileAsDataUrl,
   setPendingImageDataUrl,
+  replacePendingImageDataUrl,
   clearPendingImage,
   removePendingImage,
 } = useImagePasteAndDrop({
@@ -1452,11 +1465,38 @@ const {
   processFileUpload,
 });
 
+const annotationOpen = ref(false);
+const annotationImageSrc = ref('');
+const annotationReplaceIndex = ref<number | null>(null);
+
+function openAnnotationDialog(src: string, replaceIndex: number | null) {
+  if (!src) return;
+  annotationImageSrc.value = src;
+  annotationReplaceIndex.value = replaceIndex;
+  annotationOpen.value = true;
+}
+
+function openAnnotationForPendingImage(index: number) {
+  openAnnotationDialog(pendingImageDataList.value[index], index);
+}
+
+function closeAnnotationDialog() {
+  annotationOpen.value = false;
+  annotationImageSrc.value = '';
+  annotationReplaceIndex.value = null;
+}
+
+async function onAnnotationSave(dataUrl: string) {
+  const replaceIndex = annotationReplaceIndex.value;
+  if (replaceIndex == null) await setPendingImageDataUrl(dataUrl);
+  else await replacePendingImageDataUrl(replaceIndex, dataUrl);
+  closeAnnotationDialog();
+}
+
 async function captureScreenIntoPendingImage() {
   try {
     const dataUrl = await captureScreenDataUrl();
-    await setPendingImageDataUrl(dataUrl);
-    setExportToast(t.value.screenCapture, 2200);
+    openAnnotationDialog(dataUrl, null);
   } catch (e) {
     const message =
       e instanceof Error && e.message === 'screen-capture-unsupported'

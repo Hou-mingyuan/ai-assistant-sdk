@@ -10,6 +10,14 @@
           <img :src="thumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
           <button
             type="button"
+            class="ai-pending-image-edit"
+            :aria-label="t.editImage"
+            @click="$emit('editPendingImage', idx)"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
             class="ai-pending-image-remove-one"
             :aria-label="t.removeImage"
             @click="$emit('removePendingImage', idx)"
@@ -397,6 +405,7 @@ const emit = defineEmits<{
   send: [];
   clearPendingImage: [];
   removePendingImage: [index: number];
+  editPendingImage: [index: number];
   fileUpload: [file: File];
   pasteImage: [event: ClipboardEvent];
   toggleVoice: [];

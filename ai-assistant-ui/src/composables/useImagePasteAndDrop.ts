@@ -143,6 +143,33 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
     dataUrl: string,
     sourceSize = estimateDataUrlBytes(dataUrl),
   ) {
+    const prepared = await preparePendingImage(dataUrl, sourceSize);
+    if (!prepared) return;
+    pendingImageDataList.value = [...pendingImageDataList.value, prepared.dataUrl].slice(
+      -maxPendingImages,
+    );
+    pendingImageThumbs.value = [...pendingImageThumbs.value, prepared.thumb].slice(
+      -maxPendingImages,
+    );
+  }
+
+  async function replacePendingImageDataUrl(
+    index: number,
+    dataUrl: string,
+    sourceSize = estimateDataUrlBytes(dataUrl),
+  ) {
+    if (index < 0 || index >= pendingImageDataList.value.length) return;
+    const prepared = await preparePendingImage(dataUrl, sourceSize);
+    if (!prepared) return;
+    pendingImageDataList.value = pendingImageDataList.value.map((item, i) =>
+      i === index ? prepared.dataUrl : item,
+    );
+    pendingImageThumbs.value = pendingImageThumbs.value.map((item, i) =>
+      i === index ? prepared.thumb : item,
+    );
+  }
+
+  async function preparePendingImage(dataUrl: string, sourceSize: number) {
     const img = await loadImage(dataUrl);
     let normalizedDataUrl = dataUrl;
     if (
@@ -163,14 +190,11 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
         content: `${deps.errorPrefix.value}: Image exceeds 5MB limit`,
         timestamp: Date.now(),
       } as TMessage);
-      return;
+      return null;
     }
     const thumbSize = computeContainSize(img.width, img.height, thumbnailMaxDim);
     const thumb = renderImageDataUrl(img, thumbSize.width, thumbSize.height, 'image/png', 0.7);
-    pendingImageDataList.value = [...pendingImageDataList.value, normalizedDataUrl].slice(
-      -maxPendingImages,
-    );
-    pendingImageThumbs.value = [...pendingImageThumbs.value, thumb].slice(-maxPendingImages);
+    return { dataUrl: normalizedDataUrl, thumb };
   }
 
   function loadImage(dataUrl: string): Promise<HTMLImageElement> {
@@ -224,6 +248,7 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
     onPasteImage,
     readFileAsDataUrl,
     setPendingImageDataUrl,
+    replacePendingImageDataUrl,
     clearPendingImage,
     removePendingImage,
   };

@@ -199,6 +199,16 @@ export interface I18nMessages {
   searchNext: string;
   pendingImage: string;
   removeImage: string;
+  editImage: string;
+  annotateImage: string;
+  annotationRect: string;
+  annotationArrow: string;
+  annotationText: string;
+  annotationUndo: string;
+  annotationClear: string;
+  annotationDone: string;
+  annotationCancel: string;
+  annotationTextPrompt: string;
   visionModelWarning: string;
   screenCapture: string;
   screenCaptureUnsupported: string;
