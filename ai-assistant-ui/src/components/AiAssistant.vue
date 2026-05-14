@@ -471,7 +471,9 @@
       :max-chars="systemPromptMaxInputCharsResolved"
       :t="t"
       :theme="themePalette"
+      :audio="audioPrefs"
       @update:theme="(v) => (themePalette = v as ThemePresetId)"
+      @update:audio="onAudioPrefsUpdate"
       @close="personalizeOpen = false"
     />
 
@@ -1399,6 +1401,69 @@ function closeMultiModelCompare() {
  * false，右键菜单中的「朗读」按钮会自动隐藏。
  */
 const tts = useTextToSpeech();
+
+/**
+ * K37: 用户音频偏好（voice / rate / autoRead），持久化到 localStorage。
+ *
+ * - voice: voiceURI 字符串；''（默认）= 由 useTextToSpeech 按语种启发式自动挑
+ * - rate: 0.5 - 2.0，默认 1.0
+ * - autoRead: 默认 false；开启后 assistant 流式结束自动朗读
+ *
+ * 实际朗读时把这三个偏好一并传给 tts.speak() / tts.toggleMessage()。
+ */
+const AUDIO_PREFS_VOICE_KEY = 'ai-assistant.audio.voice.v1';
+const AUDIO_PREFS_RATE_KEY = 'ai-assistant.audio.rate.v1';
+const AUDIO_PREFS_AUTOREAD_KEY = 'ai-assistant.audio.autoRead.v1';
+function loadAudioPref(key: string, fallback: string): string {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+const audioVoice = ref(loadAudioPref(AUDIO_PREFS_VOICE_KEY, ''));
+const audioRate = ref(parseFloat(loadAudioPref(AUDIO_PREFS_RATE_KEY, '1')) || 1);
+const audioAutoRead = ref(loadAudioPref(AUDIO_PREFS_AUTOREAD_KEY, '0') === '1');
+watch(audioVoice, (v) => {
+  try {
+    localStorage.setItem(AUDIO_PREFS_VOICE_KEY, v);
+  } catch {
+    /* ignore */
+  }
+});
+watch(audioRate, (v) => {
+  try {
+    localStorage.setItem(AUDIO_PREFS_RATE_KEY, String(v));
+  } catch {
+    /* ignore */
+  }
+});
+watch(audioAutoRead, (v) => {
+  try {
+    localStorage.setItem(AUDIO_PREFS_AUTOREAD_KEY, v ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+});
+
+/** PersonalizeDialog 渲染所需的 view-model（轻量 voices 列表，避免传引用）。 */
+const audioPrefs = computed(() => ({
+  supported: tts.supported.value,
+  voice: audioVoice.value,
+  rate: audioRate.value,
+  autoRead: audioAutoRead.value,
+  voices: tts.voices.value.map((v) => ({
+    voiceURI: v.voiceURI,
+    name: v.name,
+    lang: v.lang,
+  })),
+}));
+function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
+  if (patch.voice !== undefined) audioVoice.value = patch.voice;
+  if (patch.rate !== undefined) audioRate.value = patch.rate;
+  if (patch.autoRead !== undefined) audioAutoRead.value = patch.autoRead;
+}
+
 function ttsToggleCurrent() {
   const idx = msgCtxMenu.value.index;
   if (idx < 0) return;
@@ -1406,13 +1471,37 @@ function ttsToggleCurrent() {
   if (!m) return;
   const text = m.contentArchive ?? m.content;
   closeMsgCtxMenu();
-  tts.toggleMessage(text, idx);
+  tts.toggleMessage(text, idx, {
+    voice: audioVoice.value || undefined,
+    rate: audioRate.value,
+  });
 }
 function ttsPauseToggle() {
   closeMsgCtxMenu();
   if (tts.paused.value) tts.resume();
   else tts.pause();
 }
+
+/**
+ * K37 auto-read: 当 loading 由 true → false 且最后一条是 assistant 内容非空时，
+ * 自动朗读（受 audioAutoRead 偏好门控）。可手动 toggleMessage 取消。
+ */
+watch(loading, (now, prev) => {
+  if (!audioAutoRead.value) return;
+  if (prev !== true || now !== false) return;
+  if (!tts.supported.value) return;
+  const idx = messages.value.length - 1;
+  if (idx < 0) return;
+  const last = messages.value[idx];
+  if (!last || last.role !== 'assistant') return;
+  const text = (last.contentArchive ?? last.content ?? '').trim();
+  if (!text) return;
+  void tts.speak(text, {
+    messageIndex: idx,
+    voice: audioVoice.value || undefined,
+    rate: audioRate.value,
+  });
+});
 
 /**
  * B7: Prompt 模板库。

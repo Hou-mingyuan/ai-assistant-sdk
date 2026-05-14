@@ -225,4 +225,9 @@ export const ko: I18nMessages = {
   reactFavorite: '즐겨찾기',
   reactPin: '고정',
   personalizeThemeLabel: '테마 색상',
+  personalizeAudioLabel: '음성 출력',
+  personalizeAudioVoice: '보이스',
+  personalizeAudioVoiceAuto: '자동 (언어 기준)',
+  personalizeAudioRate: '속도',
+  personalizeAudioAutoRead: 'AI 답변 자동 읽기',
 };

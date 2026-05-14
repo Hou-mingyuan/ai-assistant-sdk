@@ -139,6 +139,12 @@ export interface I18nMessages {
   reactPin?: string;
   /** K25: label shown next to the ColorThemeSwitcher in PersonalizeDialog. */
   personalizeThemeLabel?: string;
+  /** K37: AudioOutput section in PersonalizeDialog. */
+  personalizeAudioLabel?: string;
+  personalizeAudioVoice?: string;
+  personalizeAudioVoiceAuto?: string;
+  personalizeAudioRate?: string;
+  personalizeAudioAutoRead?: string;
   micStart: string;
   micStop: string;
   newSession: string;

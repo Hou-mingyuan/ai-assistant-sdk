@@ -142,4 +142,41 @@ describe('useTextToSpeech', () => {
     expect(() => api.stop()).not.toThrow();
     unmount();
   });
+
+  it('K37: exposes loaded voices to UI consumers (PersonalizeDialog)', () => {
+    const { api, unmount } = mountWithTts();
+    expect(api.voices.value).toHaveLength(2);
+    expect(api.voices.value[0]?.lang).toBe('zh-CN');
+    expect(api.voices.value[1]?.lang).toBe('en-US');
+    unmount();
+  });
+
+  it('K37: refreshVoices() re-reads from synth.getVoices()', () => {
+    const { api, unmount } = mountWithTts();
+    const synth = (
+      window as unknown as { speechSynthesis: { getVoices: ReturnType<typeof vi.fn> } }
+    ).speechSynthesis;
+    synth.getVoices.mockReturnValueOnce([
+      { name: 'NewVoice', lang: 'fr-FR', voiceURI: 'fr-test' } as SpeechSynthesisVoice,
+    ]);
+    api.refreshVoices();
+    expect(api.voices.value).toHaveLength(1);
+    expect(api.voices.value[0]?.lang).toBe('fr-FR');
+    unmount();
+  });
+
+  it('K37: prefers explicit voice param over lang heuristic', async () => {
+    const { api, unmount } = mountWithTts();
+    const synth = (
+      window as unknown as { speechSynthesis: { getVoices: ReturnType<typeof vi.fn> } }
+    ).speechSynthesis;
+    synth.getVoices.mockReturnValue([
+      { name: 'Z', lang: 'zh-CN', voiceURI: 'z-uri' } as SpeechSynthesisVoice,
+      { name: 'E', lang: 'en-US', voiceURI: 'e-uri' } as SpeechSynthesisVoice,
+      { name: 'F', lang: 'fr-FR', voiceURI: 'f-uri' } as SpeechSynthesisVoice,
+    ]);
+    await api.speak('你好世界', { voice: 'f-uri' });
+    expect(utterances[0]?.voice?.voiceURI).toBe('f-uri');
+    unmount();
+  });
 });

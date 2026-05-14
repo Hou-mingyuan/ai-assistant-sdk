@@ -226,4 +226,9 @@ export const zh: I18nMessages = {
   reactFavorite: '收藏',
   reactPin: '钉选',
   personalizeThemeLabel: '主题色',
+  personalizeAudioLabel: '语音朗读',
+  personalizeAudioVoice: '音色',
+  personalizeAudioVoiceAuto: '自动（按语言匹配）',
+  personalizeAudioRate: '语速',
+  personalizeAudioAutoRead: '自动朗读 AI 回复',
 };

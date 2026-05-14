@@ -231,4 +231,9 @@ export const en: I18nMessages = {
   reactFavorite: 'Favorite',
   reactPin: 'Pin',
   personalizeThemeLabel: 'Theme color',
+  personalizeAudioLabel: 'Audio output',
+  personalizeAudioVoice: 'Voice',
+  personalizeAudioVoiceAuto: 'Auto (by language)',
+  personalizeAudioRate: 'Speed',
+  personalizeAudioAutoRead: 'Auto-read assistant replies',
 };

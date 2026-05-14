@@ -226,4 +226,9 @@ export const ja: I18nMessages = {
   reactFavorite: 'スター',
   reactPin: 'ピン留め',
   personalizeThemeLabel: 'テーマカラー',
+  personalizeAudioLabel: '音声読み上げ',
+  personalizeAudioVoice: 'ボイス',
+  personalizeAudioVoiceAuto: '自動（言語に応じて）',
+  personalizeAudioRate: '速度',
+  personalizeAudioAutoRead: 'AIの返信を自動で読み上げる',
 };

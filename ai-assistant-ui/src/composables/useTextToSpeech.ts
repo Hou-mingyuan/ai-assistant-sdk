@@ -29,6 +29,12 @@ export interface TtsSpeakOptions {
   pitch?: number;
   /** 音量 0 - 1，默认 1 */
   volume?: number;
+  /**
+   * K37: 用户在 PersonalizeDialog 选定的 voiceURI（来自
+   * `speechSynthesis.getVoices()` 的 voiceURI 字段）。
+   * 命中则强制用该 voice；未命中或为空则回落到 lang 启发式 `pickVoice`。
+   */
+  voice?: string;
 }
 
 const MAX_TTS_CHARS = 4000;
@@ -65,9 +71,17 @@ function detectLang(text: string): string {
   return 'en-US';
 }
 
-function pickVoice(synth: SpeechSynthesis, lang: string): SpeechSynthesisVoice | null {
+function pickVoice(
+  synth: SpeechSynthesis,
+  lang: string,
+  preferredUri?: string,
+): SpeechSynthesisVoice | null {
   const voices = synth.getVoices();
   if (!voices?.length) return null;
+  if (preferredUri) {
+    const byUri = voices.find((v) => v.voiceURI === preferredUri);
+    if (byUri) return byUri;
+  }
   const prefix = lang.split('-')[0].toLowerCase();
   const exact = voices.find((v) => v.lang?.toLowerCase() === lang.toLowerCase());
   if (exact) return exact;
@@ -86,7 +100,34 @@ export function useTextToSpeech() {
   const speaking = ref(false);
   const paused = ref(false);
   const currentMessageIndex = ref<number | null>(null);
+  /**
+   * K37: 暴露 voices 列表给 PersonalizeDialog 的 voice picker。
+   *
+   * 浏览器在 mount 之前可能还未加载完 voices，watch voiceschanged 事件
+   * 拉最新；调用方任何时刻都可以 refreshVoices() 主动刷新。
+   * SSR / 不支持的环境为空数组。
+   */
+  const voices = ref<SpeechSynthesisVoice[]>([]);
+  let voicesListener: (() => void) | null = null;
   let voicesReadyTimer: number | null = null;
+
+  function refreshVoices() {
+    if (!supported.value) return;
+    try {
+      voices.value = window.speechSynthesis.getVoices() ?? [];
+    } catch {
+      /* ignore */
+    }
+  }
+  if (supported.value) {
+    refreshVoices();
+    voicesListener = () => refreshVoices();
+    try {
+      window.speechSynthesis.addEventListener('voiceschanged', voicesListener);
+    } catch {
+      voicesListener = null;
+    }
+  }
 
   function ensureVoicesLoaded(synth: SpeechSynthesis): Promise<void> {
     if (synth.getVoices().length > 0) return Promise.resolve();
@@ -123,7 +164,7 @@ export function useTextToSpeech() {
     utt.rate = opts.rate ?? 1;
     utt.pitch = opts.pitch ?? 1;
     utt.volume = opts.volume ?? 1;
-    const voice = pickVoice(synth, lang);
+    const voice = pickVoice(synth, lang, opts.voice);
     if (voice) utt.voice = voice;
     utt.onstart = () => {
       speaking.value = true;
@@ -195,6 +236,14 @@ export function useTextToSpeech() {
 
   onBeforeUnmount(() => {
     stop();
+    if (voicesListener) {
+      try {
+        window.speechSynthesis.removeEventListener('voiceschanged', voicesListener);
+      } catch {
+        /* ignore */
+      }
+      voicesListener = null;
+    }
   });
 
   return {
@@ -202,6 +251,8 @@ export function useTextToSpeech() {
     speaking,
     paused,
     currentMessageIndex,
+    voices,
+    refreshVoices,
     speak,
     stop,
     pause,
