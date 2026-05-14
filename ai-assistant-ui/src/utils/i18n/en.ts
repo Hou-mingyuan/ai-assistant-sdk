@@ -259,4 +259,7 @@ export const en: I18nMessages = {
   kbPickerNewKb: 'New knowledge base',
   kbPickerDocsUnit: 'docs',
   kbDropNewKbName: 'New KB',
+  msgCtxCompareMarkSelection: 'Mark selection for Compare',
+  msgCtxCompareWithSelection: 'Compare A vs selection',
+  compareDialogSelectionTag: 'selection',
 };

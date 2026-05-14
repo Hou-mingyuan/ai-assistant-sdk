@@ -1702,10 +1702,16 @@ interface CompareSide {
 const MAX_COMPARE_SIDES = 4;
 const compareSet = ref<CompareSide[]>([]);
 const compareDialogOpen = ref(false);
-function buildCompareLabel(idx: number, role: string, slotLetter: string): string {
+function buildCompareLabel(
+  idx: number,
+  role: string,
+  slotLetter: string,
+  isSelection = false,
+): string {
   const fmt = t.value.compareDialogMsgLabel || 'Msg #{idx} ({role})';
   const base = fmt.replace('{idx}', String(idx + 1)).replace('{role}', role);
-  return `[${slotLetter}] ${base}`;
+  const selSuffix = isSelection ? ` · ${t.value.compareDialogSelectionTag || 'selection'}` : '';
+  return `[${slotLetter}] ${base}${selSuffix}`;
 }
 function reLabelCompareSet() {
   compareSet.value = compareSet.value.map((side, slotIdx) => {
@@ -1724,9 +1730,25 @@ function compareSlotOf(idx: number): number {
 function onCompareMark() {
   const idx = msgCtxMenu.value.index;
   if (idx < 0) return;
+  const selection = (msgCtxMenu.value.selectionText ?? '').trim();
   closeMsgCtxMenu();
   const m = messages.value[idx];
   if (!m) return;
+
+  /* K45: selection mode — always pushes a NEW slot (no toggle), so the
+   * user can mark multiple regions of the same message. Toggle/unmark
+   * still works for whole-msg slots via the no-selection path. */
+  if (selection) {
+    if (compareSet.value.length >= MAX_COMPARE_SIDES) return;
+    const letter = String.fromCharCode(65 + compareSet.value.length);
+    compareSet.value.push({
+      msgIndex: idx,
+      content: selection,
+      label: buildCompareLabel(idx, m.role, letter, true),
+    });
+    return;
+  }
+
   const existingSlot = compareSlotOf(idx);
   if (existingSlot >= 0) {
     compareSet.value.splice(existingSlot, 1);
@@ -1745,19 +1767,22 @@ function onCompareMark() {
 }
 function onCompareWith() {
   const idx = msgCtxMenu.value.index;
+  const selection = (msgCtxMenu.value.selectionText ?? '').trim();
   closeMsgCtxMenu();
   if (idx < 0 || compareSet.value.length === 0) return;
-  if (!isInCompareSet(idx)) {
-    if (compareSet.value.length < MAX_COMPARE_SIDES) {
-      const m = messages.value[idx];
-      if (m) {
-        const letter = String.fromCharCode(65 + compareSet.value.length);
-        compareSet.value.push({
-          msgIndex: idx,
-          content: m.contentArchive ?? m.content ?? '',
-          label: buildCompareLabel(idx, m.role, letter),
-        });
-      }
+  /* K45: with selection -> always add (allows same msg multiple regions);
+   * without -> add whole msg only if not already in set. */
+  const shouldAdd = selection ? true : !isInCompareSet(idx);
+  if (shouldAdd && compareSet.value.length < MAX_COMPARE_SIDES) {
+    const m = messages.value[idx];
+    if (m) {
+      const letter = String.fromCharCode(65 + compareSet.value.length);
+      const content = selection ? selection : (m.contentArchive ?? m.content ?? '');
+      compareSet.value.push({
+        msgIndex: idx,
+        content,
+        label: buildCompareLabel(idx, m.role, letter, !!selection),
+      });
     }
   }
   if (compareSet.value.length >= 2) {

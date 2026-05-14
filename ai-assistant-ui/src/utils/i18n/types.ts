@@ -177,6 +177,11 @@ export interface I18nMessages {
   compareDialogClearSet?: string;
   /** Placeholders: {a} = letter A/B/.., {b} = letter */
   compareDialogSwapPair?: string;
+  /** K45: selection-based comparison actions. */
+  msgCtxCompareMarkSelection?: string;
+  msgCtxCompareWithSelection?: string;
+  /** K45: small tag suffix shown in slot label when content came from a text selection. */
+  compareDialogSelectionTag?: string;
   micStart: string;
   micStop: string;
   newSession: string;

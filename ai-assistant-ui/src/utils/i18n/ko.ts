@@ -253,4 +253,7 @@ export const ko: I18nMessages = {
   kbPickerNewKb: '새 지식 베이스',
   kbPickerDocsUnit: '개',
   kbDropNewKbName: '새 KB',
+  msgCtxCompareMarkSelection: '선택 영역을 비교에 추가',
+  msgCtxCompareWithSelection: 'A와 선택 영역 비교',
+  compareDialogSelectionTag: '선택',
 };

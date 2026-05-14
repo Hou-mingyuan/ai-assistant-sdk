@@ -254,4 +254,7 @@ export const ja: I18nMessages = {
   kbPickerNewKb: '新しい知識ベース',
   kbPickerDocsUnit: '件',
   kbDropNewKbName: '新規 KB',
+  msgCtxCompareMarkSelection: '選択範囲を比較に追加',
+  msgCtxCompareWithSelection: 'A と選択範囲を比較',
+  compareDialogSelectionTag: '選択',
 };

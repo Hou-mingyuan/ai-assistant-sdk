@@ -39,10 +39,10 @@
             type="button"
             role="menuitem"
             class="ai-fab-ctx-item"
-            :class="{ 'ai-fab-ctx-item-active': compareMarkActiveForThis }"
-            :disabled="!compareMarkActiveForThis && compareSetFull"
+            :class="{ 'ai-fab-ctx-item-active': compareMarkActiveForThis && !selectionText }"
+            :disabled="(!compareMarkActiveForThis || !!selectionText) && compareSetFull"
             :title="
-              !compareMarkActiveForThis && compareSetFull
+              compareSetFull && (!compareMarkActiveForThis || selectionText)
                 ? t.msgCtxCompareSetFull || 'Compare set is full (max 4)'
                 : undefined
             "
@@ -50,14 +50,16 @@
           >
             <span class="ai-fab-ctx-label">
               {{
-                compareMarkActiveForThis
-                  ? t.msgCtxCompareUnmark || 'Unmark as Compare A'
-                  : t.msgCtxCompareMark || 'Mark as Compare A'
+                selectionText
+                  ? t.msgCtxCompareMarkSelection || 'Mark selection for Compare'
+                  : compareMarkActiveForThis
+                    ? t.msgCtxCompareUnmark || 'Unmark as Compare A'
+                    : t.msgCtxCompareMark || 'Mark as Compare A'
               }}
             </span>
           </button>
           <button
-            v-if="compareMarkActive && !compareMarkActiveForThis"
+            v-if="compareMarkActive && (!compareMarkActiveForThis || !!selectionText)"
             type="button"
             role="menuitem"
             class="ai-fab-ctx-item"
@@ -65,9 +67,11 @@
           >
             <span class="ai-fab-ctx-label">
               {{
-                compareSetCount >= 2
-                  ? t.msgCtxCompareOpenSet || 'Open Compare view'
-                  : t.msgCtxCompareWith || 'Compare A vs this'
+                selectionText
+                  ? t.msgCtxCompareWithSelection || 'Compare A vs selection'
+                  : compareSetCount >= 2
+                    ? t.msgCtxCompareOpenSet || 'Open Compare view'
+                    : t.msgCtxCompareWith || 'Compare A vs this'
               }}
             </span>
           </button>

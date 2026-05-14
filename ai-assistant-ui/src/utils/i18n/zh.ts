@@ -254,4 +254,7 @@ export const zh: I18nMessages = {
   kbPickerNewKb: '新建知识库',
   kbPickerDocsUnit: '篇',
   kbDropNewKbName: '新知识库',
+  msgCtxCompareMarkSelection: '将选区加入对比',
+  msgCtxCompareWithSelection: '与 A 对比此选区',
+  compareDialogSelectionTag: '选区',
 };
