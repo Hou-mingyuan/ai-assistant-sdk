@@ -15,10 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release-version: ${{ steps.version.outputs.release-version }}
+      npm-ready: ${{ steps.version.outputs.npm-ready }}
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - name: Validate release tag and required secrets
+      - name: Validate release tag and probe required secrets
         id: version
         shell: bash
         run: |
@@ -27,15 +28,22 @@ jobs:
             echo "Release tag must be vMAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH, got: ${GITHUB_REF_NAME}" >&2
             exit 1
           fi
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "Missing required repository secret: NPM_TOKEN" >&2
-            exit 1
-          fi
           echo "release-version=${release_version}" >> "${GITHUB_OUTPUT}"
+          # K51: soft-check NPM_TOKEN. Missing token just skips publish-npm
+          # so Maven + Docker still get published. Hard-fail policy moved
+          # OUT of preflight so a single missing secret doesn't break the
+          # whole release pipeline.
+          if [ -z "${NPM_TOKEN}" ]; then
+            echo "::warning::NPM_TOKEN not set; publish-npm will be skipped."
+            echo "npm-ready=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "npm-ready=true" >> "${GITHUB_OUTPUT}"
+          fi
 
   publish-npm:
     runs-on: ubuntu-latest
     needs: preflight-release
+    if: needs.preflight-release.outputs.npm-ready == 'true'
     defaults:
       run:
         working-directory: ai-assistant-ui
