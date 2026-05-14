@@ -9,6 +9,7 @@ import com.aiassistant.model.ChatRequest;
 import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
+import com.aiassistant.service.llm.BlockingLlmCallExecutor;
 import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.PromptComposer;
 import com.aiassistant.service.llm.RequestEnricher;
@@ -65,6 +66,7 @@ public class LlmService {
     private final ResponsePostProcessor responsePostProcessor;
     private final ToolCallingLoop toolCallingLoop;
     private final StreamingToolCallingLoop streamingToolCallingLoop;
+    private final BlockingLlmCallExecutor blockingExecutor;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -148,6 +150,19 @@ public class LlmService {
                         objectMapper,
                         MAX_TOOL_ROUNDS,
                         perCallTimeoutMs);
+        /* K28: blocking attempt+fallback orchestrator. Tenant-context capture for
+         * AuditEvent emission happens in the closure so the executor itself stays
+         * tenant-context-agnostic. */
+        this.blockingExecutor =
+                new BlockingLlmCallExecutor(
+                        requestBuilder,
+                        keyRotator,
+                        chatCompletionClient,
+                        responsePostProcessor,
+                        toolCallingLoop,
+                        modelRouter,
+                        meterRegistry,
+                        this::emitAuditEventFromExecutor);
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
@@ -432,6 +447,12 @@ public class LlmService {
         return chatStream(userMessage, null, null, null, null);
     }
 
+    /**
+     * Delegate to {@link BlockingLlmCallExecutor} (K28). The attempt + fallback + key-rotation +
+     * tool-calling + audit orchestration lives in its own class with dedicated unit tests; this
+     * wrapper preserves the original private signature so existing call sites at chat/summarize/
+     * translate need not change.
+     */
     private String callLlm(
             String systemPrompt,
             String userMessage,
@@ -439,75 +460,22 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
-        userMessage = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
-        String currentModel = modelId;
-        RuntimeException lastError = null;
-        long startMs = System.currentTimeMillis();
+        return blockingExecutor.execute(
+                systemPrompt, userMessage, history, operation, modelId, imageData);
+    }
 
-        for (int attempt = 0; attempt < 3; attempt++) {
-            ObjectNode body =
-                    requestBuilder.buildRequestBody(
-                            systemPrompt, userMessage, false, history, currentModel, imageData);
-            if (!"chat".equals(operation)) {
-                body.remove("tools");
-            }
-            String key = keyRotator.nextKey();
-            Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
-            String rawResponse;
-            try {
-                rawResponse = chatCompletionClient.completeRaw(body, key);
-            } catch (RuntimeException e) {
-                keyRotator.markFailed(key);
-                if (sample != null) sample.stop(completionTimer(operation, "error"));
-                lastError = e;
-                String fallback =
-                        modelRouter != null ? modelRouter.nextFallback(currentModel) : null;
-                if (fallback != null) {
-                    log.warn(
-                            "Model {} failed, falling back to {}: {}",
-                            currentModel,
-                            fallback,
-                            e.getMessage());
-                    currentModel = fallback;
-                    continue;
-                }
-                emitAuditEvent(
-                        operation,
-                        currentModel,
-                        0,
-                        0,
-                        System.currentTimeMillis() - startMs,
-                        AuditEvent.Outcome.ERROR);
-                throw e;
-            }
-            try {
-                int[] tokenCounts =
-                        responsePostProcessor.extractAndRecord(rawResponse, currentModel);
-                String result = processToolCallingLoop(body, rawResponse, key);
-                result = responsePostProcessor.filterSync(result);
-                keyRotator.markSuccess(key);
-                if (sample != null) sample.stop(completionTimer(operation, "success"));
-                emitAuditEvent(
-                        operation,
-                        currentModel,
-                        tokenCounts[0],
-                        tokenCounts[1],
-                        System.currentTimeMillis() - startMs,
-                        AuditEvent.Outcome.SUCCESS);
-                return result;
-            } catch (RuntimeException e) {
-                if (sample != null) sample.stop(completionTimer(operation, "error"));
-                emitAuditEvent(
-                        operation,
-                        currentModel,
-                        0,
-                        0,
-                        System.currentTimeMillis() - startMs,
-                        AuditEvent.Outcome.ERROR);
-                throw e;
-            }
-        }
-        throw lastError != null ? lastError : new RuntimeException("All fallback models exhausted");
+    /**
+     * Adapter that bridges {@link BlockingLlmCallExecutor.AuditEmitter} to the existing {@link
+     * #emitAuditEvent} method so we keep tenant-context handling on this side.
+     */
+    private void emitAuditEventFromExecutor(
+            String operation,
+            String modelId,
+            int promptTokens,
+            int completionTokens,
+            long latencyMs,
+            AuditEvent.Outcome outcome) {
+        emitAuditEvent(operation, modelId, promptTokens, completionTokens, latencyMs, outcome);
     }
 
     private void emitAuditEvent(
@@ -543,13 +511,9 @@ public class LlmService {
         return toolCallingLoop.execute(body, rawResponse, apiKey);
     }
 
-    private Timer completionTimer(String operation, String outcome) {
-        return Timer.builder("aiassistant.llm.completion")
-                .description("LLM /chat/completions (non-stream) latency")
-                .tag("operation", operation)
-                .tag("outcome", outcome)
-                .register(meterRegistry);
-    }
+    /* K28: completionTimer() removed — moved into BlockingLlmCallExecutor along with the
+     * blocking attempt+fallback loop that was its sole caller. Streaming-side metrics still
+     * use the streamTimer() method below. */
 
     private Flux<String> callLlmStream(
             String systemPrompt,
