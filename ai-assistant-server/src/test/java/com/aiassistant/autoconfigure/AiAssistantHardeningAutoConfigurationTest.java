@@ -74,7 +74,12 @@ class AiAssistantHardeningAutoConfigurationTest {
                 .withPropertyValues(
                         "ai-assistant.url-fetch.ssrf-allowlist.enabled=true",
                         "ai-assistant.url-fetch.ssrf-allowlist.hosts[0]=example.com")
-                .withBean(SsrfPolicy.class, () -> uri -> { /* permissive host-side override */ })
+                .withBean(
+                        SsrfPolicy.class,
+                        () ->
+                                uri -> {
+                                    /* permissive host-side override */
+                                })
                 .run(
                         ctx -> {
                             assertThat(ctx).hasSingleBean(SsrfPolicy.class);

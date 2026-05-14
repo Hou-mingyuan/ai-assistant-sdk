@@ -42,6 +42,9 @@ public class SsrfAllowlistProperties {
     /** Master switch. Defaults to false (legacy behaviour: only {@link DefaultSsrfPolicy}). */
     private boolean enabled = false;
 
-    /** Allowed host patterns; see {@link AllowlistSsrfPolicy} for syntax (exact / *.domain / .domain). */
+    /**
+     * Allowed host patterns; see {@link AllowlistSsrfPolicy} for syntax (exact / *.domain /
+     * .domain).
+     */
     @NotNull private List<String> hosts = new ArrayList<>();
 }

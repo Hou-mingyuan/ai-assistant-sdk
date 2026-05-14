@@ -40,7 +40,9 @@ public class ChatRequest {
     private String pageContext;
 
     @Size(max = 128, message = "sessionId exceeds 128 characters")
-    @Pattern(regexp = "^[A-Za-z0-9_.:/-]{0,128}$", message = "sessionId contains invalid characters")
+    @Pattern(
+            regexp = "^[A-Za-z0-9_.:/-]{0,128}$",
+            message = "sessionId contains invalid characters")
     private String sessionId;
 
     public String getAction() {

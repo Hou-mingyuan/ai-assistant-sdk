@@ -89,9 +89,7 @@ public final class ToolCallingLoop {
             String finishReason = firstChoice.path("finish_reason").asText("");
             JsonNode toolCalls = msg.path("tool_calls");
 
-            if (!"tool_calls".equals(finishReason)
-                    || !toolCalls.isArray()
-                    || toolCalls.isEmpty()) {
+            if (!"tool_calls".equals(finishReason) || !toolCalls.isArray() || toolCalls.isEmpty()) {
                 return msg.path("content").asText("");
             }
 

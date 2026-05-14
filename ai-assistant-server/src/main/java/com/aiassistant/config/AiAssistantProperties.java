@@ -239,7 +239,11 @@ public class AiAssistantProperties {
         private boolean enabled = false;
         private boolean connectorManagementEnabled = false;
         private boolean mcpServerEnabled = false;
-        /** Separate bearer token for admin endpoints. Falls back to the main access-token when blank. */
+
+        /**
+         * Separate bearer token for admin endpoints. Falls back to the main access-token when
+         * blank.
+         */
         private String adminToken;
 
         public String resolveAdminToken(String fallbackAccessToken) {

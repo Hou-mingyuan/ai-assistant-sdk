@@ -618,10 +618,9 @@ public class AiAssistantAutoConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "ai-assistant", name = "admin-enabled", havingValue = "true")
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> aiAssistantAdminAuthFilter(
-            AiAssistantProperties properties) {
-        String adminToken =
-                properties.getAdmin().resolveAdminToken(properties.getAccessToken());
+    public FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter>
+            aiAssistantAdminAuthFilter(AiAssistantProperties properties) {
+        String adminToken = properties.getAdmin().resolveAdminToken(properties.getAccessToken());
         FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> registration =
                 new FilterRegistrationBean<>();
         registration.setFilter(

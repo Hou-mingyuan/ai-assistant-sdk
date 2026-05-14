@@ -56,13 +56,11 @@ public class ExportPdfWriter {
     private static final int MAX_IMAGE_REDIRECTS = 5;
 
     /**
-     * 缓存解析到的 Unicode 字体原始字节，避免每次导出 PDF 都重新读取约 10MB 的 NotoSansSC
-     * 字体文件。键是 properties.getExportPdfUnicodeFont() 的字面值（spec），便于宿主切换
-     * 字体时自动失效。PDType0Font.load 仍需要每个 PDDocument 调用一次（字体是 doc-bound），
-     * 所以这里只缓存字节，不缓存 Font 实例。
+     * 缓存解析到的 Unicode 字体原始字节，避免每次导出 PDF 都重新读取约 10MB 的 NotoSansSC 字体文件。键是
+     * properties.getExportPdfUnicodeFont() 的字面值（spec），便于宿主切换 字体时自动失效。PDType0Font.load 仍需要每个
+     * PDDocument 调用一次（字体是 doc-bound）， 所以这里只缓存字节，不缓存 Font 实例。
      *
-     * <p>Map 永远不会成长到超过几个条目（一个 spec 一份），生产场景下基本就是 1 条；
-     * 一旦缓存命中，单次 PDF 导出节省 ~10MB 的 IO 与解压时间。
+     * <p>Map 永远不会成长到超过几个条目（一个 spec 一份），生产场景下基本就是 1 条； 一旦缓存命中，单次 PDF 导出节省 ~10MB 的 IO 与解压时间。
      */
     private static final ConcurrentHashMap<String, byte[]> FONT_BYTES_CACHE =
             new ConcurrentHashMap<>();
@@ -246,13 +244,13 @@ public class ExportPdfWriter {
                  * 不能跨 doc 复用 Font 实例；但底层字节复用已经节省了大头 IO。 */
                 PDType0Font t0 = PDType0Font.load(doc, new ByteArrayInputStream(cached));
                 return new FontCtx() {
-                        public void useFont(PDPageContentStream cs, float size) throws Exception {
-                            cs.setFont(t0, size);
-                        }
+                    public void useFont(PDPageContentStream cs, float size) throws Exception {
+                        cs.setFont(t0, size);
+                    }
 
-                        public void showLine(PDPageContentStream cs, String line) throws Exception {
-                            cs.showText(line);
-                        }
+                    public void showLine(PDPageContentStream cs, String line) throws Exception {
+                        cs.showText(line);
+                    }
 
                     public float stringWidth(String text, float fontSize) throws IOException {
                         return (text == null || text.isEmpty())

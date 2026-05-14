@@ -51,13 +51,22 @@ public class AiAssistantController {
 
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Synchronous chat / translate / summarize",
-            description = "Performs a single-turn LLM call. The `action` field selects the mode: "
-                    + "`chat` (default), `translate`, or `summarize`.")
+            description =
+                    "Performs a single-turn LLM call. The `action` field selects the mode: "
+                            + "`chat` (default), `translate`, or `summarize`.")
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "LLM response"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Input too large or invalid"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "Token quota exceeded"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "503", description = "LLM service unavailable")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "LLM response"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "Input too large or invalid"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "429",
+                description = "Token quota exceeded"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "503",
+                description = "LLM service unavailable")
     })
     @PostMapping("/chat")
     public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
@@ -108,11 +117,16 @@ public class AiAssistantController {
 
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Streaming chat / translate / summarize (SSE)",
-            description = "Same logic as `/chat` but returns an SSE text/event-stream. "
-                    + "Each event carries a partial LLM token.")
+            description =
+                    "Same logic as `/chat` but returns an SSE text/event-stream. "
+                            + "Each event carries a partial LLM token.")
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "SSE stream of LLM tokens"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Input too large or invalid")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "SSE stream of LLM tokens"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400",
+                description = "Input too large or invalid")
     })
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<Flux<String>> stream(@Valid @RequestBody ChatRequest request) {
@@ -154,7 +168,8 @@ public class AiAssistantController {
 
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Health check",
-            description = "Returns service status. Pass `deep=true` to probe LLM reachability (rate-limited to once per minute).")
+            description =
+                    "Returns service status. Pass `deep=true` to probe LLM reachability (rate-limited to once per minute).")
     @GetMapping("/health")
     public java.util.Map<String, Object> health(
             @RequestParam(value = "deep", required = false, defaultValue = "false") boolean deep) {
@@ -186,8 +201,9 @@ public class AiAssistantController {
 
     @io.swagger.v3.oas.annotations.Operation(
             summary = "List available models",
-            description = "Returns models allowed by `ai-assistant.allowed-models` config; "
-                    + "falls back to the single default model when not configured.")
+            description =
+                    "Returns models allowed by `ai-assistant.allowed-models` config; "
+                            + "falls back to the single default model when not configured.")
     @GetMapping("/models")
     public ModelsListResponse listModels() {
         return ModelsListResponse.ok(
@@ -196,7 +212,8 @@ public class AiAssistantController {
 
     @io.swagger.v3.oas.annotations.Operation(
             summary = "URL preview / link unfurl",
-            description = "Extracts og:image, title, and summary from a URL for rich link previews.")
+            description =
+                    "Extracts og:image, title, and summary from a URL for rich link previews.")
     @GetMapping("/url-preview")
     public UrlPreviewResponse urlPreview(
             @RequestParam(value = "url", required = false) String url) {
@@ -216,13 +233,15 @@ public class AiAssistantController {
                         return Flux.just("[QUOTA_EXCEEDED] " + e.getMessage());
                     }
                     String msg = e.getMessage();
-                    if (msg != null && (msg.contains("429") || msg.toLowerCase().contains("rate limit"))) {
+                    if (msg != null
+                            && (msg.contains("429") || msg.toLowerCase().contains("rate limit"))) {
                         return Flux.just("[RATE_LIMITED] " + msg);
                     }
                     if (msg != null && (msg.contains("timeout") || msg.contains("timed out"))) {
                         return Flux.just("[TIMEOUT] " + msg);
                     }
-                    return Flux.just("[LLM_ERROR] AI service error. Check server logs for details.");
+                    return Flux.just(
+                            "[LLM_ERROR] AI service error. Check server logs for details.");
                 });
     }
 }

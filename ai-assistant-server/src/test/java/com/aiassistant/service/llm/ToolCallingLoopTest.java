@@ -149,8 +149,7 @@ class ToolCallingLoopTest {
                         MAPPER,
                         2);
         ObjectNode body = emptyBody("gpt-x");
-        String out =
-                loop.execute(body, responseWithToolCall("c0", "echo", "{}"), "key");
+        String out = loop.execute(body, responseWithToolCall("c0", "echo", "{}"), "key");
         /* After 2 rounds the loop returns whatever parseContentFromRaw extracts;
          * either fallback or empty, but it MUST terminate. */
         assertThat(out).isNotNull();
@@ -178,8 +177,7 @@ class ToolCallingLoopTest {
                         postProcessor(),
                         MAPPER,
                         5);
-        String out =
-                loop.execute(emptyBody("gpt-x"), "{\"choices\":[]}", "key");
+        String out = loop.execute(emptyBody("gpt-x"), "{\"choices\":[]}", "key");
         assertThat(out).isNotNull(); /* delegates to ResponsePostProcessor.parseContentFromRaw */
     }
 }

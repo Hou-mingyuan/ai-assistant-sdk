@@ -11,9 +11,9 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * {@link SsrfPolicy} implementation that delegates first to a base policy ({@link DefaultSsrfPolicy}
- * by default) and then enforces an additional host allowlist. URIs whose host does not match any
- * entry in the allowlist are rejected.
+ * {@link SsrfPolicy} implementation that delegates first to a base policy ({@link
+ * DefaultSsrfPolicy} by default) and then enforces an additional host allowlist. URIs whose host
+ * does not match any entry in the allowlist are rejected.
  *
  * <p>Each allowlist entry is matched case-insensitively against the IDN-normalised host:
  *
@@ -26,8 +26,8 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * <p>Hosts that look like raw IPs are also matched literally (no glob), which intentionally makes
- * IP-based allowlisting opt-in only — combine with {@link DefaultSsrfPolicy} to block RFC1918 / link
- * local even when wildcard would otherwise permit them.
+ * IP-based allowlisting opt-in only — combine with {@link DefaultSsrfPolicy} to block RFC1918 /
+ * link local even when wildcard would otherwise permit them.
  *
  * <p>Empty allowlist behaviour: throws on construction. Callers must always supply at least one
  * pattern; pass {@link DefaultSsrfPolicy} alone if no allowlist is wanted.
@@ -118,7 +118,9 @@ public final class AllowlistSsrfPolicy implements SsrfPolicy {
         }
     }
 
-    /** Compiled allowlist pattern; supports exact match, wildcard (*.domain), and apex (.domain). */
+    /**
+     * Compiled allowlist pattern; supports exact match, wildcard (*.domain), and apex (.domain).
+     */
     private static final class HostMatcher {
         final String original;
         final Pattern pattern;
