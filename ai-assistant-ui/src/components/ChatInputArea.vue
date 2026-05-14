@@ -147,6 +147,7 @@
         class="ai-footer-textarea"
         :placeholder="`${placeholder} (${ctrlEnterToSend ? 'Ctrl+Enter' : t.newline})`"
         rows="2"
+        :data-recall-active="recallActive ? 'true' : null"
         @input="onTextareaInput"
         @keydown="onTextareaKeydown"
         @paste="$emit('pasteImage', $event)"

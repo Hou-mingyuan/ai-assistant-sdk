@@ -3375,6 +3375,12 @@ function onEscKeydown(e: KeyboardEvent) {
   }
 
   if (e.key !== 'Escape') return;
+  /* K36/K53.3: textarea 处于 prompt-history recall 状态时，把 Escape
+   * 让给 ChatInputArea 自己处理（清空回放内容、退出回放），而不是
+   * 直接被这里的 capture-phase 全局监听器抢去关闭 panel。
+   * ChatInputArea 通过 textarea 上的 data-recall-active="true" 表达此状态。 */
+  const activeEl = document.activeElement as HTMLElement | null;
+  if (activeEl?.dataset?.recallActive === 'true') return;
   if (inlineTranslatePopover.value.show) {
     e.preventDefault();
     closeInlineTranslatePopover();
