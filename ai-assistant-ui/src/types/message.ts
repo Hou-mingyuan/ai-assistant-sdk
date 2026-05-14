@@ -49,6 +49,10 @@ export function extractAgentSteps(raw: string): { content: string; steps: AgentS
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  /** Thumbnail for the first image attached to a user message (legacy single-image view). */
+  imageThumb?: string;
+  /** Thumbnails for all images attached to a user message. */
+  imageThumbs?: string[];
   /** 内存 cap 截断展示文案时保留的全文，导出/复制优先使用 */
   contentArchive?: string;
   /** AI 推理过程（从 <think> 标签中提取） */

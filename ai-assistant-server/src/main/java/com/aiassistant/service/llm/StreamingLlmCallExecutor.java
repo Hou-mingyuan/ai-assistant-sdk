@@ -94,10 +94,26 @@ public final class StreamingLlmCallExecutor {
             String operation,
             String modelId,
             String imageData) {
+        return stream(
+                systemPrompt,
+                userMessage,
+                history,
+                operation,
+                modelId,
+                ChatRequest.resolveImageDataList(imageData, null));
+    }
+
+    public Flux<String> stream(
+            String systemPrompt,
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String operation,
+            String modelId,
+            List<String> imageDataList) {
         String clamped = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
         ObjectNode body =
                 requestBuilder.buildRequestBody(
-                        systemPrompt, clamped, true, history, modelId, imageData);
+                        systemPrompt, clamped, true, history, modelId, imageDataList);
         if (!"chat".equals(operation)) {
             body.remove("tools");
         }

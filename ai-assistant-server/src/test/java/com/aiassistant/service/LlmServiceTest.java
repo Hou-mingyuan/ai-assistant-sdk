@@ -103,6 +103,27 @@ class LlmServiceTest {
     }
 
     @Test
+    void chatBuildsMultipleVisionImagePartsInOrder() throws Exception {
+        CapturingChatClient client = new CapturingChatClient();
+        client.enqueueRaw(chatResponse("multi image understood"));
+        LlmService service = newService(baseProperties(), client);
+
+        assertEquals(
+                "multi image understood",
+                service.chat(
+                        "compare", null, null, null, List.of("one", "data:image/jpeg;base64,two")));
+
+        ObjectNode body = client.requests.get(0);
+        var content = body.path("messages").get(1).path("content");
+        assertEquals("text", content.get(0).path("type").asText());
+        assertEquals(
+                "data:image/png;base64,one", content.get(1).path("image_url").path("url").asText());
+        assertEquals(
+                "data:image/jpeg;base64,two",
+                content.get(2).path("image_url").path("url").asText());
+    }
+
+    @Test
     void chatFallsBackToNextModelAndNextApiKeyAfterClientFailure() throws Exception {
         AiAssistantProperties properties = baseProperties();
         ModelRouter router = new ModelRouter("primary-model");

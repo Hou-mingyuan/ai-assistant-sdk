@@ -151,6 +151,15 @@
           <span class="ai-agent-step-label">{{ step.label }}</span>
         </div>
       </div>
+      <div v-if="msg.role === 'user' && messageImageThumbs(msg).length > 0" class="ai-user-images">
+        <img
+          v-for="(thumb, imageIdx) in messageImageThumbs(msg)"
+          :key="`${displayOffset + renderedStart + idx}-${imageIdx}`"
+          :src="thumb"
+          :alt="t.pendingImage"
+          class="ai-user-image-thumb"
+        />
+      </div>
       <!-- Tool calls display -->
       <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="ai-tool-calls">
         <details
@@ -552,4 +561,9 @@ onBeforeUnmount(() => {
   measureObservers.forEach((o) => o.disconnect());
   measureObservers.clear();
 });
+
+function messageImageThumbs(msg: Message): string[] {
+  if (msg.imageThumbs?.length) return msg.imageThumbs;
+  return msg.imageThumb ? [msg.imageThumb] : [];
+}
 </script>

@@ -33,6 +33,36 @@ import {
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
 
+const DEFAULT_VISION_MODEL_PATTERNS: RegExp[] = [
+  /(?:^|[-_:])gpt-4o(?:[-_:]|$)/i,
+  /(?:^|[-_:])gpt-4\.1(?:[-_:]|$)/i,
+  /(?:^|[-_:])gpt-5(?:[-_:]|$)/i,
+  /claude-(?:3|4|opus|sonnet)/i,
+  /gemini-(?:1\.5|2|2\.5|pro|flash)/i,
+  /qwen.*-?vl/i,
+  /llava/i,
+  /pixtral/i,
+  /vision/i,
+];
+
+export function isVisionCapableModel(model: string, extraPatterns: RegExp[] = []): boolean {
+  const normalized = model.trim();
+  if (!normalized) return false;
+  return [...extraPatterns, ...DEFAULT_VISION_MODEL_PATTERNS].some((pattern) =>
+    pattern.test(normalized),
+  );
+}
+
+export function shouldWarnForVisionModel(
+  model: string,
+  hasImageAttachment: boolean,
+  extraPatterns: RegExp[] = [],
+): boolean {
+  if (!hasImageAttachment) return false;
+  if (!model.trim()) return false;
+  return !isVisionCapableModel(model, extraPatterns);
+}
+
 /** Brace / bracket balance counter shared by {@link stripInternalToolTrace}. */
 export function countBraceBalance(text: string): number {
   let balance = 0;
@@ -160,10 +190,10 @@ export interface UseSendStreamDeps {
   selectedChatModel: Ref<string>;
   /** Allowed-model whitelist; used to validate `selectedChatModel`. */
   modelChoices: Ref<string[]>;
-  /** Pending base64 image (data URI); attached to payload then cleared. */
-  pendingImageData: Ref<string | null>;
-  /** Pending image thumbnail preview; presence drives 🖼 prefix only. */
-  pendingImageThumb: Ref<string | null>;
+  /** Pending base64 images (data URI); attached to payload then cleared. */
+  pendingImageDataList: Ref<string[]>;
+  /** Pending image thumbnail previews for message history rendering. */
+  pendingImageThumbs: Ref<string[]>;
   /** Host-merged user options (baseUrl / accessToken / maxUserMessageChars). */
   options: AiAssistantOptions;
   /** Computed locale messages bundle, re-evaluated on locale change. */
@@ -187,6 +217,8 @@ export interface UseSendStreamDeps {
   preferHttpsImageUrlWhenPageIsSecure: (url: string) => string;
   /** Drop the pending image (called once the payload captures it). */
   clearPendingImage: () => void;
+  /** Lightweight UI notification channel (toast). */
+  notify?: (message: string, durationMs?: number) => void;
   /** Coalesced scroll-to-bottom; pass force=true to bypass the sticky check. */
   scrollToBottom: (force: boolean) => void;
   /** Notification chime (gated by user preference; safe no-op if muted). */
@@ -376,9 +408,14 @@ export function useSendStream(deps: UseSendStreamDeps) {
     deps.loading.value = true;
     deps.scrollToBottom(true);
 
-    const imageForPayload = deps.pendingImageData.value;
-    if (deps.pendingImageThumb.value && deps.pendingImageData.value) {
-      userEntry.content = `🖼️ ${userEntry.content}`;
+    const imageDataListForPayload = deps.pendingImageDataList.value.filter(Boolean);
+    const imageThumbsForMessage = deps.pendingImageThumbs.value.slice(
+      0,
+      imageDataListForPayload.length,
+    );
+    if (imageThumbsForMessage.length > 0) {
+      userEntry.imageThumb = imageThumbsForMessage[0];
+      userEntry.imageThumbs = imageThumbsForMessage;
     }
     deps.clearPendingImage();
 
@@ -387,14 +424,28 @@ export function useSendStream(deps: UseSendStreamDeps) {
       text,
       targetLang: deps.targetLang.value,
     };
-    if (imageForPayload) payload.imageData = imageForPayload;
+    if (imageDataListForPayload.length > 0) {
+      payload.imageData = imageDataListForPayload[0];
+      payload.imageDataList = imageDataListForPayload;
+    }
     if (deps.mode.value === 'chat') {
       const memFrag = deps.memoryPromptFragment?.value ?? '';
       const sp = deps.chatSystemPrompt.value.trim();
       const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
       if (combinedSp) payload.systemPrompt = combinedSp;
       const mid = deps.selectedChatModel.value.trim();
-      if (mid && deps.modelChoices.value.includes(mid)) payload.model = mid;
+      if (mid && deps.modelChoices.value.includes(mid)) {
+        payload.model = mid;
+        if (
+          shouldWarnForVisionModel(
+            mid,
+            imageDataListForPayload.length > 0,
+            deps.options.visionCapableModels,
+          )
+        ) {
+          deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
+        }
+      }
     }
     if (deps.mode.value === 'chat' && deps.messages.value.length > 1) {
       payload.history = deps.messages.value.slice(0, -1).map((m) => ({

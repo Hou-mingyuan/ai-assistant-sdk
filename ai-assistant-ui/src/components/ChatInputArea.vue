@@ -1,7 +1,23 @@
 <template>
   <div class="ai-footer">
-    <div v-if="pendingImageThumb" class="ai-pending-image">
-      <img :src="pendingImageThumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
+    <div v-if="pendingImageThumbs.length" class="ai-pending-image">
+      <span class="ai-pending-image-list">
+        <span
+          v-for="(thumb, idx) in pendingImageThumbs"
+          :key="`${idx}-${thumb.slice(0, 24)}`"
+          class="ai-pending-image-item"
+        >
+          <img :src="thumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
+          <button
+            type="button"
+            class="ai-pending-image-remove-one"
+            :aria-label="t.removeImage"
+            @click="$emit('removePendingImage', idx)"
+          >
+            &times;
+          </button>
+        </span>
+      </span>
       <button
         type="button"
         class="ai-pending-image-remove"
@@ -321,7 +337,7 @@ const props = withDefaults(
     placeholder: string;
     charCountLabel: string;
     charCountNearLimit: boolean;
-    pendingImageThumb: string | null;
+    pendingImageThumbs: string[];
     acceptTypes: string;
     hasBaseUrl: boolean;
     showModelPicker: boolean;
@@ -347,6 +363,12 @@ const props = withDefaults(
     historyEnabled?: boolean;
   }>(),
   {
+    slashVisible: false,
+    slashCommands: () => [],
+    slashSelectedIndex: 0,
+    pageContextConfigured: false,
+    pageContextEnabled: true,
+    pageContextBlockCount: 0,
     historyEnabled: true,
   },
 );
@@ -360,6 +382,7 @@ const emit = defineEmits<{
   changeMode: [mode: 'translate' | 'summarize' | 'chat'];
   send: [];
   clearPendingImage: [];
+  removePendingImage: [index: number];
   fileUpload: [file: File];
   pasteImage: [event: ClipboardEvent];
   toggleVoice: [];

@@ -18,8 +18,34 @@ export interface UseImagePasteAndDropDeps<TMessage extends UseImagePasteAndDropM
   processFileUpload: (file: File) => Promise<void> | void;
   /** 单张图片字节上限，默认 5 MiB；超过会被拒绝并提示。 */
   maxImageBytes?: number;
+  /** 超过该文件大小时尝试压缩，默认 4 MiB。 */
+  downscaleThresholdBytes?: number;
+  /** 压缩大图时的最长边像素值，默认 2048。 */
+  downscaleMaxDim?: number;
+  /** 可等待发送的最大图片数量，默认 8。 */
+  maxPendingImages?: number;
   /** 用于生成缩略图时的最长边像素值，默认 80。 */
   thumbnailMaxDim?: number;
+}
+
+export function computeContainSize(width: number, height: number, maxDim: number) {
+  const longEdge = Math.max(width, height);
+  if (longEdge <= maxDim) return { width, height };
+  const scale = maxDim / longEdge;
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+export function shouldDownscaleImage(
+  fileSize: number,
+  width: number,
+  height: number,
+  thresholdBytes: number,
+  maxDim: number,
+) {
+  return fileSize > thresholdBytes && Math.max(width, height) > maxDim;
 }
 
 /**
@@ -43,10 +69,13 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
   const dragActive = ref(false);
   let dragCounter = 0;
 
-  const pendingImageData = ref<string | null>(null);
-  const pendingImageThumb = ref<string | null>(null);
+  const pendingImageDataList = ref<string[]>([]);
+  const pendingImageThumbs = ref<string[]>([]);
 
   const maxImageBytes = deps.maxImageBytes ?? 5 * 1024 * 1024;
+  const downscaleThresholdBytes = deps.downscaleThresholdBytes ?? 4 * 1024 * 1024;
+  const downscaleMaxDim = deps.downscaleMaxDim ?? 2048;
+  const maxPendingImages = deps.maxPendingImages ?? 8;
   const thumbnailMaxDim = deps.thumbnailMaxDim ?? 80;
 
   function onBodyDragOver(e: DragEvent) {
@@ -72,12 +101,14 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
     dragCounter = 0;
     dragActive.value = false;
     if (deps.loading.value) return;
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    if (file.type.startsWith('image/')) {
-      readFileAsDataUrl(file);
-    } else {
-      void deps.processFileUpload(file);
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (!files.length) return;
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        readFileAsDataUrl(file);
+      } else {
+        void deps.processFileUpload(file);
+      }
     }
   }
 
@@ -95,7 +126,38 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
   }
 
   function readFileAsDataUrl(file: File) {
-    if (file.size > maxImageBytes) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      void setPendingImageDataUrl(reader.result as string, file.size).catch(() => {
+        deps.messages.value.push({
+          role: 'assistant',
+          content: `${deps.errorPrefix.value}: Failed to read image`,
+          timestamp: Date.now(),
+        } as TMessage);
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function setPendingImageDataUrl(
+    dataUrl: string,
+    sourceSize = estimateDataUrlBytes(dataUrl),
+  ) {
+    const img = await loadImage(dataUrl);
+    let normalizedDataUrl = dataUrl;
+    if (
+      shouldDownscaleImage(
+        sourceSize,
+        img.width,
+        img.height,
+        downscaleThresholdBytes,
+        downscaleMaxDim,
+      )
+    ) {
+      const size = computeContainSize(img.width, img.height, downscaleMaxDim);
+      normalizedDataUrl = renderImageDataUrl(img, size.width, size.height, 'image/jpeg', 0.85);
+    }
+    if (estimateDataUrlBytes(normalizedDataUrl) > maxImageBytes) {
       deps.messages.value.push({
         role: 'assistant',
         content: `${deps.errorPrefix.value}: Image exceeds 5MB limit`,
@@ -103,45 +165,66 @@ export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessag
       } as TMessage);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      pendingImageData.value = dataUrl;
-      const canvas = document.createElement('canvas');
+    const thumbSize = computeContainSize(img.width, img.height, thumbnailMaxDim);
+    const thumb = renderImageDataUrl(img, thumbSize.width, thumbSize.height, 'image/png', 0.7);
+    pendingImageDataList.value = [...pendingImageDataList.value, normalizedDataUrl].slice(
+      -maxPendingImages,
+    );
+    pendingImageThumbs.value = [...pendingImageThumbs.value, thumb].slice(-maxPendingImages);
+  }
+
+  function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => {
-        let w = img.width;
-        let h = img.height;
-        if (w > thumbnailMaxDim || h > thumbnailMaxDim) {
-          const scale = thumbnailMaxDim / Math.max(w, h);
-          w = Math.round(w * scale);
-          h = Math.round(h * scale);
-        }
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        pendingImageThumb.value = canvas.toDataURL('image/png', 0.7);
-      };
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to load image'));
       img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    });
+  }
+
+  function renderImageDataUrl(
+    img: CanvasImageSource,
+    width: number,
+    height: number,
+    type: string,
+    quality: number,
+  ) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL(type, quality);
+  }
+
+  function estimateDataUrlBytes(dataUrl: string) {
+    const comma = dataUrl.indexOf(',');
+    const payload = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+    return Math.ceil((payload.length * 3) / 4);
   }
 
   function clearPendingImage() {
-    pendingImageData.value = null;
-    pendingImageThumb.value = null;
+    pendingImageDataList.value = [];
+    pendingImageThumbs.value = [];
+  }
+
+  function removePendingImage(index: number) {
+    if (index < 0 || index >= pendingImageDataList.value.length) return;
+    pendingImageDataList.value = pendingImageDataList.value.filter((_, i) => i !== index);
+    pendingImageThumbs.value = pendingImageThumbs.value.filter((_, i) => i !== index);
   }
 
   return {
     dragActive,
-    pendingImageData,
-    pendingImageThumb,
+    pendingImageDataList,
+    pendingImageThumbs,
     onBodyDragOver,
     onBodyDragEnter,
     onBodyDragLeave,
     onBodyDrop,
     onPasteImage,
     readFileAsDataUrl,
+    setPendingImageDataUrl,
     clearPendingImage,
+    removePendingImage,
   };
 }

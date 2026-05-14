@@ -197,6 +197,10 @@ export interface I18nMessages {
   searchNext: string;
   pendingImage: string;
   removeImage: string;
+  visionModelWarning: string;
+  screenCapture: string;
+  screenCaptureUnsupported: string;
+  screenCaptureFailed: string;
   chatSessions: string;
   closeSession: string;
   retryError: string;
@@ -282,6 +286,7 @@ export interface I18nMessages {
   kbdNewSession: string;
   kbdFocusSearch: string;
   kbdToggleExport: string;
+  kbdScreenCapture: string;
   kbdToggleMemory: string;
   kbdCloseOverlay: string;
   kbdSendEnter: string;

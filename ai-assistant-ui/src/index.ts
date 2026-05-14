@@ -80,6 +80,12 @@ export interface AiAssistantOptions {
   /** 记住所选模型的 localStorage key，默认 `ai-assistant-selected-model` */
   selectedModelStorageKey?: string;
   /**
+   * Host-provided model name patterns that should be treated as vision-capable
+   * when the user sends image attachments. Built-in patterns cover common
+   * OpenAI / Claude / Gemini / Qwen-VL style names; this extends them.
+   */
+  visionCapableModels?: RegExp[];
+  /**
    * DOM 选择器列表，每个条目匹配页面上的一个区块，发送时自动采集其文本作为上下文
    * 注入 LLM 系统提示，让助手"看到"当前页面内容。
    */

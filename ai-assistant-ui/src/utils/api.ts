@@ -14,6 +14,8 @@ export interface ChatPayload {
   model?: string;
   /** Base64 image data (data URI or raw base64) for vision models */
   imageData?: string;
+  /** Multiple Base64 image data entries for multimodal models; imageData remains first-image compat. */
+  imageDataList?: string[];
   /** 前端采集的页面上下文文本（URL、标题、DOM 区块文字），后端注入系统提示 */
   pageContext?: string;
   /** 会话 ID，用于服务端会话记忆（跨轮对话上下文保持） */

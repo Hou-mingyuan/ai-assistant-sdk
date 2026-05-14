@@ -366,7 +366,7 @@
           :placeholder="placeholder"
           :char-count-label="charCountLabel"
           :char-count-near-limit="charCountNearLimit"
-          :pending-image-thumb="pendingImageThumb"
+          :pending-image-thumbs="pendingImageThumbs"
           :accept-types="ACCEPT_TYPES"
           :has-base-url="!!options.baseUrl"
           :show-model-picker="showModelPickerResolved"
@@ -387,6 +387,7 @@
           @change-mode="onChangeMode"
           @toggle-page-context="togglePageContext"
           @clear-pending-image="clearPendingImage"
+          @remove-pending-image="removePendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
           @toggle-voice="voiceToggle()"
@@ -783,6 +784,10 @@ import { useExportUi } from '../composables/useExportUi';
 import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer';
 import { useMultiSession } from '../composables/useMultiSession';
 import { useImagePasteAndDrop } from '../composables/useImagePasteAndDrop';
+import {
+  captureScreenDataUrl,
+  matchesScreenCaptureShortcut,
+} from '../composables/useScreenCapture';
 import {
   providePluginRegistry,
   usePluginRegistry,
@@ -1423,21 +1428,37 @@ const selectedMsgIndices = ref<Set<number>>(new Set());
 const pendingTimers: number[] = [];
 const {
   dragActive,
-  pendingImageData,
-  pendingImageThumb,
+  pendingImageDataList,
+  pendingImageThumbs,
   onBodyDragOver,
   onBodyDragEnter,
   onBodyDragLeave,
   onBodyDrop,
   onPasteImage,
   readFileAsDataUrl,
+  setPendingImageDataUrl,
   clearPendingImage,
+  removePendingImage,
 } = useImagePasteAndDrop({
   loading,
   messages,
   errorPrefix: computed(() => t.value.errorPrefix),
   processFileUpload,
 });
+
+async function captureScreenIntoPendingImage() {
+  try {
+    const dataUrl = await captureScreenDataUrl();
+    await setPendingImageDataUrl(dataUrl);
+    setExportToast(t.value.screenCapture, 2200);
+  } catch (e) {
+    const message =
+      e instanceof Error && e.message === 'screen-capture-unsupported'
+        ? t.value.screenCaptureUnsupported
+        : t.value.screenCaptureFailed;
+    setExportToast(message, 3200);
+  }
+}
 const {
   disabled: codeWallDisabled,
   start: startCodeWall,
@@ -3117,8 +3138,8 @@ const {
   chatSystemPrompt,
   selectedChatModel,
   modelChoices,
-  pendingImageData,
-  pendingImageThumb,
+  pendingImageDataList,
+  pendingImageThumbs,
   options,
   t,
   streamWithFallback,
@@ -3128,6 +3149,7 @@ const {
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
   clearPendingImage,
+  notify: setExportToast,
   scrollToBottom,
   playNotificationSound,
   trimMessagesForMemoryCap,
@@ -3340,6 +3362,11 @@ function onEscKeydown(e: KeyboardEvent) {
   }
 
   const ctrl = e.ctrlKey || e.metaKey;
+  if (matchesScreenCaptureShortcut(e) && isOpen.value && mode.value === 'chat') {
+    e.preventDefault();
+    void captureScreenIntoPendingImage();
+    return;
+  }
   if (ctrl && e.shiftKey && !e.altKey && isOpen.value) {
     switch (e.key.toLowerCase()) {
       case 'l':

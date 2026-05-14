@@ -123,6 +123,22 @@ public final class BlockingLlmCallExecutor {
             String operation,
             String modelId,
             String imageData) {
+        return execute(
+                systemPrompt,
+                userMessage,
+                history,
+                operation,
+                modelId,
+                ChatRequest.resolveImageDataList(imageData, null));
+    }
+
+    public String execute(
+            String systemPrompt,
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String operation,
+            String modelId,
+            List<String> imageDataList) {
         String clampedUser = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
         String currentModel = modelId;
         RuntimeException lastError = null;
@@ -131,7 +147,7 @@ public final class BlockingLlmCallExecutor {
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             ObjectNode body =
                     requestBuilder.buildRequestBody(
-                            systemPrompt, clampedUser, false, history, currentModel, imageData);
+                            systemPrompt, clampedUser, false, history, currentModel, imageDataList);
             if (!"chat".equals(operation)) {
                 body.remove("tools");
             }

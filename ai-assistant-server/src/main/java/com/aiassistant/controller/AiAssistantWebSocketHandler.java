@@ -104,6 +104,7 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
         String action = json.has("action") ? json.get("action").asText("chat") : "chat";
         String text = json.has("text") ? json.get("text").asText("") : "";
         String imageData = json.has("imageData") ? json.get("imageData").asText(null) : null;
+        List<String> imageDataList = readImageDataList(json, imageData);
         String systemPrompt =
                 json.has("systemPrompt") ? json.get("systemPrompt").asText(null) : null;
         String model = json.has("model") ? json.get("model").asText(null) : null;
@@ -165,7 +166,7 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                                         hist,
                                         systemPrompt,
                                         model,
-                                        imageData,
+                                        imageDataList,
                                         sessionId,
                                         pageContext);
                     };
@@ -222,6 +223,19 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                 session.sendMessage(new TextMessage(errJson));
             }
         }
+    }
+
+    private List<String> readImageDataList(JsonNode json, String imageData) {
+        JsonNode imageListNode = json.get("imageDataList");
+        if (imageListNode != null && imageListNode.isArray()) {
+            List<String> images = new ArrayList<>();
+            for (JsonNode item : imageListNode) {
+                String value = item.asText(null);
+                if (value != null && !value.isBlank()) images.add(value);
+            }
+            return images;
+        }
+        return ChatRequest.resolveImageDataList(imageData, null);
     }
 
     @Override

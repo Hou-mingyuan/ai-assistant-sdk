@@ -94,7 +94,7 @@ public class AiAssistantController {
                                         request.getHistory(),
                                         request.getSystemPrompt(),
                                         request.getModel(),
-                                        request.getImageData(),
+                                        request.resolveImageDataList(),
                                         request.getSessionId(),
                                         request.getPageContext());
                     };
@@ -155,7 +155,7 @@ public class AiAssistantController {
                                     request.getHistory(),
                                     request.getSystemPrompt(),
                                     request.getModel(),
-                                    request.getImageData(),
+                                    request.resolveImageDataList(),
                                     request.getSessionId(),
                                     request.getPageContext());
                 };

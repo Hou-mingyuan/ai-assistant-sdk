@@ -113,6 +113,11 @@ const groups = computed<ShortcutGroup[]>(() => {
           desc: t.kbdToggleExport || 'Toggle batch export menu',
         },
         {
+          combo: 'screen-capture',
+          keys: [ctrlKeyLabel, 'Shift', 'I'],
+          desc: t.kbdScreenCapture || 'Capture the screen as an image attachment',
+        },
+        {
           combo: 'toggle-memory',
           keys: [ctrlKeyLabel, 'Shift', 'M'],
           desc: t.kbdToggleMemory || 'Toggle memory panel',

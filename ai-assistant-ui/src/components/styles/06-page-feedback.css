@@ -318,12 +318,36 @@
   background: var(--ai-surface, #f5f5f5);
   border-bottom: 1px solid var(--ai-border, #e5e7eb);
 }
+.ai-pending-image-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  max-width: min(360px, 72vw);
+}
+.ai-pending-image-item {
+  position: relative;
+  flex: 0 0 auto;
+}
 .ai-pending-image-thumb {
   width: 48px;
   height: 48px;
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid var(--ai-border, #e5e7eb);
+}
+.ai-pending-image-remove-one {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  cursor: pointer;
+  line-height: 18px;
+  padding: 0;
 }
 .ai-pending-image-remove {
   background: none;
@@ -338,6 +362,23 @@
 .ai-pending-image-remove:hover {
   background: rgba(0, 0, 0, 0.08);
   color: #333;
+}
+.ai-user-images {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0 0 6px auto;
+  max-width: 78%;
+}
+.ai-user-image-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.45);
+  cursor: zoom-in;
 }
 
 /* 鈹€鈹€ Message action buttons 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */

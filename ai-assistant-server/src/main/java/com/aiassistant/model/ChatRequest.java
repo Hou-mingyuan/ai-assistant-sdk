@@ -35,6 +35,13 @@ public class ChatRequest {
     @Size(max = 10_000_000, message = "imageData exceeds 10MB")
     private String imageData;
 
+    /**
+     * Multiple images for multimodal models. {@code imageData} remains first-image compatibility.
+     */
+    @Size(max = 8, message = "imageDataList exceeds 8 images")
+    private List<@Size(max = 10_000_000, message = "imageDataList item exceeds 10MB") String>
+            imageDataList;
+
     /** 前端采集的页面上下文（URL、标题、DOM 区块文本），注入系统提示让 LLM 感知当前页面 */
     @Size(max = 20_000, message = "pageContext exceeds 20000 characters")
     private String pageContext;
@@ -99,6 +106,25 @@ public class ChatRequest {
 
     public void setImageData(String imageData) {
         this.imageData = imageData;
+    }
+
+    public List<String> getImageDataList() {
+        return imageDataList;
+    }
+
+    public void setImageDataList(List<String> imageDataList) {
+        this.imageDataList = imageDataList;
+    }
+
+    public List<String> resolveImageDataList() {
+        return resolveImageDataList(imageData, imageDataList);
+    }
+
+    public static List<String> resolveImageDataList(String imageData, List<String> imageDataList) {
+        if (imageDataList != null && !imageDataList.isEmpty()) {
+            return imageDataList.stream().filter(s -> s != null && !s.isBlank()).toList();
+        }
+        return imageData != null && !imageData.isBlank() ? List.of(imageData) : List.of();
     }
 
     public String getPageContext() {

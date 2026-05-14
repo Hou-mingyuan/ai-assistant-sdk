@@ -92,6 +92,22 @@ public class LlmRequestBuilder {
             List<ChatRequest.MessageItem> history,
             String modelId,
             String imageData) {
+        return buildRequestBody(
+                systemPrompt,
+                userMessage,
+                stream,
+                history,
+                modelId,
+                ChatRequest.resolveImageDataList(imageData, null));
+    }
+
+    public ObjectNode buildRequestBody(
+            String systemPrompt,
+            String userMessage,
+            boolean stream,
+            List<ChatRequest.MessageItem> history,
+            String modelId,
+            List<String> imageDataList) {
         ObjectNode body = objectMapper.createObjectNode();
         body.put(
                 "model",
@@ -126,17 +142,20 @@ public class LlmRequestBuilder {
             body.set("tools", toolRegistry.toOpenAiToolsArray());
         }
 
-        boolean hasImage = imageData != null && !imageData.isBlank();
+        List<String> images = ChatRequest.resolveImageDataList(null, imageDataList);
+        boolean hasImage = !images.isEmpty();
         if (hasImage) {
             ObjectNode userMsg = messages.addObject().put("role", "user");
             ArrayNode content = userMsg.putArray("content");
             content.addObject().put("type", "text").put("text", userMessage);
-            String dataUrl =
-                    imageData.startsWith("data:")
-                            ? imageData
-                            : "data:image/png;base64," + imageData;
-            ObjectNode imgPart = content.addObject().put("type", "image_url");
-            imgPart.putObject("image_url").put("url", dataUrl);
+            for (String imageData : images) {
+                String dataUrl =
+                        imageData.startsWith("data:")
+                                ? imageData
+                                : "data:image/png;base64," + imageData;
+                ObjectNode imgPart = content.addObject().put("type", "image_url");
+                imgPart.putObject("image_url").put("url", dataUrl);
+            }
         } else {
             messages.addObject().put("role", "user").put("content", userMessage);
         }

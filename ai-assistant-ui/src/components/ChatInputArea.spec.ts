@@ -37,7 +37,7 @@ function mountInput(overrides: Partial<Record<string, unknown>> = {}) {
       placeholder: 'Type a message',
       charCountLabel: '',
       charCountNearLimit: false,
-      pendingImageThumb: null,
+      pendingImageThumbs: [],
       acceptTypes: '.txt',
       hasBaseUrl: false,
       showModelPicker: false,

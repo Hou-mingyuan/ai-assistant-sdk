@@ -210,7 +210,7 @@ public class LlmService {
                             null,
                             "translate",
                             modelId,
-                            null);
+                            (String) null);
             llmCache.put(cacheOp, text, result);
             return result;
         } finally {
@@ -232,7 +232,7 @@ public class LlmService {
                             null,
                             "summarize",
                             modelId,
-                            null);
+                            (String) null);
             llmCache.put("summarize", text, result);
             return result;
         } finally {
@@ -274,6 +274,52 @@ public class LlmService {
             String imageData,
             String sessionId,
             String pageContext) {
+        return chatWithImages(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                ChatRequest.resolveImageDataList(imageData, null),
+                sessionId,
+                pageContext);
+    }
+
+    public String chat(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            List<String> imageDataList) {
+        return chatWithImages(
+                userMessage, history, requestSystemPrompt, requestModel, imageDataList, null, null);
+    }
+
+    public String chat(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            List<String> imageDataList,
+            String sessionId,
+            String pageContext) {
+        return chatWithImages(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                imageDataList,
+                sessionId,
+                pageContext);
+    }
+
+    private String chatWithImages(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            List<String> imageDataList,
+            String sessionId,
+            String pageContext) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
@@ -301,7 +347,7 @@ public class LlmService {
                             history,
                             "chat",
                             ctx.modelId() != null ? ctx.modelId() : modelId,
-                            imageData);
+                            imageDataList);
             result = runAfterInterceptors(ctx, result);
             recordToMemory(sessionId, userMessage, result);
             return result;
@@ -315,11 +361,11 @@ public class LlmService {
             List<ChatRequest.MessageItem> history,
             String requestSystemPrompt,
             String requestModel) {
-        return chat(userMessage, history, requestSystemPrompt, requestModel, null);
+        return chat(userMessage, history, requestSystemPrompt, requestModel, (String) null);
     }
 
     public String chat(String userMessage) {
-        return chat(userMessage, null, null, null, null);
+        return chat(userMessage, null, null, null, (String) null);
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
@@ -334,7 +380,7 @@ public class LlmService {
                             null,
                             "translate",
                             modelId,
-                            null)
+                            (String) null)
                     .doFinally(signal -> releaseQuota(tenantId, reserved));
         } catch (Exception e) {
             releaseQuota(tenantId, reserved);
@@ -353,7 +399,7 @@ public class LlmService {
                             null,
                             "summarize",
                             modelId,
-                            null)
+                            (String) null)
                     .doFinally(signal -> releaseQuota(tenantId, reserved));
         } catch (Exception e) {
             releaseQuota(tenantId, reserved);
@@ -396,6 +442,42 @@ public class LlmService {
             String imageData,
             String sessionId,
             String pageContext) {
+        return chatStreamWithImages(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                ChatRequest.resolveImageDataList(imageData, null),
+                sessionId,
+                pageContext);
+    }
+
+    public Flux<String> chatStream(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            List<String> imageDataList,
+            String sessionId,
+            String pageContext) {
+        return chatStreamWithImages(
+                userMessage,
+                history,
+                requestSystemPrompt,
+                requestModel,
+                imageDataList,
+                sessionId,
+                pageContext);
+    }
+
+    private Flux<String> chatStreamWithImages(
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String requestSystemPrompt,
+            String requestModel,
+            List<String> imageDataList,
+            String sessionId,
+            String pageContext) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
@@ -425,7 +507,7 @@ public class LlmService {
                             history,
                             "chat",
                             ctx.modelId() != null ? ctx.modelId() : modelId,
-                            imageData);
+                            imageDataList);
 
             if (memoryProvider != null && finalSessionId != null && !finalSessionId.isBlank()) {
                 StringBuilder fullResponse = new StringBuilder();
@@ -450,11 +532,11 @@ public class LlmService {
             List<ChatRequest.MessageItem> history,
             String requestSystemPrompt,
             String requestModel) {
-        return chatStream(userMessage, history, requestSystemPrompt, requestModel, null);
+        return chatStream(userMessage, history, requestSystemPrompt, requestModel, (String) null);
     }
 
     public Flux<String> chatStream(String userMessage) {
-        return chatStream(userMessage, null, null, null, null);
+        return chatStream(userMessage, null, null, null, (String) null);
     }
 
     /**
@@ -470,8 +552,24 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
+        return callLlm(
+                systemPrompt,
+                userMessage,
+                history,
+                operation,
+                modelId,
+                ChatRequest.resolveImageDataList(imageData, null));
+    }
+
+    private String callLlm(
+            String systemPrompt,
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String operation,
+            String modelId,
+            List<String> imageDataList) {
         return blockingExecutor.execute(
-                systemPrompt, userMessage, history, operation, modelId, imageData);
+                systemPrompt, userMessage, history, operation, modelId, imageDataList);
     }
 
     /**
@@ -539,8 +637,24 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
+        return callLlmStream(
+                systemPrompt,
+                userMessage,
+                history,
+                operation,
+                modelId,
+                ChatRequest.resolveImageDataList(imageData, null));
+    }
+
+    private Flux<String> callLlmStream(
+            String systemPrompt,
+            String userMessage,
+            List<ChatRequest.MessageItem> history,
+            String operation,
+            String modelId,
+            List<String> imageDataList) {
         return streamingExecutor.stream(
-                systemPrompt, userMessage, history, operation, modelId, imageData);
+                systemPrompt, userMessage, history, operation, modelId, imageDataList);
     }
 
     private String resolveModelWithRouter(String requestModel, String operation) {

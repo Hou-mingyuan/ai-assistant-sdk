@@ -16,8 +16,10 @@ import {
   countBraceBalance,
   hasVisibleAssistantContent,
   isAssistantAbortError,
+  isVisionCapableModel,
   normalizeAssistantServiceError,
   sanitizeAssistantContent,
+  shouldWarnForVisionModel,
   stripInternalToolTrace,
 } from './useSendStream';
 
@@ -172,5 +174,25 @@ describe('hasVisibleAssistantContent', () => {
 
   it('returns true for any plain response body', () => {
     expect(hasVisibleAssistantContent('Hi there', en)).toBe(true);
+  });
+});
+
+describe('vision model guard', () => {
+  it('recognizes common multimodal model names by default', () => {
+    expect(isVisionCapableModel('gpt-4o-mini')).toBe(true);
+    expect(isVisionCapableModel('claude-3-5-sonnet-latest')).toBe(true);
+    expect(isVisionCapableModel('gemini-2.5-pro')).toBe(true);
+    expect(isVisionCapableModel('qwen2.5-vl')).toBe(true);
+  });
+
+  it('lets hosts extend the vision-capable pattern list', () => {
+    expect(isVisionCapableModel('company-image-router', [/image-router/i])).toBe(true);
+  });
+
+  it('warns only when an attached image targets a known non-vision model', () => {
+    expect(shouldWarnForVisionModel('gpt-3.5-turbo', true)).toBe(true);
+    expect(shouldWarnForVisionModel('gpt-4o', true)).toBe(false);
+    expect(shouldWarnForVisionModel('', true)).toBe(false);
+    expect(shouldWarnForVisionModel('gpt-3.5-turbo', false)).toBe(false);
   });
 });
