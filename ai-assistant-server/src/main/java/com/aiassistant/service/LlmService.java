@@ -13,14 +13,13 @@ import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.PromptComposer;
 import com.aiassistant.service.llm.RequestEnricher;
 import com.aiassistant.service.llm.ResponsePostProcessor;
+import com.aiassistant.service.llm.StreamingToolCallingLoop;
 import com.aiassistant.service.llm.ToolCallingLoop;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SignalType;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Core service for AI assistant operations: chat, translate, summarize (sync &amp; streaming).
@@ -66,6 +64,7 @@ public class LlmService {
     private final RequestEnricher requestEnricher;
     private final ResponsePostProcessor responsePostProcessor;
     private final ToolCallingLoop toolCallingLoop;
+    private final StreamingToolCallingLoop streamingToolCallingLoop;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -136,6 +135,19 @@ public class LlmService {
                         responsePostProcessor,
                         objectMapper,
                         MAX_TOOL_ROUNDS);
+        /* K20: streaming-side tool-calling loop, extracted from LlmService into its own
+         * unit-testable class. The per-call timeout below mirrors the previous inline math
+         * (timeoutSeconds * 1000 * MAX_TOOL_ROUNDS) by passing the per-call ms; the loop class
+         * multiplies by maxRounds internally so the total budget stays identical. */
+        int perCallTimeoutMs = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)) * 1000;
+        this.streamingToolCallingLoop =
+                new StreamingToolCallingLoop(
+                        toolRegistry,
+                        chatCompletionClient,
+                        responsePostProcessor,
+                        objectMapper,
+                        MAX_TOOL_ROUNDS,
+                        perCallTimeoutMs);
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
@@ -607,143 +619,14 @@ public class LlmService {
                         });
     }
 
+    /**
+     * Delegate to the extracted {@link StreamingToolCallingLoop} (K20). The streaming-side tool
+     * calling algorithm (probe + per-round progress + tool exec + re-call) lives in its own class
+     * with 6 dedicated unit tests; this wrapper preserves the original private signature so the
+     * call site in {@link #callLlmStream} is unchanged.
+     */
     private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
-        return Flux.defer(
-                () -> {
-                    ObjectNode probeBody = body.deepCopy();
-                    probeBody.put("stream", false);
-                    try {
-                        String rawResponse = chatCompletionClient.completeRaw(probeBody, apiKey);
-                        JsonNode root = objectMapper.readTree(rawResponse);
-                        JsonNode choices = root.path("choices");
-                        if (!choices.isArray() || choices.isEmpty()) {
-                            return Flux.just(
-                                    responsePostProcessor.parseContentFromRaw(rawResponse));
-                        }
-                        JsonNode firstChoice = choices.get(0);
-                        String finishReason = firstChoice.path("finish_reason").asText("");
-                        JsonNode toolCalls = firstChoice.path("message").path("tool_calls");
-
-                        if (!"tool_calls".equals(finishReason)
-                                || !toolCalls.isArray()
-                                || toolCalls.isEmpty()) {
-                            return chatCompletionClient.completeStream(body, apiKey);
-                        }
-
-                        return executeToolsWithProgress(
-                                        probeBody, firstChoice.path("message"), toolCalls, apiKey)
-                                .subscribeOn(Schedulers.boundedElastic());
-                    } catch (Exception e) {
-                        keyRotator.markFailed(apiKey);
-                        return Flux.error(e);
-                    }
-                });
-    }
-
-    private Flux<String> executeToolsWithProgress(
-            ObjectNode body, JsonNode assistantMessage, JsonNode toolCalls, String apiKey) {
-        long toolLoopTimeoutMs =
-                Math.max(1, Math.min(properties.getTimeoutSeconds(), 600))
-                        * 1000L
-                        * MAX_TOOL_ROUNDS;
-        return Flux.create(
-                sink -> {
-                    try {
-                        long deadline = System.currentTimeMillis() + toolLoopTimeoutMs;
-                        ObjectNode bodyClone = body.deepCopy();
-                        bodyClone.put("stream", false);
-                        JsonNode msgsNode = bodyClone.get("messages");
-                        if (msgsNode == null || !msgsNode.isArray()) {
-                            sink.error(
-                                    new RuntimeException(
-                                            "Malformed request body: 'messages' is not an array"));
-                            return;
-                        }
-                        ArrayNode messages = (ArrayNode) msgsNode;
-                        JsonNode curAssistantMsg = assistantMessage;
-                        JsonNode curToolCalls = toolCalls;
-
-                        for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
-                            if (System.currentTimeMillis() > deadline) {
-                                sink.next(
-                                        "\n\n> ⚠️ Tool calling loop timed out after "
-                                                + (toolLoopTimeoutMs / 1000)
-                                                + "s\n");
-                                break;
-                            }
-                            ObjectNode aMsg = messages.addObject();
-                            aMsg.put("role", "assistant");
-                            if (curAssistantMsg.has("content")
-                                    && !curAssistantMsg.get("content").isNull()) {
-                                aMsg.put("content", curAssistantMsg.get("content").asText(""));
-                            } else {
-                                aMsg.putNull("content");
-                            }
-                            aMsg.set("tool_calls", curToolCalls);
-
-                            for (JsonNode tc : curToolCalls) {
-                                String callId = tc.path("id").asText();
-                                String fnName = tc.path("function").path("name").asText();
-                                String argsStr = tc.path("function").path("arguments").asText("{}");
-
-                                sink.next(
-                                        "\n\n> \uD83D\uDD27 **"
-                                                + fnName
-                                                + "** `"
-                                                + truncate(argsStr, 80)
-                                                + "`\n");
-
-                                String toolResult;
-                                try {
-                                    JsonNode args = objectMapper.readTree(argsStr);
-                                    toolResult = toolRegistry.execute(fnName, args);
-                                } catch (Exception e) {
-                                    toolResult = "Error: " + e.getMessage();
-                                    log.warn(
-                                            "Tool execution failed: {} - {}",
-                                            fnName,
-                                            e.getMessage());
-                                }
-
-                                sink.next("> ✅ " + truncate(toolResult, 120) + "\n\n");
-
-                                ObjectNode toolMsg = messages.addObject();
-                                toolMsg.put("role", "tool");
-                                toolMsg.put("tool_call_id", callId);
-                                toolMsg.put("content", toolResult);
-                            }
-
-                            String rawResponse =
-                                    chatCompletionClient.completeRaw(bodyClone, apiKey);
-                            JsonNode root = objectMapper.readTree(rawResponse);
-                            JsonNode choices = root.path("choices");
-                            if (!choices.isArray() || choices.isEmpty()) {
-                                sink.next(responsePostProcessor.parseContentFromRaw(rawResponse));
-                                break;
-                            }
-                            JsonNode nextChoice = choices.get(0);
-                            String nextFinish = nextChoice.path("finish_reason").asText("");
-                            JsonNode nextToolCalls = nextChoice.path("message").path("tool_calls");
-
-                            if (!"tool_calls".equals(nextFinish)
-                                    || !nextToolCalls.isArray()
-                                    || nextToolCalls.isEmpty()) {
-                                sink.next(nextChoice.path("message").path("content").asText(""));
-                                break;
-                            }
-                            curAssistantMsg = nextChoice.path("message");
-                            curToolCalls = nextToolCalls;
-                        }
-                        sink.complete();
-                    } catch (Exception e) {
-                        sink.error(e);
-                    }
-                });
-    }
-
-    private static String truncate(String s, int maxLen) {
-        if (s == null) return "";
-        return s.length() <= maxLen ? s : s.substring(0, maxLen) + "…";
+        return streamingToolCallingLoop.stream(body, apiKey, keyRotator::markFailed);
     }
 
     private String resolveModelWithRouter(String requestModel, String operation) {
