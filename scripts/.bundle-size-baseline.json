@@ -1,17 +1,21 @@
 {
-  "updatedAt": "2026-05-13T15:35:51.192Z",
+  "updatedAt": "2026-05-14T03:12:00.540Z",
   "files": {
     "ai-assistant.mjs": {
-      "size": 624125,
-      "gzip": 141090
+      "size": 631269,
+      "gzip": 144527
     },
     "ai-assistant.umd.cjs": {
-      "size": 429624,
-      "gzip": 130722
+      "size": 449709,
+      "gzip": 137359
     },
     "style.css": {
-      "size": 164641,
-      "gzip": 26366
+      "size": 188883,
+      "gzip": 31016
+    },
+    "assets/markdownHljs.worker-DYZhyc_2.js": {
+      "size": 81912,
+      "gzip": 25112
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -41,6 +45,10 @@
       "size": 9017,
       "gzip": 2808
     },
+    "AssistantInlineOverlays-8FFq8K2k.js": {
+      "size": 14755,
+      "gzip": 2766
+    },
     "c-CLZggNyB.js": {
       "size": 7733,
       "gzip": 2713
@@ -52,6 +60,10 @@
     "csharp-mFUWyZia.js": {
       "size": 8261,
       "gzip": 2118
+    },
+    "CommandPalette-3_XQi4_i.js": {
+      "size": 7016,
+      "gzip": 2081
     },
     "kotlin-Brwc6iD3.js": {
       "size": 6800,
@@ -73,6 +85,10 @@
       "size": 8866,
       "gzip": 1659
     },
+    "PersonalizeDialog-fuuao_qq.js": {
+      "size": 5177,
+      "gzip": 1568
+    },
     "markdown-HImi50Ir.js": {
       "size": 4873,
       "gzip": 1549
@@ -81,9 +97,13 @@
       "size": 4422,
       "gzip": 1540
     },
-    "PersonalizeDialog-DbPYXryk.js": {
-      "size": 4152,
-      "gzip": 1264
+    "ColorThemeSwitcher-Dn1nfz3K.js": {
+      "size": 2438,
+      "gzip": 1021
+    },
+    "MessageReactionBar-DQmPPPp5.js": {
+      "size": 2433,
+      "gzip": 1007
     },
     "go-CH3AFs0d.js": {
       "size": 3023,
