@@ -149,6 +149,8 @@ export interface I18nMessages {
   kbDropFabHint?: string;
   /** {count} = file count, {name} = KB name */
   kbDropIngested?: string;
+  /** K39: cross-session message search results badge inside SessionsDrawer. */
+  sessionsDrawerMatchesCount?: string;
   micStart: string;
   micStop: string;
   newSession: string;

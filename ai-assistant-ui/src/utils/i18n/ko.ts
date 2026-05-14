@@ -232,4 +232,5 @@ export const ko: I18nMessages = {
   personalizeAudioAutoRead: 'AI 답변 자동 읽기',
   kbDropFabHint: '놓아서 지식 베이스에 추가',
   kbDropIngested: '{count}개 파일을 "{name}"에 추가',
+  sessionsDrawerMatchesCount: '{count}건 일치',
 };

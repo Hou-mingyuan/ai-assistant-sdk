@@ -309,6 +309,21 @@ export type {
   UseFabDropIngestOptions,
   UseFabDropIngestReturn,
 } from './composables/useFabDropIngest';
+/* K39: cross-session full-text search. Standalone composable; consumers
+ * pass reactive sessions[] + query string and receive flat or grouped
+ * matches with HTML-safe highlighted snippets. */
+export {
+  useCrossSessionSearch,
+  buildSnippet,
+  escapeHtml,
+} from './composables/useCrossSessionSearch';
+export type {
+  CrossSessionMatch,
+  CrossSessionSearchSessionView,
+  CrossSessionSearchMessageView,
+  UseCrossSessionSearchOptions,
+  UseCrossSessionSearchReturn,
+} from './composables/useCrossSessionSearch';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:

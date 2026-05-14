@@ -2057,10 +2057,12 @@
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-search {
   margin: 4px 0 8px;
+  position: relative;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input {
   width: 100%;
   padding: 7px 12px;
+  padding-right: 78px;
   font-size: 13px;
   border: 1px solid var(--ai-border);
   border-radius: 6px;
@@ -2072,6 +2074,100 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input:focus {
   border-color: var(--ai-gradient-1);
   box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.18);
+}
+/* K39: cross-session search count badge inside the sticky search input. */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-search-count {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e40af;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-search-count {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.22);
+}
+/* K39: per-session match list rendered below the session item meta. */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-list {
+  list-style: none;
+  padding: 4px 0 2px 8px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match {
+  padding: 0;
+  margin: 0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ai-text-muted);
+  line-height: 1.45;
+  border-radius: 4px;
+  transition: background 0.12s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-btn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-left-color: rgba(59, 130, 246, 0.6);
+  color: var(--ai-text);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-role {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.7;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-snippet {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-cross-search-hl {
+  background: rgba(250, 204, 21, 0.45);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-cross-search-hl {
+  background: rgba(250, 204, 21, 0.32);
+  color: #fde68a;
+}
+/* K39: brief flash on the destination message after a cross-session jump. */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-cross-search-flash {
+  animation: ai-cross-search-flash-anim 1.6s ease-out;
+}
+@keyframes ai-cross-search-flash-anim {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  20%,
+  60% {
+    background-color: rgba(59, 130, 246, 0.18);
+  }
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-empty {
   padding: 20px 0;

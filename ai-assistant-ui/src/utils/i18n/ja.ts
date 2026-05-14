@@ -233,4 +233,5 @@ export const ja: I18nMessages = {
   personalizeAudioAutoRead: 'AIの返信を自動で読み上げる',
   kbDropFabHint: 'ドロップして知識ベースに追加',
   kbDropIngested: '{count} 件のファイルを「{name}」に追加しました',
+  sessionsDrawerMatchesCount: '{count} 件ヒット',
 };

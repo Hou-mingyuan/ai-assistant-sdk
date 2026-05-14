@@ -238,4 +238,5 @@ export const en: I18nMessages = {
   personalizeAudioAutoRead: 'Auto-read assistant replies',
   kbDropFabHint: 'Drop to add to knowledge',
   kbDropIngested: 'Added {count} file(s) to "{name}"',
+  sessionsDrawerMatchesCount: '{count} matches',
 };

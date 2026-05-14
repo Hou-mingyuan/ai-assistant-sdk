@@ -38,6 +38,19 @@
               :aria-label="t.sessionsDrawerSearch || 'Filter sessions'"
               class="ai-sessions-drawer-input"
             />
+            <span
+              v-if="crossSearch.effectiveQuery.value && crossSearch.totalMatches.value > 0"
+              class="ai-sessions-drawer-search-count"
+              role="status"
+              aria-live="polite"
+            >
+              {{
+                (t.sessionsDrawerMatchesCount || '{count} matches').replace(
+                  '{count}',
+                  String(crossSearch.totalMatches.value),
+                )
+              }}
+            </span>
           </div>
 
           <div v-if="grouped.length === 0" class="ai-sessions-drawer-empty">
@@ -117,6 +130,36 @@
                     &times;
                   </button>
                 </div>
+                <!-- K39: matched-message snippets shown under each session
+                     when filterText is active and message bodies contain it.
+                     Up to maxPerSession entries (3 by default) with HTML-safe
+                     highlight; click jumps the host into that session + scrolls
+                     to the message via the pick-message emit. -->
+                <ul
+                  v-if="
+                    crossSearch.effectiveQuery.value &&
+                    crossSearch.matchesBySession.value.get(s.id)?.length
+                  "
+                  class="ai-sessions-drawer-match-list"
+                >
+                  <li
+                    v-for="match in crossSearch.matchesBySession.value.get(s.id) ?? []"
+                    :key="match.sessionId + ':' + match.msgIndex"
+                    class="ai-sessions-drawer-match"
+                  >
+                    <button
+                      type="button"
+                      class="ai-sessions-drawer-match-btn"
+                      :title="match.rawText"
+                      @click.stop="onPickMessage(match.sessionId, match.msgIndex)"
+                    >
+                      <span class="ai-sessions-drawer-match-role">
+                        {{ match.role === 'user' ? '👤' : '🤖' }}
+                      </span>
+                      <span class="ai-sessions-drawer-match-snippet" v-html="match.snippet" />
+                    </button>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
@@ -127,9 +170,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, toRef } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SessionEntry } from '../composables/useMultiSession';
+import { useCrossSessionSearch } from '../composables/useCrossSessionSearch';
 
 const props = defineProps<{
   open: boolean;
@@ -142,6 +186,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'pick', id: string): void;
+  /** K39: jump to a specific message inside a (possibly different) session. */
+  (e: 'pick-message', sessionId: string, msgIndex: number): void;
   (e: 'delete', id: string): void;
   (e: 'toggle-pin', id: string): void;
   (e: 'rename', id: string, title: string): void;
@@ -149,6 +195,22 @@ const emit = defineEmits<{
 
 const titleId = `ai-sessions-drawer-title-${Math.random().toString(36).slice(2, 8)}`;
 const filterText = ref('');
+
+/**
+ * K39: feeds the live filterText into the cross-session search composable.
+ * Returned `matchesBySession` is consumed inline above to render the snippet
+ * list under each session item; `totalMatches` shows the badge next to the
+ * search input.
+ */
+const crossSearch = useCrossSessionSearch({
+  sessions: toRef(props, 'sessions'),
+  query: filterText,
+});
+
+function onPickMessage(sessionId: string, msgIndex: number) {
+  emit('pick-message', sessionId, msgIndex);
+  emit('close');
+}
 const editingId = ref<string | null>(null);
 const editingTitle = ref('');
 const renameInputRef = ref<HTMLInputElement | HTMLInputElement[] | null>(null);

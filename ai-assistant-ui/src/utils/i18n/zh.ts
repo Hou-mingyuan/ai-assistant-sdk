@@ -233,4 +233,5 @@ export const zh: I18nMessages = {
   personalizeAudioAutoRead: '自动朗读 AI 回复',
   kbDropFabHint: '松开以加入知识库',
   kbDropIngested: '已将 {count} 个文件加入「{name}」',
+  sessionsDrawerMatchesCount: '{count} 条匹配',
 };

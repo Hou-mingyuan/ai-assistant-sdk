@@ -553,6 +553,7 @@
       :active-id="multiSessions.activeSessionId.value"
       @close="sessionsDrawerOpen = false"
       @pick="switchToSession"
+      @pick-message="onPickCrossSessionMessage"
       @delete="deleteSessionTab"
       @toggle-pin="multiSessions.togglePinSession"
       @rename="multiSessions.renameSession"
@@ -2263,6 +2264,35 @@ function switchToSession(id: string) {
   renderAllMessages.value = false;
   resetSearch();
   clearRenderCache();
+}
+
+/**
+ * K39: 跨会话搜索的「跳到某条消息」入口。
+ *
+ * 步骤：
+ *   1. 切换到目标会话（如果不是当前）；保留旧逻辑分支以避免不必要的 save。
+ *   2. 因为切到新 session 后 renderAllMessages 重置为 false，确保目标 msgIndex
+ *      在「最近 N 条」之外时强制全量渲染，否则 DOM 里找不到 element。
+ *   3. nextTick 后用 SessionSearch 已经在用的 data-attr 找到 element 并
+ *      scrollIntoView，触发用户视觉确认。
+ */
+function onPickCrossSessionMessage(sessionId: string, msgIndex: number) {
+  switchToSession(sessionId);
+  if (msgIndex < messages.value.length - MAX_RENDERED_MESSAGES) {
+    renderAllMessages.value = true;
+  }
+  void nextTick(() => {
+    const root = panelRef.value ?? document;
+    const el = root.querySelector(`[data-ai-msg-global-idx="${msgIndex}"]`);
+    if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+      (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (el as HTMLElement).classList.add('ai-cross-search-flash');
+      setTimeout(() => (el as HTMLElement).classList.remove('ai-cross-search-flash'), 1600);
+    }
+    if (!isOpen.value) {
+      isOpen.value = true;
+    }
+  });
 }
 
 function deleteSessionTab(id: string) {
