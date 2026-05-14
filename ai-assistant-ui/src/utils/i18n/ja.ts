@@ -257,4 +257,6 @@ export const ja: I18nMessages = {
   msgCtxCompareMarkSelection: '選択範囲を比較に追加',
   msgCtxCompareWithSelection: 'A と選択範囲を比較',
   compareDialogSelectionTag: '選択',
+  compareDialogAllColumns: '全列表示',
+  compareDialogAllColumnsHint: 'スクロール同期',
 };

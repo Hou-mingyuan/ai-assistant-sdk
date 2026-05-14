@@ -257,4 +257,6 @@ export const zh: I18nMessages = {
   msgCtxCompareMarkSelection: '将选区加入对比',
   msgCtxCompareWithSelection: '与 A 对比此选区',
   compareDialogSelectionTag: '选区',
+  compareDialogAllColumns: '全部并列',
+  compareDialogAllColumnsHint: '滚动跨列同步',
 };

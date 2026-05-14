@@ -182,6 +182,9 @@ export interface I18nMessages {
   msgCtxCompareWithSelection?: string;
   /** K45: small tag suffix shown in slot label when content came from a text selection. */
   compareDialogSelectionTag?: string;
+  /** K47: N-column all-columns view in CompareRegionsDialog. */
+  compareDialogAllColumns?: string;
+  compareDialogAllColumnsHint?: string;
   micStart: string;
   micStop: string;
   newSession: string;

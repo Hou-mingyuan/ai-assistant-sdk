@@ -256,4 +256,6 @@ export const ko: I18nMessages = {
   msgCtxCompareMarkSelection: '선택 영역을 비교에 추가',
   msgCtxCompareWithSelection: 'A와 선택 영역 비교',
   compareDialogSelectionTag: '선택',
+  compareDialogAllColumns: '전체 열',
+  compareDialogAllColumnsHint: '스크롤 동기화',
 };

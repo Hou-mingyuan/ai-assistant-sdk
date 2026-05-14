@@ -36,7 +36,9 @@
           </div>
 
           <!-- K42: pair-tab strip when sides.length > 2. For 2 sides the
-               sole pair is rendered directly (no tabs to avoid clutter). -->
+               sole pair is rendered directly (no tabs to avoid clutter).
+               K47: an extra "All columns" tab appended at the end of the
+               strip switches to N-column side-by-side view. -->
           <div
             v-if="pairs.length > 1"
             class="ai-compare-pair-tabs"
@@ -49,15 +51,30 @@
               type="button"
               role="tab"
               class="ai-compare-pair-tab"
-              :class="{ 'ai-compare-pair-tab-active': activePairIdx === idx }"
-              :aria-selected="activePairIdx === idx ? 'true' : 'false'"
-              @click="activePairIdx = idx"
+              :class="{
+                'ai-compare-pair-tab-active': viewMode === 'pair' && activePairIdx === idx,
+              }"
+              :aria-selected="viewMode === 'pair' && activePairIdx === idx ? 'true' : 'false'"
+              @click="
+                viewMode = 'pair';
+                activePairIdx = idx;
+              "
             >
               {{ pairLabel(p) }}
             </button>
+            <button
+              type="button"
+              role="tab"
+              class="ai-compare-pair-tab ai-compare-pair-tab-all"
+              :class="{ 'ai-compare-pair-tab-active': viewMode === 'all' }"
+              :aria-selected="viewMode === 'all' ? 'true' : 'false'"
+              @click="viewMode = 'all'"
+            >
+              {{ t.compareDialogAllColumns || 'All columns' }}
+            </button>
           </div>
 
-          <div class="ai-compare-stats" role="status" aria-live="polite">
+          <div v-if="viewMode === 'pair'" class="ai-compare-stats" role="status" aria-live="polite">
             <span class="ai-compare-stat ai-compare-stat-equal"> {{ summary.equal }} = </span>
             <span class="ai-compare-stat ai-compare-stat-change"> {{ summary.changed }} ~ </span>
             <span class="ai-compare-stat ai-compare-stat-add"> +{{ summary.added }} </span>
@@ -68,6 +85,34 @@
               <input v-model="hideEqual" type="checkbox" />
               <span>{{ t.compareDialogHideEqual || 'Hide unchanged' }}</span>
             </label>
+          </div>
+          <!-- K47: per-pair stat strip in all-columns view shows N-1 deltas
+               vs A so the user gets the big-picture similarity / drift map
+               while reading N parallel columns. -->
+          <div
+            v-else
+            class="ai-compare-stats ai-compare-stats-all"
+            role="status"
+            aria-live="polite"
+          >
+            <span
+              v-for="d in allModeDeltas"
+              :key="d.label"
+              class="ai-compare-stat"
+              :class="
+                d.delta === 0
+                  ? 'ai-compare-stat-equal'
+                  : d.delta > 8
+                    ? 'ai-compare-stat-remove'
+                    : 'ai-compare-stat-change'
+              "
+            >
+              {{ d.label }} Δ {{ d.delta }}
+            </span>
+            <span class="ai-compare-stats-spacer" />
+            <span class="ai-compare-stats-note">
+              {{ t.compareDialogAllColumnsHint || 'Scrolls sync across columns' }}
+            </span>
           </div>
 
           <div class="ai-compare-pair-head">
@@ -89,11 +134,11 @@
             </div>
           </div>
 
-          <div v-if="rows.length === 0" class="ai-compare-empty">
+          <div v-if="viewMode === 'pair' && rows.length === 0" class="ai-compare-empty">
             {{ t.compareDialogEmpty || 'No content to compare.' }}
           </div>
 
-          <div v-else class="ai-compare-rows" role="table">
+          <div v-else-if="viewMode === 'pair'" class="ai-compare-rows" role="table">
             <div
               v-for="(row, idx) in visibleRows"
               :key="idx"
@@ -113,6 +158,27 @@
               <div class="ai-compare-cell ai-compare-cell-right" role="cell">
                 <pre class="ai-compare-pre">{{ row.rightText }}</pre>
               </div>
+            </div>
+          </div>
+
+          <!-- K47: N-column all-columns view. Each column scrolls independently
+               but vertical scroll syncs via onAllScroll below. -->
+          <div v-else class="ai-compare-all-cols" role="table">
+            <div
+              v-for="(s, slotIdx) in sides"
+              :ref="(el) => setAllColRef(slotIdx, el as HTMLElement | null)"
+              :key="`all-${slotIdx}-${s.msgIndex}`"
+              class="ai-compare-all-col"
+              role="cell"
+              @scroll.passive="onAllScroll($event, slotIdx)"
+            >
+              <div class="ai-compare-all-col-head">
+                <span class="ai-compare-pair-badge" :class="`ai-compare-pair-badge-${slotIdx}`">
+                  {{ slotLetter(slotIdx) }}
+                </span>
+                <span class="ai-compare-pair-label">{{ s.label }}</span>
+              </div>
+              <pre class="ai-compare-pre ai-compare-all-pre">{{ s.content }}</pre>
             </div>
           </div>
 
@@ -186,6 +252,8 @@ defineEmits<{
 const titleId = `ai-compare-title-${Math.random().toString(36).slice(2, 8)}`;
 const hideEqual = ref(false);
 const activePairIdx = ref(0);
+/** K47: 'pair' = K42 single-pair diff. 'all' = N-column synced-scroll view. */
+const viewMode = ref<'pair' | 'all'>('pair');
 
 const dialogRef = ref<HTMLDivElement>();
 watch(
@@ -193,6 +261,7 @@ watch(
   (v) => {
     if (v) {
       activePairIdx.value = 0;
+      viewMode.value = 'pair';
       void nextTick(() => {
         dialogRef.value?.focus();
       });
@@ -208,6 +277,41 @@ watch(
 
 function slotLetter(slot: number): string {
   return String.fromCharCode(65 + slot);
+}
+
+/**
+ * K47: synced-scroll plumbing.
+ *
+ * - allColRefs[i] is the i-th column's scroll container.
+ * - syncScrolling = true guard prevents the scroll handler from re-emitting
+ *   scroll events when WE programmatically set scrollTop on the other
+ *   columns (would otherwise infinite-loop).
+ * - Aligns vertical scrollTop only — horizontal independent so very long
+ *   lines in one column don't drag the others sideways.
+ */
+const allColRefs: Record<number, HTMLElement | null> = {};
+let syncScrolling = false;
+function setAllColRef(slotIdx: number, el: HTMLElement | null) {
+  allColRefs[slotIdx] = el;
+}
+function onAllScroll(_e: Event, slotIdx: number) {
+  if (syncScrolling) return;
+  const src = allColRefs[slotIdx];
+  if (!src) return;
+  syncScrolling = true;
+  try {
+    const top = src.scrollTop;
+    for (const [keyStr, el] of Object.entries(allColRefs)) {
+      const k = Number(keyStr);
+      if (k !== slotIdx && el) el.scrollTop = top;
+    }
+  } finally {
+    /* Yield to next frame so dependent scroll events fire before flipping
+     * the guard back off. */
+    requestAnimationFrame(() => {
+      syncScrolling = false;
+    });
+  }
 }
 
 /**
@@ -253,6 +357,25 @@ const summary = computed(() => diff.value.summary);
 const visibleRows = computed(() =>
   hideEqual.value ? rows.value.filter((r) => r.kind !== 'equal') : rows.value,
 );
+
+/**
+ * K47: in all-columns mode, show per-(A,X) delta for X in B..D so user gets
+ * the similarity map at a glance. Hides pure-equal pair entries to keep
+ * the bar uncluttered (those columns are "structurally identical to A").
+ */
+const allModeDeltas = computed(() => {
+  const out: { label: string; delta: number }[] = [];
+  if (props.sides.length < 2) return out;
+  const baseText = props.sides[0]!.content;
+  for (let i = 1; i < props.sides.length; i++) {
+    const cmp = diffLines(baseText, props.sides[i]!.content);
+    out.push({
+      label: `A↔${slotLetter(i)}`,
+      delta: cmp.summary.delta,
+    });
+  }
+  return out;
+});
 </script>
 
 <style scoped>
@@ -414,11 +537,19 @@ const visibleRows = computed(() =>
   font-weight: 700;
   color: #fff;
 }
-.ai-compare-pair-badge-a {
+.ai-compare-pair-badge-a,
+.ai-compare-pair-badge-0 {
   background: #ef4444;
 }
-.ai-compare-pair-badge-b {
+.ai-compare-pair-badge-b,
+.ai-compare-pair-badge-1 {
   background: #22c55e;
+}
+.ai-compare-pair-badge-2 {
+  background: #3b82f6;
+}
+.ai-compare-pair-badge-3 {
+  background: #a855f7;
 }
 .ai-compare-pair-label {
   font-size: 12px;
@@ -536,5 +667,77 @@ const visibleRows = computed(() =>
 .ai-dark .ai-compare-clear {
   background: rgba(239, 68, 68, 0.22) !important;
   color: #fecaca !important;
+}
+
+/* K47: All-columns view ---------------------------------------------- */
+.ai-compare-stats-all {
+  flex-wrap: wrap;
+}
+.ai-compare-stats-note {
+  font-size: 11px;
+  font-style: italic;
+  color: #94a3b8;
+}
+.ai-compare-pair-tab-all {
+  border-style: dashed;
+}
+.ai-compare-all-cols {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(var(--cmp-cols, 1), minmax(0, 1fr));
+  gap: 1px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+.ai-compare-all-cols:has(> .ai-compare-all-col:nth-child(2)) {
+  --cmp-cols: 2;
+}
+.ai-compare-all-cols:has(> .ai-compare-all-col:nth-child(3)) {
+  --cmp-cols: 3;
+}
+.ai-compare-all-cols:has(> .ai-compare-all-col:nth-child(4)) {
+  --cmp-cols: 4;
+}
+.ai-compare-all-col {
+  background: #fafafa;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.ai-dark .ai-compare-all-col {
+  background: rgba(15, 23, 42, 0.55);
+}
+.ai-compare-all-col-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  z-index: 1;
+}
+.ai-dark .ai-compare-all-col-head {
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom-color: rgba(71, 85, 105, 0.45);
+}
+.ai-compare-all-pre {
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #1e293b;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ai-dark .ai-compare-all-pre {
+  color: #e2e8f0;
 }
 </style>

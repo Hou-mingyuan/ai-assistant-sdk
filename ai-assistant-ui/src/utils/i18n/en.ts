@@ -262,4 +262,6 @@ export const en: I18nMessages = {
   msgCtxCompareMarkSelection: 'Mark selection for Compare',
   msgCtxCompareWithSelection: 'Compare A vs selection',
   compareDialogSelectionTag: 'selection',
+  compareDialogAllColumns: 'All columns',
+  compareDialogAllColumnsHint: 'Scrolls sync across columns',
 };
