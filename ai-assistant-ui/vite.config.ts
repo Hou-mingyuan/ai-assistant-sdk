@@ -64,6 +64,14 @@ export default defineConfig({
           entry: resolve(__dirname, 'src/index.ts'),
           name: 'AiAssistant',
           fileName: (format) => (format === 'es' ? 'ai-assistant.mjs' : 'ai-assistant.umd.cjs'),
+          /* Pin the lib-mode CSS output filename to `style.css`.
+             Vite 6 lib mode defaults to `<package-name-last-segment>.css`
+             (so `@ai-assistant/vue` would emit `vue.css`), but every
+             downstream consumer in this repo - playground, e2e harness,
+             README/docs examples, the ebs-lng-front integration patch
+             and the bundle-size baseline - imports `dist/style.css`.
+             Lock the name here so build output matches the published API. */
+          cssFileName: 'style',
         },
         cssCodeSplit: false,
         minify: 'terser',
