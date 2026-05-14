@@ -7,12 +7,15 @@
         :class="{ 'ai-dark': isDark }"
         role="presentation"
         @click.self="$emit('close')"
+        @keydown.esc.stop.prevent="$emit('close')"
       >
         <div
+          ref="dialogRef"
           class="ai-personalize-dialog ai-compare-regions-dialog"
           role="dialog"
           aria-modal="true"
           :aria-labelledby="titleId"
+          tabindex="-1"
           @click.stop
         >
           <div class="ai-personalize-head">
@@ -103,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 import { diffLines } from '../composables/useLineDiff';
 
@@ -127,6 +130,18 @@ defineEmits<{
 
 const titleId = `ai-compare-title-${Math.random().toString(36).slice(2, 8)}`;
 const hideEqual = ref(false);
+/** K41 a11y: focus target so Esc / Tab work the moment the dialog opens. */
+const dialogRef = ref<HTMLDivElement>();
+watch(
+  () => props.open,
+  (v) => {
+    if (v) {
+      void nextTick(() => {
+        dialogRef.value?.focus();
+      });
+    }
+  },
+);
 
 const diff = computed(() => diffLines(props.leftText ?? '', props.rightText ?? ''));
 const rows = computed(() => diff.value.rows);

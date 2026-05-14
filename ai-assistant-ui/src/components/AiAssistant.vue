@@ -40,7 +40,12 @@
           d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z"
         />
       </svg>
-      <span v-if="fabDrop.dropActive.value" class="ai-fab-drop-hint">
+      <span
+        v-if="fabDrop.dropActive.value"
+        class="ai-fab-drop-hint"
+        role="status"
+        aria-live="polite"
+      >
         {{ t.kbDropFabHint || 'Drop to add to KB' }}
       </span>
     </button>

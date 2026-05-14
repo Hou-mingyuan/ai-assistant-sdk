@@ -2169,6 +2169,15 @@
     background-color: rgba(59, 130, 246, 0.18);
   }
 }
+/* K41 a11y: replace flash animation with a static (1s persistent) outline
+ * for users with reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-cross-search-flash {
+    animation: none;
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+  }
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-empty {
   padding: 20px 0;
   text-align: center;

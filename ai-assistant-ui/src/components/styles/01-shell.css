@@ -176,6 +176,16 @@
     0 0 64px -12px rgba(99, 102, 241, 0.85);
   animation: ai-fab-drop-pulse 1.25s ease-in-out infinite;
 }
+/* K41 a11y: respect user motion preferences — keep the static glow ring,
+ * drop the pulse + hint slide-in animation for users with reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-fab-drop-active {
+    animation: none !important;
+  }
+  .ai-fab-drop-hint {
+    animation: none !important;
+  }
+}
 @keyframes ai-fab-drop-pulse {
   0%,
   100% {
