@@ -249,4 +249,9 @@ export const ja: I18nMessages = {
   compareDialogPairTabsAria: '比較ペア',
   compareDialogClearSet: 'セットをクリア',
   compareDialogSwapPair: '{a} ⇄ {b} 入れ替え',
+  kbPickerTitle: '知識ベースに追加…',
+  kbPickerSubtitle: '{count} 件のファイル',
+  kbPickerNewKb: '新しい知識ベース',
+  kbPickerDocsUnit: '件',
+  kbDropNewKbName: '新規 KB',
 };

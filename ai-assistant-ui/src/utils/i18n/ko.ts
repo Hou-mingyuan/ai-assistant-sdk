@@ -248,4 +248,9 @@ export const ko: I18nMessages = {
   compareDialogPairTabsAria: '비교 쌍',
   compareDialogClearSet: '세트 비우기',
   compareDialogSwapPair: '{a} ⇄ {b} 교환',
+  kbPickerTitle: '지식 베이스로 추가…',
+  kbPickerSubtitle: '파일 {count}개',
+  kbPickerNewKb: '새 지식 베이스',
+  kbPickerDocsUnit: '개',
+  kbDropNewKbName: '새 KB',
 };

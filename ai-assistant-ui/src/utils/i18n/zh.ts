@@ -249,4 +249,9 @@ export const zh: I18nMessages = {
   compareDialogPairTabsAria: '对比配对',
   compareDialogClearSet: '清空对比集合',
   compareDialogSwapPair: '交换 {a} ⇄ {b}',
+  kbPickerTitle: '加入到知识库…',
+  kbPickerSubtitle: '{count} 个文件',
+  kbPickerNewKb: '新建知识库',
+  kbPickerDocsUnit: '篇',
+  kbDropNewKbName: '新知识库',
 };

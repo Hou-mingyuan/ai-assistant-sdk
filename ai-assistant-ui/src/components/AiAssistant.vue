@@ -495,6 +495,73 @@
       @clear-set="onCompareClearSet"
     />
 
+    <!-- K43: KB target picker. Teleported, fixed bottom-right, auto-dismiss
+         after 12s, click outside via overlay to close. -->
+    <Teleport to="body">
+      <Transition name="ai-modal">
+        <div
+          v-if="kbPickerVisible"
+          class="ai-kb-picker-shell"
+          :class="{ 'ai-dark': isDark }"
+          role="dialog"
+          aria-modal="false"
+          :aria-label="t.kbPickerTitle || 'Pick destination knowledge base'"
+        >
+          <div class="ai-kb-picker-card" role="menu">
+            <div class="ai-kb-picker-head">
+              <span class="ai-kb-picker-title">
+                {{ t.kbPickerTitle || 'Ingest into…' }}
+              </span>
+              <span class="ai-kb-picker-meta">
+                {{
+                  (t.kbPickerSubtitle || '{count} file(s)').replace(
+                    '{count}',
+                    String(kbPickerFiles.length),
+                  )
+                }}
+              </span>
+              <button
+                type="button"
+                class="ai-kb-picker-close"
+                :aria-label="t.closePanel"
+                @click="closeKbPicker"
+              >
+                &times;
+              </button>
+            </div>
+            <ul class="ai-kb-picker-list">
+              <li v-for="kb in knowledgeBase.bases.value" :key="kb.id">
+                <button
+                  type="button"
+                  class="ai-kb-picker-item"
+                  role="menuitem"
+                  @click="onKbPickerPick(kb.id)"
+                >
+                  <span class="ai-kb-picker-item-name">{{ kb.name }}</span>
+                  <span class="ai-kb-picker-item-meta">
+                    {{ kb.docs.length }}
+                    {{ t.kbPickerDocsUnit || 'docs' }}
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  class="ai-kb-picker-item ai-kb-picker-item-create"
+                  role="menuitem"
+                  @click="onKbPickerCreateNew"
+                >
+                  <span class="ai-kb-picker-item-name">
+                    + {{ t.kbPickerNewKb || 'New knowledge base' }}
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <PersonalizeDialog
       v-model="chatSystemPrompt"
       :open="personalizeOpen"
@@ -645,6 +712,7 @@ import {
   watch,
   onMounted,
   onUnmounted,
+  onBeforeUnmount,
   defineAsyncComponent,
   type Ref,
 } from 'vue';
@@ -1387,13 +1455,15 @@ const knowledgeBase = useKnowledgeBase();
 const kbPanelOpen = ref(false);
 
 /**
- * K38: drag-and-drop a non-image file onto the FAB while the panel is closed
- * → ingest into a default "Quick Ingest" KB (auto-created on first drop).
+ * K38 / K43: drag-and-drop a non-image file onto the FAB while the panel
+ * is closed → ingest into a knowledge base.
  *
  * 设计选择：
  * - 只在 FAB 可见时启用（!isOpen.value）。面板打开后 body 的 drop 走旧 UX
  *   (translate / summarize 单文件)。
  * - 拒收 image/*：图片走 Vision pendingImage 流程，避免误入 KB。
+ * - K38: 0 或 1 个 KB 时自动 ingest 到 "Quick Ingest" (auto-create)。
+ * - K43: ≥ 2 个 KB 时弹出 picker popover 让用户选择目标 KB。
  * - 文件名带可视化 toast 反馈，用现有 setExportToast 通道（3.2s 自动消失）。
  */
 const QUICK_INGEST_KB_NAME = 'Quick Ingest';
@@ -1402,9 +1472,9 @@ function findOrCreateQuickIngestKb() {
   if (existing) return existing;
   return knowledgeBase.createBase(QUICK_INGEST_KB_NAME);
 }
-function ingestFilesIntoKb(files: File[]) {
-  if (!files.length) return;
-  const kb = findOrCreateQuickIngestKb();
+function ingestIntoKb(kbId: string, files: File[]) {
+  const kb = knowledgeBase.bases.value.find((b) => b.id === kbId);
+  if (!kb) return;
   for (const f of files) {
     knowledgeBase.addDoc(kb.id, f);
   }
@@ -1412,6 +1482,69 @@ function ingestFilesIntoKb(files: File[]) {
     ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
     : `Added ${files.length} file(s) to ${kb.name}`;
   setExportToast(label, 3200);
+}
+
+/* K43: target picker state. When dropped while multiple KBs exist, show
+ * a small floating panel near the FAB so the user picks the destination
+ * instead of defaulting silently. */
+const kbPickerVisible = ref(false);
+const kbPickerFiles = ref<File[]>([]);
+const KB_PICKER_AUTO_DISMISS_MS = 12000;
+let kbPickerDismissTimer: ReturnType<typeof setTimeout> | null = null;
+function openKbPicker(files: File[]) {
+  kbPickerFiles.value = files;
+  kbPickerVisible.value = true;
+  if (kbPickerDismissTimer != null) clearTimeout(kbPickerDismissTimer);
+  kbPickerDismissTimer = setTimeout(() => {
+    kbPickerVisible.value = false;
+    kbPickerFiles.value = [];
+    kbPickerDismissTimer = null;
+  }, KB_PICKER_AUTO_DISMISS_MS);
+}
+function closeKbPicker() {
+  kbPickerVisible.value = false;
+  kbPickerFiles.value = [];
+  if (kbPickerDismissTimer != null) {
+    clearTimeout(kbPickerDismissTimer);
+    kbPickerDismissTimer = null;
+  }
+}
+function onKbPickerPick(kbId: string) {
+  const files = kbPickerFiles.value;
+  closeKbPicker();
+  if (files.length === 0) return;
+  ingestIntoKb(kbId, files);
+}
+function onKbPickerCreateNew() {
+  const files = kbPickerFiles.value;
+  closeKbPicker();
+  if (files.length === 0) return;
+  const name = (t.value.kbDropNewKbName || 'New KB').toString();
+  const kb = knowledgeBase.createBase(name);
+  for (const f of files) knowledgeBase.addDoc(kb.id, f);
+  const label = t.value.kbDropIngested
+    ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
+    : `Added ${files.length} file(s) to ${kb.name}`;
+  setExportToast(label, 3200);
+}
+onBeforeUnmount(() => {
+  if (kbPickerDismissTimer != null) {
+    clearTimeout(kbPickerDismissTimer);
+    kbPickerDismissTimer = null;
+  }
+});
+
+function ingestFilesIntoKb(files: File[]) {
+  if (!files.length) return;
+  const bases = knowledgeBase.bases.value;
+  /* 0 KBs or only Quick Ingest -> auto-ingest (K38 behaviour). */
+  if (bases.length === 0 || (bases.length === 1 && bases[0]?.name === QUICK_INGEST_KB_NAME)) {
+    const kb = findOrCreateQuickIngestKb();
+    ingestIntoKb(kb.id, files);
+    return;
+  }
+  /* 2+ KBs -> let the user choose (K43). */
+  openKbPicker(files);
 }
 const fabDrop = useFabDropIngest({
   enabled: computed(() => !isOpen.value),

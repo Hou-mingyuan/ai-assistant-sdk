@@ -254,4 +254,9 @@ export const en: I18nMessages = {
   compareDialogPairTabsAria: 'Comparison pairs',
   compareDialogClearSet: 'Clear set',
   compareDialogSwapPair: 'Swap {a} ⇄ {b}',
+  kbPickerTitle: 'Ingest into…',
+  kbPickerSubtitle: '{count} file(s)',
+  kbPickerNewKb: 'New knowledge base',
+  kbPickerDocsUnit: 'docs',
+  kbDropNewKbName: 'New KB',
 };

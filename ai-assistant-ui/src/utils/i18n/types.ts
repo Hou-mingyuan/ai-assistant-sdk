@@ -149,6 +149,13 @@ export interface I18nMessages {
   kbDropFabHint?: string;
   /** {count} = file count, {name} = KB name */
   kbDropIngested?: string;
+  /** K43: KB picker popover when multiple KBs exist. */
+  kbPickerTitle?: string;
+  /** {count} = file count */
+  kbPickerSubtitle?: string;
+  kbPickerNewKb?: string;
+  kbPickerDocsUnit?: string;
+  kbDropNewKbName?: string;
   /** K39: cross-session message search results badge inside SessionsDrawer. */
   sessionsDrawerMatchesCount?: string;
   /** K40: CompareRegionsDialog labels + MessageContextMenu compare actions. */
