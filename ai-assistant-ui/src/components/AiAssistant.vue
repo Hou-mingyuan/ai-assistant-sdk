@@ -552,29 +552,19 @@
       @update:persist-enabled="connectionPersistEnabled = $event"
     />
 
-    <ExportToast :text="exportToastText" :color="color" :is-dark="isDark" />
-
-    <PageSelectionBar
-      :show="pageSel.show && !isOpen"
-      :x="pageSel.x"
-      :y="pageSel.y"
+    <!-- K34 (K21 Phase 2): 3 transient bottom-of-viewport popovers grouped
+         into one wrapper. ExportToast / PageSelectionBar / InlineTranslate
+         all share the "shows briefly then dismisses" pattern and have no
+         coupling to chat state, so they're cheap to extract. -->
+    <AssistantBottomTransients
+      :export-toast-text="exportToastText"
       :color="color"
       :is-dark="isDark"
+      :assistant-open="isOpen"
+      :page-sel="pageSel"
+      :inline-translate="inlineTranslatePopover"
       :t="t"
-      @action="onPageSelAction"
-    />
-
-    <InlineTranslatePopover
-      ref="inlineTransPopRef"
-      :show="inlineTranslatePopover.show"
-      :x="inlineTranslatePopover.x"
-      :y="inlineTranslatePopover.y"
-      :text="inlineTranslatePopover.text"
-      :loading="inlineTranslatePopover.loading"
-      :error="inlineTranslatePopover.error"
-      :color="color"
-      :is-dark="isDark"
-      :t="t"
+      @page-sel-action="onPageSelAction"
     />
 
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
@@ -608,9 +598,12 @@ import type { CommandItem } from '../types/command-palette';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
 const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
-const InlineTranslatePopover = defineAsyncComponent(() => import('./InlineTranslatePopover.vue'));
-const ExportToast = defineAsyncComponent(() => import('./ExportToast.vue'));
-const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.vue'));
+/* K34: ExportToast / PageSelectionBar / InlineTranslatePopover moved into
+ * the AssistantBottomTransients wrapper below. Their async imports live
+ * in that file now so the chunks still split lazily. */
+const AssistantBottomTransients = defineAsyncComponent(
+  () => import('./AssistantBottomTransients.vue'),
+);
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
 const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
@@ -1798,7 +1791,11 @@ const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null);
 /** 打开面板瞬间的球位；关面板且本会话未拖过标题栏时还原到此（避免仅放大/夹紧视口导致球跑偏） */
 const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null);
 const fabCtxMenu = ref({ show: false, x: 0, y: 0 });
-const inlineTransPopRef = ref<InstanceType<typeof InlineTranslatePopover> | null>(null);
+/* K34: inlineTransPopRef removed — it was declared but never read by any
+ * code path in this file. InlineTranslatePopover now lives inside
+ * AssistantBottomTransients, where parent-side ref access is no longer
+ * needed. If a future iteration needs programmatic show/hide, expose a
+ * method via defineExpose on AssistantBottomTransients. */
 
 /** 面板进出场时短暂保留悬浮球，使缩放原点与球心一致 */
 const showFabDuringPanelAnim = ref(true);
