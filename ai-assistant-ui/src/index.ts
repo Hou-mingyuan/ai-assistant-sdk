@@ -15,6 +15,12 @@ export interface AiAssistantOptions {
   accessToken?: string;
   /** 与 @error 事件并行，便于接入监控/日志 */
   onAssistantError?: (payload: { source: string; message: string }) => void;
+  /**
+   * K24: invoked when the user clicks an emoji on the MessageReactionBar
+   * under an assistant message. `toggled` is true when the same emoji is
+   * clicked again (clearing the selection).
+   */
+  onReaction?: (payload: { messageIndex: number; emoji: string; toggled: boolean }) => void;
   /** 对话模式下可选：快捷短语（点击填入输入框，不自动发送） */
   quickPrompts?: { label: string; text: string }[];
   /**

@@ -279,6 +279,7 @@
             @copy-message="copyMessage"
             @regenerate-at="regenerateAt"
             @set-feedback="setFeedback"
+            @set-reaction="setReaction"
             @retry-last-error="retryLastError"
           />
         </div>
@@ -1967,6 +1968,8 @@ const emit = defineEmits<{
   (e: 'response', content: string): void;
   (e: 'error', message: string): void;
   (e: 'feedback', payload: { index: number; value: 'up' | 'down' | null }): void;
+  /** K24: emitted when the user clicks an emoji on MessageReactionBar. */
+  (e: 'reaction', payload: { messageIndex: number; emoji: string; toggled: boolean }): void;
 }>();
 
 function setMode(m: 'translate' | 'summarize' | 'chat') {
@@ -2097,6 +2100,41 @@ const {
   },
   emitFeedback: (payload) => emit('feedback', payload),
 });
+
+/**
+ * K24: extended reaction handler for the new MessageReactionBar.
+ *
+ * Distinct from setFeedback (which is the canonical thumbs-up/down +
+ * `feedback` emit for analytics back-ends that already exist). setReaction
+ * stores a single selected emoji + a per-emoji counter on the message itself
+ * (`msg.reactions`), with toggle semantics — clicking the active emoji
+ * clears it. Host can subscribe via `options.onReaction` and the parent's
+ * top-level `reaction` emit.
+ */
+function setReaction(globalIdx: number, emoji: string, toggled: boolean) {
+  const msg = messages.value[globalIdx];
+  if (!msg) return;
+  const prev = msg.reactions ?? {};
+  const counts: Record<string, number> = { ...(prev.counts ?? {}) };
+  if (toggled) {
+    counts[emoji] = Math.max(0, (counts[emoji] ?? 0) - 1);
+    msg.reactions = { selected: '', counts };
+  } else {
+    if (prev.selected && prev.selected !== emoji) {
+      counts[prev.selected] = Math.max(0, (counts[prev.selected] ?? 0) - 1);
+    }
+    counts[emoji] = (counts[emoji] ?? 0) + 1;
+    msg.reactions = { selected: emoji, counts };
+  }
+  try {
+    options.onReaction?.({ messageIndex: globalIdx, emoji, toggled });
+  } catch (e) {
+    /* Swallow host callback errors silently; never let analytics-side
+     * exceptions break the reaction UI. */
+    void e;
+  }
+  emit('reaction', { messageIndex: globalIdx, emoji, toggled });
+}
 
 function handleBodyClick(e: MouseEvent) {
   const target = e.target as HTMLElement;

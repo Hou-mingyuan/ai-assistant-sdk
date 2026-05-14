@@ -133,6 +133,10 @@ export interface I18nMessages {
   ttsStop: string;
   thumbsUp: string;
   thumbsDown: string;
+  /** K24: MessageReactionBar emoji labels (optional, fallback to default Chinese text). */
+  reactLove?: string;
+  reactFavorite?: string;
+  reactPin?: string;
   micStart: string;
   micStop: string;
   newSession: string;

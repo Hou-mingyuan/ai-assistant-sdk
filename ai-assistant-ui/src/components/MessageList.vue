@@ -251,6 +251,22 @@
         👎
       </button>
     </div>
+    <!-- K24: extended reactions row. Distinct from .ai-msg-actions above which
+         holds the canonical thumbs-up/down (kept for backwards i18n + analytics
+         compatibility). The bar below adds love/favorite/pin which the host
+         can wire to a reaction-tracking backend via @set-reaction. -->
+    <MessageReactionBar
+      v-if="msg.role === 'assistant' && msg.content && !loading"
+      :message-id="String(displayOffset + renderedStart + idx)"
+      :selected="msg.reactions?.selected ?? ''"
+      :counts="msg.reactions?.counts ?? {}"
+      :reactions="[
+        { emoji: '❤️', label: t.reactLove || '喜欢 / Love' },
+        { emoji: '⭐', label: t.reactFavorite || '收藏 / Favorite' },
+        { emoji: '📌', label: t.reactPin || '钉选 / Pin' },
+      ]"
+      @reaction="(p) => emit('set-reaction', displayOffset + renderedStart + idx, p.emoji, p.toggled)"
+    />
     <button
       v-if="isErrorMessage(msg) && !loading"
       type="button"
@@ -273,6 +289,11 @@ import type { PropType } from 'vue';
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+/* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
+ * under each assistant message. Lazy-imported so the chunk only loads when
+ * a message is actually rendered. */
+import { defineAsyncComponent } from 'vue';
+const MessageReactionBar = defineAsyncComponent(() => import('./MessageReactionBar.vue'));
 
 /** C10: Virtual scroll slice passed from the parent. When `enabled` is true,
  *  MessageList only renders `[startIndex, endIndex)` of `messages` and pads
@@ -413,6 +434,11 @@ const emit = defineEmits<{
   (e: 'copy-message', text: string, globalIdx: number): void;
   (e: 'regenerate-at', globalIdx: number): void;
   (e: 'set-feedback', globalIdx: number, kind: 'up' | 'down'): void;
+  /**
+   * K24: extended reaction system via MessageReactionBar. `toggled` is true
+   * when the same emoji is clicked again (clearing the selection).
+   */
+  (e: 'set-reaction', globalIdx: number, emoji: string, toggled: boolean): void;
   (e: 'retry-last-error', globalIdx: number): void;
 }>();
 

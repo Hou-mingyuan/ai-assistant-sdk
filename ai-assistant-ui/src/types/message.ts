@@ -57,6 +57,13 @@ export interface Message {
   /** Agent multi-step task progress */
   agentSteps?: AgentStep[];
   feedback?: 'up' | 'down';
+  /**
+   * K24: Reaction state for the MessageReactionBar widget. Stored as a count
+   * map plus a single "selected" emoji per message so toggling works like
+   * a radio (one reaction at a time per user). Both fields are optional;
+   * absent => no reactions yet.
+   */
+  reactions?: { selected?: string; counts?: Record<string, number> };
   timestamp?: number;
 }
 
