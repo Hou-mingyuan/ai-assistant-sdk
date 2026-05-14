@@ -14,6 +14,7 @@ import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.PromptComposer;
 import com.aiassistant.service.llm.RequestEnricher;
 import com.aiassistant.service.llm.ResponsePostProcessor;
+import com.aiassistant.service.llm.StreamingLlmCallExecutor;
 import com.aiassistant.service.llm.StreamingToolCallingLoop;
 import com.aiassistant.service.llm.ToolCallingLoop;
 import com.aiassistant.spi.ChatInterceptor;
@@ -23,14 +24,10 @@ import com.aiassistant.tool.ToolRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.SignalType;
 
 /**
  * Core service for AI assistant operations: chat, translate, summarize (sync &amp; streaming).
@@ -67,6 +64,7 @@ public class LlmService {
     private final ToolCallingLoop toolCallingLoop;
     private final StreamingToolCallingLoop streamingToolCallingLoop;
     private final BlockingLlmCallExecutor blockingExecutor;
+    private final StreamingLlmCallExecutor streamingExecutor;
 
     public LlmService(
             AiAssistantProperties properties,
@@ -161,6 +159,18 @@ public class LlmService {
                         responsePostProcessor,
                         toolCallingLoop,
                         modelRouter,
+                        meterRegistry,
+                        this::emitAuditEventFromExecutor);
+        /* K53.1: mirror of BlockingLlmCallExecutor for the SSE path. The
+         * historical callLlmStream() body now forwards to streamingExecutor. */
+        this.streamingExecutor =
+                new StreamingLlmCallExecutor(
+                        requestBuilder,
+                        keyRotator,
+                        chatCompletionClient,
+                        responsePostProcessor,
+                        toolRegistry,
+                        streamingToolCallingLoop,
                         meterRegistry,
                         this::emitAuditEventFromExecutor);
 
@@ -511,10 +521,17 @@ public class LlmService {
         return toolCallingLoop.execute(body, rawResponse, apiKey);
     }
 
-    /* K28: completionTimer() removed — moved into BlockingLlmCallExecutor along with the
-     * blocking attempt+fallback loop that was its sole caller. Streaming-side metrics still
-     * use the streamTimer() method below. */
+    /* K28: completionTimer() removed — moved into BlockingLlmCallExecutor.
+     * K53.1: streamTimer() + callLlmStreamWithTools() removed — both moved
+     * into StreamingLlmCallExecutor along with the only callsites in
+     * callLlmStream. */
 
+    /**
+     * Delegate to {@link StreamingLlmCallExecutor} (K53.1). The streaming attempt + tool-call
+     * branch + backpressure + metric / audit emission lives in the executor; this method preserves
+     * the historical private signature for unchanged call sites in {@link #chatStream}, {@link
+     * #translateStream}, {@link #summarizeStream}.
+     */
     private Flux<String> callLlmStream(
             String systemPrompt,
             String userMessage,
@@ -522,75 +539,8 @@ public class LlmService {
             String operation,
             String modelId,
             String imageData) {
-        userMessage = requestBuilder.clampUserMessage(userMessage, history, systemPrompt);
-        ObjectNode body =
-                requestBuilder.buildRequestBody(
-                        systemPrompt, userMessage, true, history, modelId, imageData);
-        if (!"chat".equals(operation)) {
-            body.remove("tools");
-        }
-        String key = keyRotator.nextKey();
-        long startMs = System.currentTimeMillis();
-
-        AtomicInteger streamCharCount = new AtomicInteger(0);
-
-        if (toolRegistry != null && !toolRegistry.isEmpty() && body.has("tools")) {
-            return responsePostProcessor
-                    .filterStream(callLlmStreamWithTools(body, key, operation), modelId)
-                    .doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
-                    .doFinally(
-                            signal -> {
-                                AuditEvent.Outcome outcome =
-                                        signal == SignalType.ON_COMPLETE
-                                                ? AuditEvent.Outcome.SUCCESS
-                                                : AuditEvent.Outcome.ERROR;
-                                emitAuditEvent(
-                                        operation,
-                                        modelId,
-                                        0,
-                                        streamCharCount.get() / 4,
-                                        System.currentTimeMillis() - startMs,
-                                        outcome);
-                            });
-        }
-
-        Flux<String> flux =
-                chatCompletionClient
-                        .completeStream(body, key)
-                        .onBackpressureBuffer(256, BufferOverflowStrategy.DROP_OLDEST)
-                        .doOnError(e -> keyRotator.markFailed(key));
-        flux = responsePostProcessor.filterStream(flux, modelId);
-        Timer.Sample sample = meterRegistry != null ? Timer.start(meterRegistry) : null;
-        return flux.doOnNext(chunk -> streamCharCount.addAndGet(chunk.length()))
-                .doFinally(
-                        signal -> {
-                            String outcomeStr =
-                                    signal == SignalType.ON_COMPLETE
-                                            ? "success"
-                                            : signal == SignalType.ON_ERROR ? "error" : "cancel";
-                            if (sample != null) sample.stop(streamTimer(operation, outcomeStr));
-                            AuditEvent.Outcome auditOutcome =
-                                    signal == SignalType.ON_COMPLETE
-                                            ? AuditEvent.Outcome.SUCCESS
-                                            : AuditEvent.Outcome.ERROR;
-                            emitAuditEvent(
-                                    operation,
-                                    modelId,
-                                    0,
-                                    streamCharCount.get() / 4,
-                                    System.currentTimeMillis() - startMs,
-                                    auditOutcome);
-                        });
-    }
-
-    /**
-     * Delegate to the extracted {@link StreamingToolCallingLoop} (K20). The streaming-side tool
-     * calling algorithm (probe + per-round progress + tool exec + re-call) lives in its own class
-     * with 6 dedicated unit tests; this wrapper preserves the original private signature so the
-     * call site in {@link #callLlmStream} is unchanged.
-     */
-    private Flux<String> callLlmStreamWithTools(ObjectNode body, String apiKey, String operation) {
-        return streamingToolCallingLoop.stream(body, apiKey, keyRotator::markFailed);
+        return streamingExecutor.stream(
+                systemPrompt, userMessage, history, operation, modelId, imageData);
     }
 
     private String resolveModelWithRouter(String requestModel, String operation) {
@@ -687,13 +637,5 @@ public class LlmService {
             }
         }
         return response;
-    }
-
-    private Timer streamTimer(String operation, String outcome) {
-        return Timer.builder("aiassistant.llm.stream")
-                .description("LLM /chat/completions SSE until terminal signal")
-                .tag("operation", operation)
-                .tag("outcome", outcome)
-                .register(meterRegistry);
     }
 }
