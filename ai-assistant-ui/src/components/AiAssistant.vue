@@ -446,6 +446,8 @@
       :disabled="loading"
       :max-chars="systemPromptMaxInputCharsResolved"
       :t="t"
+      :theme="themePalette"
+      @update:theme="(v) => (themePalette = v as ThemePresetId)"
       @close="personalizeOpen = false"
     />
 
@@ -1684,6 +1686,52 @@ const a11yStatusText = computed(() => {
 });
 
 const color = computed(() => options.primaryColor || '#6366f1');
+
+/* K25: ColorThemeSwitcher state ------------------------------------------------
+ * `themePalette` chooses one of 5 preset gradients. The choice is persisted in
+ * localStorage under THEME_STORAGE_KEY (so the same user keeps their palette
+ * across page reloads). Three CSS custom properties are then injected on the
+ * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to), which the styles/
+ * suite already reads for the v2 sky-tech-blue accents and gradient ring.
+ *
+ * Default 'sky' = current sky tech blue palette (unchanged from K3 era so
+ * existing visual style is preserved if user never opens the switcher).
+ */
+const THEME_STORAGE_KEY = 'ai-assistant.theme.palette.v1';
+type ThemePresetId = 'sky' | 'sunset' | 'forest' | 'plum' | 'graphite';
+const THEME_PRESETS: Record<ThemePresetId, { from: string; via: string; to: string }> = {
+  sky: { from: '#0ea5e9', via: '#06b6d4', to: '#3b82f6' },
+  sunset: { from: '#f59e0b', via: '#f43f5e', to: '#a855f7' },
+  forest: { from: '#10b981', via: '#14b8a6', to: '#06b6d4' },
+  plum: { from: '#a855f7', via: '#ec4899', to: '#f43f5e' },
+  graphite: { from: '#64748b', via: '#475569', to: '#334155' },
+};
+const themePalette = ref<ThemePresetId>(
+  (() => {
+    try {
+      const v = localStorage.getItem(THEME_STORAGE_KEY) as ThemePresetId | null;
+      if (v && v in THEME_PRESETS) return v;
+    } catch {
+      /* SSR / disabled localStorage — fall through to default */
+    }
+    return 'sky';
+  })(),
+);
+watch(themePalette, (v) => {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, v);
+  } catch {
+    /* ignore */
+  }
+});
+const themePaletteVars = computed<Record<string, string>>(() => {
+  const p = THEME_PRESETS[themePalette.value];
+  return {
+    '--ai-theme-from': p.from,
+    '--ai-theme-via': p.via,
+    '--ai-theme-to': p.to,
+  };
+});
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
 
 const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
@@ -1773,7 +1821,7 @@ const effectivePositionClass = computed(() => (fabLeft.value !== null ? '' : pos
 const edgeDockClass = fabEdgeDockClass;
 
 const wrapperStyle = computed(() => {
-  const st: Record<string, string> = { '--primary': color.value };
+  const st: Record<string, string> = { '--primary': color.value, ...themePaletteVars.value };
   if (panelMountedForLayout.value) {
     st.width = `${effectivePanelWidthPx()}px`;
     st.height = `${effectivePanelHeightPx()}px`;

@@ -137,6 +137,8 @@ export interface I18nMessages {
   reactLove?: string;
   reactFavorite?: string;
   reactPin?: string;
+  /** K25: label shown next to the ColorThemeSwitcher in PersonalizeDialog. */
+  personalizeThemeLabel?: string;
   micStart: string;
   micStop: string;
   newSession: string;
