@@ -2170,6 +2170,12 @@ function renderBubble(content: string, globalIdx: number, isStreamingLast: boole
       '</pre>';
   } else {
     html = renderContent(sanitized, t.value.copyCode, isStreamingLast);
+    /* K46: inject a "Add to Compare" hover button into every <pre> code block
+     * (skip stream-plain which has no code semantics + skip if already injected
+     * via re-render). Button click is dispatched via event delegation in
+     * handleBodyClick below. The data-msg-idx attribute tells us which message
+     * the code block belongs to for the compare slot. */
+    html = injectCodeBlockCompareButton(html, globalIdx);
   }
   const q = debouncedSearchQuery.value.trim();
   if (q) {
@@ -2180,6 +2186,32 @@ function renderBubble(content: string, globalIdx: number, isStreamingLast: boole
     });
   }
   return html;
+}
+
+/**
+ * K46: inject hover-only "Add to Compare" button into every <pre> that's NOT
+ * the streaming-plain wrapper. We do this with a single regex pass + the
+ * markdown renderer is already trusted (sanitized inside renderContent), so
+ * splicing extra elements is safe.
+ *
+ * Marker `data-ai-cmp-msg="N"` lets the global click delegator find the
+ * source message index. The label string is i18n'd via window.__AI_T (see
+ * handleBodyClick).
+ */
+const CODE_COMPARE_BTN_LABEL_KEY = 'msgCtxCompareMarkSelection';
+function injectCodeBlockCompareButton(html: string, globalIdx: number): string {
+  const btnLabel = t.value[CODE_COMPARE_BTN_LABEL_KEY] || 'Add to Compare';
+  return html.replace(/<pre(?![^>]*data-ai-stream-plain)([^>]*)>/g, (full, attrs: string) => {
+    if (/data-ai-cmp-wrapped="1"/.test(attrs)) return full;
+    const newAttrs = `${attrs} data-ai-cmp-wrapped="1" style="position:relative"`;
+    const btn =
+      `<button type="button" class="ai-code-cmp-btn" data-ai-cmp-msg="${globalIdx}"` +
+      ` title="${escapeHtmlLite(btnLabel)}" aria-label="${escapeHtmlLite(btnLabel)}">` +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+      ' stroke-width="2.5" stroke-linecap="round" aria-hidden="true">' +
+      '<path d="M5 12h14M12 5v14"/></svg></button>';
+    return `<pre${newAttrs}>${btn}`;
+  });
 }
 
 function isTransientAbortAssistantMessage(msg: Message): boolean {
@@ -2740,6 +2772,35 @@ function setReaction(globalIdx: number, emoji: string, toggled: boolean) {
 
 function handleBodyClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
+  /* K46: code-block "Add to Compare" hover button. Match the button OR its
+   * inner SVG/path (clicks on the icon fragment bubble up). closest finds
+   * the actual <button>. */
+  const cmpBtn = target.closest('.ai-code-cmp-btn') as HTMLElement | null;
+  if (cmpBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const msgIdxRaw = cmpBtn.getAttribute('data-ai-cmp-msg');
+    const msgIdx = msgIdxRaw != null ? parseInt(msgIdxRaw, 10) : -1;
+    const pre = cmpBtn.closest('pre');
+    const codeText = pre?.querySelector('code')?.textContent ?? '';
+    const m = msgIdx >= 0 ? messages.value[msgIdx] : undefined;
+    if (m && codeText.trim()) {
+      if (compareSet.value.length >= MAX_COMPARE_SIDES) {
+        setExportToast(t.value.msgCtxCompareSetFull || 'Compare set is full (max 4)', 2400);
+        return;
+      }
+      const letter = String.fromCharCode(65 + compareSet.value.length);
+      compareSet.value.push({
+        msgIndex: msgIdx,
+        content: codeText,
+        label: buildCompareLabel(msgIdx, m.role, letter, true),
+      });
+      /* Flash the button to confirm the add. */
+      cmpBtn.classList.add('ai-code-cmp-btn-added');
+      setTimeout(() => cmpBtn.classList.remove('ai-code-cmp-btn-added'), 1000);
+    }
+    return;
+  }
   if (target.dataset.ide === 'true') {
     const pre = target.closest('pre');
     const codeEl = pre?.querySelector('code');

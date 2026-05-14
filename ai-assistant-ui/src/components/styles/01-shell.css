@@ -331,6 +331,70 @@
   color: #cbd5e1;
   background: rgba(148, 163, 184, 0.28);
 }
+
+/* K46: hover-only "Add to Compare" button injected into every <pre> code
+ * block via renderBubble. Sits at top-right; appears on pre:hover. */
+.ai-bubble pre {
+  /* renderBubble inlines position:relative on each pre when injecting the
+   * button, but adding a fallback here covers tests + edge cases. */
+  position: relative;
+}
+.ai-code-cmp-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #475569;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+  z-index: 2;
+}
+.ai-bubble pre:hover .ai-code-cmp-btn {
+  opacity: 1;
+}
+.ai-code-cmp-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.6);
+}
+.ai-code-cmp-btn-added {
+  opacity: 1 !important;
+  background: rgba(34, 197, 94, 0.25) !important;
+  color: #15803d !important;
+  border-color: rgba(34, 197, 94, 0.55) !important;
+}
+.ai-dark .ai-code-cmp-btn {
+  background: rgba(30, 41, 59, 0.94);
+  color: #cbd5e1;
+  border-color: rgba(71, 85, 105, 0.55);
+}
+.ai-dark .ai-code-cmp-btn:hover {
+  background: rgba(59, 130, 246, 0.32);
+  color: #93c5fd;
+}
+.ai-dark .ai-code-cmp-btn-added {
+  background: rgba(34, 197, 94, 0.32) !important;
+  color: #bbf7d0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-code-cmp-btn,
+  .ai-code-cmp-btn:hover,
+  .ai-code-cmp-btn-added {
+    transition: none !important;
+  }
+}
 .ai-kb-picker-item-meta {
   flex-shrink: 0;
   margin-left: 8px;
