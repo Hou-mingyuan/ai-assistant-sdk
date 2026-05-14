@@ -32,7 +32,11 @@ class AiAssistantControllerTest {
 
     @Test
     void chat_returnsOk_whenLlmSucceeds() {
-        when(llmService.chat(anyString(), any(), any(), any(), any())).thenReturn("Hello!");
+        /* K26: controller now calls the 7-arg chat overload
+         * (text, history, systemPrompt, model, imageData, sessionId, pageContext)
+         * after the chat-session WIP landed; update the mock to match. */
+        when(llmService.chat(anyString(), any(), any(), any(), any(), any(), any()))
+                .thenReturn("Hello!");
         ChatRequest req = new ChatRequest();
         req.setText("hi");
         req.setAction("chat");
@@ -71,7 +75,8 @@ class AiAssistantControllerTest {
 
     @Test
     void chat_returns503_whenLlmThrows() {
-        when(llmService.chat(anyString(), any(), any(), any(), any()))
+        /* K26: match the 7-arg overload that the controller actually calls. */
+        when(llmService.chat(anyString(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("API down"));
         ChatRequest req = new ChatRequest();
         req.setText("hi");
@@ -83,7 +88,8 @@ class AiAssistantControllerTest {
 
     @Test
     void stream_returnsFlux_forChat() {
-        when(llmService.chatStream(anyString(), any(), any(), any(), any()))
+        /* K26: controller now calls the 7-arg chatStream overload as well. */
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(Flux.just("chunk1", "chunk2"));
         ChatRequest req = new ChatRequest();
         req.setText("hello");
