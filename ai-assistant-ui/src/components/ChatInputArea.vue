@@ -336,6 +336,12 @@ const props = defineProps<{
   pageContextConfigured?: boolean;
   pageContextEnabled?: boolean;
   pageContextBlockCount?: number;
+  /**
+   * K36: 启用 terminal-style ↑/↓ prompt 历史回放。父组件需 wire 对应
+   * historyOlder / historyNewer / historyReset 事件到 usePromptHistory。
+   * 默认开启；setter 为 false 时本组件零行为变化。
+   */
+  historyEnabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -355,7 +361,16 @@ const emit = defineEmits<{
   slashSelect: [index: number];
   slashHover: [index: number];
   togglePageContext: [];
+  historyOlder: [];
+  historyNewer: [];
+  historyReset: [];
 }>();
+
+/**
+ * K36 prompt-history 回放状态：true 表示当前 textarea 内容是 ↑ 召回出来的，
+ * ↓ 继续走更新；Escape 退出回放并清空；用户主动 input 则隐式退出。
+ */
+const recallActive = ref(false);
 
 const fileInputRef = ref<HTMLInputElement>();
 const chatImageInputRef = ref<HTMLInputElement>();
@@ -417,6 +432,9 @@ function onChatImageChange(e: Event) {
 
 function onTextareaInput(event: Event) {
   const el = event.target as HTMLTextAreaElement;
+  if (recallActive.value) {
+    recallActive.value = false;
+  }
   emit('update:modelValue', el.value);
   el.style.height = 'auto';
   const lineHeight = 22;
@@ -434,6 +452,30 @@ function onTextareaKeydown(e: KeyboardEvent) {
       e.preventDefault();
       emit('slashKeydown', e);
       return;
+    }
+  }
+  if (props.historyEnabled !== false && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+    if (e.key === 'ArrowUp') {
+      const empty = !props.modelValue || !props.modelValue.trim();
+      if (empty || recallActive.value) {
+        e.preventDefault();
+        recallActive.value = true;
+        emit('historyOlder');
+        return;
+      }
+    } else if (e.key === 'ArrowDown') {
+      if (recallActive.value) {
+        e.preventDefault();
+        emit('historyNewer');
+        return;
+      }
+    } else if (e.key === 'Escape') {
+      if (recallActive.value) {
+        e.preventDefault();
+        recallActive.value = false;
+        emit('historyReset');
+        return;
+      }
     }
   }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
@@ -462,11 +504,13 @@ function onTextareaKeydown(e: KeyboardEvent) {
   if (props.ctrlEnterToSend) {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
+      recallActive.value = false;
       emit('send');
     }
   } else {
     if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
+      recallActive.value = false;
       emit('send');
     }
   }

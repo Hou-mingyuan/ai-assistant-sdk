@@ -379,6 +379,9 @@
           @slash-keydown="onSlashKeydown"
           @slash-select="onSlashSelect"
           @slash-hover="onSlashHover"
+          @history-older="onHistoryOlder"
+          @history-newer="onHistoryNewer"
+          @history-reset="onHistoryReset"
           @update:ctrl-enter-to-send="ctrlEnterToSend = $event"
           @update:sound-enabled="soundEnabled = $event"
           @update:selected-model="selectedChatModel = $event"
@@ -676,6 +679,7 @@ import {
   type PluginContext,
 } from '../composables/usePluginRegistry';
 import { usePageSelection } from '../composables/usePageSelection';
+import { usePromptHistory } from '../composables/usePromptHistory';
 import {
   extractHttpUrls,
   isProbablyDirectImageUrl,
@@ -2560,7 +2564,7 @@ function stopStreamingTick() {
 onUnmounted(() => stopStreamingTick());
 
 const {
-  send,
+  send: sendRaw,
   streamStartedAt,
   firstTokenAt,
   sanitizeAssistantContent,
@@ -2617,6 +2621,40 @@ watch(streamStartedAt, (v) => {
   if (v != null) startStreamingTick();
   else stopStreamingTick();
 });
+
+/**
+ * K36: terminal 风格 ↑/↓ prompt 历史回放。
+ *
+ * - send() 之前 record 当前输入；空 / whitespace-only 不入栈，连续同 prompt 自动去重。
+ * - 在 ChatInputArea textarea 内按 ↑（空输入框或处在回放状态）调用 recallOlder()；
+ *   ↓ 走更新；Esc 退出回放并清空。
+ * - 持久化到 localStorage，跨页面 / 跨标签共享同一历史。
+ */
+const promptHistory = usePromptHistory({
+  max: 50,
+  storageKey: 'ai-assistant.prompt-history.v1',
+});
+function send() {
+  const prompt = input.value;
+  if (prompt && prompt.trim()) {
+    promptHistory.record(prompt);
+  } else {
+    promptHistory.reset();
+  }
+  return sendRaw();
+}
+function onHistoryOlder() {
+  const v = promptHistory.recallOlder();
+  if (v != null) input.value = v;
+}
+function onHistoryNewer() {
+  const v = promptHistory.recallNewer();
+  input.value = v ?? '';
+}
+function onHistoryReset() {
+  promptHistory.reset();
+  input.value = '';
+}
 
 async function processFileUpload(file: File) {
   if (!file || loading.value || !options.baseUrl) return;
