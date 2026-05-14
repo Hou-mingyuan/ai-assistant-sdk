@@ -448,114 +448,21 @@
       @close="personalizeOpen = false"
     />
 
-    <!-- Cross-session Memory panel -->
-    <Transition name="ai-panel">
-      <div v-if="memoryOpen" class="ai-memory-overlay" @click.self="memoryOpen = false">
-        <div class="ai-memory-panel">
-          <div class="ai-memory-header">
-            <span class="ai-memory-title">{{ t.memoryLabel || '记忆管理' }}</span>
-            <button type="button" class="ai-memory-close" @click="memoryOpen = false">&times;</button>
-          </div>
-          <div class="ai-memory-body">
-            <div class="ai-memory-add-row">
-              <input
-                v-model="memoryNewText"
-                class="ai-memory-input"
-                :placeholder="t.memoryAddPlaceholder || '添加一条记忆…'"
-                @keydown.enter.prevent="addMemoryItem"
-              />
-              <button type="button" class="ai-memory-add-btn" :disabled="!memoryNewText.trim()" @click="addMemoryItem">+</button>
-            </div>
-            <div v-if="crossMemory.items.value.length === 0" class="ai-memory-empty">
-              {{ t.memoryEmpty || '暂无记忆条目' }}
-            </div>
-            <div v-for="m in crossMemory.items.value" :key="m.id" class="ai-memory-item">
-              <span class="ai-memory-item-text">{{ m.text }}</span>
-              <button type="button" class="ai-memory-item-del" @click="crossMemory.removeItem(m.id)">&times;</button>
-            </div>
-          </div>
-          <div v-if="crossMemory.items.value.length > 0" class="ai-memory-footer">
-            <button type="button" class="ai-memory-clear" @click="crossMemory.clearAll()">
-              {{ t.memoryClearAll || '清除全部' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Knowledge Base panel -->
-    <Transition name="ai-panel">
-      <div v-if="kbPanelOpen" class="ai-memory-overlay" @click.self="kbPanelOpen = false">
-        <div class="ai-memory-panel" style="width: min(420px, 92%)">
-          <div class="ai-memory-header">
-            <span class="ai-memory-title">{{ t.kbLabel || '知识库管理' }}</span>
-            <button type="button" class="ai-memory-close" @click="kbPanelOpen = false">&times;</button>
-          </div>
-          <div class="ai-memory-body">
-            <div class="ai-memory-add-row">
-              <input
-                v-model="kbNewName"
-                class="ai-memory-input"
-                :placeholder="t.kbAddPlaceholder || '新建知识库名称…'"
-                @keydown.enter.prevent="createKb"
-              />
-              <button type="button" class="ai-memory-add-btn" :disabled="!kbNewName.trim()" @click="createKb">+</button>
-            </div>
-            <input ref="kbFileInputRef" type="file" accept=".txt,.md,.pdf,.docx,.csv,.json" style="display:none" @change="onKbFileSelect" />
-            <div v-if="knowledgeBase.bases.value.length === 0" class="ai-memory-empty">
-              {{ t.kbEmpty || '暂无知识库' }}
-            </div>
-            <details v-for="kb in knowledgeBase.bases.value" :key="kb.id" class="ai-kb-item">
-              <summary class="ai-kb-summary">
-                <label class="ai-kb-toggle">
-                  <input type="checkbox" :checked="kb.enabled" @change="knowledgeBase.toggleBase(kb.id)" />
-                  <span class="ai-kb-name">{{ kb.name }}</span>
-                  <span class="ai-kb-count">({{ kb.docs.length }})</span>
-                </label>
-                <button type="button" class="ai-memory-item-del" @click.stop="knowledgeBase.deleteBase(kb.id)">&times;</button>
-              </summary>
-              <div class="ai-kb-docs">
-                <div v-for="doc in kb.docs" :key="doc.id" class="ai-kb-doc">
-                  <span class="ai-kb-doc-status" :class="'ai-kb-' + doc.status">
-                    {{ doc.status === 'ready' ? '✓' : doc.status === 'error' ? '✗' : '…' }}
-                  </span>
-                  <span class="ai-kb-doc-name">{{ doc.name }}</span>
-                  <span class="ai-kb-doc-size">{{ (doc.size / 1024).toFixed(1) }}KB</span>
-                  <button type="button" class="ai-memory-item-del" @click="knowledgeBase.removeDoc(kb.id, doc.id)">&times;</button>
-                </div>
-                <button type="button" class="ai-kb-upload-btn" @click="triggerKbUpload(kb.id)">
-                  + {{ t.kbUploadDoc || '上传文档' }}
-                </button>
-              </div>
-            </details>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Plugins panel -->
-    <Transition name="ai-panel">
-      <div v-if="pluginsPanelOpen" class="ai-memory-overlay" @click.self="pluginsPanelOpen = false">
-        <div class="ai-memory-panel">
-          <div class="ai-memory-header">
-            <span class="ai-memory-title">{{ t.pluginsLabel || '插件管理' }}</span>
-            <button type="button" class="ai-memory-close" @click="pluginsPanelOpen = false">&times;</button>
-          </div>
-          <div class="ai-memory-body">
-            <div v-if="plugins.length === 0" class="ai-memory-empty">
-              {{ t.pluginsEmpty || '暂无已注册插件' }}
-            </div>
-            <div v-for="pl in plugins" :key="pl.id" class="ai-memory-item">
-              <span class="ai-memory-item-text">
-                <strong>{{ pl.label }}</strong>
-                <span style="opacity:0.6;font-size:11px;margin-left:4px">[{{ pl.position }}]</span>
-              </span>
-              <button type="button" class="ai-memory-item-del" @click="unregisterPlugin(pl.id)">&times;</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- K21 Phase 1: 3 inline panels (memory / kb / plugins) extracted into
+         AssistantInlineOverlays. Same `.ai-memory-overlay > .ai-memory-panel`
+         visual template; the child owns memoryNewText / kbNewName /
+         kbFileInputRef / kbUploadTargetId / addMemoryItem / createKb /
+         triggerKbUpload / onKbFileSelect. -->
+    <AssistantInlineOverlays
+      v-model:memory-open="memoryOpen"
+      v-model:kb-open="kbPanelOpen"
+      v-model:plugins-open="pluginsPanelOpen"
+      :cross-memory="crossMemory"
+      :knowledge-base="knowledgeBase"
+      :plugins="plugins"
+      :t="t"
+      @unregister-plugin="unregisterPlugin"
+    />
 
     <!-- A1: Multi-model parallel compare overlay -->
     <Transition name="ai-panel">
@@ -695,6 +602,12 @@ const PageSelectionBar = defineAsyncComponent(() => import('./PageSelectionBar.v
 const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
 const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
 const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
+/* K21 Phase 1: extracted ~135 lines of repetitive memory/kb/plugins panel
+ * template into AssistantInlineOverlays. Lazy-loaded so the initial chunk
+ * stays slim (only paid for when a user opens one of those panels). */
+const AssistantInlineOverlays = defineAsyncComponent(
+  () => import('./AssistantInlineOverlays.vue'),
+);
 import type { AiAssistantOptions } from '../index';
 import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
@@ -1370,13 +1283,11 @@ const {
 
 const crossMemory = useCrossSessionMemory();
 const memoryOpen = ref(false);
-const memoryNewText = ref('');
 
 const pluginsPanelOpen = ref(false);
 
 const knowledgeBase = useKnowledgeBase();
 const kbPanelOpen = ref(false);
-const kbNewName = ref('');
 
 /**
  * A1: 多模型并行对比面板状态。
@@ -1563,33 +1474,15 @@ watch(
     scheduleMermaidRender();
   },
 );
-function toggleKbPanel() { kbPanelOpen.value = !kbPanelOpen.value; }
-function createKb() {
-  const name = kbNewName.value.trim();
-  if (!name) return;
-  knowledgeBase.createBase(name);
-  kbNewName.value = '';
+/* K21 Phase 1: kbNewName / kbFileInputRef / kbUploadTargetId / addMemoryItem /
+ * createKb / onKbFileSelect / triggerKbUpload all moved into
+ * AssistantInlineOverlays.vue. We keep the *toggle* functions here because the
+ * Settings popover menu actions still reference them by name. */
+function toggleKbPanel() {
+  kbPanelOpen.value = !kbPanelOpen.value;
 }
-const kbFileInputRef = ref<HTMLInputElement>();
-const kbUploadTargetId = ref('');
-function onKbFileSelect(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = '';
-  if (file && kbUploadTargetId.value) {
-    knowledgeBase.addDoc(kbUploadTargetId.value, file);
-  }
-}
-function triggerKbUpload(baseId: string) {
-  kbUploadTargetId.value = baseId;
-  kbFileInputRef.value?.click();
-}
-function toggleMemoryPanel() { memoryOpen.value = !memoryOpen.value; }
-function addMemoryItem() {
-  const txt = memoryNewText.value.trim();
-  if (!txt) return;
-  crossMemory.addItem(txt, 'manual');
-  memoryNewText.value = '';
+function toggleMemoryPanel() {
+  memoryOpen.value = !memoryOpen.value;
 }
 
 const slashCmd = useSlashCommands({
