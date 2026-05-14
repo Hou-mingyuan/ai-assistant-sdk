@@ -496,7 +496,7 @@
     />
 
     <!-- K43: KB target picker. Teleported, fixed bottom-right, auto-dismiss
-         after 12s, click outside via overlay to close. -->
+         after 12s. K48: 1-9 picks the n-th KB, 0/N creates new, Esc closes. -->
     <Teleport to="body">
       <Transition name="ai-modal">
         <div
@@ -505,7 +505,9 @@
           :class="{ 'ai-dark': isDark }"
           role="dialog"
           aria-modal="false"
+          tabindex="-1"
           :aria-label="t.kbPickerTitle || 'Pick destination knowledge base'"
+          @keydown="onKbPickerKeydown"
         >
           <div class="ai-kb-picker-card" role="menu">
             <div class="ai-kb-picker-head">
@@ -530,13 +532,16 @@
               </button>
             </div>
             <ul class="ai-kb-picker-list">
-              <li v-for="kb in knowledgeBase.bases.value" :key="kb.id">
+              <li v-for="(kb, idx) in knowledgeBase.bases.value" :key="kb.id">
                 <button
                   type="button"
                   class="ai-kb-picker-item"
                   role="menuitem"
                   @click="onKbPickerPick(kb.id)"
                 >
+                  <span v-if="idx < 9" class="ai-kb-picker-item-shortcut">
+                    {{ idx + 1 }}
+                  </span>
                   <span class="ai-kb-picker-item-name">{{ kb.name }}</span>
                   <span class="ai-kb-picker-item-meta">
                     {{ kb.docs.length }}
@@ -551,6 +556,7 @@
                   role="menuitem"
                   @click="onKbPickerCreateNew"
                 >
+                  <span class="ai-kb-picker-item-shortcut">N</span>
                   <span class="ai-kb-picker-item-name">
                     + {{ t.kbPickerNewKb || 'New knowledge base' }}
                   </span>
@@ -1500,6 +1506,11 @@ function openKbPicker(files: File[]) {
     kbPickerFiles.value = [];
     kbPickerDismissTimer = null;
   }, KB_PICKER_AUTO_DISMISS_MS);
+  /* K48: focus the shell so keydown shortcuts (1-9 / N / Esc) bind. */
+  void nextTick(() => {
+    const shell = document.querySelector('.ai-kb-picker-shell') as HTMLElement | null;
+    shell?.focus();
+  });
 }
 function closeKbPicker() {
   kbPickerVisible.value = false;
@@ -1526,6 +1537,33 @@ function onKbPickerCreateNew() {
     ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
     : `Added ${files.length} file(s) to ${kb.name}`;
   setExportToast(label, 3200);
+}
+/**
+ * K48: KB picker keyboard shortcuts.
+ *   1-9 — pick the n-th KB row (0-indexed)
+ *   N / n / 0 — trigger "+ New knowledge base"
+ *   Escape — close without picking
+ */
+function onKbPickerKeydown(e: KeyboardEvent) {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeKbPicker();
+    return;
+  }
+  if (e.key === 'n' || e.key === 'N' || e.key === '0') {
+    e.preventDefault();
+    onKbPickerCreateNew();
+    return;
+  }
+  const n = Number(e.key);
+  if (Number.isInteger(n) && n >= 1 && n <= 9) {
+    const kb = knowledgeBase.bases.value[n - 1];
+    if (kb) {
+      e.preventDefault();
+      onKbPickerPick(kb.id);
+    }
+  }
 }
 onBeforeUnmount(() => {
   if (kbPickerDismissTimer != null) {
