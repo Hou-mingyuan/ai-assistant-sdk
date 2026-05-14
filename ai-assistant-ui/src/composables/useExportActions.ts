@@ -2,6 +2,7 @@ import { ref, type Ref, type ComputedRef } from 'vue';
 import { postServerExport, type ExportFormat } from '../utils/api';
 import type { SessionEntry } from './useMultiSession';
 import type { I18nMessages } from '../utils/i18n';
+import { useExportProgress } from './useExportProgress';
 
 interface ExportDeps {
   sessions: Ref<SessionEntry[]>;
@@ -27,6 +28,16 @@ function triggerDownload(blob: Blob, filename: string) {
 
 export function useExportActions(deps: ExportDeps) {
   const batchExportMenuOpen = ref(false);
+  /* K53.2: Loading + toast state machine lives in useExportProgress so the
+   * busy/preparing/receiving/download-started lifecycle is owned in exactly
+   * one place. useExportActions itself is now only concerned with payload
+   * construction (title, content, message list, theme). */
+  const progress = useExportProgress({
+    exportServerBusy: deps.exportServerBusy,
+    setExportToast: deps.setExportToast,
+    reportError: deps.reportError,
+    t: deps.t,
+  });
 
   function toggleBatchExportMenu() {
     batchExportMenuOpen.value = !batchExportMenuOpen.value;
@@ -64,41 +75,27 @@ export function useExportActions(deps: ExportDeps) {
 
   async function exportAssistantMessageServer(globalIndex: number, fmt: ExportFormat) {
     const baseUrl = deps.getBaseUrl();
-    if (deps.exportServerBusy.value || !baseUrl) return;
+    if (!baseUrl || progress.isBusy()) return;
     const m = deps.messages.value[globalIndex];
     if (!m || m.role !== 'assistant') return;
-    deps.exportServerBusy.value = true;
-    deps.setExportToast(deps.t.value.exportPreparing, 0);
-    try {
-      const title = `${deps.t.value.title}-${globalIndex + 1}`;
-      const content = buildExportContentFromAssistantBubble(
-        globalIndex,
-        m.contentArchive ?? m.content,
-      );
-      const res = await postServerExport(
-        baseUrl,
-        fmt,
-        title,
-        [{ role: 'assistant', content }],
-        deps.getAccessToken(),
-        (phase) => {
-          if (phase === 'response') deps.setExportToast(deps.t.value.exportReceiving, 0);
-          if (phase === 'download') deps.setExportToast(deps.t.value.exportStartingDownload, 0);
-        },
-        deps.isDark?.value ? 'dark' : 'light',
-      );
-      if (!res.ok) {
-        deps.setExportToast('', 0);
-        deps.reportError('export-server', res.error);
-      } else {
-        deps.setExportToast(deps.t.value.exportDownloadStarted, 3200);
-      }
-    } catch (e: unknown) {
-      deps.setExportToast('', 0);
-      deps.reportError('export-server', String((e as Error)?.message ?? e));
-    } finally {
-      deps.exportServerBusy.value = false;
-    }
+    const title = `${deps.t.value.title}-${globalIndex + 1}`;
+    const content = buildExportContentFromAssistantBubble(
+      globalIndex,
+      m.contentArchive ?? m.content,
+    );
+    await progress.runExport({
+      errorSource: 'export-server',
+      run: (onPhase) =>
+        postServerExport(
+          baseUrl,
+          fmt,
+          title,
+          [{ role: 'assistant', content }],
+          deps.getAccessToken(),
+          onPhase,
+          deps.isDark?.value ? 'dark' : 'light',
+        ),
+    });
   }
 
   function collectAllSessionMessages(): { role: string; content: string }[] {
@@ -145,36 +142,22 @@ export function useExportActions(deps: ExportDeps) {
   async function batchExportAllServer(fmt: ExportFormat) {
     batchExportMenuOpen.value = false;
     const baseUrl = deps.getBaseUrl();
-    if (deps.exportServerBusy.value || !baseUrl) return;
-    deps.exportServerBusy.value = true;
-    deps.setExportToast(deps.t.value.exportPreparing, 0);
-    try {
-      const allMsgs = collectAllSessionMessages();
-      const title = `${deps.t.value.title}-all-sessions`;
-      const res = await postServerExport(
-        baseUrl,
-        fmt,
-        title,
-        allMsgs,
-        deps.getAccessToken(),
-        (phase) => {
-          if (phase === 'response') deps.setExportToast(deps.t.value.exportReceiving, 0);
-          if (phase === 'download') deps.setExportToast(deps.t.value.exportStartingDownload, 0);
-        },
-        deps.isDark?.value ? 'dark' : 'light',
-      );
-      if (!res.ok) {
-        deps.setExportToast('', 0);
-        deps.reportError('batch-export-server', res.error);
-      } else {
-        deps.setExportToast(deps.t.value.exportDownloadStarted, 3200);
-      }
-    } catch (e: unknown) {
-      deps.setExportToast('', 0);
-      deps.reportError('batch-export-server', String((e as Error)?.message ?? e));
-    } finally {
-      deps.exportServerBusy.value = false;
-    }
+    if (!baseUrl || progress.isBusy()) return;
+    const allMsgs = collectAllSessionMessages();
+    const title = `${deps.t.value.title}-all-sessions`;
+    await progress.runExport({
+      errorSource: 'batch-export-server',
+      run: (onPhase) =>
+        postServerExport(
+          baseUrl,
+          fmt,
+          title,
+          allMsgs,
+          deps.getAccessToken(),
+          onPhase,
+          deps.isDark?.value ? 'dark' : 'light',
+        ),
+    });
   }
 
   return {
