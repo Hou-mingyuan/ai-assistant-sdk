@@ -51,9 +51,32 @@
     </article>
 
     <AdminDemoPanel v-if="route === 'admin'" />
-    <AiAssistant />
 
     <CommandPalette v-model:open="cmd.open.value" :commands="cmd.commands.value" />
+
+    <!-- K32: K24 onReaction visualisation. Stacks at the bottom-left when
+         the user clicks a reaction emoji under an assistant message, so the
+         developer can verify the event payload propagation end-to-end. -->
+    <div v-if="reactionLog.length > 0" class="reaction-log">
+      <div class="reaction-log-head">
+        <span>👍 onReaction events</span>
+        <button type="button" class="reaction-log-clear" @click="reactionLog = []">
+          clear
+        </button>
+      </div>
+      <ul class="reaction-log-list">
+        <li v-for="(entry, i) in reactionLog" :key="i" class="reaction-log-item">
+          <span class="reaction-log-emoji">{{ entry.emoji }}</span>
+          <span class="reaction-log-meta">
+            #{{ entry.messageIndex }}
+            <span :class="['reaction-log-state', entry.toggled ? 'off' : 'on']">
+              {{ entry.toggled ? 'cleared' : 'set' }}
+            </span>
+          </span>
+          <time class="reaction-log-time">{{ entry.timeStr }}</time>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -176,6 +199,45 @@ function onPopState() {
 
 onMounted(() => window.addEventListener('popstate', onPopState));
 onBeforeUnmount(() => window.removeEventListener('popstate', onPopState));
+
+/* K32: K24 onReaction visualisation
+ * ----------------------------------
+ * The AiAssistant widget is auto-mounted by `app.use(AiAssistant, opts)`
+ * in main.ts (not by the <AiAssistant /> tag in this template), so we
+ * receive reaction events via the global `ai-assistant-reaction` window
+ * event that main.ts re-dispatches. This keeps App.vue
+ * autoMountToBody-friendly and works regardless of whether the host
+ * registered the component or not.
+ *
+ * The log displays the latest 8 events with timestamp + state so the
+ * developer can verify the K24 event-propagation contract end-to-end.
+ */
+interface ReactionEntry {
+  messageIndex: number;
+  emoji: string;
+  toggled: boolean;
+  timeStr: string;
+}
+const reactionLog = ref<ReactionEntry[]>([]);
+
+function onAssistantReactionEvent(ev: Event) {
+  const detail = (ev as CustomEvent<{ messageIndex: number; emoji: string; toggled: boolean }>)
+    .detail;
+  if (!detail || typeof detail.messageIndex !== 'number') return;
+  const time = new Date();
+  const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(
+    time.getMinutes(),
+  ).padStart(2, '0')}:${String(time.getSeconds()).padStart(2, '0')}`;
+  reactionLog.value = [
+    { ...detail, timeStr },
+    ...reactionLog.value,
+  ].slice(0, 8);
+}
+
+onMounted(() => window.addEventListener('ai-assistant-reaction', onAssistantReactionEvent));
+onBeforeUnmount(() =>
+  window.removeEventListener('ai-assistant-reaction', onAssistantReactionEvent),
+);
 </script>
 
 <style scoped>
@@ -320,6 +382,112 @@ code {
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* K32: K24 onReaction event visualiser — stacks at the bottom-left so it
+ * never overlaps with the AI assistant fab at bottom-right. */
+.reaction-log {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  width: 260px;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.14);
+  font-size: 12px;
+  overflow: hidden;
+  animation: reactionLogIn 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes reactionLogIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reaction-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(59, 130, 246, 0.05));
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.reaction-log-clear {
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.reaction-log-clear:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.reaction-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.reaction-log-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s;
+}
+
+.reaction-log-item:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.reaction-log-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reaction-log-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+}
+
+.reaction-log-state.on {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.reaction-log-state.off {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.reaction-log-time {
+  color: #94a3b8;
+  font-size: 10px;
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 </style>

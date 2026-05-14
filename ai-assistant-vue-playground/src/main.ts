@@ -15,5 +15,11 @@ app.use(AiAssistant, {
   pageContextBlocks: [{ selector: '.demo-assistant-page-context', label: '当前演示页' }],
   smartPageContext: true,
   pageContextMinUserChars: 6,
+  /* K32: re-dispatch K24 onReaction events as a global window event so the
+   * App.vue reactionLog visualiser can pick them up without needing a
+   * direct ref to the auto-mounted AiAssistant instance. */
+  onReaction: (payload: { messageIndex: number; emoji: string; toggled: boolean }) => {
+    window.dispatchEvent(new CustomEvent('ai-assistant-reaction', { detail: payload }))
+  },
 })
 app.mount('#app')
