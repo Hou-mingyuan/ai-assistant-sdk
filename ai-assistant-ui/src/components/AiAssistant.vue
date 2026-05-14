@@ -27,15 +27,11 @@
       @pointerdown="onFabPointerDown"
       @contextmenu.prevent="onFabContextMenu"
     >
-      <svg
-        width="26"
-        height="26"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <!-- Sparkle / star with 4 rays — modern AI assistant icon -->
-        <path d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z" />
+        <path
+          d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z"
+        />
       </svg>
     </button>
 
@@ -159,7 +155,9 @@
             :title="t.searchCaseSensitive || 'Case sensitive (Aa)'"
             :aria-pressed="searchCaseSensitive ? 'true' : 'false'"
             @click="searchCaseSensitive = !searchCaseSensitive"
-          >Aa</button>
+          >
+            Aa
+          </button>
           <button
             type="button"
             class="ai-search-mode"
@@ -167,7 +165,9 @@
             :title="t.searchWholeWord || 'Whole word (\\b)'"
             :aria-pressed="searchWholeWord ? 'true' : 'false'"
             @click="searchWholeWord = !searchWholeWord"
-          >W</button>
+          >
+            W
+          </button>
           <button
             type="button"
             class="ai-search-mode"
@@ -175,12 +175,19 @@
             :title="t.searchRegex || 'Regular expression (.*?)'"
             :aria-pressed="searchRegex ? 'true' : 'false'"
             @click="searchRegex = !searchRegex"
-          >.*</button>
+          >
+            .*
+          </button>
         </div>
 
         <!-- AI streaming progress bar -->
         <Transition name="ai-progress-fade">
-          <div v-if="loading" class="ai-progress-bar" role="progressbar" aria-valuetext="AI generating">
+          <div
+            v-if="loading"
+            class="ai-progress-bar"
+            role="progressbar"
+            aria-valuetext="AI generating"
+          >
             <div class="ai-progress-bar-fill"></div>
           </div>
         </Transition>
@@ -214,7 +221,12 @@
               </div>
             </div>
           </Transition>
-          <div v-if="fileUploading" class="ai-upload-progress" role="progressbar" aria-label="Uploading">
+          <div
+            v-if="fileUploading"
+            class="ai-upload-progress"
+            role="progressbar"
+            aria-label="Uploading"
+          >
             <div class="ai-upload-progress-bar"></div>
           </div>
           <div v-if="messages.length === 0" class="ai-empty">
@@ -231,16 +243,24 @@
               </button>
             </div>
             <!-- 默认 starter 示例：仅当宿主未配置 promptTemplates 时显示，引导新用户上手 -->
-            <div v-if="promptTemplateList.length === 0 && mode === 'chat'" class="ai-empty-starters">
+            <div
+              v-if="promptTemplateList.length === 0 && mode === 'chat'"
+              class="ai-empty-starters"
+            >
               <button
                 v-for="(starter, si) in defaultStarters"
                 :key="si"
                 type="button"
                 class="ai-empty-starter"
-                @click="input = starter.split(' ').slice(1).join(' '); focusInput()"
+                @click="
+                  input = starter.split(' ').slice(1).join(' ');
+                  focusInput();
+                "
               >
                 <span class="ai-empty-starter-icon">{{ starter.split(' ')[0] }}</span>
-                <span class="ai-empty-starter-text">{{ starter.split(' ').slice(1).join(' ') }}</span>
+                <span class="ai-empty-starter-text">{{
+                  starter.split(' ').slice(1).join(' ')
+                }}</span>
               </button>
             </div>
           </div>
@@ -268,7 +288,9 @@
             :on-bubble-context-menu="onBubbleContextMenu"
             :is-error-message="isErrorMessage"
             :virtual-slice="virtualSliceForList"
-            :on-measure-height="virtualScrollOption ? virtualScroll.updateMeasuredHeight : undefined"
+            :on-measure-height="
+              virtualScrollOption ? virtualScroll.updateMeasuredHeight : undefined
+            "
             @show-all-older-messages="showAllOlderMessages"
             @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"
@@ -305,7 +327,6 @@
             ↓
           </button>
         </Transition>
-
 
         <div v-if="mode === 'chat' && quickPrompts.length > 0" class="ai-quick-prompts">
           <button
@@ -577,7 +598,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, reactive, nextTick, watch, onMounted, onUnmounted, defineAsyncComponent, type Ref } from 'vue';
+import {
+  ref,
+  computed,
+  inject,
+  reactive,
+  nextTick,
+  watch,
+  onMounted,
+  onUnmounted,
+  defineAsyncComponent,
+  type Ref,
+} from 'vue';
 import FabContextMenu from './FabContextMenu.vue';
 import MessageContextMenu from './MessageContextMenu.vue';
 import MessageList from './MessageList.vue';
@@ -610,9 +642,7 @@ const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue')
 /* K21 Phase 1: extracted ~135 lines of repetitive memory/kb/plugins panel
  * template into AssistantInlineOverlays. Lazy-loaded so the initial chunk
  * stays slim (only paid for when a user opens one of those panels). */
-const AssistantInlineOverlays = defineAsyncComponent(
-  () => import('./AssistantInlineOverlays.vue'),
-);
+const AssistantInlineOverlays = defineAsyncComponent(() => import('./AssistantInlineOverlays.vue'));
 /* K23: CommandPalette (Ctrl+K / ⌘+K) — flagship VSCode-style command runner
  * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
 const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
@@ -687,17 +717,17 @@ const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
 
 const options = reactive(
   inject<AiAssistantOptions>('ai-assistant-options', {
-  baseUrl: '/ai-assistant',
-  primaryColor: '#6366f1',
-  position: 'bottom-right',
-  theme: 'light',
-  persistHistory: false,
-  locale: 'en',
-  showSystemPromptEditor: true,
-  systemPromptStorageKey: 'ai-assistant-chat-system-prompt',
-  systemPromptMaxInputChars: 4000,
-  showModelPicker: true,
-  selectedModelStorageKey: 'ai-assistant-selected-model',
+    baseUrl: '/ai-assistant',
+    primaryColor: '#6366f1',
+    position: 'bottom-right',
+    theme: 'light',
+    persistHistory: false,
+    locale: 'en',
+    showSystemPromptEditor: true,
+    systemPromptStorageKey: 'ai-assistant-chat-system-prompt',
+    systemPromptMaxInputChars: 4000,
+    showModelPicker: true,
+    selectedModelStorageKey: 'ai-assistant-selected-model',
   }),
 );
 
@@ -710,7 +740,10 @@ const t = computed(() => getMessages((options.locale || 'en') as Locale));
 let _rtfCache: { locale: string; rtf: Intl.RelativeTimeFormat } | null = null;
 function getRtf(locale: string) {
   if (!_rtfCache || _rtfCache.locale !== locale) {
-    _rtfCache = { locale, rtf: new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' }) };
+    _rtfCache = {
+      locale,
+      rtf: new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' }),
+    };
   }
   return _rtfCache.rtf;
 }
@@ -837,7 +870,9 @@ const defaultStarters = computed<string[]>(() => {
 
 function focusInput() {
   void nextTick(() => {
-    const el = document.querySelector(`.ai-assistant-wrapper .ai-footer-textarea`) as HTMLTextAreaElement | null;
+    const el = document.querySelector(
+      `.ai-assistant-wrapper .ai-footer-textarea`,
+    ) as HTMLTextAreaElement | null;
     el?.focus();
   });
 }
@@ -860,7 +895,9 @@ function playNotificationSound() {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.25);
     osc.onended = () => ctx.close();
-  } catch { /* AudioContext may not be available */ }
+  } catch {
+    /* AudioContext may not be available */
+  }
 }
 const maxUserChars = computed(() => {
   const n = options.maxUserMessageChars;
@@ -876,7 +913,9 @@ const charCountNearLimit = computed(() => {
 });
 let streamAbortController: AbortController | null = null;
 let streamStoppedByUser = false;
-const messages = ref<Message[]>(pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)));
+const messages = ref<Message[]>(
+  pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)),
+);
 const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
   () => !!options.persistHistory,
@@ -975,7 +1014,9 @@ const diagnosticsModelEndpoint = computed(() =>
   options.baseUrl ? `${options.baseUrl.replace(/\/+$/, '')}/models` : '—',
 );
 const diagnosticsTokenText = computed(() =>
-  options.accessToken?.trim() ? t.value.diagnosticsTokenConfigured : t.value.diagnosticsTokenMissing,
+  options.accessToken?.trim()
+    ? t.value.diagnosticsTokenConfigured
+    : t.value.diagnosticsTokenMissing,
 );
 const diagnosticsStatusMessage = computed(() => {
   if (!options.baseUrl) return t.value.diagnosticsStatusNoBaseUrl;
@@ -1168,7 +1209,6 @@ const {
 const bodyRef = ref<HTMLElement>();
 const showScrollToBottomBtn = ref(false);
 
-
 function onBodyScroll() {
   const el = bodyRef.value;
   if (!el) return;
@@ -1182,10 +1222,14 @@ function scrollToBottomClick() {
   }
 }
 
-watch(bodyRef, (el, oldEl) => {
-  if (oldEl) oldEl.removeEventListener('scroll', onBodyScroll);
-  if (el) el.addEventListener('scroll', onBodyScroll, { passive: true });
-}, { immediate: true });
+watch(
+  bodyRef,
+  (el, oldEl) => {
+    if (oldEl) oldEl.removeEventListener('scroll', onBodyScroll);
+    if (el) el.addEventListener('scroll', onBodyScroll, { passive: true });
+  },
+  { immediate: true },
+);
 
 onUnmounted(() => {
   if (bodyRef.value) bodyRef.value.removeEventListener('scroll', onBodyScroll);
@@ -1245,10 +1289,14 @@ function onPanelImageClick(ev: MouseEvent) {
   ev.stopPropagation();
   openImageLightbox(img.src);
 }
-watch(panelRef, (el, oldEl) => {
-  if (oldEl) oldEl.removeEventListener('click', onPanelImageClick);
-  if (el) el.addEventListener('click', onPanelImageClick);
-}, { immediate: true });
+watch(
+  panelRef,
+  (el, oldEl) => {
+    if (oldEl) oldEl.removeEventListener('click', onPanelImageClick);
+    if (el) el.addEventListener('click', onPanelImageClick);
+  },
+  { immediate: true },
+);
 onUnmounted(() => {
   if (panelRef.value) panelRef.value.removeEventListener('click', onPanelImageClick);
   closeImageLightbox();
@@ -1405,7 +1453,8 @@ const promptTemplateLib = usePromptTemplateLibrary({
 const virtualScrollOption = computed(() => {
   const v = options.virtualScroll;
   if (v === true) return { threshold: 60, estimatedItemHeight: 90 };
-  if (v && typeof v === 'object') return { threshold: v.threshold ?? 60, estimatedItemHeight: v.estimatedItemHeight ?? 90 };
+  if (v && typeof v === 'object')
+    return { threshold: v.threshold ?? 60, estimatedItemHeight: v.estimatedItemHeight ?? 90 };
   return null;
 });
 const virtualScrollTop = ref(0);
@@ -1418,7 +1467,9 @@ const virtualScroll = useMessageVirtualScroll({
   estimatedItemHeight: virtualScrollOption.value?.estimatedItemHeight ?? 90,
   minActivationCount: virtualScrollOption.value?.threshold ?? 60,
 });
-const virtualSliceForList = computed(() => (virtualScrollOption.value ? virtualScroll.window.value : null));
+const virtualSliceForList = computed(() =>
+  virtualScrollOption.value ? virtualScroll.window.value : null,
+);
 
 let virtualScrollRaf = 0;
 function onBodyScrollForVirtual() {
@@ -1503,33 +1554,59 @@ const slashCmd = useSlashCommands({
   extraCommands: [
     {
       name: '/memory',
-      get description() { return t.value.memoryLabel || '记忆管理'; },
+      get description() {
+        return t.value.memoryLabel || '记忆管理';
+      },
       icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
-      action: () => { toggleMemoryPanel(); return true; },
+      action: () => {
+        toggleMemoryPanel();
+        return true;
+      },
     },
     {
       name: '/kb',
-      get description() { return t.value.kbLabel || '知识库'; },
+      get description() {
+        return t.value.kbLabel || '知识库';
+      },
       icon: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z',
-      action: () => { toggleKbPanel(); return true; },
+      action: () => {
+        toggleKbPanel();
+        return true;
+      },
     },
     {
       name: '/plugins',
-      get description() { return t.value.pluginsLabel || '插件管理'; },
+      get description() {
+        return t.value.pluginsLabel || '插件管理';
+      },
       icon: 'M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z',
-      action: () => { pluginsPanelOpen.value = !pluginsPanelOpen.value; return true; },
+      action: () => {
+        pluginsPanelOpen.value = !pluginsPanelOpen.value;
+        return true;
+      },
     },
     {
       name: '/compare',
-      get description() { return t.value.slashCmdCompareDesc || t.value.compareTitle || 'Compare models'; },
+      get description() {
+        return t.value.slashCmdCompareDesc || t.value.compareTitle || 'Compare models';
+      },
       icon: 'M3 5h7v14H3V5zm11 0h7v6h-7V5zm0 8h7v6h-7v-6z',
-      action: () => { openMultiModelCompare(); return true; },
+      action: () => {
+        openMultiModelCompare();
+        return true;
+      },
     },
     {
       name: '/template',
-      get description() { return t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates'; },
+      get description() {
+        return t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates';
+      },
       icon: 'M14 3v4a1 1 0 0 0 1 1h4l-5-5zM5 3h7v5a2 2 0 0 0 2 2h5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 9h10v2H7v-2zm0 4h7v2H7v-2z',
-      action: () => { void refreshServerPromptTemplates(); promptTemplateOpen.value = true; return true; },
+      action: () => {
+        void refreshServerPromptTemplates();
+        promptTemplateOpen.value = true;
+        return true;
+      },
     },
   ],
 });
@@ -1556,7 +1633,6 @@ function onToggleCodeWall() {
 }
 
 const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
-
 
 const placeholder = computed(() => t.value.placeholder[mode.value] || t.value.placeholder.chat);
 
@@ -1637,9 +1713,10 @@ function renderBubble(content: string, globalIdx: number, isStreamingLast: boole
   const sanitized = sanitizeAssistantContent(content);
   let html: string;
   if (isStreamingLast && sanitized.length > 200) {
-    html = '<pre class="ai-stream-plain" style="white-space:pre-wrap;font-family:inherit;margin:0">'
-      + escapeHtmlLite(sanitized)
-      + '</pre>';
+    html =
+      '<pre class="ai-stream-plain" style="white-space:pre-wrap;font-family:inherit;margin:0">' +
+      escapeHtmlLite(sanitized) +
+      '</pre>';
   } else {
     html = renderContent(sanitized, t.value.copyCode, isStreamingLast);
   }
@@ -2198,24 +2275,31 @@ function handleBodyClick(e: MouseEvent) {
     if (wrap) {
       const isFolded = wrap.classList.toggle('ai-code-folded');
       target.setAttribute('aria-expanded', isFolded ? 'false' : 'true');
-      target.textContent = isFolded ? (t.value.codeUnfold || 'Unfold') : (t.value.codeFold || 'Fold');
+      target.textContent = isFolded ? t.value.codeUnfold || 'Unfold' : t.value.codeFold || 'Fold';
     }
     return;
   }
   if (target.dataset.copy === 'true') {
     const pre = target.closest('pre');
     const code = pre?.querySelector('code')?.textContent || '';
-    navigator.clipboard.writeText(code).then(() => {
-      target.textContent = t.value.codeCopied;
-      pendingTimers.push(
-        window.setTimeout(() => {
-          target.textContent = t.value.copyCode;
-        }, 1500),
-      );
-    }).catch(() => {
-      target.textContent = '⚠';
-      pendingTimers.push(window.setTimeout(() => { target.textContent = t.value.copyCode; }, 1500));
-    });
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        target.textContent = t.value.codeCopied;
+        pendingTimers.push(
+          window.setTimeout(() => {
+            target.textContent = t.value.copyCode;
+          }, 1500),
+        );
+      })
+      .catch(() => {
+        target.textContent = '⚠';
+        pendingTimers.push(
+          window.setTimeout(() => {
+            target.textContent = t.value.copyCode;
+          }, 1500),
+        );
+      });
   }
 }
 
@@ -2272,7 +2356,7 @@ const cmdPalette = useCommandPalette();
 const builtInCommands = computed<CommandItem[]>(() => [
   {
     id: 'ai.toggle-panel',
-    label: isOpen.value ? (t.value.closePanel || '关闭面板') : (t.value.fabOpen || '打开 AI 助手'),
+    label: isOpen.value ? t.value.closePanel || '关闭面板' : t.value.fabOpen || '打开 AI 助手',
     group: '面板',
     icon: isOpen.value ? '✕' : '✨',
     shortcut: 'Esc / Ctrl+/',
@@ -2475,7 +2559,13 @@ function stopStreamingTick() {
 }
 onUnmounted(() => stopStreamingTick());
 
-const { send, streamStartedAt, firstTokenAt, sanitizeAssistantContent, hasVisibleAssistantContent } = useSendStream({
+const {
+  send,
+  streamStartedAt,
+  firstTokenAt,
+  sanitizeAssistantContent,
+  hasVisibleAssistantContent,
+} = useSendStream({
   messages,
   input,
   loading,
@@ -2503,7 +2593,8 @@ const { send, streamStartedAt, firstTokenAt, sanitizeAssistantContent, hasVisibl
   clearRenderCache,
   reportAssistantError,
   updateActiveSessionTitle: (title) => multiSessions.updateActiveTitle(title),
-  emitSend: (payload) => emit('send', payload as { action: 'translate' | 'summarize' | 'chat'; text: string }),
+  emitSend: (payload) =>
+    emit('send', payload as { action: 'translate' | 'summarize' | 'chat'; text: string }),
   emitResponse: (content) => emit('response', content),
   emitError: (message) => emit('error', message),
   getStreamAbortController: () => streamAbortController,
@@ -2571,7 +2662,6 @@ async function processFileUpload(file: File) {
     scrollToBottom(false);
   }
 }
-
 
 /** 距底部小于此值则视为「在跟随」，流式更新时才自动滚 */
 const SCROLL_STICKY_PX = 80;
@@ -2677,16 +2767,28 @@ function onEscKeydown(e: KeyboardEvent) {
   const ctrl = e.ctrlKey || e.metaKey;
   if (ctrl && e.shiftKey && !e.altKey && isOpen.value) {
     switch (e.key.toLowerCase()) {
-      case 'l': e.preventDefault(); clearMessages(); return;
-      case 'n': e.preventDefault(); startNewSession(); return;
+      case 'l':
+        e.preventDefault();
+        clearMessages();
+        return;
+      case 'n':
+        e.preventDefault();
+        startNewSession();
+        return;
       case 'f': {
         e.preventDefault();
         const searchEl = wrapperRef.value?.querySelector<HTMLInputElement>('.ai-chat-search-input');
         if (searchEl) searchEl.focus();
         return;
       }
-      case 's': e.preventDefault(); toggleBatchExportMenu(); return;
-      case 'm': e.preventDefault(); toggleMemoryPanel(); return;
+      case 's':
+        e.preventDefault();
+        toggleBatchExportMenu();
+        return;
+      case 'm':
+        e.preventDefault();
+        toggleMemoryPanel();
+        return;
     }
   }
 

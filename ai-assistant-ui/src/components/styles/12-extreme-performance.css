@@ -135,10 +135,11 @@
  * ============================================================================
  */
 @font-face {
-  font-family: "Inter Fallback";
+  font-family: 'Inter Fallback';
   font-display: swap;
-  src: local("Inter"), local("Inter Variable"), local("SF Pro Text"),
-    local("Segoe UI Variable Display");
+  src:
+    local('Inter'), local('Inter Variable'), local('SF Pro Text'),
+    local('Segoe UI Variable Display');
 }
 
 /* ============================================================================
@@ -234,7 +235,7 @@
  * ============================================================================
  */
 [hidden],
-[v-show="false"] {
+[v-show='false'] {
   display: none !important;
 }
 
@@ -243,7 +244,8 @@
  * ============================================================================
  */
 @keyframes ai-cursor-pulse-gpu {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scaleY(1) translateZ(0);
   }

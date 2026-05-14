@@ -41,12 +41,9 @@ describe('countBraceBalance', () => {
 
 describe('stripInternalToolTrace', () => {
   it('drops leaked `cap_*` blockquote tool calls and their balanced JSON', () => {
-    const input = [
-      '> 🔧 **cap_search** {',
-      '  "query": "hello"',
-      '}',
-      'Real answer line.',
-    ].join('\n');
+    const input = ['> 🔧 **cap_search** {', '  "query": "hello"', '}', 'Real answer line.'].join(
+      '\n',
+    );
     const result = stripInternalToolTrace(input);
     expect(result).toBe('Real answer line.');
   });
@@ -69,9 +66,7 @@ describe('stripInternalToolTrace', () => {
   });
 
   it('preserves normal content that merely contains a `cap_` substring', () => {
-    expect(stripInternalToolTrace('use_cap_lock to capitalise')).toBe(
-      'use_cap_lock to capitalise',
-    );
+    expect(stripInternalToolTrace('use_cap_lock to capitalise')).toBe('use_cap_lock to capitalise');
   });
 
   it('collapses 3-or-more blank lines down to two', () => {
@@ -96,9 +91,7 @@ describe('normalizeAssistantServiceError', () => {
   });
 
   it('maps HTTP 503 / no providers / format mismatch to the unavailable bucket', () => {
-    expect(normalizeAssistantServiceError('HTTP 503 backend', en)).toBe(
-      en.serviceUnavailableError,
-    );
+    expect(normalizeAssistantServiceError('HTTP 503 backend', en)).toBe(en.serviceUnavailableError);
     expect(normalizeAssistantServiceError('no_available_providers', en)).toBe(
       en.serviceUnavailableError,
     );

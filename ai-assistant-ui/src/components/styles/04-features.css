@@ -1,4 +1,3 @@
-
 /* dist 涓湭鍖呭惈锛氬鍑鸿彍鍗曘€佷細璇濇悳绱€佸揩鎹风煭璇€両DE 鎸夐挳锛沞dge-dock 涓庢簮涓€鑷寸敤 translateX锛堣鐩?dist 鍐呯殑 translate锛?*/
 .edge-dock-left {
   transform: translateX(calc(-100% + 14px)) !important;
@@ -178,7 +177,9 @@ mark.ai-search-hl-active {
 .ai-modal-enter-active > .ai-diagnostics-dialog,
 .ai-modal-leave-active > .ai-personalize-dialog,
 .ai-modal-leave-active > .ai-diagnostics-dialog {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
 }
 .ai-modal-enter-from,
 .ai-modal-leave-to {
@@ -736,7 +737,10 @@ mark.ai-search-hl-active {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 .ai-code-wall-toggle:hover {

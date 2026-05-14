@@ -1,18 +1,10 @@
 <template>
   <Transition name="ai-panel">
-    <div
-      v-if="memoryOpen"
-      class="ai-memory-overlay"
-      @click.self="emit('update:memoryOpen', false)"
-    >
+    <div v-if="memoryOpen" class="ai-memory-overlay" @click.self="emit('update:memoryOpen', false)">
       <div class="ai-memory-panel">
         <div class="ai-memory-header">
           <span class="ai-memory-title">{{ t.memoryLabel || '记忆管理' }}</span>
-          <button
-            type="button"
-            class="ai-memory-close"
-            @click="emit('update:memoryOpen', false)"
-          >
+          <button type="button" class="ai-memory-close" @click="emit('update:memoryOpen', false)">
             &times;
           </button>
         </div>
@@ -36,17 +28,9 @@
           <div v-if="crossMemory.items.value.length === 0" class="ai-memory-empty">
             {{ t.memoryEmpty || '暂无记忆条目' }}
           </div>
-          <div
-            v-for="m in crossMemory.items.value"
-            :key="m.id"
-            class="ai-memory-item"
-          >
+          <div v-for="m in crossMemory.items.value" :key="m.id" class="ai-memory-item">
             <span class="ai-memory-item-text">{{ m.text }}</span>
-            <button
-              type="button"
-              class="ai-memory-item-del"
-              @click="crossMemory.removeItem(m.id)"
-            >
+            <button type="button" class="ai-memory-item-del" @click="crossMemory.removeItem(m.id)">
               &times;
             </button>
           </div>
@@ -61,19 +45,11 @@
   </Transition>
 
   <Transition name="ai-panel">
-    <div
-      v-if="kbOpen"
-      class="ai-memory-overlay"
-      @click.self="emit('update:kbOpen', false)"
-    >
+    <div v-if="kbOpen" class="ai-memory-overlay" @click.self="emit('update:kbOpen', false)">
       <div class="ai-memory-panel" style="width: min(420px, 92%)">
         <div class="ai-memory-header">
           <span class="ai-memory-title">{{ t.kbLabel || '知识库管理' }}</span>
-          <button
-            type="button"
-            class="ai-memory-close"
-            @click="emit('update:kbOpen', false)"
-          >
+          <button type="button" class="ai-memory-close" @click="emit('update:kbOpen', false)">
             &times;
           </button>
         </div>
@@ -104,11 +80,7 @@
           <div v-if="knowledgeBase.bases.value.length === 0" class="ai-memory-empty">
             {{ t.kbEmpty || '暂无知识库' }}
           </div>
-          <details
-            v-for="kb in knowledgeBase.bases.value"
-            :key="kb.id"
-            class="ai-kb-item"
-          >
+          <details v-for="kb in knowledgeBase.bases.value" :key="kb.id" class="ai-kb-item">
             <summary class="ai-kb-summary">
               <label class="ai-kb-toggle">
                 <input
@@ -142,11 +114,7 @@
                   &times;
                 </button>
               </div>
-              <button
-                type="button"
-                class="ai-kb-upload-btn"
-                @click="triggerKbUpload(kb.id)"
-              >
+              <button type="button" class="ai-kb-upload-btn" @click="triggerKbUpload(kb.id)">
                 + {{ t.kbUploadDoc || '上传文档' }}
               </button>
             </div>
@@ -165,11 +133,7 @@
       <div class="ai-memory-panel">
         <div class="ai-memory-header">
           <span class="ai-memory-title">{{ t.pluginsLabel || '插件管理' }}</span>
-          <button
-            type="button"
-            class="ai-memory-close"
-            @click="emit('update:pluginsOpen', false)"
-          >
+          <button type="button" class="ai-memory-close" @click="emit('update:pluginsOpen', false)">
             &times;
           </button>
         </div>

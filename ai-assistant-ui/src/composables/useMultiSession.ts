@@ -178,7 +178,9 @@ export function useMultiSession(storageKey = STORAGE_KEY) {
     const src = sessions.value.find((s) => s.id === sessionId);
     if (!src || messageIndex < 0 || messageIndex >= src.messages.length) return null;
     const forked = createSession();
-    forked.messages = cleanMessages(JSON.parse(JSON.stringify(src.messages.slice(0, messageIndex + 1))));
+    forked.messages = cleanMessages(
+      JSON.parse(JSON.stringify(src.messages.slice(0, messageIndex + 1))),
+    );
     forked.title = (src.title || src.id.slice(0, 6)) + ' (fork)';
     saveSessionsImmediate();
     return forked;

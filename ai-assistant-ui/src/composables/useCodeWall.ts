@@ -7,11 +7,7 @@ interface CodeWallCell {
   progress: number;
 }
 
-const TOKENS = [
-  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}[]()<>/+=-_*#$',
-  'AI',
-  'CODE',
-];
+const TOKENS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{}[]()<>/+=-_*#$', 'AI', 'CODE'];
 const COLORS = [
   'rgba(220, 205, 170, 0.56)',
   'rgba(200, 185, 150, 0.48)',
@@ -57,7 +53,10 @@ export function useCodeWall(
 
   function rebuildCells(cols: number, rows: number) {
     const n = cols * rows;
-    if (n <= 0) { cells = []; return; }
+    if (n <= 0) {
+      cells = [];
+      return;
+    }
     if (cells.length === n) return;
     cells = Array.from({ length: n }, () => createCell());
   }
@@ -108,7 +107,8 @@ export function useCodeWall(
     const w = canvas.width / dpr;
     const h = canvas.height / dpr;
     ctx.clearRect(0, 0, w, h);
-    ctx.font = '700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+    ctx.font =
+      '700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
     ctx.textBaseline = 'middle';
     for (let r = 0; r < grid.rows; r++) {
       for (let c = 0; c < grid.columns; c++) {
@@ -130,7 +130,10 @@ export function useCodeWall(
   }
 
   function tick(ts: number) {
-    if (!shouldAnimate()) { raf = 0; return; }
+    if (!shouldAnimate()) {
+      raf = 0;
+      return;
+    }
     raf = requestAnimationFrame(tick);
     if (ts - lastTick < TICK_MS) return;
     lastTick = ts;
@@ -139,7 +142,10 @@ export function useCodeWall(
   }
 
   function stop() {
-    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (raf) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    }
     lastTick = 0;
     observer?.disconnect();
     observer = null;
@@ -149,7 +155,10 @@ export function useCodeWall(
     const panel = panelRef.value;
     const canvas = canvasRef.value;
     if (!panel || !canvas) return;
-    if (disabled.value) { canvas.style.display = 'none'; return; }
+    if (disabled.value) {
+      canvas.style.display = 'none';
+      return;
+    }
     canvas.style.display = '';
     stop();
     resize();

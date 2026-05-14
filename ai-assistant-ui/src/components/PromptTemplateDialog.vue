@@ -1,11 +1,27 @@
 <template>
-  <div class="ai-tpl-overlay" role="dialog" :aria-label="t.tplDialogTitle" @click.self="$emit('close')">
+  <div
+    class="ai-tpl-overlay"
+    role="dialog"
+    :aria-label="t.tplDialogTitle"
+    @click.self="$emit('close')"
+  >
     <div class="ai-tpl-card">
       <header class="ai-tpl-header">
         <h3 class="ai-tpl-title">{{ t.tplDialogTitle }}</h3>
-        <button type="button" class="ai-tpl-close" :aria-label="t.closePanel" @click="$emit('close')">
+        <button
+          type="button"
+          class="ai-tpl-close"
+          :aria-label="t.closePanel"
+          @click="$emit('close')"
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              fill="none"
+            />
           </svg>
         </button>
       </header>
@@ -138,11 +154,7 @@
               >
                 {{ t.tplSave }}
               </button>
-              <button
-                type="button"
-                class="ai-tpl-btn ai-tpl-btn-primary"
-                @click="onUse"
-              >
+              <button type="button" class="ai-tpl-btn ai-tpl-btn-primary" @click="onUse">
                 {{ t.tplUse }}
               </button>
             </div>

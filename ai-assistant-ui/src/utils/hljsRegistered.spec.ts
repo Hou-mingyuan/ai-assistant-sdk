@@ -4,18 +4,11 @@ import hljs, { ensureLanguage } from './hljsRegistered';
 
 describe('hljsRegistered (core)', () => {
   it('eagerly registers the core code block languages', () => {
-    [
-      'javascript',
-      'typescript',
-      'json',
-      'python',
-      'bash',
-      'shell',
-      'xml',
-      'sql',
-    ].forEach((language) => {
-      expect(hljs.getLanguage(language), language).toBeTruthy();
-    });
+    ['javascript', 'typescript', 'json', 'python', 'bash', 'shell', 'xml', 'sql'].forEach(
+      (language) => {
+        expect(hljs.getLanguage(language), language).toBeTruthy();
+      },
+    );
   });
 
   it('eagerly registers the core aliases used in fenced Markdown blocks', () => {

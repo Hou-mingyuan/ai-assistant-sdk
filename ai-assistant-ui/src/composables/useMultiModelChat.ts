@@ -41,9 +41,11 @@ export interface UseMultiModelChatOptions {
   parseChunk?: (raw: string) => { content: string; thinking?: string };
 }
 
-const RAF = typeof requestAnimationFrame === 'function'
-  ? requestAnimationFrame
-  : (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 16) as unknown as number;
+const RAF =
+  typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame
+    : (cb: FrameRequestCallback) =>
+        setTimeout(() => cb(performance.now()), 16) as unknown as number;
 
 export function useMultiModelChat(opts: UseMultiModelChatOptions) {
   const maxColumns = opts.maxColumns ?? 4;
@@ -115,9 +117,16 @@ export function useMultiModelChat(opts: UseMultiModelChatOptions) {
 
     let buffer = '';
     try {
-      for await (const chunk of streamChat(opts.baseUrl.value, payload, opts.token?.value, ctrl.signal)) {
+      for await (const chunk of streamChat(
+        opts.baseUrl.value,
+        payload,
+        opts.token?.value,
+        ctrl.signal,
+      )) {
         buffer += chunk;
-        const parsed = opts.parseChunk ? opts.parseChunk(buffer) : { content: buffer, thinking: '' };
+        const parsed = opts.parseChunk
+          ? opts.parseChunk(buffer)
+          : { content: buffer, thinking: '' };
         const slot = pendingFlush.get(model);
         if (slot) {
           slot.content = parsed.content;

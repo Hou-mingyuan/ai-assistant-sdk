@@ -20,9 +20,13 @@ import {
  * - POST body 是 JSON 序列化
  */
 
-function makeFetchMock(
-  resp: { ok: boolean; status?: number; statusText?: string; json?: unknown; text?: string },
-) {
+function makeFetchMock(resp: {
+  ok: boolean;
+  status?: number;
+  statusText?: string;
+  json?: unknown;
+  text?: string;
+}) {
   return vi.fn(
     async () =>
       ({

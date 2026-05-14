@@ -3,10 +3,7 @@ import { useMcpAutoPlugin } from './useMcpAutoPlugin';
 import type { McpTool, McpToolCallResult } from './useMcpClient';
 import type { AiPlugin, PluginContext } from './usePluginRegistry';
 
-function makeFakeClient(
-  tools: McpTool[],
-  callResults: Record<string, McpToolCallResult> = {},
-) {
+function makeFakeClient(tools: McpTool[], callResults: Record<string, McpToolCallResult> = {}) {
   return {
     listTools: vi.fn(async () => tools),
     callTool: vi.fn(async (name: string) => callResults[name] ?? { content: [] }),
@@ -26,7 +23,9 @@ function makeFakeRegistry() {
   };
 }
 
-function makeFakeCtx(input = ''): PluginContext & { added: Array<{ role: string; content: string }> } {
+function makeFakeCtx(
+  input = '',
+): PluginContext & { added: Array<{ role: string; content: string }> } {
   const added: Array<{ role: string; content: string }> = [];
   return {
     input,
@@ -43,18 +42,12 @@ describe('useMcpAutoPlugin', () => {
   });
 
   it('syncOnce registers a plugin per tool with the default prefix', async () => {
-    const client = makeFakeClient([
-      { name: 'translate' },
-      { name: 'summarize' },
-    ]);
+    const client = makeFakeClient([{ name: 'translate' }, { name: 'summarize' }]);
     const registry = makeFakeRegistry();
     const auto = useMcpAutoPlugin({ client, registry });
     await auto.syncOnce();
     expect(registry.registerPlugin).toHaveBeenCalledTimes(2);
-    expect(Array.from(registry.registered.keys())).toEqual([
-      'mcp:translate',
-      'mcp:summarize',
-    ]);
+    expect(Array.from(registry.registered.keys())).toEqual(['mcp:translate', 'mcp:summarize']);
     expect(auto.registeredCount.value).toBe(2);
   });
 
@@ -86,18 +79,15 @@ describe('useMcpAutoPlugin', () => {
   });
 
   it('plugin action calls the tool and writes the merged text via onToolResult default', async () => {
-    const client = makeFakeClient(
-      [{ name: 'echo' }],
-      {
-        echo: {
-          content: [
-            { type: 'text', text: 'line 1' },
-            { type: 'text', text: 'line 2' },
-            { type: 'image' },
-          ],
-        },
+    const client = makeFakeClient([{ name: 'echo' }], {
+      echo: {
+        content: [
+          { type: 'text', text: 'line 1' },
+          { type: 'text', text: 'line 2' },
+          { type: 'image' },
+        ],
       },
-    );
+    });
     const registry = makeFakeRegistry();
     const auto = useMcpAutoPlugin({ client, registry });
     await auto.syncOnce();
@@ -105,18 +95,15 @@ describe('useMcpAutoPlugin', () => {
     const ctx = makeFakeCtx('hello');
     await plugin.action(ctx);
     expect(client.callTool).toHaveBeenCalledWith('echo', { input: 'hello' });
-    expect(ctx.added).toEqual([
-      { role: 'assistant', content: expect.stringContaining('echo') },
-    ]);
+    expect(ctx.added).toEqual([{ role: 'assistant', content: expect.stringContaining('echo') }]);
     expect(ctx.added[0].content).toContain('line 1');
     expect(ctx.added[0].content).toContain('line 2');
   });
 
   it('custom buildArgs and onToolResult override defaults', async () => {
-    const client = makeFakeClient(
-      [{ name: 'sum' }],
-      { sum: { content: [{ type: 'text', text: '42' }] } },
-    );
+    const client = makeFakeClient([{ name: 'sum' }], {
+      sum: { content: [{ type: 'text', text: '42' }] },
+    });
     const registry = makeFakeRegistry();
     const onToolResult = vi.fn();
     const auto = useMcpAutoPlugin({
@@ -137,10 +124,9 @@ describe('useMcpAutoPlugin', () => {
   });
 
   it('isError response triggers onError instead of onToolResult', async () => {
-    const client = makeFakeClient(
-      [{ name: 'fail' }],
-      { fail: { content: [{ type: 'text', text: 'should not show' }], isError: true } },
-    );
+    const client = makeFakeClient([{ name: 'fail' }], {
+      fail: { content: [{ type: 'text', text: 'should not show' }], isError: true },
+    });
     const registry = makeFakeRegistry();
     const onError = vi.fn();
     const onToolResult = vi.fn();

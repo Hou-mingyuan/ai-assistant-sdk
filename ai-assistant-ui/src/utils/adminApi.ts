@@ -139,7 +139,11 @@ function buildAdminHeaders(token: string | undefined, json: boolean): Record<str
   return headers;
 }
 
-function adminUrl(baseUrl: string, path: string, query?: Record<string, string | undefined>): string {
+function adminUrl(
+  baseUrl: string,
+  path: string,
+  query?: Record<string, string | undefined>,
+): string {
   const root = baseUrl.replace(/\/+$/, '');
   let url = `${root}${ADMIN_PATH_PREFIX}${path}`;
   if (query) {

@@ -73,7 +73,7 @@
     0 0 0 1px rgba(14, 165, 233, 0.12);
 }
 
-[data-theme="dark"] .ai-msg.ai-msg-assistant .ai-bubble:hover {
+[data-theme='dark'] .ai-msg.ai-msg-assistant .ai-bubble:hover {
   box-shadow:
     0 4px 16px -4px rgba(56, 189, 248, 0.22),
     0 0 0 1px rgba(56, 189, 248, 0.18);
@@ -86,7 +86,8 @@
  * ============================================================================
  */
 @keyframes ai-thinking-breath {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.85;
     background-position: 0% 50%;
   }
@@ -115,7 +116,8 @@
  * ============================================================================
  */
 @keyframes ai-cursor-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scaleY(1);
   }
@@ -127,7 +129,7 @@
 
 .ai-msg.ai-msg-assistant.ai-streaming .ai-md > :last-child::after,
 .ai-msg.ai-msg-assistant.ai-streaming .ai-bubble:last-child::after {
-  content: "";
+  content: '';
   display: inline-block;
   width: 6px;
   height: 1.05em;
@@ -146,7 +148,8 @@
  * ============================================================================
  */
 @keyframes ai-fab-idle-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 8px 24px -6px rgba(14, 165, 233, 0.42),
       0 0 0 0 rgba(14, 165, 233, 0.18);
@@ -154,7 +157,7 @@
   50% {
     box-shadow:
       0 8px 24px -4px rgba(14, 165, 233, 0.52),
-      0 0 0 8px rgba(14, 165, 233, 0.0);
+      0 0 0 8px rgba(14, 165, 233, 0);
   }
 }
 
@@ -175,7 +178,7 @@
 
 /* Ripple 效果通过伪元素模拟（不需要 JS） */
 .ai-fab::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: -4px;
   border-radius: 50%;
@@ -203,11 +206,7 @@
  */
 .ai-empty,
 .ai-empty-state {
-  background: linear-gradient(
-    180deg,
-    rgba(14, 165, 233, 0.04) 0%,
-    transparent 50%
-  );
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.04) 0%, transparent 50%);
 }
 
 .ai-empty h3,
@@ -261,7 +260,7 @@
 }
 
 .ai-avatar.ai-avatar-assistant::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -3px;
   border-radius: 50%;
@@ -356,8 +355,8 @@
   background: rgba(14, 165, 233, 0.45);
 }
 
-[data-theme="dark"] .ai-body::-webkit-scrollbar-thumb,
-[data-theme="dark"] .ai-messages::-webkit-scrollbar-thumb {
+[data-theme='dark'] .ai-body::-webkit-scrollbar-thumb,
+[data-theme='dark'] .ai-messages::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.32);
 }
 
@@ -395,13 +394,13 @@
  */
 .ai-settings-btn,
 .ai-gear-btn,
-[data-icon="settings"] {
+[data-icon='settings'] {
   transition: transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
 .ai-settings-btn:hover svg,
 .ai-gear-btn:hover svg,
-[data-icon="settings"]:hover svg {
+[data-icon='settings']:hover svg {
   transform: rotate(28deg);
   transition: transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
@@ -428,15 +427,19 @@
 
 .ai-mode-bar button.active,
 .ai-quick-actions button.active {
-  background-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    transparent 35%,
-    rgba(255, 255, 255, 0.22) 50%,
-    transparent 65%,
-    transparent 100%
-  ), linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
-  background-size: 200% 100%, 100% 100%;
+  background-image:
+    linear-gradient(
+      100deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 65%,
+      transparent 100%
+    ),
+    linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
+  background-size:
+    200% 100%,
+    100% 100%;
   background-repeat: no-repeat, no-repeat;
   animation: ai-mode-shimmer 4.5s ease-in-out infinite;
 }
@@ -466,7 +469,8 @@
     opacity: 0;
     transform: translateY(6px) scale(0.9);
   }
-  20%, 80% {
+  20%,
+  80% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -477,7 +481,7 @@
 }
 
 .ai-copy-btn.ai-copied::after {
-  content: "✓ Copied";
+  content: '✓ Copied';
   position: absolute;
   top: -28px;
   right: 0;

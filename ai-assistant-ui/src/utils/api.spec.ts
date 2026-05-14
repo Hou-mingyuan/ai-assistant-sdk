@@ -410,10 +410,11 @@ describe('fetchPromptTemplates', () => {
   it('parses a flat array of templates from the server', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve([
-        { name: 'translate', template: 'Translate: {{text}}', hasFewShot: false },
-        { name: 'summarize', template: 'Summarize: {{text}}', hasFewShot: true },
-      ]),
+      json: () =>
+        Promise.resolve([
+          { name: 'translate', template: 'Translate: {{text}}', hasFewShot: false },
+          { name: 'summarize', template: 'Summarize: {{text}}', hasFewShot: true },
+        ]),
     });
     const r = await fetchPromptTemplates('/ai', 'tk');
     expect(r.success).toBe(true);
@@ -445,13 +446,14 @@ describe('fetchPromptTemplates', () => {
   it('skips malformed entries (missing name or template)', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve([
-        { name: 'ok', template: 'fine' },
-        { name: 'no-tpl' },
-        { template: 'no-name' },
-        null,
-        { name: 'good2', template: 't' },
-      ]),
+      json: () =>
+        Promise.resolve([
+          { name: 'ok', template: 'fine' },
+          { name: 'no-tpl' },
+          { template: 'no-name' },
+          null,
+          { name: 'good2', template: 't' },
+        ]),
     });
     const r = await fetchPromptTemplates('/ai');
     expect(r.success).toBe(true);

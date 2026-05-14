@@ -54,12 +54,14 @@ export function useRafBatch<TArgs extends unknown[]>(
   const raf =
     (globalThis as unknown as { requestAnimationFrame?: typeof requestAnimationFrame })
       .requestAnimationFrame ??
-    ((fn: FrameRequestCallback) => globalThis.setTimeout(() => fn(performance.now()), 16) as unknown as number);
+    ((fn: FrameRequestCallback) =>
+      globalThis.setTimeout(() => fn(performance.now()), 16) as unknown as number);
 
   const cancelRaf =
     (globalThis as unknown as { cancelAnimationFrame?: typeof cancelAnimationFrame })
       .cancelAnimationFrame ??
-    ((handle: number) => globalThis.clearTimeout(handle as unknown as ReturnType<typeof setTimeout>));
+    ((handle: number) =>
+      globalThis.clearTimeout(handle as unknown as ReturnType<typeof setTimeout>));
 
   const wrapped = ((...args: TArgs) => {
     if (disposed) return;

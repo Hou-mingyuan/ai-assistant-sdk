@@ -13,7 +13,11 @@
     </div>
     <!-- Slash command popup -->
     <Transition name="ai-slash-fade">
-      <div v-if="slashVisible && (slashCommands?.length ?? 0) > 0" class="ai-slash-popup" role="listbox">
+      <div
+        v-if="slashVisible && (slashCommands?.length ?? 0) > 0"
+        class="ai-slash-popup"
+        role="listbox"
+      >
         <button
           v-for="(cmd, ci) in slashCommands"
           :key="cmd.name"
@@ -25,7 +29,14 @@
           @pointerenter="$emit('slashHover', ci)"
           @click="$emit('slashSelect', ci)"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="ai-slash-icon">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            class="ai-slash-icon"
+          >
             <path :d="cmd.icon" />
           </svg>
           <span class="ai-slash-name">{{ cmd.name }}</span>
@@ -48,7 +59,9 @@
         @click="fileInputRef?.click()"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z" />
+          <path
+            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"
+          />
         </svg>
         {{ t.uploadFile }}
       </button>
@@ -71,23 +84,60 @@
       </select>
     </div>
     <div class="ai-md-toolbar">
-      <button type="button" class="ai-md-btn" title="Bold (Ctrl+B)" @click="wrapSelection('**','**')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+      <button
+        type="button"
+        class="ai-md-btn"
+        title="Bold (Ctrl+B)"
+        @click="wrapSelection('**', '**')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
+          />
+        </svg>
       </button>
-      <button type="button" class="ai-md-btn" title="Italic (Ctrl+I)" @click="wrapSelection('*','*')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+      <button
+        type="button"
+        class="ai-md-btn"
+        title="Italic (Ctrl+I)"
+        @click="wrapSelection('*', '*')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z" />
+        </svg>
       </button>
-      <button type="button" class="ai-md-btn" title="Code" @click="wrapSelection('`','`')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+      <button type="button" class="ai-md-btn" title="Code" @click="wrapSelection('`', '`')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
+          />
+        </svg>
       </button>
-      <button type="button" class="ai-md-btn" title="Code block" @click="wrapSelection('\n```\n','\n```\n')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-8-8l-4 4h3v2h2v-2h3l-4-4z"/></svg>
+      <button
+        type="button"
+        class="ai-md-btn"
+        title="Code block"
+        @click="wrapSelection('\n```\n', '\n```\n')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-8-8l-4 4h3v2h2v-2h3l-4-4z"
+          />
+        </svg>
       </button>
       <button type="button" class="ai-md-btn" title="Link" @click="insertLink">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
+          />
+        </svg>
       </button>
       <button type="button" class="ai-md-btn" title="List" @click="insertPrefix('- ')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
+          />
+        </svg>
       </button>
     </div>
     <div class="ai-footer-input-row">
@@ -105,7 +155,8 @@
         v-if="charCountLabel"
         class="ai-char-counter"
         :class="{ 'ai-char-counter-warn': charCountNearLimit }"
-      >{{ charCountLabel }}</span>
+        >{{ charCountLabel }}</span
+      >
       <div class="ai-footer-send-group">
         <slot name="footer-plugins" />
         <input
@@ -126,7 +177,9 @@
           @click="chatImageInputRef?.click()"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+            <path
+              d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+            />
           </svg>
         </button>
         <button
@@ -141,8 +194,12 @@
           @click="$emit('toggleVoice')"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/>
-            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            <path
+              d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"
+            />
+            <path
+              d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+            />
           </svg>
         </button>
         <button
@@ -176,7 +233,9 @@
           :class="{ active: mode === 'chat' }"
           :aria-selected="mode === 'chat' ? 'true' : 'false'"
           @click="$emit('changeMode', 'chat')"
-        >{{ t.chat }}</button>
+        >
+          {{ t.chat }}
+        </button>
         <button
           type="button"
           role="tab"
@@ -184,7 +243,9 @@
           :class="{ active: mode === 'translate' }"
           :aria-selected="mode === 'translate' ? 'true' : 'false'"
           @click="$emit('changeMode', 'translate')"
-        >{{ t.translate }}</button>
+        >
+          {{ t.translate }}
+        </button>
         <button
           type="button"
           role="tab"
@@ -192,7 +253,9 @@
           :class="{ active: mode === 'summarize' }"
           :aria-selected="mode === 'summarize' ? 'true' : 'false'"
           @click="$emit('changeMode', 'summarize')"
-        >{{ t.summarize }}</button>
+        >
+          {{ t.summarize }}
+        </button>
       </div>
       <select
         v-if="showModelPicker && hasBaseUrl"
@@ -215,19 +278,25 @@
         type="button"
         class="ai-page-context-badge"
         :class="{ 'ai-page-context-badge-off': !pageContextEnabled }"
-        :title="pageContextEnabled
-          ? (t.pageContextOnTooltip || 'Page context will be attached to your next message')
-          : (t.pageContextOffTooltip || 'Page context attachment is disabled')"
+        :title="
+          pageContextEnabled
+            ? t.pageContextOnTooltip || 'Page context will be attached to your next message'
+            : t.pageContextOffTooltip || 'Page context attachment is disabled'
+        "
         :aria-pressed="pageContextEnabled ? 'true' : 'false'"
         @click="$emit('togglePageContext')"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
+          <path
+            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+          />
         </svg>
         <span class="ai-page-context-badge-label">
-          {{ pageContextEnabled
-            ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
-            : (t.pageContextOff || 'Context off') }}
+          {{
+            pageContextEnabled
+              ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
+              : t.pageContextOff || 'Context off'
+          }}
         </span>
       </button>
       <slot name="model-row-actions" />
@@ -358,18 +427,36 @@ function onTextareaInput(event: Event) {
 
 function onTextareaKeydown(e: KeyboardEvent) {
   if (props.slashVisible && props.slashCommands && props.slashCommands.length > 0) {
-    if (['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key) ||
-        (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey)) {
+    if (
+      ['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key) ||
+      (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey)
+    ) {
       e.preventDefault();
       emit('slashKeydown', e);
       return;
     }
   }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
-    if (e.key === 'b') { e.preventDefault(); wrapSelection('**', '**'); return; }
-    if (e.key === 'i') { e.preventDefault(); wrapSelection('*', '*'); return; }
-    if (e.key === 'e') { e.preventDefault(); wrapSelection('`', '`'); return; }
-    if (e.key === 'k') { e.preventDefault(); insertLink(); return; }
+    if (e.key === 'b') {
+      e.preventDefault();
+      wrapSelection('**', '**');
+      return;
+    }
+    if (e.key === 'i') {
+      e.preventDefault();
+      wrapSelection('*', '*');
+      return;
+    }
+    if (e.key === 'e') {
+      e.preventDefault();
+      wrapSelection('`', '`');
+      return;
+    }
+    if (e.key === 'k') {
+      e.preventDefault();
+      insertLink();
+      return;
+    }
   }
   if (e.key !== 'Enter') return;
   if (props.ctrlEnterToSend) {

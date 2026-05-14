@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ref } from 'vue';
-import {
-  usePromptTemplateLibrary,
-  renderPromptTemplate,
-} from './usePromptTemplateLibrary';
+import { usePromptTemplateLibrary, renderPromptTemplate } from './usePromptTemplateLibrary';
 
 const KEY = 'ai-test-prompt-tpls';
 
@@ -14,11 +11,7 @@ describe('renderPromptTemplate', () => {
   });
 
   it('falls back to variable default when value is missing', () => {
-    const out = renderPromptTemplate(
-      'Role: {{role}}',
-      {},
-      [{ name: 'role', default: 'engineer' }],
-    );
+    const out = renderPromptTemplate('Role: {{role}}', {}, [{ name: 'role', default: 'engineer' }]);
     expect(out).toBe('Role: engineer');
   });
 
@@ -54,9 +47,7 @@ describe('usePromptTemplateLibrary', () => {
   });
 
   it('merges preset templates ahead of user templates with source tagging', () => {
-    const preset = ref([
-      { id: 'p1', label: 'Preset One', template: 'A' },
-    ]);
+    const preset = ref([{ id: 'p1', label: 'Preset One', template: 'A' }]);
     const lib = usePromptTemplateLibrary({ storageKey: KEY, presetTemplates: preset });
     lib.addTemplate({ label: 'Mine', template: 'M' });
     const merged = lib.mergedTemplates.value;

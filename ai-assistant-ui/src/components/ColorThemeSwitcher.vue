@@ -130,7 +130,9 @@ defineExpose({ themes });
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-theme-swatch-label { color: #94a3b8; }
+  .ai-theme-swatch-label {
+    color: #94a3b8;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

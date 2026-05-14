@@ -30,15 +30,23 @@
 .ai-assistant-wrapper,
 .ai-panel {
   font-family:
-    "Inter", "SF Pro Text", "Segoe UI Variable Display", "Segoe UI",
-    -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    'Inter',
+    'SF Pro Text',
+    'Segoe UI Variable Display',
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    'Noto Sans CJK SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
   font-feature-settings:
-    "cv11" on,        /* alternate single-storey a */
-    "ss01" on,        /* upright dollar */
-    "calt" on,        /* contextual alternates */
-    "kern" on,        /* kerning */
-    "liga" on;        /* common ligatures */
+    'cv11' on,
+    /* alternate single-storey a */ 'ss01' on,
+    /* upright dollar */ 'calt' on,
+    /* contextual alternates */ 'kern' on,
+    /* kerning */ 'liga' on; /* common ligatures */
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -84,18 +92,22 @@
   --ai-shadow-md: 0 2px 4px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
   --ai-shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
   --ai-shadow-xl: 0 6px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.1);
-  --ai-shadow-glow-sky: 0 0 0 1px rgba(14, 165, 233, 0.16), 0 4px 12px -4px rgba(14, 165, 233, 0.32);
-  --ai-shadow-glow-sky-strong: 0 0 0 1px rgba(14, 165, 233, 0.28), 0 8px 20px -6px rgba(14, 165, 233, 0.42);
+  --ai-shadow-glow-sky:
+    0 0 0 1px rgba(14, 165, 233, 0.16), 0 4px 12px -4px rgba(14, 165, 233, 0.32);
+  --ai-shadow-glow-sky-strong:
+    0 0 0 1px rgba(14, 165, 233, 0.28), 0 8px 20px -6px rgba(14, 165, 233, 0.42);
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --ai-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
   --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 1px 4px rgba(0, 0, 0, 0.18);
   --ai-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.22);
   --ai-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.32), 0 8px 24px rgba(0, 0, 0, 0.28);
   --ai-shadow-xl: 0 6px 12px rgba(0, 0, 0, 0.36), 0 12px 32px rgba(0, 0, 0, 0.32);
-  --ai-shadow-glow-sky: 0 0 0 1px rgba(56, 189, 248, 0.22), 0 4px 12px -4px rgba(56, 189, 248, 0.36);
-  --ai-shadow-glow-sky-strong: 0 0 0 1px rgba(56, 189, 248, 0.34), 0 8px 20px -6px rgba(56, 189, 248, 0.46);
+  --ai-shadow-glow-sky:
+    0 0 0 1px rgba(56, 189, 248, 0.22), 0 4px 12px -4px rgba(56, 189, 248, 0.36);
+  --ai-shadow-glow-sky-strong:
+    0 0 0 1px rgba(56, 189, 248, 0.34), 0 8px 20px -6px rgba(56, 189, 248, 0.46);
 }
 
 /* ============================================================================
@@ -217,7 +229,7 @@
   background-color: #ffffff;
 }
 
-[data-theme="dark"] .ai-panel {
+[data-theme='dark'] .ai-panel {
   background-color: #0f172a;
 }
 
@@ -226,7 +238,7 @@
   box-shadow: var(--ai-shadow-xs);
 }
 
-[data-theme="dark"] .ai-bubble {
+[data-theme='dark'] .ai-bubble {
   background-color: #1e293b;
 }
 
@@ -234,7 +246,7 @@
   background-color: #f1f5f9;
 }
 
-[data-theme="dark"] .ai-msg-user .ai-bubble {
+[data-theme='dark'] .ai-msg-user .ai-bubble {
   background-color: #1e293b;
 }
 
@@ -311,8 +323,8 @@
   gap: 8px;
 }
 
-[data-theme="dark"] .ai-chat-input,
-[data-theme="dark"] .ai-input-area {
+[data-theme='dark'] .ai-chat-input,
+[data-theme='dark'] .ai-input-area {
   background: #0f172a;
   border-top-color: #1e293b;
 }
@@ -328,8 +340,8 @@
   background: #f8fafc;
 }
 
-[data-theme="dark"] .ai-input-area textarea,
-[data-theme="dark"] .ai-chat-input textarea {
+[data-theme='dark'] .ai-input-area textarea,
+[data-theme='dark'] .ai-chat-input textarea {
   background: #1e293b;
   border-color: #334155;
   color: #f1f5f9;
@@ -350,8 +362,8 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-[data-theme="dark"] .ai-panel-head,
-[data-theme="dark"] .ai-header {
+[data-theme='dark'] .ai-panel-head,
+[data-theme='dark'] .ai-header {
   border-bottom-color: #1e293b;
 }
 
@@ -416,9 +428,9 @@
   color: #0f172a;
 }
 
-[data-theme="dark"] .ai-panel,
-[data-theme="dark"] .ai-body,
-[data-theme="dark"] .ai-messages {
+[data-theme='dark'] .ai-panel,
+[data-theme='dark'] .ai-body,
+[data-theme='dark'] .ai-messages {
   color: #e2e8f0;
 }
 
@@ -431,10 +443,10 @@
   font-size: 12px;
 }
 
-[data-theme="dark"] .ai-msg-time,
-[data-theme="dark"] .ai-secondary-text,
-[data-theme="dark"] .ai-hint,
-[data-theme="dark"] .ai-msg-meta {
+[data-theme='dark'] .ai-msg-time,
+[data-theme='dark'] .ai-secondary-text,
+[data-theme='dark'] .ai-hint,
+[data-theme='dark'] .ai-msg-meta {
   color: #94a3b8;
 }
 
@@ -539,8 +551,8 @@
   transition: all 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-[data-theme="dark"] .ai-empty .ai-starter,
-[data-theme="dark"] .ai-suggestion-chip {
+[data-theme='dark'] .ai-empty .ai-starter,
+[data-theme='dark'] .ai-suggestion-chip {
   background: #1e293b;
   border-color: #334155;
   color: #cbd5e1;

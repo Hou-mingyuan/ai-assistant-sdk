@@ -12,7 +12,13 @@ export interface UseCommandPaletteOptions {
 
 const DEFAULT_SHORTCUT = navigator.platform.toLowerCase().includes('mac') ? 'Meta+K' : 'Ctrl+K';
 
-function parseShortcut(s: string): { key: string; ctrl: boolean; meta: boolean; shift: boolean; alt: boolean } {
+function parseShortcut(s: string): {
+  key: string;
+  ctrl: boolean;
+  meta: boolean;
+  shift: boolean;
+  alt: boolean;
+} {
   const parts = s.split('+').map((p) => p.trim().toLowerCase());
   return {
     key: parts[parts.length - 1] ?? '',
@@ -37,7 +43,7 @@ export function useCommandPalette(opts: UseCommandPaletteOptions = {}) {
   const open = ref(false);
   const commands = ref<CommandItem[]>([...(opts.commands ?? [])]);
 
-  const shortcutStr = opts.shortcut === false ? null : opts.shortcut ?? DEFAULT_SHORTCUT;
+  const shortcutStr = opts.shortcut === false ? null : (opts.shortcut ?? DEFAULT_SHORTCUT);
   const sc = shortcutStr ? parseShortcut(shortcutStr) : null;
 
   function toggle() {

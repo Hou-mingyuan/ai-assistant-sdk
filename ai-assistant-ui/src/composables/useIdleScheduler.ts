@@ -73,10 +73,7 @@ export function useIdleScheduler() {
   let nextId = 1;
   const pending = new Map<number, IdleTask>();
 
-  function schedule(
-    fn: (deadline: IdleDeadline) => void,
-    opts: IdleScheduleOptions = {},
-  ): number {
+  function schedule(fn: (deadline: IdleDeadline) => void, opts: IdleScheduleOptions = {}): number {
     const id = nextId++;
     const task: IdleTask = {
       id,

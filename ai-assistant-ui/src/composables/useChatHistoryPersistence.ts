@@ -28,7 +28,9 @@ export function isAbortCancellationMessage(message: string): boolean {
   );
 }
 
-export function pruneTransientAssistantMessages<T extends PersistableChatMessage>(messages: T[]): T[] {
+export function pruneTransientAssistantMessages<T extends PersistableChatMessage>(
+  messages: T[],
+): T[] {
   return messages.filter(
     (msg) => !(msg.role === 'assistant' && isAbortCancellationMessage(msg.content)),
   );
@@ -65,7 +67,9 @@ export function useChatHistoryPersistence(
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify(pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES)),
+          JSON.stringify(
+            pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES),
+          ),
         );
       } catch {
         /* ignore quota / private mode */
@@ -82,7 +86,9 @@ export function useChatHistoryPersistence(
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify(pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES)),
+        JSON.stringify(
+          pruneTransientAssistantMessages(messages.value).slice(-MAX_PERSISTED_MESSAGES),
+        ),
       );
     } catch {
       /* ignore */

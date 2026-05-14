@@ -3,12 +3,14 @@ import { ref } from 'vue';
 import { useChatOrchestrator } from './useChatOrchestrator';
 import type { Message } from '../types/message';
 
-function setup(overrides: {
-  messages?: Message[];
-  loading?: boolean;
-  controller?: AbortController | null;
-  errorPrefixes?: readonly string[];
-} = {}) {
+function setup(
+  overrides: {
+    messages?: Message[];
+    loading?: boolean;
+    controller?: AbortController | null;
+    errorPrefixes?: readonly string[];
+  } = {},
+) {
   const messages = ref<Message[]>(overrides.messages ?? []);
   const loading = ref<boolean>(overrides.loading ?? false);
   const input = ref('');
@@ -73,21 +75,33 @@ describe('useChatOrchestrator', () => {
   describe('isErrorMessage', () => {
     it('matches default English / Chinese / Japanese / Korean prefixes', () => {
       const { orchestrator } = setup();
-      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'Error: timeout' })).toBe(true);
+      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'Error: timeout' })).toBe(
+        true,
+      );
       expect(orchestrator.isErrorMessage({ role: 'assistant', content: '错误: 超时' })).toBe(true);
-      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'エラー: timeout' })).toBe(true);
-      expect(orchestrator.isErrorMessage({ role: 'assistant', content: '오류: timeout' })).toBe(true);
+      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'エラー: timeout' })).toBe(
+        true,
+      );
+      expect(orchestrator.isErrorMessage({ role: 'assistant', content: '오류: timeout' })).toBe(
+        true,
+      );
     });
 
     it('returns false for non-error assistant messages and any user message', () => {
       const { orchestrator } = setup();
-      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'normal reply' })).toBe(false);
-      expect(orchestrator.isErrorMessage({ role: 'user', content: 'Error: looks like one' })).toBe(false);
+      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'normal reply' })).toBe(
+        false,
+      );
+      expect(orchestrator.isErrorMessage({ role: 'user', content: 'Error: looks like one' })).toBe(
+        false,
+      );
     });
 
     it('honors a custom error-prefix list', () => {
       const { orchestrator } = setup({ errorPrefixes: ['Boom!'] });
-      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'Boom! something' })).toBe(true);
+      expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'Boom! something' })).toBe(
+        true,
+      );
       expect(orchestrator.isErrorMessage({ role: 'assistant', content: 'Error: x' })).toBe(false);
     });
   });

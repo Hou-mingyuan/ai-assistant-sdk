@@ -90,7 +90,12 @@ function toolbarHtml(
 /** F4: 行数 ≥ 此值时默认显示折叠按钮（折叠展开是用户的事，默认仍展开） */
 const FOLDABLE_LINE_THRESHOLD = 20;
 
-function wrapPreBlocks(html: string, copyLabel: string, showIde: boolean, foldLabel: string): string {
+function wrapPreBlocks(
+  html: string,
+  copyLabel: string,
+  showIde: boolean,
+  foldLabel: string,
+): string {
   return html.replace(/<pre(\s[^>]*)?>([\s\S]*?)<\/pre>/gi, (_full, attrs, inner) => {
     const a = attrs ?? '';
     const lineCount = (inner.match(/\n/g)?.length ?? 0) + 1;

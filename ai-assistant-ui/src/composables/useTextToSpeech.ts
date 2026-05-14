@@ -79,7 +79,8 @@ export function useTextToSpeech() {
   const supported = computed(() => {
     if (typeof window === 'undefined') return false;
     const synth = (window as unknown as { speechSynthesis?: unknown }).speechSynthesis;
-    const ctor = (window as unknown as { SpeechSynthesisUtterance?: unknown }).SpeechSynthesisUtterance;
+    const ctor = (window as unknown as { SpeechSynthesisUtterance?: unknown })
+      .SpeechSynthesisUtterance;
     return synth != null && typeof ctor === 'function';
   });
   const speaking = ref(false);
@@ -180,7 +181,11 @@ export function useTextToSpeech() {
    * - 未在朗读 / 朗读其它条 → 朗读这条
    * - 正在朗读这条        → 停止
    */
-  function toggleMessage(text: string, messageIndex: number, opts: Omit<TtsSpeakOptions, 'messageIndex'> = {}) {
+  function toggleMessage(
+    text: string,
+    messageIndex: number,
+    opts: Omit<TtsSpeakOptions, 'messageIndex'> = {},
+  ) {
     if (speaking.value && currentMessageIndex.value === messageIndex) {
       stop();
     } else {

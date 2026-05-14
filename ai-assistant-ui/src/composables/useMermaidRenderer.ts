@@ -50,7 +50,8 @@ function loadMermaid(): Promise<MermaidLib | null> {
   mermaidPromise = (async () => {
     try {
       const mod = await import(/* @vite-ignore */ MERMAID_PKG);
-      const lib: MermaidLib = (mod as { default?: MermaidLib }).default ?? (mod as unknown as MermaidLib);
+      const lib: MermaidLib =
+        (mod as { default?: MermaidLib }).default ?? (mod as unknown as MermaidLib);
       if (!lib?.render || !lib?.initialize) return null;
       lib.initialize({
         startOnLoad: false,
@@ -73,7 +74,10 @@ export interface MermaidRenderOptions {
 }
 
 export function useMermaidRenderer() {
-  async function renderInside(root: HTMLElement | null | undefined, opts: MermaidRenderOptions = {}) {
+  async function renderInside(
+    root: HTMLElement | null | undefined,
+    opts: MermaidRenderOptions = {},
+  ) {
     if (!root) return;
     const placeholders = root.querySelectorAll<HTMLElement>('.ai-mermaid-placeholder');
     if (placeholders.length === 0) return;

@@ -164,9 +164,15 @@
   animation: ai-upload-slide 1.2s ease-in-out infinite;
 }
 @keyframes ai-upload-slide {
-  0%   { transform: translateX(-100%); }
-  50%  { transform: translateX(150%); }
-  100% { transform: translateX(350%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
 }
 
 .ai-drop-overlay-inner {
@@ -255,7 +261,9 @@
   color: #ef4444;
   font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .ai-retry-btn:hover {
   background: #fef2f2;
@@ -284,7 +292,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   flex-shrink: 0;
 }
 .ai-ctrl-enter-toggle:hover {
@@ -444,7 +454,11 @@
   cursor: pointer;
   white-space: nowrap;
   max-width: 120px;
-  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
 }
 .ai-assistant-wrapper.ai-dark .ai-session-tab {
   border: 1px solid transparent;

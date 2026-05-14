@@ -73,7 +73,10 @@
   font-size: 22px;
   cursor: pointer;
   border-radius: 8px;
-  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    opacity 0.15s;
   line-height: 1;
 }
 .ai-close:hover {
@@ -195,7 +198,9 @@
   animation: ai-msg-enter 0.25s ease both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ai-msg { animation: none; }
+  .ai-msg {
+    animation: none;
+  }
 }
 @keyframes ai-msg-enter {
   from {
@@ -230,7 +235,11 @@
   border-radius: 12px;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.9), transparent 18%),
-    radial-gradient(circle at 50% 72%, color-mix(in srgb, var(--primary, #6366f1) 18%, transparent), transparent 58%),
+    radial-gradient(
+      circle at 50% 72%,
+      color-mix(in srgb, var(--primary, #6366f1) 18%, transparent),
+      transparent 58%
+    ),
     linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(226, 232, 240, 0.9));
   color: color-mix(in srgb, var(--primary, #6366f1) 72%, #0f172a);
   box-shadow:

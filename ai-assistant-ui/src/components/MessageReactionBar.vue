@@ -46,8 +46,8 @@ const emit = defineEmits<{
   (e: 'reaction', payload: { messageId: string; emoji: string; toggled: boolean }): void;
 }>();
 
-const hasReactions = computed(() =>
-  Object.values(props.counts).some((c) => c > 0) || !!props.selected,
+const hasReactions = computed(
+  () => Object.values(props.counts).some((c) => c > 0) || !!props.selected,
 );
 
 function onClick(emoji: string) {
@@ -68,7 +68,9 @@ function onClick(emoji: string) {
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
   opacity: 0;
   transform: translateY(2px);
-  transition: opacity 160ms ease, transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  transition:
+    opacity 160ms ease,
+    transform 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
 .ai-reaction-bar.has-reactions,
@@ -102,7 +104,7 @@ function onClick(emoji: string) {
 }
 
 .ai-reaction-btn:hover {
-  background: rgba(14, 165, 233, 0.10);
+  background: rgba(14, 165, 233, 0.1);
   transform: scale(1.1);
 }
 
@@ -115,7 +117,7 @@ function onClick(emoji: string) {
 }
 
 .ai-reaction-emoji {
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
 .ai-reaction-count {

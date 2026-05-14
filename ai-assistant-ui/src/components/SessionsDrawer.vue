@@ -60,11 +60,14 @@
                   @click="onPick(s.id)"
                 >
                   <span class="ai-sessions-drawer-item-title">
-                    <span v-if="s.pinned" class="ai-sessions-drawer-item-pin" aria-label="pinned">★</span>
-                    {{ s.title || (t.newSession || 'New chat') }}
+                    <span v-if="s.pinned" class="ai-sessions-drawer-item-pin" aria-label="pinned"
+                      >★</span
+                    >
+                    {{ s.title || t.newSession || 'New chat' }}
                   </span>
                   <span class="ai-sessions-drawer-item-meta">
-                    {{ formatTime(s.createdAt) }} · {{ s.messages.length }} {{ t.sessionsDrawerMsgUnit || 'msgs' }}
+                    {{ formatTime(s.createdAt) }} · {{ s.messages.length }}
+                    {{ t.sessionsDrawerMsgUnit || 'msgs' }}
                   </span>
                 </button>
                 <form
@@ -92,21 +95,27 @@
                     :aria-label="t.sessionsDrawerPin || 'Pin'"
                     :aria-pressed="s.pinned ? 'true' : 'false'"
                     @click.stop="$emit('toggle-pin', s.id)"
-                  >★</button>
+                  >
+                    ★
+                  </button>
                   <button
                     type="button"
                     class="ai-sessions-drawer-item-act"
                     :title="t.sessionsDrawerRename || 'Rename'"
                     :aria-label="t.sessionsDrawerRename || 'Rename'"
                     @click.stop="startRename(s)"
-                  >✎</button>
+                  >
+                    ✎
+                  </button>
                   <button
                     v-if="sessions.length > 1"
                     type="button"
                     class="ai-sessions-drawer-item-act ai-sessions-drawer-item-delete"
                     :aria-label="t.closeSession || 'Delete'"
                     @click.stop="$emit('delete', s.id)"
-                  >&times;</button>
+                  >
+                    &times;
+                  </button>
                 </div>
               </div>
             </div>
@@ -184,9 +193,10 @@ interface SessionGroup {
 const grouped = computed<SessionGroup[]>(() => {
   const q = filterText.value.trim().toLowerCase();
   const filtered = q
-    ? props.sessions.filter((s) =>
-        (s.title || '').toLowerCase().includes(q)
-        || s.messages.some((m) => (m.content || '').toLowerCase().includes(q)),
+    ? props.sessions.filter(
+        (s) =>
+          (s.title || '').toLowerCase().includes(q) ||
+          s.messages.some((m) => (m.content || '').toLowerCase().includes(q)),
       )
     : props.sessions.slice();
   filtered.sort((a, b) => b.createdAt - a.createdAt);

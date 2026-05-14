@@ -3,22 +3,21 @@ import { ref } from 'vue';
 
 vi.mock('../utils/api', () => {
   const streamMocks = new Map<string, () => AsyncGenerator<string>>();
-  const streamChat = vi.fn(
-    async function* (
-      _baseUrl: string,
-      payload: { model?: string },
-      _token?: string,
-      _signal?: AbortSignal,
-    ): AsyncGenerator<string> {
-      const generator = streamMocks.get(payload.model ?? '');
-      if (!generator) throw new Error(`No mock for model ${payload.model}`);
-      const it = generator();
-      for await (const chunk of it) yield chunk;
-    },
-  );
+  const streamChat = vi.fn(async function* (
+    _baseUrl: string,
+    payload: { model?: string },
+    _token?: string,
+    _signal?: AbortSignal,
+  ): AsyncGenerator<string> {
+    const generator = streamMocks.get(payload.model ?? '');
+    if (!generator) throw new Error(`No mock for model ${payload.model}`);
+    const it = generator();
+    for await (const chunk of it) yield chunk;
+  });
   return {
     streamChat,
-    __setStreamMock: (model: string, fn: () => AsyncGenerator<string>) => streamMocks.set(model, fn),
+    __setStreamMock: (model: string, fn: () => AsyncGenerator<string>) =>
+      streamMocks.set(model, fn),
     __resetStreamMocks: () => streamMocks.clear(),
   };
 });

@@ -1,69 +1,69 @@
 <template>
   <Teleport to="body">
     <Transition name="ai-modal">
-    <div
-      v-if="open"
-      class="ai-personalize-overlay"
-      :class="{ 'ai-dark': isDark }"
-      role="presentation"
-      @click.self="$emit('close')"
-    >
       <div
-        class="ai-personalize-dialog"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="titleId"
-        @click.stop
+        v-if="open"
+        class="ai-personalize-overlay"
+        :class="{ 'ai-dark': isDark }"
+        role="presentation"
+        @click.self="$emit('close')"
       >
-        <div class="ai-personalize-head">
-          <h2 :id="titleId" class="ai-personalize-title">{{ t.personalizeTitle }}</h2>
-          <button
-            type="button"
-            class="ai-personalize-close"
-            :aria-label="t.closePanel"
-            @click="$emit('close')"
-          >
-            &times;
-          </button>
-        </div>
-        <p class="ai-personalize-desc">{{ t.systemPromptPlaceholder }}</p>
-        <textarea
-          ref="taRef"
-          :value="modelValue"
-          class="ai-personalize-textarea"
-          rows="5"
-          :disabled="disabled"
-          :maxlength="maxChars"
-          :placeholder="t.personalizePlaceholder"
-          :aria-label="t.personalizeTitle"
-          @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-        />
-        <div class="ai-personalize-meta" aria-live="polite">
-          {{
-            t.personalizeCharCount
-              .replace('{cur}', String(modelValue.length))
-              .replace('{max}', String(maxChars))
-          }}
-        </div>
-        <!-- K25: optional ColorThemeSwitcher row. Only rendered when the host
+        <div
+          class="ai-personalize-dialog"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="titleId"
+          @click.stop
+        >
+          <div class="ai-personalize-head">
+            <h2 :id="titleId" class="ai-personalize-title">{{ t.personalizeTitle }}</h2>
+            <button
+              type="button"
+              class="ai-personalize-close"
+              :aria-label="t.closePanel"
+              @click="$emit('close')"
+            >
+              &times;
+            </button>
+          </div>
+          <p class="ai-personalize-desc">{{ t.systemPromptPlaceholder }}</p>
+          <textarea
+            ref="taRef"
+            :value="modelValue"
+            class="ai-personalize-textarea"
+            rows="5"
+            :disabled="disabled"
+            :maxlength="maxChars"
+            :placeholder="t.personalizePlaceholder"
+            :aria-label="t.personalizeTitle"
+            @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+          />
+          <div class="ai-personalize-meta" aria-live="polite">
+            {{
+              t.personalizeCharCount
+                .replace('{cur}', String(modelValue.length))
+                .replace('{max}', String(maxChars))
+            }}
+          </div>
+          <!-- K25: optional ColorThemeSwitcher row. Only rendered when the host
              actually passes a `theme` prop, so legacy hosts that don't wire it
              see no visual change. -->
-        <div v-if="theme !== undefined" class="ai-personalize-theme-row">
-          <span class="ai-personalize-theme-label">
-            {{ t.personalizeThemeLabel || '主题色 / Theme' }}
-          </span>
-          <ColorThemeSwitcher
-            :model-value="theme"
-            @update:model-value="(v) => $emit('update:theme', v)"
-          />
-        </div>
-        <div class="ai-personalize-actions">
-          <button type="button" class="ai-personalize-done" @click="$emit('close')">
-            {{ t.personalizeDone }}
-          </button>
+          <div v-if="theme !== undefined" class="ai-personalize-theme-row">
+            <span class="ai-personalize-theme-label">
+              {{ t.personalizeThemeLabel || '主题色 / Theme' }}
+            </span>
+            <ColorThemeSwitcher
+              :model-value="theme"
+              @update:model-value="(v) => $emit('update:theme', v)"
+            />
+          </div>
+          <div class="ai-personalize-actions">
+            <button type="button" class="ai-personalize-done" @click="$emit('close')">
+              {{ t.personalizeDone }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
     </Transition>
   </Teleport>
 </template>

@@ -137,7 +137,10 @@ export function useMcpClient(opts: McpClientOptions) {
     return Array.isArray(result.tools) ? result.tools : [];
   }
 
-  async function callTool(name: string, args: Record<string, unknown> = {}): Promise<McpToolCallResult> {
+  async function callTool(
+    name: string,
+    args: Record<string, unknown> = {},
+  ): Promise<McpToolCallResult> {
     const result = await rpc<McpToolCallResult>('tools/call', { name, arguments: args });
     return {
       content: Array.isArray(result.content) ? result.content : [],

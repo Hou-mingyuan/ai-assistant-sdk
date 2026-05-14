@@ -64,12 +64,15 @@ export function ensureLanguage(lang: string): boolean {
   if (loading.has(canonical)) return false;
   loading.add(canonical);
   const cfg = extendedLangs[canonical];
-  cfg.loader().then((mod) => {
-    hljs.registerLanguage(canonical, mod.default);
-    cfg.aliases?.forEach((a) => hljs.registerAliases([a], { languageName: canonical }));
-  }).catch(() => {
-    loading.delete(canonical);
-  });
+  cfg
+    .loader()
+    .then((mod) => {
+      hljs.registerLanguage(canonical, mod.default);
+      cfg.aliases?.forEach((a) => hljs.registerAliases([a], { languageName: canonical }));
+    })
+    .catch(() => {
+      loading.delete(canonical);
+    });
   return false;
 }
 

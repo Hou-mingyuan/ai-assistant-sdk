@@ -24,7 +24,12 @@ import { type ComputedRef, type Ref, ref } from 'vue';
 import type { AiAssistantOptions } from '../index';
 import type { ChatPayload, UrlPreviewResult } from '../utils/api';
 import type { I18nMessages } from '../utils/i18n';
-import { type Message, extractThinking, extractToolCalls, extractAgentSteps } from '../types/message';
+import {
+  type Message,
+  extractThinking,
+  extractToolCalls,
+  extractAgentSteps,
+} from '../types/message';
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
 
@@ -83,7 +88,10 @@ export function stripInternalToolTrace(message: string): string {
     kept.push(line);
   }
 
-  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return kept
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 /**
@@ -168,11 +176,7 @@ export interface UseSendStreamDeps {
     signal?: AbortSignal,
   ) => AsyncIterable<string>;
   /** Optional page-link preview fetcher (used to side-attach images). */
-  fetchUrlPreview: (
-    baseUrl: string,
-    pageUrl: string,
-    token?: string,
-  ) => Promise<UrlPreviewResult>;
+  fetchUrlPreview: (baseUrl: string, pageUrl: string, token?: string) => Promise<UrlPreviewResult>;
   /** Extract HTTP(S) URLs out of user text. */
   extractHttpUrls: (text: string) => string[];
   /** Heuristic: URL points at an image asset (jpg/png/svg/...). */
@@ -291,9 +295,15 @@ export function useSendStream(deps: UseSendStreamDeps) {
       const { content, steps } = extractAgentSteps(afterToolsFinal);
       const prevDone = deps.messages.value[msgIndex];
       const finalToolCalls = toolCalls.length > 0 ? toolCalls : prevDone?.toolCalls;
-      if (finalToolCalls) finalToolCalls.forEach((tc) => { if (tc.status === 'running') tc.status = 'done'; });
+      if (finalToolCalls)
+        finalToolCalls.forEach((tc) => {
+          if (tc.status === 'running') tc.status = 'done';
+        });
       const finalSteps = steps.length > 0 ? steps : prevDone?.agentSteps;
-      if (finalSteps) finalSteps.forEach((s) => { if (s.status === 'running') s.status = 'done'; });
+      if (finalSteps)
+        finalSteps.forEach((s) => {
+          if (s.status === 'running') s.status = 'done';
+        });
       deps.messages.value[msgIndex] = {
         role: 'assistant',
         content,
@@ -433,11 +443,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
             if (!userSlot || userSlot.role !== 'user') return;
             if (r.success === false) return;
             const imgs =
-              r.imageUrls && r.imageUrls.length > 0
-                ? r.imageUrls
-                : r.imageUrl
-                  ? [r.imageUrl]
-                  : [];
+              r.imageUrls && r.imageUrls.length > 0 ? r.imageUrls : r.imageUrl ? [r.imageUrl] : [];
             if (!imgs.length) return;
             urlPreviewImgs = imgs;
             /* 用户气泡保持用户原文（仅链接等）；预览图只挂助手回复，避免标题/摘要把用户消息撑成整页 */
@@ -460,7 +466,12 @@ export function useSendStream(deps: UseSendStreamDeps) {
     try {
       const fullContent = await applyStreamToAssistantMessage(
         msgIndex,
-        deps.streamWithFallback(deps.options.baseUrl!, payload, deps.options.accessToken, controller.signal),
+        deps.streamWithFallback(
+          deps.options.baseUrl!,
+          payload,
+          deps.options.accessToken,
+          controller.signal,
+        ),
       );
       streamDone = true;
       /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */

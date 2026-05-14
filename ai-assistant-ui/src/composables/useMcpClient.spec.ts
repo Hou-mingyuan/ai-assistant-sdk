@@ -66,9 +66,7 @@ describe('useMcpClient', () => {
   });
 
   it('listTools() tolerates a missing tools field by returning []', async () => {
-    const fetchImpl = makeFetch([
-      { body: { jsonrpc: '2.0', id: 1, result: {} } },
-    ]);
+    const fetchImpl = makeFetch([{ body: { jsonrpc: '2.0', id: 1, result: {} } }]);
     const client = useMcpClient({ endpoint: '/mcp', fetchImpl });
     const tools = await client.listTools();
     expect(tools).toEqual([]);
@@ -117,9 +115,7 @@ describe('useMcpClient', () => {
   });
 
   it('treats non-2xx HTTP as McpRpcError(-32000)', async () => {
-    const fetchImpl = makeFetch([
-      { ok: false, status: 503, statusText: 'Down', body: {} },
-    ]);
+    const fetchImpl = makeFetch([{ ok: false, status: 503, statusText: 'Down', body: {} }]);
     const client = useMcpClient({ endpoint: '/mcp', fetchImpl });
     await expect(client.initialize()).rejects.toMatchObject({ code: -32000 });
   });

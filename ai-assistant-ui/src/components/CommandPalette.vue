@@ -9,7 +9,12 @@
       @click.self="close"
       @keydown.esc="close"
     >
-      <div class="ai-cmd-palette" @keydown.down.prevent="moveDown" @keydown.up.prevent="moveUp" @keydown.enter.prevent="runActive">
+      <div
+        class="ai-cmd-palette"
+        @keydown.down.prevent="moveDown"
+        @keydown.up.prevent="moveUp"
+        @keydown.enter.prevent="runActive"
+      >
         <div class="ai-cmd-palette-search">
           <span class="ai-cmd-palette-icon" aria-hidden="true">🔍</span>
           <input
@@ -85,12 +90,7 @@ const filteredCommands = computed(() => {
   const q = query.value.trim().toLowerCase();
   if (!q) return props.commands;
   return props.commands.filter((c) => {
-    const hay = [
-      c.label,
-      c.group ?? '',
-      c.shortcut ?? '',
-      ...(c.keywords ?? []),
-    ]
+    const hay = [c.label, c.group ?? '', c.shortcut ?? '', ...(c.keywords ?? [])]
       .join(' ')
       .toLowerCase();
     return hay.includes(q);
@@ -126,7 +126,8 @@ function moveDown() {
 
 function moveUp() {
   if (!filteredCommands.value.length) return;
-  activeIndex.value = activeIndex.value === 0 ? filteredCommands.value.length - 1 : activeIndex.value - 1;
+  activeIndex.value =
+    activeIndex.value === 0 ? filteredCommands.value.length - 1 : activeIndex.value - 1;
 }
 
 function runActive() {
@@ -160,8 +161,12 @@ async function run(cmd: CommandItem) {
 }
 
 @keyframes ai-cmd-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .ai-cmd-palette {
@@ -178,17 +183,31 @@ async function run(cmd: CommandItem) {
   overflow: hidden;
   animation: ai-cmd-pop-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
   font-family:
-    "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "PingFang SC",
-    "Microsoft YaHei", sans-serif;
+    'Inter',
+    'SF Pro Text',
+    -apple-system,
+    BlinkMacSystemFont,
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-cmd-palette { background: #0f172a; color: #e2e8f0; }
+  .ai-cmd-palette {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
 }
 
 @keyframes ai-cmd-pop-in {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .ai-cmd-palette-search {
@@ -200,10 +219,15 @@ async function run(cmd: CommandItem) {
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-cmd-palette-search { border-bottom-color: #1e293b; }
+  .ai-cmd-palette-search {
+    border-bottom-color: #1e293b;
+  }
 }
 
-.ai-cmd-palette-icon { font-size: 16px; opacity: 0.7; }
+.ai-cmd-palette-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
 
 .ai-cmd-palette-input {
   flex: 1;
@@ -228,8 +252,11 @@ async function run(cmd: CommandItem) {
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-cmd-palette-kbd, .ai-cmd-palette-item-kbd {
-    background: #1e293b; border-color: #334155; color: #94a3b8;
+  .ai-cmd-palette-kbd,
+  .ai-cmd-palette-item-kbd {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
   }
 }
 
@@ -254,7 +281,7 @@ async function run(cmd: CommandItem) {
 }
 
 .ai-cmd-palette-item.active {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(6, 182, 212, 0.10));
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(6, 182, 212, 0.1));
   color: #0ea5e9;
 }
 
@@ -275,7 +302,9 @@ async function run(cmd: CommandItem) {
   font-size: 14px;
 }
 
-.ai-cmd-palette-item-label { flex: 1; }
+.ai-cmd-palette-item-label {
+  flex: 1;
+}
 
 .ai-cmd-palette-item-group {
   font-size: 11px;
@@ -301,7 +330,9 @@ async function run(cmd: CommandItem) {
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-cmd-palette-foot { border-top-color: #1e293b; }
+  .ai-cmd-palette-foot {
+    border-top-color: #1e293b;
+  }
 }
 
 .ai-cmd-palette-foot kbd {
@@ -315,6 +346,9 @@ async function run(cmd: CommandItem) {
 }
 
 @media (prefers-color-scheme: dark) {
-  .ai-cmd-palette-foot kbd { background: #1e293b; border-color: #334155; }
+  .ai-cmd-palette-foot kbd {
+    background: #1e293b;
+    border-color: #334155;
+  }
 }
 </style>

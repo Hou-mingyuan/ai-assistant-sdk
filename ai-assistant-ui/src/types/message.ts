@@ -22,7 +22,8 @@ export interface AgentStep {
 export function extractAgentSteps(raw: string): { content: string; steps: AgentStep[] } {
   const steps: AgentStep[] = [];
   let idx = 0;
-  const stepRegex = /<agent_step\s+status="(pending|running|done|error)"(?:\s+id="([^"]*)")?>([\s\S]*?)<\/agent_step>/gi;
+  const stepRegex =
+    /<agent_step\s+status="(pending|running|done|error)"(?:\s+id="([^"]*)")?>([\s\S]*?)<\/agent_step>/gi;
   const cleaned = raw.replace(stepRegex, (_, status, id, body) => {
     steps.push({
       id: id || `step-${idx++}`,
@@ -80,9 +81,10 @@ export function extractToolCalls(raw: string): { content: string; toolCalls: Too
       const parsed = JSON.parse(body.trim());
       calls.push({
         name: parsed.name || parsed.function || 'unknown',
-        arguments: typeof parsed.arguments === 'string'
-          ? parsed.arguments
-          : JSON.stringify(parsed.arguments ?? parsed.params ?? {}, null, 2),
+        arguments:
+          typeof parsed.arguments === 'string'
+            ? parsed.arguments
+            : JSON.stringify(parsed.arguments ?? parsed.params ?? {}, null, 2),
         status: 'running',
       });
     } catch {

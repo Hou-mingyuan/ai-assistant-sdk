@@ -39,13 +39,17 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
       if (Array.isArray(parsed)) {
         bases.value = parsed.slice(0, MAX_BASES);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   function save() {
     try {
       localStorage.setItem(storageKey, JSON.stringify(bases.value.slice(0, MAX_BASES)));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   function createBase(name: string): KnowledgeBase {
@@ -117,7 +121,9 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   const enabledBaseNames = computed(() =>
-    bases.value.filter((b) => b.enabled && b.docs.some((d) => d.status === 'ready')).map((b) => b.name),
+    bases.value
+      .filter((b) => b.enabled && b.docs.some((d) => d.status === 'ready'))
+      .map((b) => b.name),
   );
 
   const ragPromptFragment = computed(() => {

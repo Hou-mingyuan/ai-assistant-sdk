@@ -68,14 +68,13 @@
           </button>
         </div>
       </div>
-      <span v-if="msg.timestamp" class="ai-msg-time">{{
-        formatRelativeTime(msg.timestamp)
-      }}</span>
+      <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
     </template>
     <template v-else>
       <div
         v-if="
-          isActiveStreaming(displayOffset + renderedStart + idx, msg) && !hasVisibleContent(msg.content)
+          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+          !hasVisibleContent(msg.content)
         "
         class="ai-thinking-bubble"
         role="status"
@@ -90,12 +89,25 @@
         </span>
       </div>
       <details
-        v-if="msg.thinking && msg.role === 'assistant' && !isActiveStreaming(displayOffset + renderedStart + idx, msg)"
+        v-if="
+          msg.thinking &&
+          msg.role === 'assistant' &&
+          !isActiveStreaming(displayOffset + renderedStart + idx, msg)
+        "
         class="ai-thinking-details"
       >
         <summary class="ai-thinking-summary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="ai-thinking-icon">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            class="ai-thinking-icon"
+          >
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            />
           </svg>
           {{ t.thinkingLabel || '思考过程' }}
         </summary>
@@ -107,17 +119,29 @@
         <!-- eslint-enable vue/no-v-html -->
       </details>
       <div
-        v-if="isActiveStreaming(displayOffset + renderedStart + idx, msg) && msg.thinking && !hasVisibleContent(msg.content)"
+        v-if="
+          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+          msg.thinking &&
+          !hasVisibleContent(msg.content)
+        "
         class="ai-thinking-live"
       >
         <span class="ai-thinking-live-label">{{ t.thinkingLive || '正在思考…' }}</span>
         <!-- eslint-disable vue/no-v-html -->
-        <div class="ai-thinking-content" v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, true)"></div>
+        <div
+          class="ai-thinking-content"
+          v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, true)"
+        ></div>
         <!-- eslint-enable vue/no-v-html -->
       </div>
       <!-- Agent steps display -->
       <div v-if="msg.agentSteps && msg.agentSteps.length > 0" class="ai-agent-steps">
-        <div v-for="step in msg.agentSteps" :key="step.id" class="ai-agent-step" :class="'ai-step-' + step.status">
+        <div
+          v-for="step in msg.agentSteps"
+          :key="step.id"
+          class="ai-agent-step"
+          :class="'ai-step-' + step.status"
+        >
           <span class="ai-agent-step-icon">
             <template v-if="step.status === 'done'">✓</template>
             <template v-else-if="step.status === 'running'">⟳</template>
@@ -129,12 +153,40 @@
       </div>
       <!-- Tool calls display -->
       <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="ai-tool-calls">
-        <details v-for="(tc, tci) in msg.toolCalls" :key="tci" class="ai-tool-call-item" :open="tc.status === 'running'">
+        <details
+          v-for="(tc, tci) in msg.toolCalls"
+          :key="tci"
+          class="ai-tool-call-item"
+          :open="tc.status === 'running'"
+        >
           <summary class="ai-tool-call-summary">
             <span class="ai-tool-call-status" :class="'ai-tool-' + tc.status">
-              <svg v-if="tc.status === 'running'" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="ai-tool-spin"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-              <svg v-else-if="tc.status === 'done'" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              <svg
+                v-if="tc.status === 'running'"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="ai-tool-spin"
+              >
+                <path
+                  d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+                />
+              </svg>
+              <svg
+                v-else-if="tc.status === 'done'"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+              </svg>
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"
+                />
+              </svg>
             </span>
             <span class="ai-tool-call-name">{{ tc.name }}</span>
           </summary>
@@ -161,15 +213,13 @@
         "
       ></div>
       <!-- eslint-enable vue/no-v-html -->
-      <span v-if="msg.timestamp" class="ai-msg-time">{{
-        formatRelativeTime(msg.timestamp)
-      }}</span>
+      <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
     </template>
     <span
       v-if="
-        isActiveStreaming(displayOffset + renderedStart + idx, msg)
-        && streamStartedAt != null
-        && streamingNowMs > 0
+        isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+        streamStartedAt != null &&
+        streamingNowMs > 0
       "
       class="ai-stream-progress"
       role="status"
@@ -177,7 +227,8 @@
     >
       <span class="ai-stream-progress-dot" aria-hidden="true"></span>
       <span v-if="firstTokenAt != null" class="ai-stream-progress-ttft">
-        {{ t.streamTtftLabel || 'TTFT' }} {{ ((firstTokenAt - streamStartedAt) / 1000).toFixed(1) }}s ·
+        {{ t.streamTtftLabel || 'TTFT' }}
+        {{ ((firstTokenAt - streamStartedAt) / 1000).toFixed(1) }}s ·
       </span>
       {{ msg.content.length }} {{ t.streamProgressChars || 'chars' }}
       ·
@@ -214,7 +265,11 @@
         :title="t.copyCode"
         :aria-label="t.copyCode"
         @click="
-          emit('copy-message', msg.contentArchive ?? msg.content, displayOffset + renderedStart + idx)
+          emit(
+            'copy-message',
+            msg.contentArchive ?? msg.content,
+            displayOffset + renderedStart + idx,
+          )
         "
       >
         {{ copiedIndex === displayOffset + renderedStart + idx ? t.codeCopied : '📋' }}
@@ -265,7 +320,9 @@
         { emoji: '⭐', label: t.reactFavorite || '收藏 / Favorite' },
         { emoji: '📌', label: t.reactPin || '钉选 / Pin' },
       ]"
-      @reaction="(p) => emit('set-reaction', displayOffset + renderedStart + idx, p.emoji, p.toggled)"
+      @reaction="
+        (p) => emit('set-reaction', displayOffset + renderedStart + idx, p.emoji, p.toggled)
+      "
     />
     <button
       v-if="isErrorMessage(msg) && !loading"

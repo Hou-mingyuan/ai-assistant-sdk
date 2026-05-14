@@ -37,11 +37,7 @@
             <circle cx="12" cy="12" r="3" />
           </svg>
         </button>
-        <div
-          v-if="settingsMenuOpen"
-          class="ai-header-settings-menu"
-          role="menu"
-        >
+        <div v-if="settingsMenuOpen" class="ai-header-settings-menu" role="menu">
           <button
             v-if="showSystemPromptUi"
             type="button"
@@ -50,7 +46,9 @@
             @click="onSettingsPick('personalize')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+              />
             </svg>
             <span>{{ t.personalizeTitle }}</span>
           </button>
@@ -61,7 +59,9 @@
             @click="onSettingsPick('diagnostics')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M3 3v18h18v-2H5V3H3zm14 14l-4-4-2 2-4-4 1.41-1.41L11 12.17 13 10l5 5L17 17z"/>
+              <path
+                d="M3 3v18h18v-2H5V3H3zm14 14l-4-4-2 2-4-4 1.41-1.41L11 12.17 13 10l5 5L17 17z"
+              />
             </svg>
             <span>{{ t.diagnosticsTitle }}</span>
           </button>
@@ -72,7 +72,7 @@
             @click="onSettingsPick('sessions')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z"/>
+              <path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z" />
             </svg>
             <span>{{ t.sessionsDrawerTitle || 'All sessions' }}</span>
           </button>
@@ -106,13 +106,7 @@
           :aria-label="t.batchExport"
           @click.stop="emit('toggle-batch-export-menu')"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
           </svg>
         </button>
@@ -177,7 +171,9 @@
           aria-hidden="true"
         >
           <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+          />
         </svg>
         <!-- 太阳：当前 light，下一步切到 dark -->
         <svg
@@ -330,7 +326,9 @@ const emit = defineEmits<{
 }>();
 
 const themeToggleLabel = computed(() =>
-  props.isDark ? props.t.themeToggleToLight || 'Light mode' : props.t.themeToggleToDark || 'Dark mode',
+  props.isDark
+    ? props.t.themeToggleToLight || 'Light mode'
+    : props.t.themeToggleToDark || 'Dark mode',
 );
 
 /* D2: Settings menu (聚合 personalize + diagnostics 入口) */
