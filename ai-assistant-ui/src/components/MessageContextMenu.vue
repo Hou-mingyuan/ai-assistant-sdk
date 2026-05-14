@@ -40,6 +40,12 @@
             role="menuitem"
             class="ai-fab-ctx-item"
             :class="{ 'ai-fab-ctx-item-active': compareMarkActiveForThis }"
+            :disabled="!compareMarkActiveForThis && compareSetFull"
+            :title="
+              !compareMarkActiveForThis && compareSetFull
+                ? t.msgCtxCompareSetFull || 'Compare set is full (max 4)'
+                : undefined
+            "
             @click="$emit('compareMark')"
           >
             <span class="ai-fab-ctx-label">
@@ -58,7 +64,11 @@
             @click="$emit('compareWith')"
           >
             <span class="ai-fab-ctx-label">
-              {{ t.msgCtxCompareWith || 'Compare A vs this' }}
+              {{
+                compareSetCount >= 2
+                  ? t.msgCtxCompareOpenSet || 'Open Compare view'
+                  : t.msgCtxCompareWith || 'Compare A vs this'
+              }}
             </span>
           </button>
           <button
@@ -134,10 +144,14 @@ withDefaults(
     ttsSupported?: boolean;
     ttsActive?: boolean;
     ttsPaused?: boolean;
-    /** K40: any message is currently marked as compare-A. */
+    /** K40: any message is currently in the compare set. */
     compareMarkActive?: boolean;
-    /** K40: THIS specific message is the current compare-A. */
+    /** K40: THIS specific message is in the compare set. */
     compareMarkActiveForThis?: boolean;
+    /** K42: current compare set size; used to switch the "open" label. */
+    compareSetCount?: number;
+    /** K42: true when compareSet is at MAX_COMPARE_SIDES (4); disables Add. */
+    compareSetFull?: boolean;
   }>(),
   {
     ttsSupported: false,
@@ -145,6 +159,8 @@ withDefaults(
     ttsPaused: false,
     compareMarkActive: false,
     compareMarkActiveForThis: false,
+    compareSetCount: 0,
+    compareSetFull: false,
   },
 );
 

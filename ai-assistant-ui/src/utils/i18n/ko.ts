@@ -243,4 +243,9 @@ export const ko: I18nMessages = {
   compareDialogLeftDefault: 'A 측',
   compareDialogRightDefault: 'B 측',
   compareDialogMsgLabel: '메시지 #{idx} ({role})',
+  msgCtxCompareOpenSet: '다중 비교 열기',
+  msgCtxCompareSetFull: '비교 세트가 가득 참 (최대 4개)',
+  compareDialogPairTabsAria: '비교 쌍',
+  compareDialogClearSet: '세트 비우기',
+  compareDialogSwapPair: '{a} ⇄ {b} 교환',
 };

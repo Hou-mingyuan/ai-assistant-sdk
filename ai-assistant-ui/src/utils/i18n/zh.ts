@@ -244,4 +244,9 @@ export const zh: I18nMessages = {
   compareDialogLeftDefault: 'A 侧',
   compareDialogRightDefault: 'B 侧',
   compareDialogMsgLabel: '第 {idx} 条消息（{role}）',
+  msgCtxCompareOpenSet: '打开多路对比',
+  msgCtxCompareSetFull: '对比集合已满（最多 4 条）',
+  compareDialogPairTabsAria: '对比配对',
+  compareDialogClearSet: '清空对比集合',
+  compareDialogSwapPair: '交换 {a} ⇄ {b}',
 };

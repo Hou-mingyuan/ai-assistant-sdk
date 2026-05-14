@@ -468,8 +468,10 @@
       :tts-supported="tts.supported.value"
       :tts-active="tts.speaking.value && tts.currentMessageIndex.value === msgCtxMenu.index"
       :tts-paused="tts.paused.value"
-      :compare-mark-active="compareLeft !== null"
-      :compare-mark-active-for-this="compareLeft?.msgIndex === msgCtxMenu.index"
+      :compare-mark-active="compareSet.length > 0"
+      :compare-mark-active-for-this="compareSlotOf(msgCtxMenu.index) >= 0"
+      :compare-set-count="compareSet.length"
+      :compare-set-full="compareSet.length >= MAX_COMPARE_SIDES"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
@@ -487,12 +489,10 @@
       :open="compareDialogOpen"
       :is-dark="isDark"
       :t="t"
-      :left-text="compareLeft?.content ?? ''"
-      :right-text="compareRight?.content ?? ''"
-      :left-label="compareLeft?.label"
-      :right-label="compareRight?.label"
+      :sides="compareSet"
       @close="compareDialogOpen = false"
-      @swap="onCompareSwap"
+      @swap-pair="onCompareSwapPair"
+      @clear-set="onCompareClearSet"
     />
 
     <PersonalizeDialog
@@ -1551,28 +1551,42 @@ function ttsPauseToggle() {
 }
 
 /**
- * K40: CompareRegionsView 状态管理。
+ * K40 / K42: CompareRegionsView N-way state.
  *
- * - compareLeft: 第一次点击「Mark as Compare A」记下的 (msgIndex, content, label)。
- *   再次点击同一条 = 取消标记；点其它条 = 替换。
- * - compareRight: 「Compare A vs this」时填入第二条；触发对话框打开。
- * - swap: 对话框里的 A ⇄ B 互换按钮。
+ * 演进自 K40 (left + right) → K42 单一 `compareSet: CompareSide[]` (1-4)：
+ * - 1 条 = "Add to Compare set" 后槽位为 A，等待第二条
+ * - 2 条 = K40 原 UX，pair tab 只有一个，差异 dialog 立即可用
+ * - 3-4 条 = pair tab N(N-1)/2 个（3 sides=3 tab，4 sides=6 tab）
  *
- * 这里只支持「整条 assistant 消息」级别 compare（覆盖 90% 的诊断需求）；
- * 代码块 / 选区粒度的 compare 留给 future K（需要 mark anchor + selection
- * range 的 lift up，是个独立设计）。
+ * 槽位顺序代表添加顺序（不是 msgIndex 顺序）— 让用户掌控 base 是哪条。
+ * Swap 在 dialog 内部按 pair 局部 swap。
  */
 interface CompareSide {
   msgIndex: number;
   content: string;
   label: string;
 }
-const compareLeft = ref<CompareSide | null>(null);
-const compareRight = ref<CompareSide | null>(null);
+const MAX_COMPARE_SIDES = 4;
+const compareSet = ref<CompareSide[]>([]);
 const compareDialogOpen = ref(false);
-function buildCompareLabel(idx: number, role: string): string {
+function buildCompareLabel(idx: number, role: string, slotLetter: string): string {
   const fmt = t.value.compareDialogMsgLabel || 'Msg #{idx} ({role})';
-  return fmt.replace('{idx}', String(idx + 1)).replace('{role}', role);
+  const base = fmt.replace('{idx}', String(idx + 1)).replace('{role}', role);
+  return `[${slotLetter}] ${base}`;
+}
+function reLabelCompareSet() {
+  compareSet.value = compareSet.value.map((side, slotIdx) => {
+    const baseRegex = /^\[[A-Z]\]\s/;
+    const stripped = side.label.replace(baseRegex, '');
+    const letter = String.fromCharCode(65 + slotIdx);
+    return { ...side, label: `[${letter}] ${stripped}` };
+  });
+}
+function isInCompareSet(idx: number): boolean {
+  return compareSet.value.some((s) => s.msgIndex === idx);
+}
+function compareSlotOf(idx: number): number {
+  return compareSet.value.findIndex((s) => s.msgIndex === idx);
 }
 function onCompareMark() {
   const idx = msgCtxMenu.value.index;
@@ -1580,34 +1594,54 @@ function onCompareMark() {
   closeMsgCtxMenu();
   const m = messages.value[idx];
   if (!m) return;
-  if (compareLeft.value?.msgIndex === idx) {
-    compareLeft.value = null;
+  const existingSlot = compareSlotOf(idx);
+  if (existingSlot >= 0) {
+    compareSet.value.splice(existingSlot, 1);
+    reLabelCompareSet();
     return;
   }
-  compareLeft.value = {
+  if (compareSet.value.length >= MAX_COMPARE_SIDES) {
+    return;
+  }
+  const letter = String.fromCharCode(65 + compareSet.value.length);
+  compareSet.value.push({
     msgIndex: idx,
     content: m.contentArchive ?? m.content ?? '',
-    label: buildCompareLabel(idx, m.role),
-  };
+    label: buildCompareLabel(idx, m.role, letter),
+  });
 }
 function onCompareWith() {
   const idx = msgCtxMenu.value.index;
   closeMsgCtxMenu();
-  if (idx < 0 || !compareLeft.value) return;
-  const m = messages.value[idx];
-  if (!m) return;
-  compareRight.value = {
-    msgIndex: idx,
-    content: m.contentArchive ?? m.content ?? '',
-    label: buildCompareLabel(idx, m.role),
-  };
-  compareDialogOpen.value = true;
+  if (idx < 0 || compareSet.value.length === 0) return;
+  if (!isInCompareSet(idx)) {
+    if (compareSet.value.length < MAX_COMPARE_SIDES) {
+      const m = messages.value[idx];
+      if (m) {
+        const letter = String.fromCharCode(65 + compareSet.value.length);
+        compareSet.value.push({
+          msgIndex: idx,
+          content: m.contentArchive ?? m.content ?? '',
+          label: buildCompareLabel(idx, m.role, letter),
+        });
+      }
+    }
+  }
+  if (compareSet.value.length >= 2) {
+    compareDialogOpen.value = true;
+  }
 }
-function onCompareSwap() {
-  const left = compareLeft.value;
-  const right = compareRight.value;
-  compareLeft.value = right;
-  compareRight.value = left;
+function onCompareSwapPair(slotA: number, slotB: number) {
+  const arr = compareSet.value;
+  if (slotA < 0 || slotB < 0 || slotA >= arr.length || slotB >= arr.length) return;
+  const tmp = arr[slotA];
+  arr[slotA] = arr[slotB]!;
+  arr[slotB] = tmp!;
+  reLabelCompareSet();
+}
+function onCompareClearSet() {
+  compareSet.value = [];
+  compareDialogOpen.value = false;
 }
 
 /**

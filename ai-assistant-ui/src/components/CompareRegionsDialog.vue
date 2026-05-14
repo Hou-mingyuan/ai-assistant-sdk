@@ -21,6 +21,9 @@
           <div class="ai-personalize-head">
             <h2 :id="titleId" class="ai-personalize-title">
               {{ t.compareDialogTitle || 'Compare regions' }}
+              <span v-if="sides.length > 2" class="ai-compare-sides-count">
+                · {{ sides.length }}-way
+              </span>
             </h2>
             <button
               type="button"
@@ -29,6 +32,28 @@
               @click="$emit('close')"
             >
               &times;
+            </button>
+          </div>
+
+          <!-- K42: pair-tab strip when sides.length > 2. For 2 sides the
+               sole pair is rendered directly (no tabs to avoid clutter). -->
+          <div
+            v-if="pairs.length > 1"
+            class="ai-compare-pair-tabs"
+            role="tablist"
+            :aria-label="t.compareDialogPairTabsAria || 'Comparison pairs'"
+          >
+            <button
+              v-for="(p, idx) in pairs"
+              :key="`${p.aSlot}-${p.bSlot}`"
+              type="button"
+              role="tab"
+              class="ai-compare-pair-tab"
+              :class="{ 'ai-compare-pair-tab-active': activePairIdx === idx }"
+              :aria-selected="activePairIdx === idx ? 'true' : 'false'"
+              @click="activePairIdx = idx"
+            >
+              {{ pairLabel(p) }}
             </button>
           </div>
 
@@ -47,15 +72,19 @@
 
           <div class="ai-compare-pair-head">
             <div class="ai-compare-pair-head-left">
-              <span class="ai-compare-pair-badge ai-compare-pair-badge-a">A</span>
+              <span class="ai-compare-pair-badge ai-compare-pair-badge-a">
+                {{ slotLetter(activePair?.aSlot ?? 0) }}
+              </span>
               <span class="ai-compare-pair-label">{{
-                leftLabel || t.compareDialogLeftDefault || 'Side A'
+                activePair?.aLabel || t.compareDialogLeftDefault || 'Side A'
               }}</span>
             </div>
             <div class="ai-compare-pair-head-right">
-              <span class="ai-compare-pair-badge ai-compare-pair-badge-b">B</span>
+              <span class="ai-compare-pair-badge ai-compare-pair-badge-b">
+                {{ slotLetter(activePair?.bSlot ?? 1) }}
+              </span>
               <span class="ai-compare-pair-label">{{
-                rightLabel || t.compareDialogRightDefault || 'Side B'
+                activePair?.bLabel || t.compareDialogRightDefault || 'Side B'
               }}</span>
             </div>
           </div>
@@ -89,11 +118,24 @@
 
           <div class="ai-personalize-actions">
             <button
+              v-if="sides.length > 2"
+              type="button"
+              class="ai-personalize-done ai-compare-clear"
+              @click="$emit('clear-set')"
+            >
+              {{ t.compareDialogClearSet || 'Clear set' }}
+            </button>
+            <button
+              v-if="activePair"
               type="button"
               class="ai-personalize-done ai-compare-swap"
-              @click="$emit('swap')"
+              @click="$emit('swap-pair', activePair.aSlot, activePair.bSlot)"
             >
-              {{ t.compareDialogSwap || 'Swap A ⇄ B' }}
+              {{
+                (t.compareDialogSwapPair || 'Swap {a} ⇄ {b}')
+                  .replace('{a}', slotLetter(activePair.aSlot))
+                  .replace('{b}', slotLetter(activePair.bSlot))
+              }}
             </button>
             <button type="button" class="ai-personalize-done" @click="$emit('close')">
               {{ t.personalizeDone || 'Done' }}
@@ -110,40 +152,102 @@ import { computed, nextTick, ref, watch } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 import { diffLines } from '../composables/useLineDiff';
 
+export interface CompareSideView {
+  msgIndex: number;
+  content: string;
+  label: string;
+}
+
+interface PairView {
+  aSlot: number;
+  bSlot: number;
+  aLabel: string;
+  bLabel: string;
+  aText: string;
+  bText: string;
+}
+
 const props = defineProps<{
   open: boolean;
   isDark: boolean;
   t: I18nMessages;
-  /** Left text (side A). */
-  leftText: string;
-  /** Right text (side B). */
-  rightText: string;
-  /** Optional human-readable labels (e.g. "Msg #4 (assistant)"). */
-  leftLabel?: string;
-  rightLabel?: string;
+  /** K42: 1-4 sides (only when length >= 2 is the dialog functionally usable). */
+  sides: CompareSideView[];
 }>();
 
 defineEmits<{
   (e: 'close'): void;
-  (e: 'swap'): void;
+  /** K42: swap two slots in the parent's compareSet (slot indices, not msgIndex). */
+  (e: 'swap-pair', aSlot: number, bSlot: number): void;
+  /** K42: clear the entire compare set (only relevant for N > 2). */
+  (e: 'clear-set'): void;
 }>();
 
 const titleId = `ai-compare-title-${Math.random().toString(36).slice(2, 8)}`;
 const hideEqual = ref(false);
-/** K41 a11y: focus target so Esc / Tab work the moment the dialog opens. */
+const activePairIdx = ref(0);
+
 const dialogRef = ref<HTMLDivElement>();
 watch(
   () => props.open,
   (v) => {
     if (v) {
+      activePairIdx.value = 0;
       void nextTick(() => {
         dialogRef.value?.focus();
       });
     }
   },
 );
+watch(
+  () => props.sides.length,
+  () => {
+    activePairIdx.value = 0;
+  },
+);
 
-const diff = computed(() => diffLines(props.leftText ?? '', props.rightText ?? ''));
+function slotLetter(slot: number): string {
+  return String.fromCharCode(65 + slot);
+}
+
+/**
+ * K42: build C(n, 2) pair list when N > 2.
+ *
+ * Order: lexicographic on (aSlot, bSlot) so tab order is stable (A-B, A-C,
+ * A-D, B-C, B-D, C-D for 4 sides). With only 2 sides this is the single
+ * tab A-B that's rendered inline without the tab strip.
+ */
+const pairs = computed<PairView[]>(() => {
+  const out: PairView[] = [];
+  const n = props.sides.length;
+  for (let a = 0; a < n; a++) {
+    for (let b = a + 1; b < n; b++) {
+      const sa = props.sides[a]!;
+      const sb = props.sides[b]!;
+      out.push({
+        aSlot: a,
+        bSlot: b,
+        aLabel: sa.label,
+        bLabel: sb.label,
+        aText: sa.content,
+        bText: sb.content,
+      });
+    }
+  }
+  return out;
+});
+
+function pairLabel(p: PairView): string {
+  return `${slotLetter(p.aSlot)} ⇄ ${slotLetter(p.bSlot)}`;
+}
+
+const activePair = computed(() => pairs.value[activePairIdx.value] ?? null);
+
+const diff = computed(() => {
+  const p = activePair.value;
+  if (!p) return diffLines('', '');
+  return diffLines(p.aText, p.bText);
+});
 const rows = computed(() => diff.value.rows);
 const summary = computed(() => diff.value.summary);
 const visibleRows = computed(() =>
@@ -158,6 +262,58 @@ const visibleRows = computed(() =>
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+}
+
+.ai-compare-sides-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 6px;
+}
+.ai-dark .ai-compare-sides-count {
+  color: #94a3b8;
+}
+
+/* K42: pair-tab strip rendered only for sides.length > 2. */
+.ai-compare-pair-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+.ai-compare-pair-tab {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  color: #475569;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+  font-variant-numeric: tabular-nums;
+}
+.ai-compare-pair-tab:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+.ai-compare-pair-tab-active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #1d4ed8;
+}
+.ai-dark .ai-compare-pair-tab {
+  color: #cbd5e1;
+  border-color: rgba(71, 85, 105, 0.55);
+}
+.ai-dark .ai-compare-pair-tab:hover {
+  background: rgba(59, 130, 246, 0.16);
+}
+.ai-dark .ai-compare-pair-tab-active {
+  background: rgba(59, 130, 246, 0.32);
+  color: #93c5fd;
 }
 
 .ai-compare-stats {
@@ -371,5 +527,14 @@ const visibleRows = computed(() =>
 .ai-dark .ai-compare-swap {
   background: rgba(59, 130, 246, 0.22) !important;
   color: #93c5fd !important;
+}
+.ai-compare-clear {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #b91c1c !important;
+  margin-right: 8px;
+}
+.ai-dark .ai-compare-clear {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #fecaca !important;
 }
 </style>

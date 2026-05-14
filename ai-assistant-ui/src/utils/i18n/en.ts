@@ -249,4 +249,9 @@ export const en: I18nMessages = {
   compareDialogLeftDefault: 'Side A',
   compareDialogRightDefault: 'Side B',
   compareDialogMsgLabel: 'Msg #{idx} ({role})',
+  msgCtxCompareOpenSet: 'Open Compare view',
+  msgCtxCompareSetFull: 'Compare set is full (max 4)',
+  compareDialogPairTabsAria: 'Comparison pairs',
+  compareDialogClearSet: 'Clear set',
+  compareDialogSwapPair: 'Swap {a} ⇄ {b}',
 };

@@ -244,4 +244,9 @@ export const ja: I18nMessages = {
   compareDialogLeftDefault: 'A 側',
   compareDialogRightDefault: 'B 側',
   compareDialogMsgLabel: 'メッセージ #{idx}（{role}）',
+  msgCtxCompareOpenSet: 'マルチ比較を開く',
+  msgCtxCompareSetFull: '比較セットが満杯（最大 4 件）',
+  compareDialogPairTabsAria: '比較ペア',
+  compareDialogClearSet: 'セットをクリア',
+  compareDialogSwapPair: '{a} ⇄ {b} 入れ替え',
 };

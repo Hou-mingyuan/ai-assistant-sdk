@@ -163,6 +163,13 @@ export interface I18nMessages {
   compareDialogRightDefault?: string;
   /** Placeholders: {idx} = 1-based, {role} = 'user'|'assistant' */
   compareDialogMsgLabel?: string;
+  /** K42: N-way comparison additions. */
+  msgCtxCompareOpenSet?: string;
+  msgCtxCompareSetFull?: string;
+  compareDialogPairTabsAria?: string;
+  compareDialogClearSet?: string;
+  /** Placeholders: {a} = letter A/B/.., {b} = letter */
+  compareDialogSwapPair?: string;
   micStart: string;
   micStop: string;
   newSession: string;
