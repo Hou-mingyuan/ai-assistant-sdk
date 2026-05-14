@@ -225,4 +225,9 @@ export const en: I18nMessages = {
   searchCaseSensitive: 'Case sensitive (Aa)',
   searchWholeWord: 'Whole word (W)',
   searchRegex: 'Regular expression (.*?)',
+  /* K31: i18n for K24 reactions + K25 theme switcher (added in K31). */
+  reactLove: 'Love',
+  reactFavorite: 'Favorite',
+  reactPin: 'Pin',
+  personalizeThemeLabel: 'Theme color',
 };

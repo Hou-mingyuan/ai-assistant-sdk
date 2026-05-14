@@ -220,4 +220,9 @@ export const ko: I18nMessages = {
   searchCaseSensitive: '대소문자 구분 (Aa)',
   searchWholeWord: '단어 단위 (W)',
   searchRegex: '정규 표현식 (.*?)',
+  /* K31: K24 reactions + K25 theme switcher (added in K31). */
+  reactLove: '좋아요',
+  reactFavorite: '즐겨찾기',
+  reactPin: '고정',
+  personalizeThemeLabel: '테마 색상',
 };

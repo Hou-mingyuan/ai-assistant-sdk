@@ -220,4 +220,9 @@ export const ja: I18nMessages = {
   searchCaseSensitive: '大文字小文字を区別 (Aa)',
   searchWholeWord: '単語単位 (W)',
   searchRegex: '正規表現 (.*?)',
+  /* K31: K24 reactions + K25 theme switcher (added in K31). */
+  reactLove: 'お気に入り',
+  reactFavorite: 'スター',
+  reactPin: 'ピン留め',
+  personalizeThemeLabel: 'テーマカラー',
 };

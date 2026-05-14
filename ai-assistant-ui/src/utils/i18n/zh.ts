@@ -221,4 +221,9 @@ export const zh: I18nMessages = {
   searchCaseSensitive: '区分大小写 (Aa)',
   searchWholeWord: '全字匹配 (W)',
   searchRegex: '正则表达式 (.*)',
+  /* K31: i18n for K24 reactions + K25 theme switcher (added in K31). */
+  reactLove: '喜欢',
+  reactFavorite: '收藏',
+  reactPin: '钉选',
+  personalizeThemeLabel: '主题色',
 };
