@@ -1,7 +1,45 @@
-# Changelog
+﻿# Changelog
 
 > 由 `scripts/generate-changelog.mjs` 从 git log 自动生成。
 > 采用 [Conventional Commits](https://www.conventionalcommits.org/) 类型分组。
+
+## [v1.0.2] 2026-05-14
+
+_K-wave: K36 集成 prompt history · K37 TTS · K38 RAG drop · K39 cross-session search · K40 CompareRegionsView · K41 a11y · K42 N-way · K43 KB picker · K44 ChatInputArea spec + K36 bug fix · K45 selection-grain · K46 code-block hover · K47 all-columns · K48 keyboard shortcuts_
+
+### ✨ Features
+
+- **ui:** K47 - all-columns view in CompareRegionsDialog (N parallel cols + synced scroll) [`bab984f`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/bab984f69917c5193e1976fd0ce10bd52a268b9a)
+- **ui:** K46 - hover 'Add to Compare' button on every assistant code block [`fbbe385`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/fbbe38586f8fd9a798b8e2a12360c678dd09b532)
+- **ui:** K48 - keyboard shortcuts (1-9 / N / Esc) in the KB picker popover [`a47b3e8`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/a47b3e80a85f89f889cacbef6a061368c08733c3)
+- **ui:** K45 - selection-granular Compare (right-click any text/code selection to mark) [`447f99d`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/447f99d7185ea1e8fdbcd93e115e41ffdef5bd43)
+- **ui:** K43 - KB target picker popover after FAB drop when 2+ KBs exist [`fda9de2`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/fda9de2f89dc962f43b8ebc88f708af6fa9c6c23)
+- **ui:** K42 - N-way (up to 4) Compare regions with pair-tab strip [`3655962`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/36559620f6fbb53b4643369691977a1d83e4cc94)
+- **ui:** K40 - CompareRegionsView with side-by-side line diff for assistant messages [`09d6a66`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/09d6a66c06ea786c3bfd76d456730fbe6e3ff520)
+- **ui:** K39 - cross-session message search with snippet jumping in SessionsDrawer [`b71de16`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/b71de16e599e1ec8f63b39d03ad9a8943dbf4de3)
+- **ui:** K38 - drag-and-drop file onto FAB to ingest into Knowledge Base [`eb7dfec`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/eb7dfec712b13f9c422fdfe1dc85e371c4ff58d7)
+- **ui:** K37 - audio output prefs in PersonalizeDialog + auto-read assistant replies [`7a88882`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/7a88882f5ebc0d5d3ac1a713564f10c4f57acb5b)
+- **ui:** K36 - integrate usePromptHistory into AiAssistant send() (Up/Down recall) [`30b6d56`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/30b6d5622370c66c055cdc72f518b8bb24bd44a6)
+
+### 🎨 Style
+
+- K36a - apply prettier to 53 frontend files (no behaviour change) [`f25ab1c`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/f25ab1c5303b3cfb4b1234c0937aea49cd327454)
+
+### 🧪 Tests
+
+- **ui:** K44 - ChatInputArea component-level integration spec + uncover K36 boolean-prop bug [`eab89ec`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/eab89ec0291d3f02cecd0dbb918d75b260cda275)
+
+### 🌱 Other
+
+- a11y(ui): K41 - reduced-motion + ARIA live + focus on dialog open for K36-K40 features [`3ba1ef9`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/3ba1ef9b3e3b32ee0d0daaa11a65316cd5111cd1)
+
+#### 重点 user-visible 改动
+
+- **K36** terminal 风格 ↑/↓ prompt 回放（送出 record · 空输入框 ↑ 召回 · Esc 退出）。**K44 同步修复 K36 长期被 Vue Boolean 默认 false 静默禁用的 bug**。
+- **K37** PersonalizeDialog "Audio output" 段：voice 选择 · 0.5–2x 语速 · 自动朗读 toggle，全 4 语言完整翻译。
+- **K38** 关闭面板时拖拽文件到悬浮球 → ingest 到 "Quick Ingest" KB。**K43 多 KB 时** 弹 picker popover，**K48 还支持 1-9 / N / Esc 键盘** 选择。
+- **K39** SessionsDrawer 搜索框增 cross-session 全文搜索 — 黄色高亮命中片段，点击跳转 + 闪烁。
+- **K40 + K42 + K45 + K46 + K47** Compare 系列：单条 → N-way → pair tab → 选区 → 代码块 hover + → All columns 同步滚动。 LCS 算法 178 行 + 12 单测 + 完整 dialog UI。
 
 ## [v1.0.1] 2026-05-13
 
