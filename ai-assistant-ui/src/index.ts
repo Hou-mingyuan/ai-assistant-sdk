@@ -284,6 +284,10 @@ export type { UseCommandPaletteOptions } from './composables/useCommandPalette';
 export type { CommandItem } from './types/command-palette';
 export { useMarkdownWorker } from './composables/useMarkdownWorker';
 export type { UseMarkdownWorkerOptions } from './composables/useMarkdownWorker';
+/* K22: opt-in wrapper that bundles marked + marked-highlight + hljs (6 core
+ * languages) into the worker for off-main-thread syntax highlighting. */
+export { useHljsMarkdownWorker } from './composables/useHljsMarkdownWorker';
+export type { UseHljsMarkdownWorkerOptions } from './composables/useHljsMarkdownWorker';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:
