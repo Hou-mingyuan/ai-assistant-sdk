@@ -294,6 +294,13 @@ export type { UseMarkdownWorkerOptions } from './composables/useMarkdownWorker';
  * languages) into the worker for off-main-thread syntax highlighting. */
 export { useHljsMarkdownWorker } from './composables/useHljsMarkdownWorker';
 export type { UseHljsMarkdownWorkerOptions } from './composables/useHljsMarkdownWorker';
+/* K35: terminal-style ↑/↓ prompt recall. Hosts can opt-in by recording
+ * sent prompts and wiring keydown handlers on their input field. */
+export { usePromptHistory } from './composables/usePromptHistory';
+export type {
+  UsePromptHistoryOptions,
+  UsePromptHistoryReturn,
+} from './composables/usePromptHistory';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:
