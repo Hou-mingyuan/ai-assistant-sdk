@@ -231,4 +231,6 @@ export const ja: I18nMessages = {
   personalizeAudioVoiceAuto: '自動（言語に応じて）',
   personalizeAudioRate: '速度',
   personalizeAudioAutoRead: 'AIの返信を自動で読み上げる',
+  kbDropFabHint: 'ドロップして知識ベースに追加',
+  kbDropIngested: '{count} 件のファイルを「{name}」に追加しました',
 };

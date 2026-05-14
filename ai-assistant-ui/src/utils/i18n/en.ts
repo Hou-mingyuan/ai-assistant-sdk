@@ -236,4 +236,6 @@ export const en: I18nMessages = {
   personalizeAudioVoiceAuto: 'Auto (by language)',
   personalizeAudioRate: 'Speed',
   personalizeAudioAutoRead: 'Auto-read assistant replies',
+  kbDropFabHint: 'Drop to add to knowledge',
+  kbDropIngested: 'Added {count} file(s) to "{name}"',
 };

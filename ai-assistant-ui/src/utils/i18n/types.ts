@@ -145,6 +145,10 @@ export interface I18nMessages {
   personalizeAudioVoiceAuto?: string;
   personalizeAudioRate?: string;
   personalizeAudioAutoRead?: string;
+  /** K38: drag-and-drop file onto FAB to ingest into KB. */
+  kbDropFabHint?: string;
+  /** {count} = file count, {name} = KB name */
+  kbDropIngested?: string;
   micStart: string;
   micStop: string;
   newSession: string;

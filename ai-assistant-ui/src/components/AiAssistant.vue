@@ -21,11 +21,18 @@
       ref="fabRef"
       type="button"
       class="ai-fab"
-      :class="{ 'ai-fab-dragging': fabDragging }"
+      :class="{
+        'ai-fab-dragging': fabDragging,
+        'ai-fab-drop-active': fabDrop.dropActive.value,
+      }"
       :style="fabLayoutStyle"
       :aria-label="t.fabOpen"
       @pointerdown="onFabPointerDown"
       @contextmenu.prevent="onFabContextMenu"
+      @dragenter.prevent="fabDrop.onFabDragEnter"
+      @dragover.prevent="fabDrop.onFabDragOver"
+      @dragleave.prevent="fabDrop.onFabDragLeave"
+      @drop.prevent="fabDrop.onFabDrop"
     >
       <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <!-- Sparkle / star with 4 rays — modern AI assistant icon -->
@@ -33,6 +40,9 @@
           d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z"
         />
       </svg>
+      <span v-if="fabDrop.dropActive.value" class="ai-fab-drop-hint">
+        {{ t.kbDropFabHint || 'Drop to add to KB' }}
+      </span>
     </button>
 
     <!-- Chat Panel -->
@@ -682,6 +692,7 @@ import {
 } from '../composables/usePluginRegistry';
 import { usePageSelection } from '../composables/usePageSelection';
 import { usePromptHistory } from '../composables/usePromptHistory';
+import { useFabDropIngest } from '../composables/useFabDropIngest';
 import {
   extractHttpUrls,
   isProbablyDirectImageUrl,
@@ -1350,6 +1361,39 @@ const pluginsPanelOpen = ref(false);
 
 const knowledgeBase = useKnowledgeBase();
 const kbPanelOpen = ref(false);
+
+/**
+ * K38: drag-and-drop a non-image file onto the FAB while the panel is closed
+ * → ingest into a default "Quick Ingest" KB (auto-created on first drop).
+ *
+ * 设计选择：
+ * - 只在 FAB 可见时启用（!isOpen.value）。面板打开后 body 的 drop 走旧 UX
+ *   (translate / summarize 单文件)。
+ * - 拒收 image/*：图片走 Vision pendingImage 流程，避免误入 KB。
+ * - 文件名带可视化 toast 反馈，用现有 setExportToast 通道（3.2s 自动消失）。
+ */
+const QUICK_INGEST_KB_NAME = 'Quick Ingest';
+function findOrCreateQuickIngestKb() {
+  const existing = knowledgeBase.bases.value.find((b) => b.name === QUICK_INGEST_KB_NAME);
+  if (existing) return existing;
+  return knowledgeBase.createBase(QUICK_INGEST_KB_NAME);
+}
+function ingestFilesIntoKb(files: File[]) {
+  if (!files.length) return;
+  const kb = findOrCreateQuickIngestKb();
+  for (const f of files) {
+    knowledgeBase.addDoc(kb.id, f);
+  }
+  const label = t.value.kbDropIngested
+    ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
+    : `Added ${files.length} file(s) to ${kb.name}`;
+  setExportToast(label, 3200);
+}
+const fabDrop = useFabDropIngest({
+  enabled: computed(() => !isOpen.value),
+  rejectMimePrefix: ['image/'],
+  onFiles: ingestFilesIntoKb,
+});
 
 /**
  * A1: 多模型并行对比面板状态。

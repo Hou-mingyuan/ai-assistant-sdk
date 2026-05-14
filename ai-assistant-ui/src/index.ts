@@ -301,6 +301,14 @@ export type {
   UsePromptHistoryOptions,
   UsePromptHistoryReturn,
 } from './composables/usePromptHistory';
+/* K38: drag-and-drop file ingestion on FAB. Standalone composable so SDK
+ * consumers can bolt it onto any draggable target (FAB / sidebar dock /
+ * floating widget) with a custom onFiles callback (KB / S3 / etc.). */
+export { useFabDropIngest } from './composables/useFabDropIngest';
+export type {
+  UseFabDropIngestOptions,
+  UseFabDropIngestReturn,
+} from './composables/useFabDropIngest';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:

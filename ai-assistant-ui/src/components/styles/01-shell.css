@@ -166,6 +166,61 @@
   cursor: grabbing;
   transition: none;
 }
+/* K38: highlight + pulse ring when user drags a file over the FAB. */
+.ai-fab-drop-active {
+  transform: scale(1.12);
+  box-shadow:
+    0 16px 38px -10px rgba(0, 0, 0, 0.45),
+    0 0 0 4px rgba(59, 130, 246, 0.18),
+    0 0 0 10px rgba(59, 130, 246, 0.08),
+    0 0 64px -12px rgba(99, 102, 241, 0.85);
+  animation: ai-fab-drop-pulse 1.25s ease-in-out infinite;
+}
+@keyframes ai-fab-drop-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 16px 38px -10px rgba(0, 0, 0, 0.45),
+      0 0 0 4px rgba(59, 130, 246, 0.18),
+      0 0 0 10px rgba(59, 130, 246, 0.08),
+      0 0 64px -12px rgba(99, 102, 241, 0.85);
+  }
+  50% {
+    box-shadow:
+      0 16px 38px -10px rgba(0, 0, 0, 0.45),
+      0 0 0 6px rgba(59, 130, 246, 0.28),
+      0 0 0 14px rgba(59, 130, 246, 0.12),
+      0 0 84px -12px rgba(99, 102, 241, 0.95);
+  }
+}
+/* Inline label that fades in above the FAB while a file is dragged over. */
+.ai-fab-drop-hint {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.32);
+  animation: ai-fab-drop-hint-in 0.18s ease-out;
+}
+@keyframes ai-fab-drop-hint-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
 .edge-dock-left .ai-fab:hover,
 .edge-dock-right .ai-fab:hover {
   transform: none;
