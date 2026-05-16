@@ -1,0 +1,57 @@
+# CODEOWNERS — AI Assistant SDK
+#
+# Format: <pattern> <owner> [<owner> ...]
+# Reference: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-security/customizing-your-repository/about-code-owners
+#
+# Each PR that touches a path will require approval from at least one of the
+# listed owners. As the project grows, add co-maintainers next to the existing
+# entries rather than replacing them; multiple owners on the same line are an
+# OR, not an AND.
+#
+# To turn this file into an enforced rule, enable "Require review from Code
+# Owners" in the branch protection settings for `main` on GitHub.
+
+# ── Default owner for everything ───────────────────────────────────────────
+* @Hou-mingyuan
+
+# ── Backend ────────────────────────────────────────────────────────────────
+/ai-assistant-server/                          @Hou-mingyuan
+/ai-assistant-service/                         @Hou-mingyuan
+/ai-assistant-client/                          @Hou-mingyuan
+pom.xml                                        @Hou-mingyuan
+
+# ── Frontend ───────────────────────────────────────────────────────────────
+/ai-assistant-ui/                              @Hou-mingyuan
+/ai-assistant-vue-playground/                  @Hou-mingyuan
+
+# ── Documentation site ─────────────────────────────────────────────────────
+/docs/                                         @Hou-mingyuan
+README.md                                      @Hou-mingyuan
+CHANGELOG.md                                   @Hou-mingyuan
+
+# ── Infrastructure / DevOps ────────────────────────────────────────────────
+/.github/                                      @Hou-mingyuan
+/deploy/                                       @Hou-mingyuan
+/helm/                                         @Hou-mingyuan
+Dockerfile                                     @Hou-mingyuan
+docker-compose*.yml                            @Hou-mingyuan
+
+# ── Tooling / automation scripts ───────────────────────────────────────────
+/scripts/                                      @Hou-mingyuan
+
+# ── Quality gates (anything touching CI/lint/format/release behaviour) ─────
+/.github/workflows/                            @Hou-mingyuan
+/scripts/git-hooks/                            @Hou-mingyuan
+/scripts/release.mjs                           @Hou-mingyuan
+/scripts/bundle-size-check.mjs                 @Hou-mingyuan
+/scripts/.bundle-size-baseline.json            @Hou-mingyuan
+/scripts/coverage-check.mjs                    @Hou-mingyuan
+/scripts/.coverage-baseline.json               @Hou-mingyuan
+
+# ── End-to-end tests ───────────────────────────────────────────────────────
+/e2e/                                          @Hou-mingyuan
+
+# ── Planning files (task_plan / findings / progress, planning-with-files) ──
+task_plan.md                                   @Hou-mingyuan
+findings.md                                    @Hou-mingyuan
+progress.md                                    @Hou-mingyuan
