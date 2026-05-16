@@ -164,6 +164,48 @@
         </svg>
       </button>
     </div>
+    <!--
+      Doubao-style quick toggles row: 深度思考 + 联网搜索. Visible by default;
+      host can hide the whole row via `quickTogglesEnabled = false`. The row
+      only renders in chat mode to keep translate/summarize footprints lean.
+    -->
+    <div
+      v-if="quickTogglesEnabled && mode === 'chat'"
+      class="ai-footer-quick-toggles"
+      role="group"
+      :aria-label="t.skillStripLabel || '快捷工具'"
+    >
+      <button
+        type="button"
+        class="ai-quick-toggle ai-quick-toggle-deepthink"
+        :class="{ active: deepThinkEnabled }"
+        :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
+        :title="
+          deepThinkEnabled
+            ? t.deepThinkOn || '深度思考 已开启'
+            : t.deepThinkOff || '深度思考 已关闭'
+        "
+        @click="$emit('toggleDeepThink', !deepThinkEnabled)"
+      >
+        <span class="ai-quick-toggle-icon" aria-hidden="true">🧠</span>
+        <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
+      </button>
+      <button
+        type="button"
+        class="ai-quick-toggle ai-quick-toggle-websearch"
+        :class="{ active: webSearchEnabled }"
+        :aria-pressed="webSearchEnabled ? 'true' : 'false'"
+        :title="
+          webSearchEnabled
+            ? t.webSearchOn || '联网搜索 已开启'
+            : t.webSearchOff || '联网搜索 已关闭'
+        "
+        @click="$emit('toggleWebSearch', !webSearchEnabled)"
+      >
+        <span class="ai-quick-toggle-icon" aria-hidden="true">🌐</span>
+        <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
+      </button>
+    </div>
     <div class="ai-footer-input-row">
       <textarea
         ref="textareaRef"
@@ -174,7 +216,7 @@
         :data-recall-active="recallActive ? 'true' : null"
         @input="onTextareaInput"
         @keydown="onTextareaKeydown"
-        @paste="$emit('pasteImage', $event)"
+        @paste="onTextareaPaste"
       />
       <span
         v-if="charCountLabel"
@@ -383,6 +425,15 @@ const props = withDefaults(
      * 显式默认为 true，否则上层 host 不传 prop 时回放就被错误禁用。
      */
     historyEnabled?: boolean;
+    /**
+     * Doubao-style quick toggles row above the input. Both default to
+     * showing the chips (UI-only stubs) but unchecked. Host can pass
+     * `quickTogglesEnabled = false` to hide the whole row, or wire
+     * `toggleDeepThink` / `toggleWebSearch` to actual backend flags.
+     */
+    quickTogglesEnabled?: boolean;
+    deepThinkEnabled?: boolean;
+    webSearchEnabled?: boolean;
   }>(),
   {
     slashVisible: false,
@@ -392,6 +443,9 @@ const props = withDefaults(
     pageContextEnabled: true,
     pageContextBlockCount: 0,
     historyEnabled: true,
+    quickTogglesEnabled: true,
+    deepThinkEnabled: false,
+    webSearchEnabled: false,
   },
 );
 
@@ -408,6 +462,12 @@ const emit = defineEmits<{
   editPendingImage: [index: number];
   fileUpload: [file: File];
   pasteImage: [event: ClipboardEvent];
+  /**
+   * L1: 普通文本粘贴。除 `pasteImage` 之外额外发出，便于 useFormAutoFill 等
+   * 监听者拿到纯文本。`text` 已经从 clipboardData 提取过，不需要消费者再读
+   * 一遍；若粘贴中没有文本（如纯图）则不会发射。
+   */
+  pasteText: [payload: { text: string; event: ClipboardEvent }];
   toggleVoice: [];
   toggleVoiceConversation: [];
   chatImage: [file: File];
@@ -418,6 +478,13 @@ const emit = defineEmits<{
   historyOlder: [];
   historyNewer: [];
   historyReset: [];
+  /**
+   * Doubao-style quick toggles. The host can listen to apply the desired
+   * side effects (model param, tool plugin, etc.). `value` is the new
+   * desired state after the click.
+   */
+  toggleDeepThink: [value: boolean];
+  toggleWebSearch: [value: boolean];
 }>();
 
 /**
@@ -429,6 +496,17 @@ const recallActive = ref(false);
 const fileInputRef = ref<HTMLInputElement>();
 const chatImageInputRef = ref<HTMLInputElement>();
 const textareaRef = ref<HTMLTextAreaElement>();
+
+/**
+ * L1: 单一 paste 入口。同时发出 pasteImage（保留原行为）和 pasteText
+ * （供 useFormAutoFill 等监听者）。两路互不影响：image handler 会忽略
+ * 没有图片的事件；text handler 会忽略空文本。
+ */
+function onTextareaPaste(event: ClipboardEvent) {
+  emit('pasteImage', event);
+  const text = event.clipboardData?.getData('text/plain') ?? '';
+  if (text) emit('pasteText', { text, event });
+}
 
 function wrapSelection(before: string, after: string) {
   const el = textareaRef.value;

@@ -334,4 +334,63 @@ export interface I18nMessages {
   searchCaseSensitive: string;
   searchWholeWord: string;
   searchRegex: string;
+  /**
+   * L1 (Form Auto-Fill, Phase 1)
+   * 从剪贴板把 "A: 234 B: 1234" 等键值对自动填入页面表单。全部 optional 以
+   * 兼容旧的 i18n 文件；组件内有英文兜底。
+   */
+  /** Dialog title for the auto-fill preview */
+  formFillDialogTitle?: string;
+  /** "{matched} of {total} pairs matched" — both placeholders are required */
+  formFillSummaryTemplate?: string;
+  /** Inline hint when LLM fallback is enabled and some pairs are still unmatched */
+  formFillLlmHint?: string;
+  /** Master checkbox label in the dialog toolbar */
+  formFillSelectAll?: string;
+  /** Table column headers */
+  formFillColField?: string;
+  formFillColCurrent?: string;
+  formFillColNew?: string;
+  formFillColConfidence?: string;
+  /** Placeholder when a target field has no current value */
+  formFillEmpty?: string;
+  /** Manual-pick dropdown's "no field" option */
+  formFillFieldNone?: string;
+  /** Empty-state row when input had no parseable pairs */
+  formFillNoPairs?: string;
+  /** Cancel button */
+  formFillCancel?: string;
+  /** Confirm button — `{n}` = selected count */
+  formFillConfirmTemplate?: string;
+  /** Slash command description for `/fill` */
+  slashCmdFillDesc?: string;
+  /** Post-fill toast template — `{filled}` and `{failed}` required */
+  formFillToastTemplate?: string;
+  /** Undo button on the toast */
+  formFillToastUndo?: string;
+  /** Banner shown on paste-detect — `{n}` = parsed pair count */
+  formFillPasteBannerTemplate?: string;
+  formFillPasteBannerFill?: string;
+  formFillPasteBannerDismiss?: string;
+  /** Phase 2 table mode summary chip — `{dataRows}` `{cols}` `{formRows}` */
+  formFillTableSummary?: string;
+  /** Phase 2 truncation warning — `{n}` = skipped data rows */
+  formFillTableTruncated?: string;
+  /**
+   * Doubao-style empty-state quick-skill strip aria label. Optional with
+   * inline fallback in template ("快捷技能" / "Quick skills").
+   */
+  skillStripLabel?: string;
+  /**
+   * Doubao-style quick-toggle row above input. The host can opt into
+   * deep-think / web-search by listening to `toggleDeepThink` and
+   * `toggleWebSearch` and applying the desired side effects (model param,
+   * tool plugin, etc). All optional with inline fallback in template.
+   */
+  deepThinkLabel?: string;
+  deepThinkOn?: string;
+  deepThinkOff?: string;
+  webSearchLabel?: string;
+  webSearchOn?: string;
+  webSearchOff?: string;
 }

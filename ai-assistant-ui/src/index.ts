@@ -2,6 +2,7 @@ import type { App } from 'vue';
 import { createApp } from 'vue';
 import AiAssistant from './components/AiAssistant.vue';
 import type { PageContextBlock } from './utils/pageContextDom';
+import type { FormAutoFillOptions } from './composables/useFormAutoFill';
 
 export interface AiAssistantOptions {
   baseUrl?: string;
@@ -116,6 +117,20 @@ export interface AiAssistantOptions {
    * displayedMessages.length）。
    */
   virtualScroll?: boolean | { threshold?: number; estimatedItemHeight?: number };
+  /**
+   * L1 Phase 1: 表单自动填充。把剪贴板里的「键:值」对（A: 234 / B: 1234）
+   * 解析后自动填入页面表单字段。
+   *
+   * - `false` / `undefined`（默认）：关闭，不挂载相关 UI 与监听
+   * - `true`：开启，全部用默认值（autoDetectPaste=true、扫整个 body、
+   *   不开 LLM 兜底）
+   * - 对象：精细配置
+   *
+   * 用法：
+   * - 用户在助手输入框 Ctrl+V 粘贴「key: value\nkey: value」时自动弹出预览
+   * - 或者在助手输入框输入 `/fill` 选中后从当前输入框或剪贴板手动触发
+   */
+  formAutoFill?: boolean | FormAutoFillOptions;
 }
 
 const defaultOptions: AiAssistantOptions = {
@@ -335,6 +350,53 @@ export type {
  * source/target pair (file revisions / API responses / etc.). */
 export { diffLines, opsToRows, summariseRows } from './composables/useLineDiff';
 export type { DiffOp, DiffOpEntry, SideBySideRow, DiffSummary } from './composables/useLineDiff';
+/* L1: form auto-fill (Phase 1) — clipboard "key:value" pairs auto-write into
+ * host page form fields. Composable + pure-function utils are exported so
+ * advanced hosts can build custom UI without `<AiAssistant>`. */
+export { useFormAutoFill } from './composables/useFormAutoFill';
+export type {
+  FormAutoFillOptions,
+  TableModeOptions,
+  TableModeInfo,
+  UseFormAutoFillReturn,
+  UseFormAutoFillDeps,
+} from './composables/useFormAutoFill';
+export {
+  parseFormData,
+  parseFormDataAsTable,
+  splitInlineSegments,
+  unquote,
+} from './utils/formAutoFill/parser';
+export type {
+  ParsedPair,
+  ParseFormDataOptions,
+  ParsedTable,
+  ParseFormDataAsTableOptions,
+} from './utils/formAutoFill/parser';
+export { scanFormFields, scanFormRows } from './utils/formAutoFill/scanner';
+export type {
+  FormField,
+  FormFieldOption,
+  FormFieldType,
+  ScanFormFieldsOptions,
+  FormRow,
+  ScanFormRowsOptions,
+} from './utils/formAutoFill/scanner';
+export {
+  matchFields,
+  normalize as normalizeFieldLabel,
+  levenshteinDistance,
+  levenshteinSimilarity,
+  longestCommonSubstring,
+} from './utils/formAutoFill/matcher';
+export type { MatchResult, MatchStrategy, MatcherOptions } from './utils/formAutoFill/matcher';
+export {
+  fillField,
+  undoFills,
+  highlightFilledField,
+  clearFillHighlights,
+} from './utils/formAutoFill/filler';
+export type { FillRecord } from './utils/formAutoFill/filler';
 /* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
  * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
  * the lib bundle structure clean. Import them directly:

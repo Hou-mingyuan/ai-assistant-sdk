@@ -257,27 +257,6 @@
                 {{ tpl.label }}
               </button>
             </div>
-            <!-- 默认 starter 示例：仅当宿主未配置 promptTemplates 时显示，引导新用户上手 -->
-            <div
-              v-if="promptTemplateList.length === 0 && mode === 'chat'"
-              class="ai-empty-starters"
-            >
-              <button
-                v-for="(starter, si) in defaultStarters"
-                :key="si"
-                type="button"
-                class="ai-empty-starter"
-                @click="
-                  input = starter.split(' ').slice(1).join(' ');
-                  focusInput();
-                "
-              >
-                <span class="ai-empty-starter-icon">{{ starter.split(' ')[0] }}</span>
-                <span class="ai-empty-starter-text">{{
-                  starter.split(' ').slice(1).join(' ')
-                }}</span>
-              </button>
-            </div>
           </div>
           <MessageList
             :messages="displayedMessages"
@@ -384,14 +363,19 @@
           :page-context-configured="pageContextConfigured"
           :page-context-enabled="!pageContextDisabledOverride"
           :page-context-block-count="options.pageContextBlocks?.length ?? 0"
+          :deep-think-enabled="deepThinkEnabled"
+          :web-search-enabled="webSearchEnabled"
           @send="send"
           @change-mode="onChangeMode"
           @toggle-page-context="togglePageContext"
+          @toggle-deep-think="(v) => (deepThinkEnabled = v)"
+          @toggle-web-search="(v) => (webSearchEnabled = v)"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
           @edit-pending-image="openAnnotationForPendingImage"
           @file-upload="processFileUpload"
           @paste-image="onPasteImage"
+          @paste-text="onChatInputPasteText"
           @toggle-voice="voiceToggle()"
           @toggle-voice-conversation="toggleVoiceConversation"
           @chat-image="readFileAsDataUrl"
@@ -713,6 +697,58 @@
       @save="onAnnotationSave"
     />
 
+    <!-- L1: Form auto-fill dialog (lazy-loaded via async component). Only mounts
+         when the feature is enabled and the composable opens the dialog. -->
+    <FormAutoFillDialog
+      v-if="formAutoFillEnabled && formAutoFill.dialogOpen.value"
+      :open="formAutoFill.dialogOpen.value"
+      :is-dark="isDark"
+      :t="t"
+      :matches="formAutoFill.matches.value"
+      :selected-indices="formAutoFill.selectedIndices.value"
+      :available-fields="formAutoFill.availableFields.value"
+      :llm-fallback-hinted="formAutoFill.llmFallbackHinted.value"
+      :table-info="formAutoFill.tableInfo.value"
+      @close="formAutoFill.closeDialog()"
+      @toggle="onFormAutoFillToggle"
+      @toggle-all="onFormAutoFillToggleAll"
+      @override="onFormAutoFillOverride"
+      @confirm="onFormAutoFillConfirm"
+    />
+
+    <!-- L1: Post-fill toast with Undo. Teleports to body so it sits above the
+         page even when the assistant panel is closed. Auto-dismisses after 5s
+         inside the composable. -->
+    <Teleport v-if="formAutoFillEnabled" to="body">
+      <Transition name="ai-modal">
+        <div
+          v-if="formAutoFill.toastVisible.value && formAutoFill.toastSummary.value"
+          class="ai-form-fill-toast"
+          :class="{ 'ai-dark': isDark }"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="ai-form-fill-toast-text">{{ formAutoFillToastText }}</span>
+          <button
+            v-if="formAutoFill.lastFillRecords.value.length > 0"
+            type="button"
+            class="ai-form-fill-toast-btn"
+            @click="onFormAutoFillUndo"
+          >
+            {{ t.formFillToastUndo || 'Undo' }}
+          </button>
+          <button
+            type="button"
+            class="ai-form-fill-toast-close"
+            :aria-label="t.closePanel"
+            @click="onFormAutoFillToastDismiss"
+          >
+            &times;
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
     <CommandPalette
       :open="cmdPalette.open.value"
@@ -814,6 +850,8 @@ import {
 import { usePageSelection } from '../composables/usePageSelection';
 import { usePromptHistory } from '../composables/usePromptHistory';
 import { useFabDropIngest } from '../composables/useFabDropIngest';
+import { useFormAutoFill } from '../composables/useFormAutoFill';
+const FormAutoFillDialog = defineAsyncComponent(() => import('./FormAutoFillDialog.vue'));
 import {
   extractHttpUrls,
   isProbablyDirectImageUrl,
@@ -972,35 +1010,204 @@ const fabHidden = ref(false);
 const input = ref('');
 
 /**
- * 默认 starter 示例：宿主没在 options.promptTemplates 配置时，空状态显示这些
- * 引导新用户上手。emoji 前缀也用作图标。每一项点击后直接填入输入框（不自动发送）。
+ * Doubao-style quick toggles state. Pure UI-state by default; host can
+ * react to `onToggleDeepThink` / `onToggleWebSearch` options to wire to a
+ * backend flag (model param, tool plugin, etc.). Persisted across panel
+ * opens within the same session — but intentionally NOT to localStorage,
+ * because semantics depend on the host's wiring.
  */
-const defaultStarters = computed<string[]>(() => {
+const deepThinkEnabled = ref(false);
+const webSearchEnabled = ref(false);
+
+/**
+ * Doubao-style skill chip strip data. Lives above the starter cards in the
+ * empty state and offers single-tap shortcuts into common AI capabilities.
+ * Each chip carries a tone token consumed by `99-enterprise-overhaul.css`
+ * to vary background/foreground colour without per-chip overrides in the
+ * template.
+ *
+ * Click contract: fills the input box with `prompt` (no auto-send), then
+ * focuses the textarea so the user can finish the sentence.
+ */
+interface EmptySkillChip {
+  icon: string;
+  label: string;
+  prompt: string;
+  tone: 'violet' | 'cyan' | 'amber' | 'emerald' | 'rose' | 'sky';
+}
+const defaultSkills = computed<EmptySkillChip[]>(() => {
   const loc = options.locale ?? 'en';
-  const lib: Record<string, string[]> = {
+  const lib: Record<string, EmptySkillChip[]> = {
     zh: [
-      '💡 帮我写一封商务邮件',
-      '🔍 解释什么是 RAG 检索增强',
-      '📝 把这段文字翻译成英文：',
-      '✨ 给我推荐 3 本科幻小说',
+      { icon: '✏️', label: '写作', tone: 'violet', prompt: '帮我写一段关于 ' },
+      { icon: '🌐', label: '翻译', tone: 'cyan', prompt: '把这段翻译成中文：' },
+      { icon: '📊', label: '分析', tone: 'sky', prompt: '帮我分析这份数据：' },
+      { icon: '💡', label: '灵感', tone: 'amber', prompt: '给我一些关于 ' },
+      { icon: '💻', label: '编程', tone: 'emerald', prompt: '帮我写一段实现 ' },
+      { icon: '📝', label: '总结', tone: 'rose', prompt: '帮我总结一下：' },
     ],
     en: [
-      '💡 Help me write a professional email',
-      '🔍 Explain what RAG (retrieval augmented generation) is',
-      '📝 Translate this text into Chinese: ',
-      '✨ Recommend 3 sci-fi novels for me',
+      { icon: '✏️', label: 'Write', tone: 'violet', prompt: 'Help me write a draft about ' },
+      { icon: '🌐', label: 'Translate', tone: 'cyan', prompt: 'Translate this into English: ' },
+      { icon: '📊', label: 'Analyze', tone: 'sky', prompt: 'Help me analyze this data: ' },
+      { icon: '💡', label: 'Ideas', tone: 'amber', prompt: 'Give me some ideas about ' },
+      { icon: '💻', label: 'Code', tone: 'emerald', prompt: 'Write code to ' },
+      { icon: '📝', label: 'Summary', tone: 'rose', prompt: 'Summarize this for me: ' },
     ],
     ja: [
-      '💡 ビジネスメールを書いてください',
-      '🔍 RAGとは何か説明してください',
-      '📝 この文章を英語に翻訳してください：',
-      '✨ おすすめのSF小説を3冊教えてください',
+      { icon: '✏️', label: '文章', tone: 'violet', prompt: '〜について書いてください：' },
+      { icon: '🌐', label: '翻訳', tone: 'cyan', prompt: 'この文を翻訳してください：' },
+      { icon: '📊', label: '分析', tone: 'sky', prompt: 'このデータを分析してください：' },
+      { icon: '💡', label: 'アイデア', tone: 'amber', prompt: '〜に関するアイデアを：' },
+      { icon: '💻', label: 'コード', tone: 'emerald', prompt: '〜を実装するコードを：' },
+      { icon: '📝', label: '要約', tone: 'rose', prompt: '要約してください：' },
     ],
     ko: [
-      '💡 비즈니스 이메일 작성을 도와주세요',
-      '🔍 RAG(검색 증강 생성)에 대해 설명해 주세요',
-      '📝 이 텍스트를 영어로 번역해 주세요:',
-      '✨ SF 소설 3권을 추천해 주세요',
+      { icon: '✏️', label: '글쓰기', tone: 'violet', prompt: '〜에 대해 써 주세요: ' },
+      { icon: '🌐', label: '번역', tone: 'cyan', prompt: '이 문장을 번역해 주세요: ' },
+      { icon: '📊', label: '분석', tone: 'sky', prompt: '이 데이터를 분석해 주세요: ' },
+      { icon: '💡', label: '아이디어', tone: 'amber', prompt: '〜에 대한 아이디어: ' },
+      { icon: '💻', label: '코드', tone: 'emerald', prompt: '〜를 구현하는 코드: ' },
+      { icon: '📝', label: '요약', tone: 'rose', prompt: '요약해 주세요: ' },
+    ],
+  };
+  return lib[loc] ?? lib.en;
+});
+
+/**
+ * Rich starter cards (Doubao-style: icon + title + 1-line description).
+ * Replaces the legacy `defaultStarters` string-with-emoji-prefix format.
+ * `prompt` is what lands in the textarea on click; `desc` is purely UI.
+ */
+interface EmptyStarterCard {
+  icon: string;
+  title: string;
+  desc: string;
+  prompt: string;
+  tone: 'violet' | 'cyan' | 'amber' | 'emerald';
+}
+const defaultStartersRich = computed<EmptyStarterCard[]>(() => {
+  const loc = options.locale ?? 'en';
+  const lib: Record<string, EmptyStarterCard[]> = {
+    zh: [
+      {
+        icon: '💼',
+        title: '写一封商务邮件',
+        desc: '正式得体、要点清晰',
+        prompt: '帮我写一封商务邮件，主题是：',
+        tone: 'violet',
+      },
+      {
+        icon: '🧠',
+        title: '解释一个概念',
+        desc: '通俗易懂、举例说明',
+        prompt: '用通俗的话解释一下什么是 ',
+        tone: 'cyan',
+      },
+      {
+        icon: '🔤',
+        title: '翻译成英文',
+        desc: '保留语气，自然地道',
+        prompt: '把这段中文翻译成自然的英文：',
+        tone: 'amber',
+      },
+      {
+        icon: '🎬',
+        title: '推荐 3 本科幻小说',
+        desc: '附简短理由和难度',
+        prompt: '给我推荐 3 本好看的科幻小说，并简要说明每本的看点。',
+        tone: 'emerald',
+      },
+    ],
+    en: [
+      {
+        icon: '💼',
+        title: 'Write a business email',
+        desc: 'Polished tone, clear points',
+        prompt: 'Help me draft a business email about ',
+        tone: 'violet',
+      },
+      {
+        icon: '🧠',
+        title: 'Explain a concept',
+        desc: 'Plain language, with examples',
+        prompt: 'Explain in plain words what ',
+        tone: 'cyan',
+      },
+      {
+        icon: '🔤',
+        title: 'Translate to Chinese',
+        desc: 'Natural, tone-preserving',
+        prompt: 'Translate the following into natural Chinese: ',
+        tone: 'amber',
+      },
+      {
+        icon: '🎬',
+        title: 'Recommend 3 sci-fi novels',
+        desc: 'With short reasons',
+        prompt: 'Recommend 3 great sci-fi novels with a one-line reason for each.',
+        tone: 'emerald',
+      },
+    ],
+    ja: [
+      {
+        icon: '💼',
+        title: 'ビジネスメール作成',
+        desc: '丁寧で要点が明確',
+        prompt: '以下の件についてビジネスメールを書いてください：',
+        tone: 'violet',
+      },
+      {
+        icon: '🧠',
+        title: '概念を説明',
+        desc: 'わかりやすく、例つき',
+        prompt: '次の概念をわかりやすく説明してください：',
+        tone: 'cyan',
+      },
+      {
+        icon: '🔤',
+        title: '英語に翻訳',
+        desc: '自然でニュアンスを保持',
+        prompt: 'この文章を自然な英語に翻訳してください：',
+        tone: 'amber',
+      },
+      {
+        icon: '🎬',
+        title: 'SF小説を3冊',
+        desc: '短い理由つき',
+        prompt: 'おすすめのSF小説を3冊、短い理由とともに教えてください。',
+        tone: 'emerald',
+      },
+    ],
+    ko: [
+      {
+        icon: '💼',
+        title: '비즈니스 이메일',
+        desc: '정중하고 요점이 명확',
+        prompt: '다음 주제로 비즈니스 이메일을 작성해 주세요: ',
+        tone: 'violet',
+      },
+      {
+        icon: '🧠',
+        title: '개념 설명',
+        desc: '쉽게, 예시와 함께',
+        prompt: '다음 개념을 쉽게 설명해 주세요: ',
+        tone: 'cyan',
+      },
+      {
+        icon: '🔤',
+        title: '영어로 번역',
+        desc: '자연스럽고 어조 유지',
+        prompt: '다음 문장을 자연스러운 영어로 번역해 주세요: ',
+        tone: 'amber',
+      },
+      {
+        icon: '🎬',
+        title: 'SF 소설 3권',
+        desc: '간단한 이유와 함께',
+        prompt: '좋은 SF 소설 3권을 간단한 이유와 함께 추천해 주세요.',
+        tone: 'emerald',
+      },
     ],
   };
   return lib[loc] ?? lib.en;
@@ -2088,6 +2295,60 @@ function toggleMemoryPanel() {
   memoryOpen.value = !memoryOpen.value;
 }
 
+/**
+ * L1: 表单自动填充 composable。`options.formAutoFill` 既可为 `boolean` 也可
+ * 为对象，统一规范化成对象传给 composable。关闭时 composable 仍然存在但所
+ * 有公开方法都会因为 autoDetectPaste/options 未设而早退。
+ */
+const formAutoFillOptions = computed(() => {
+  const raw = options.formAutoFill;
+  if (!raw) return null;
+  if (raw === true) return {};
+  return raw;
+});
+const formAutoFillEnabled = computed(() => formAutoFillOptions.value !== null);
+const formAutoFill = useFormAutoFill({
+  options: computed(() => formAutoFillOptions.value ?? {}),
+});
+
+function onChatInputPasteText(payload: { text: string; event: ClipboardEvent }) {
+  if (!formAutoFillEnabled.value) return;
+  formAutoFill.inspectPasteText(payload.text);
+}
+
+function onFormAutoFillToggle(idx: number) {
+  formAutoFill.toggleSelection(idx);
+}
+
+function onFormAutoFillToggleAll(checked: boolean) {
+  formAutoFill.setAllSelections(checked);
+}
+
+function onFormAutoFillOverride(payload: { pairIdx: number; fieldId: string | null }) {
+  formAutoFill.overrideMatch(payload.pairIdx, payload.fieldId);
+}
+
+function onFormAutoFillConfirm() {
+  formAutoFill.confirmFill();
+}
+
+function onFormAutoFillUndo() {
+  formAutoFill.undoLastFill();
+}
+
+function onFormAutoFillToastDismiss() {
+  formAutoFill.dismissToast();
+}
+
+const formAutoFillToastText = computed(() => {
+  const s = formAutoFill.toastSummary.value;
+  if (!s) return '';
+  const tpl = t.value.formFillToastTemplate || 'Filled {filled} field(s) ({failed} failed)';
+  return tpl
+    .replace('{filled}', String(s.filled))
+    .replace('{failed}', String(s.failed));
+});
+
 const slashCmd = useSlashCommands({
   input,
   t: computed(() => t.value) as unknown as Ref<I18nMessages>,
@@ -2152,6 +2413,24 @@ const slashCmd = useSlashCommands({
         return true;
       },
     },
+    ...(formAutoFillEnabled.value
+      ? [
+          {
+            name: '/fill',
+            get description() {
+              return (
+                t.value.slashCmdFillDesc || 'Auto-fill form fields from clipboard pairs'
+              );
+            },
+            icon: 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 12h8v2H8zm0 4h5v2H8z',
+            action: () => {
+              const buf = input.value.replace(/^\/fill\b\s*/i, '').trim();
+              void formAutoFill.triggerFromText(buf);
+              return true;
+            },
+          },
+        ]
+      : []),
   ],
 });
 
@@ -3610,6 +3889,8 @@ onUnmounted(() => {
 });
 </script>
 
+<style src="./styles/00-fonts.css"></style>
+<style src="./styles/00-enterprise-tokens.css"></style>
 <style src="./styles/01-shell.css"></style>
 <style src="./styles/02-header-messages.css"></style>
 <style src="./styles/03-input-popups.css"></style>
@@ -3622,3 +3903,4 @@ onUnmounted(() => {
 <style src="./styles/10-polish-wave-6.css"></style>
 <style src="./styles/11-refinement-and-performance.css"></style>
 <style src="./styles/12-extreme-performance.css"></style>
+<style src="./styles/99-enterprise-overhaul.css"></style>
