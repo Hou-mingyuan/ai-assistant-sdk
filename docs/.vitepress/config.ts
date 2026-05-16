@@ -53,7 +53,10 @@ export default defineConfig({
         },
         {
           text: 'Contributing',
-          items: [{ text: 'Git Hooks (pre-commit)', link: '/guide/git-hooks' }],
+          items: [
+            { text: 'Git Hooks (pre-commit)', link: '/guide/git-hooks' },
+            { text: 'Styling Tokens', link: '/guide/styling-tokens' },
+          ],
         },
       ],
       '/api/': [
