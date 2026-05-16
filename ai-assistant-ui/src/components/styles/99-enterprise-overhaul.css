@@ -1,0 +1,2571 @@
+﻿/**
+ * Doubao-clone visual layer.
+ *
+ * Goal: replicate the Doubao assistant aesthetic 鈥?friendly light surface,
+ * indigo鈫抳iolet brand, rounded everything, restrained motion, comfortable
+ * density. No aurora ribbons, no orbiting halos; only the rotating brand
+ * orb on the FAB.
+ *
+ * All values come from `00-enterprise-tokens.css`. Loaded LAST so it wins
+ * over the legacy 01..12 sheets.
+ */
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Global font + smoothing
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper,
+.ai-assistant-wrapper * {
+  font-family: var(--ai-font-display);
+  letter-spacing: var(--ai-tracking-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.ai-assistant-wrapper code,
+.ai-assistant-wrapper pre,
+.ai-personalize-overlay code,
+.ai-personalize-overlay pre,
+.ai-form-fill-overlay code,
+.ai-form-fill-overlay pre {
+  font-family: var(--ai-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand "bean" logo as a reusable CSS mask. Tinted with gradient at usage. */
+:root,
+.ai-assistant-wrapper,
+.ai-personalize-overlay,
+.ai-form-fill-overlay {
+  --ai-bean-mask:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='black' d='M32 6c11 0 22 9.5 22 23 0 8-3.6 14.6-8.4 19-3.4 3.1-7.6 4.7-13 4.7-7.4 0-13-3.4-16.8-7.8C11.8 40 9.6 33.4 9.6 27 9.6 14 21 6 32 6Z'/><path fill='white' fill-opacity='0.32' d='M22.5 16c4.3-2 9-2.6 13.4-1.4-5.4 1.6-9.7 5.3-12.4 10-1.8-2.8-2.5-5.8-1-8.6Z'/></svg>");
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * FAB 鈥?Doubao-style rounded brand orb
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+/* Double-wrap selector to outrank legacy `.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab` rules in 09-modern-overhaul.css */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: var(--ai-radius-pill) !important;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.55), transparent 38%),
+    radial-gradient(circle at 72% 78%, rgba(167, 139, 250, 0.45), transparent 55%),
+    linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.36) !important;
+  color: #fff !important;
+  box-shadow:
+    0 8px 24px -6px rgba(91, 108, 255, 0.4),
+    0 16px 36px -10px rgba(147, 51, 234, 0.36),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset !important;
+  transition:
+    transform var(--ai-dur-base) var(--ai-ease-spring),
+    box-shadow var(--ai-dur-base) var(--ai-ease-out),
+    filter var(--ai-dur-base) var(--ai-ease-out) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::before,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::after {
+  /* Strip legacy decorations entirely 鈥?clean orb, no rotating halo. */
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  animation: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab .ai-fab-matrix-glyphs {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: brightness(1.06);
+  box-shadow:
+    0 12px 30px -6px rgba(91, 108, 255, 0.5),
+    0 20px 44px -10px rgba(147, 51, 234, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:active {
+  transform: translateY(0) scale(0.96);
+}
+/* Replace the legacy SVG icon with a "bean" silhouette in solid white */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab > svg,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab svg {
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  margin: auto !important;
+  width: 28px !important;
+  height: 28px !important;
+  background: #ffffff !important;
+  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat !important;
+  mask: var(--ai-bean-mask) center / contain no-repeat !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18)) !important;
+  pointer-events: none !important;
+  animation: none !important;
+  border-radius: 0 !important;
+  z-index: 2;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Panel 鈥?white surface, rounded, soft shadow
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper.panel-mounted {
+  width: 400px;
+  height: 600px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel {
+  border-radius: var(--ai-radius-xl) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fafafd 100%) !important;
+  box-shadow: var(--ai-shadow-lg) !important;
+  color: var(--ai-color-text-primary);
+  overflow: hidden;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel::before {
+  /* Kill legacy green-matrix scan overlay */
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  animation: none !important;
+}
+.ai-assistant-wrapper .ai-code-wall-canvas {
+  display: none !important;
+}
+/* Doubao-like subtle floating sparkle particles drifting upward */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle, rgba(124, 92, 255, 0.55) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(34, 211, 238, 0.4) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(168, 85, 247, 0.35) 1px, transparent 1.5px);
+  background-size: 220px 220px, 280px 280px, 340px 340px;
+  background-position: 20px 30px, 120px 60px, 200px 90px;
+  opacity: 0.4;
+  animation: ai-panel-particles 24s linear infinite;
+  mask: linear-gradient(180deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
+  -webkit-mask: linear-gradient(180deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
+}
+@keyframes ai-panel-particles {
+  from { background-position: 20px 0px, 120px 30px, 200px 60px; }
+  to { background-position: 20px -800px, 120px -770px, 200px -740px; }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-panel::after {
+  opacity: 0.55;
+  background-image:
+    radial-gradient(circle, rgba(168, 139, 250, 0.55) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(34, 211, 238, 0.5) 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(192, 132, 252, 0.45) 1px, transparent 1.5px);
+}
+
+/* Dark variant 鈥?slightly more glass-like */
+.ai-assistant-wrapper.ai-dark .ai-panel {
+  background:
+    linear-gradient(180deg, #15161e 0%, #0d0e15 100%) !important;
+  border-color: var(--ai-color-border-strong) !important;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Header
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--ai-color-divider);
+  color: var(--ai-color-text-primary);
+  padding: var(--ai-space-3) var(--ai-space-4) !important;
+  gap: var(--ai-space-2);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-spacer {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-title,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-title,
+.ai-assistant-wrapper [class*='ai-title'] {
+  font-family: var(--ai-font-display) !important;
+  font-weight: 600 !important;
+  font-size: var(--ai-text-md) !important;
+  letter-spacing: var(--ai-tracking-tight) !important;
+  color: var(--ai-color-text-primary) !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: none !important;
+}
+/* Doubao-style bean logo in front of the title */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-title::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: -4px;
+  background: linear-gradient(135deg, #5b6cff, #9333ea);
+  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat;
+  mask: var(--ai-bean-mask) center / contain no-repeat;
+  filter: drop-shadow(0 1px 3px rgba(91, 108, 255, 0.35));
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header [role='button'] {
+  border-radius: var(--ai-radius-base) !important;
+  color: var(--ai-color-text-secondary);
+  transition: color var(--ai-dur-fast) var(--ai-ease-out),
+    background var(--ai-dur-fast) var(--ai-ease-out);
+  flex: 0 0 auto;
+  padding: var(--ai-space-1) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button:hover {
+  color: var(--ai-color-text-primary);
+  background: var(--ai-color-surface);
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Message list + bubbles
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-messages,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-message-list {
+  background: transparent !important;
+  padding: var(--ai-space-4) var(--ai-space-4) var(--ai-space-2) !important;
+  scrollbar-color: var(--ai-color-border-strong) transparent;
+  scrollbar-width: thin;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-messages::-webkit-scrollbar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-message-list::-webkit-scrollbar {
+  width: 6px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-messages::-webkit-scrollbar-thumb,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-message-list::-webkit-scrollbar-thumb {
+  background: var(--ai-color-border-strong);
+  border-radius: var(--ai-radius-pill);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble {
+  padding: var(--ai-space-3) var(--ai-space-4) !important;
+  border-radius: var(--ai-radius-lg) !important;
+  font-size: var(--ai-text-base);
+  line-height: var(--ai-leading-loose);
+  letter-spacing: var(--ai-tracking-base);
+  box-shadow: var(--ai-shadow-sm);
+  max-width: 86%;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user {
+  background: var(--ai-grad-brand) !important;
+  color: var(--ai-color-user-bubble-text) !important;
+  border: none !important;
+  border-radius: var(--ai-radius-lg) var(--ai-radius-sm) var(--ai-radius-lg)
+    var(--ai-radius-lg) !important;
+  box-shadow: 0 6px 18px -8px rgba(91, 108, 255, 0.42);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant {
+  background: var(--ai-color-assistant-bubble) !important;
+  color: var(--ai-color-assistant-bubble-text) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-sm) var(--ai-radius-lg) var(--ai-radius-lg)
+    var(--ai-radius-lg) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble pre {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-base) !important;
+  padding: var(--ai-space-3) var(--ai-space-4) !important;
+  font-size: var(--ai-text-sm);
+  line-height: var(--ai-leading-base);
+  color: var(--ai-color-text-primary);
+}
+.ai-assistant-wrapper.ai-dark .ai-bubble pre {
+  background: rgba(0, 0, 0, 0.4) !important;
+  color: #e2e8f0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble :not(pre) > code {
+  background: var(--ai-color-surface-strong);
+  border: 1px solid var(--ai-color-border);
+  border-radius: var(--ai-radius-xs);
+  padding: 1px 6px;
+  color: var(--ai-color-text-primary);
+}
+
+/* Greeting / starter / quick-prompt chips */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  padding: var(--ai-space-10) var(--ai-space-5) var(--ai-space-6) !important;
+  color: var(--ai-color-text-secondary) !important;
+  font-family: var(--ai-font-display);
+  text-align: center;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+  content: '' !important;
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--ai-space-3);
+  background: linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%);
+  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat;
+  mask: var(--ai-bean-mask) center / contain no-repeat;
+  filter:
+    drop-shadow(0 12px 24px rgba(91, 108, 255, 0.35))
+    drop-shadow(0 4px 12px rgba(147, 51, 234, 0.28));
+  animation: ai-orb-bob 4s ease-in-out infinite;
+}
+@keyframes ai-orb-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p {
+  margin: 0 !important;
+  font-size: var(--ai-text-lg) !important;
+  font-weight: 600 !important;
+  color: var(--ai-color-text-primary) !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  letter-spacing: var(--ai-tracking-tight);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::after {
+  content: '鎴戞槸璞嗚眴锛屽彲浠ュ府浣犵炕璇戙€佹憳瑕併€佸璇濓紝杩樿兘鑷姩濉〃';
+  display: block;
+  margin-top: var(--ai-space-1);
+  font-size: var(--ai-text-sm);
+  font-weight: 400;
+  color: var(--ai-color-text-secondary);
+  letter-spacing: var(--ai-tracking-base);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ai-space-2) !important;
+  margin-top: var(--ai-space-4) !important;
+  width: 100%;
+  max-width: 320px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
+  background: var(--ai-color-bg-elevated) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-base) !important;
+  color: var(--ai-color-text-secondary) !important;
+  padding: var(--ai-space-2) var(--ai-space-3) !important;
+  font-family: var(--ai-font-display);
+  font-size: var(--ai-text-sm);
+  font-weight: 500;
+  text-align: left;
+  transition: all var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:hover {
+  border-color: var(--ai-color-primary) !important;
+  color: var(--ai-color-text-primary) !important;
+  background: var(--ai-color-primary-softer) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--ai-shadow-sm);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-icon {
+  color: var(--ai-color-primary);
+}
+.ai-assistant-wrapper [class*='quick-prompt'] button,
+.ai-assistant-wrapper .ai-quick-prompt-btn,
+.ai-assistant-wrapper .ai-greeting-actions button {
+  background: var(--ai-color-bg-elevated) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  color: var(--ai-color-text-secondary) !important;
+  border-radius: var(--ai-radius-pill) !important;
+  padding: var(--ai-space-2) var(--ai-space-3) !important;
+  font-size: var(--ai-text-sm);
+  font-family: var(--ai-font-display);
+  transition: all var(--ai-dur-fast) var(--ai-ease-out);
+  box-shadow: var(--ai-shadow-sm);
+}
+.ai-assistant-wrapper [class*='quick-prompt'] button:hover,
+.ai-assistant-wrapper .ai-quick-prompt-btn:hover,
+.ai-assistant-wrapper .ai-greeting-actions button:hover {
+  border-color: var(--ai-color-primary) !important;
+  color: var(--ai-color-primary-strong) !important;
+  background: var(--ai-color-primary-softer) !important;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Footer / input
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer,
+.ai-assistant-wrapper [class*='ai-footer'] {
+  background: var(--ai-color-bg-canvas) !important;
+  border-top: 1px solid var(--ai-color-divider) !important;
+  padding: var(--ai-space-3) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea {
+  background: var(--ai-color-bg-elevated) !important;
+  color: var(--ai-color-text-primary) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-md) !important;
+  padding: var(--ai-space-3) var(--ai-space-4) !important;
+  font-family: var(--ai-font-display) !important;
+  font-size: var(--ai-text-base);
+  line-height: var(--ai-leading-base);
+  transition: border-color var(--ai-dur-fast) var(--ai-ease-out),
+    box-shadow var(--ai-dur-fast) var(--ai-ease-out);
+  resize: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea::placeholder {
+  color: var(--ai-color-text-tertiary);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea:focus {
+  outline: none;
+  border-color: var(--ai-color-primary) !important;
+  box-shadow: 0 0 0 3px var(--ai-color-primary-softer) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row,
+.ai-assistant-wrapper [class*='ai-mode-tabs'] {
+  display: flex;
+  gap: var(--ai-space-1);
+}
+.ai-assistant-wrapper [class*='ai-mode-tab'],
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--ai-color-text-tertiary) !important;
+  border-radius: var(--ai-radius-pill) !important;
+  padding: var(--ai-space-1) var(--ai-space-3) !important;
+  font-size: var(--ai-text-sm);
+  font-weight: 500;
+  transition: all var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-assistant-wrapper [class*='ai-mode-tab']:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button:hover {
+  color: var(--ai-color-text-secondary) !important;
+  background: var(--ai-color-surface) !important;
+}
+.ai-assistant-wrapper [class*='ai-mode-tab'].active,
+.ai-assistant-wrapper [class*='ai-mode-tab'][data-active='true'],
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button.active {
+  background: var(--ai-color-primary-soft) !important;
+  border-color: transparent !important;
+  color: var(--ai-color-primary-strong) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send,
+.ai-assistant-wrapper [class*='ai-send-btn'] {
+  background: var(--ai-grad-brand) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--ai-radius-pill) !important;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px -4px rgba(91, 108, 255, 0.4);
+  transition: transform var(--ai-dur-fast) var(--ai-ease-spring),
+    filter var(--ai-dur-fast) var(--ai-ease-out),
+    box-shadow var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send:hover {
+  transform: translateY(-1px) scale(1.04);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 22px -4px rgba(91, 108, 255, 0.5);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send:disabled {
+  background: var(--ai-color-surface-strong) !important;
+  color: var(--ai-color-text-tertiary) !important;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Slash command panel
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper [class*='ai-slash'] {
+  background: var(--ai-color-bg-elevated) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-md) !important;
+  box-shadow: var(--ai-shadow-md) !important;
+}
+.ai-assistant-wrapper [class*='ai-slash-item'] {
+  color: var(--ai-color-text-secondary);
+  transition: background var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-assistant-wrapper [class*='ai-slash-item']:hover,
+.ai-assistant-wrapper [class*='ai-slash-item'][data-active='true'],
+.ai-assistant-wrapper [class*='ai-slash-item'].active,
+.ai-assistant-wrapper [class*='ai-slash-item'].is-selected {
+  background: var(--ai-color-primary-softer) !important;
+  color: var(--ai-color-primary-strong) !important;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Dialog (shared with FormAutoFillDialog / KeyboardShortcutsDialog / etc.)
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-personalize-overlay {
+  background: rgba(15, 23, 42, 0.32) !important;
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  z-index: var(--ai-z-overlay);
+}
+.ai-personalize-dialog {
+  background: var(--ai-color-bg-elevated) !important;
+  color: var(--ai-color-text-primary);
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-xl) !important;
+  box-shadow: var(--ai-shadow-lg) !important;
+  font-family: var(--ai-font-display);
+}
+.ai-dark.ai-personalize-overlay .ai-personalize-dialog,
+.ai-dark.ai-form-fill-overlay .ai-personalize-dialog {
+  background: var(--ai-color-bg-elevated) !important;
+  border-color: var(--ai-color-border-strong) !important;
+}
+.ai-personalize-head {
+  border-bottom: 1px solid var(--ai-color-divider);
+  padding: var(--ai-space-4) var(--ai-space-5) !important;
+}
+.ai-personalize-title {
+  font-family: var(--ai-font-display);
+  font-weight: 600;
+  font-size: var(--ai-text-md);
+  letter-spacing: var(--ai-tracking-tight);
+}
+.ai-personalize-close {
+  color: var(--ai-color-text-tertiary);
+  border-radius: var(--ai-radius-sm);
+  transition: color var(--ai-dur-fast) var(--ai-ease-out),
+    background var(--ai-dur-fast) var(--ai-ease-out);
+  padding: 0 var(--ai-space-2);
+}
+.ai-personalize-close:hover {
+  color: var(--ai-color-text-primary);
+  background: var(--ai-color-surface);
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Form Auto-Fill table
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-form-fill-table th {
+  background: var(--ai-color-surface) !important;
+  color: var(--ai-color-text-tertiary) !important;
+  font-size: var(--ai-text-xs) !important;
+  text-transform: uppercase;
+  letter-spacing: var(--ai-tracking-wide);
+  border-bottom: 1px solid var(--ai-color-divider) !important;
+}
+.ai-form-fill-table td {
+  border-bottom: 1px solid var(--ai-color-divider) !important;
+  font-size: var(--ai-text-sm);
+}
+.ai-form-fill-table-wrapper {
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-md) !important;
+}
+.ai-form-fill-field-picker {
+  background: var(--ai-color-bg-elevated) !important;
+  color: var(--ai-color-text-primary) !important;
+  border: 1px solid var(--ai-color-border-strong) !important;
+}
+.ai-form-fill-btn-secondary {
+  background: var(--ai-color-bg-elevated) !important;
+  border: 1px solid var(--ai-color-border-strong) !important;
+  color: var(--ai-color-text-secondary) !important;
+  border-radius: var(--ai-radius-pill) !important;
+  font-family: var(--ai-font-display);
+  font-weight: 500;
+  padding: var(--ai-space-2) var(--ai-space-4) !important;
+}
+.ai-form-fill-btn-secondary:hover {
+  background: var(--ai-color-surface) !important;
+  color: var(--ai-color-text-primary) !important;
+}
+.ai-form-fill-btn-primary {
+  background: var(--ai-grad-brand) !important;
+  border: none !important;
+  color: #fff !important;
+  border-radius: var(--ai-radius-pill) !important;
+  font-family: var(--ai-font-display);
+  font-weight: 500;
+  padding: var(--ai-space-2) var(--ai-space-4) !important;
+  box-shadow: 0 6px 16px -4px rgba(91, 108, 255, 0.4);
+  transition: filter var(--ai-dur-fast) var(--ai-ease-out),
+    box-shadow var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-form-fill-btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 22px -4px rgba(91, 108, 255, 0.5);
+}
+.ai-form-fill-btn-primary:disabled {
+  background: var(--ai-color-surface-strong) !important;
+  color: var(--ai-color-text-tertiary) !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+.ai-form-fill-conf-badge[data-level='high'] {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #047857 !important;
+}
+.ai-form-fill-conf-badge[data-level='medium'] {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: #b45309 !important;
+}
+.ai-form-fill-conf-badge[data-level='low'] {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #b91c1c !important;
+}
+.ai-form-fill-table-badge {
+  background: var(--ai-color-primary-soft) !important;
+  color: var(--ai-color-primary-strong) !important;
+}
+
+/* Toast */
+.ai-form-fill-toast {
+  background: var(--ai-color-bg-elevated) !important;
+  color: var(--ai-color-text-primary) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-pill) !important;
+  box-shadow: var(--ai-shadow-lg) !important;
+  font-family: var(--ai-font-display);
+  z-index: var(--ai-z-toast);
+}
+.ai-form-fill-toast.ai-dark {
+  background: var(--ai-color-bg-elevated) !important;
+  border-color: var(--ai-color-border-strong) !important;
+}
+.ai-form-fill-toast-btn {
+  border-color: var(--ai-color-border-strong) !important;
+  color: var(--ai-color-primary-strong) !important;
+  background: var(--ai-color-primary-softer) !important;
+}
+.ai-form-fill-toast-btn:hover {
+  background: var(--ai-color-primary-soft) !important;
+}
+.ai-form-fill-toast-close {
+  color: var(--ai-color-text-tertiary) !important;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Context menus / popovers
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+.ai-assistant-wrapper [class*='ai-ctx-menu'],
+.ai-assistant-wrapper [class*='ai-popover'],
+.ai-fab-ctx-menu,
+.ai-msg-ctx-menu {
+  background: var(--ai-color-bg-elevated) !important;
+  border: 1px solid var(--ai-color-border) !important;
+  border-radius: var(--ai-radius-md) !important;
+  box-shadow: var(--ai-shadow-md) !important;
+  color: var(--ai-color-text-primary);
+}
+.ai-fab-ctx-menu button,
+.ai-msg-ctx-menu button,
+.ai-assistant-wrapper [class*='ai-ctx-menu'] button {
+  color: var(--ai-color-text-secondary) !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--ai-radius-sm) !important;
+  padding: var(--ai-space-2) var(--ai-space-3) !important;
+  font-size: var(--ai-text-sm);
+  font-family: var(--ai-font-display);
+}
+.ai-fab-ctx-menu button:hover,
+.ai-msg-ctx-menu button:hover,
+.ai-assistant-wrapper [class*='ai-ctx-menu'] button:hover {
+  background: var(--ai-color-surface) !important;
+  color: var(--ai-color-text-primary) !important;
+}
+
+/* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+ * Reduced motion safety net
+ * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-panel,
+  .ai-personalize-overlay,
+  .ai-personalize-dialog,
+  .ai-form-fill-toast,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Doubao refinement pass: tighten the real component classes used in
+ * ChatInputArea.vue and make the empty state feel like a polished product
+ * surface instead of a plain blank panel.
+ * -------------------------------------------------------------------------- */
+.ai-assistant-wrapper.panel-mounted {
+  width: 392px;
+  height: 628px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel {
+  background:
+    radial-gradient(circle at 50% -6%, rgba(124, 92, 255, 0.13), transparent 34%),
+    radial-gradient(circle at 102% 18%, rgba(34, 211, 238, 0.08), transparent 26%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbff 46%, #f7f8fd 100%) !important;
+  box-shadow:
+    0 26px 68px -28px rgba(36, 44, 92, 0.34),
+    0 10px 26px -18px rgba(91, 108, 255, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset,
+    var(--ai-shadow-lg) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel::after {
+  background-image:
+    radial-gradient(circle, rgba(124, 92, 255, 0.22) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(34, 211, 238, 0.18) 0 1px, transparent 1.5px) !important;
+  background-size: 190px 190px, 260px 260px !important;
+  opacity: 0.28 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-body,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer {
+  position: relative;
+  z-index: 1;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header {
+  min-height: 48px;
+  padding: 10px 12px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid rgba(79, 70, 229, 0.08) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-title::before {
+  width: 20px;
+  height: 20px;
+  margin-right: 7px;
+  vertical-align: -5px;
+  filter:
+    drop-shadow(0 5px 10px rgba(91, 108, 255, 0.28))
+    drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08));
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions {
+  gap: 3px !important;
+  margin-left: auto;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions button,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-plugin-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #7b8191 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions button:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-plugin-btn:hover {
+  background: rgba(79, 70, 229, 0.07) !important;
+  color: #4f46e5 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item {
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-body {
+  padding: 0 14px 10px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  position: relative;
+  overflow: hidden;
+  margin: 30px 2px 0;
+  padding: 58px 18px 20px !important;
+  min-height: 310px;
+  border: 1px solid rgba(79, 70, 229, 0.08);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 50% 16%, rgba(124, 92, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 22% 6%, rgba(34, 211, 238, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 255, 0.72));
+  box-shadow:
+    0 18px 46px -34px rgba(91, 108, 255, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+  width: 82px;
+  height: 82px;
+  margin-bottom: 18px;
+  background:
+    radial-gradient(circle at 36% 24%, rgba(255, 255, 255, 0.85), transparent 26%),
+    linear-gradient(135deg, #5b6cff 0%, #7c5cff 48%, #9333ea 100%);
+  filter:
+    drop-shadow(0 18px 30px rgba(91, 108, 255, 0.34))
+    drop-shadow(0 7px 16px rgba(147, 51, 234, 0.24));
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p {
+  font-size: 19px !important;
+  line-height: 1.25 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::before {
+  content: 'AI Workspace Copilot';
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(79, 70, 229, 0.62);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::after {
+  content: '\6211\53EF\4EE5\7FFB\8BD1\3001\6458\8981\3001\5BF9\8BDD\FF0C\4E5F\80FD\5E2E\4F60\81EA\52A8\586B\8868' !important;
+  max-width: 240px;
+  margin: 9px auto 0;
+  line-height: 1.68;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  max-width: none;
+  margin-top: 22px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
+  min-height: 58px;
+  padding: 11px 12px !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 255, 0.9)) !important;
+  box-shadow:
+    0 8px 20px -18px rgba(36, 44, 92, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  margin-right: 7px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(79, 70, 229, 0.08);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-prompts {
+  position: relative;
+  z-index: 1;
+  padding: 0 14px 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer {
+  margin: 0 12px 12px;
+  padding: 9px !important;
+  border: 1px solid rgba(79, 70, 229, 0.08) !important;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 251, 255, 0.94)) !important;
+  box-shadow:
+    0 18px 42px -30px rgba(36, 44, 92, 0.36),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-md-toolbar {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: 18px;
+  background: #f6f7fc;
+  transition:
+    border-color var(--ai-dur-fast) var(--ai-ease-out),
+    box-shadow var(--ai-dur-fast) var(--ai-ease-out),
+    background var(--ai-dur-fast) var(--ai-ease-out);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row:focus-within {
+  border-color: rgba(91, 108, 255, 0.38);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(91, 108, 255, 0.08);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea {
+  min-height: 36px;
+  padding: 7px 4px 5px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea:focus {
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-code-wall-toggle,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group .ai-plugin-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: #9aa3b5 !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-code-wall-toggle:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group .ai-plugin-btn:hover {
+  background: rgba(79, 70, 229, 0.08) !important;
+  color: #4f46e5 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-send,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send,
+.ai-assistant-wrapper [class*='ai-send-btn'] {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.5), transparent 34%),
+    var(--ai-grad-brand) !important;
+  box-shadow:
+    0 10px 22px -8px rgba(91, 108, 255, 0.58),
+    0 4px 12px -8px rgba(147, 51, 234, 0.56) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.04);
+  filter: brightness(1.04);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:disabled {
+  background: #e5e7f0 !important;
+  color: #aeb5c5 !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
+  display: inline-flex;
+  flex: 1 1 168px;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(79, 70, 229, 0.08);
+  border-radius: var(--ai-radius-pill);
+  background: #f1f3fa;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment {
+  flex: 1 1 0;
+  min-height: 26px;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: var(--ai-radius-pill) !important;
+  background: transparent !important;
+  color: #7b8191 !important;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment.active {
+  background: #ffffff !important;
+  color: #4f46e5 !important;
+  box-shadow:
+    0 6px 14px -10px rgba(36, 44, 92, 0.44),
+    0 0 0 1px rgba(79, 70, 229, 0.08);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-lang-select,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge {
+  border: 1px solid rgba(79, 70, 229, 0.08) !important;
+  border-radius: var(--ai-radius-pill) !important;
+  background: #ffffff !important;
+  color: #647084 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-row-spacer {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select {
+  flex: 1 1 132px !important;
+  min-width: 132px !important;
+  max-width: 100% !important;
+  height: 30px;
+  padding: 0 28px 0 12px !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row .ai-code-wall-toggle {
+  flex: 0 0 auto;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-panel {
+  background:
+    radial-gradient(circle at 50% -6%, rgba(124, 92, 255, 0.22), transparent 34%),
+    linear-gradient(180deg, #15161e 0%, #0d0e15 100%) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-header,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-footer {
+  background: rgba(20, 21, 28, 0.76) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-footer-input-row,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-mode-segmented {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Iteration pass: micro-polish (CSS-only, no Vue changes).
+ *  - Bean orb soft glow halo (idle pulse)
+ *  - Starter card refined hover (accent left rail + smoother lift)
+ *  - Input row focus ring slightly stronger but still restrained
+ *  - Mode segment active underline indicator
+ *  - Send button press spring with brief glow burst
+ *  - Model select chevron rotation on open
+ * -------------------------------------------------------------------------- */
+
+/* Bean orb idle halo --------------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  --ai-orb-halo: radial-gradient(
+    circle at 50% 28%,
+    rgba(124, 92, 255, 0.22) 0%,
+    rgba(124, 92, 255, 0.08) 26%,
+    transparent 48%
+  );
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+  position: relative;
+  z-index: 1;
+  animation:
+    ai-orb-bob 4s ease-in-out infinite,
+    ai-orb-halo-pulse 5.4s ease-in-out infinite;
+}
+@keyframes ai-orb-halo-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 18px 30px rgba(91, 108, 255, 0.32))
+      drop-shadow(0 7px 16px rgba(147, 51, 234, 0.22))
+      drop-shadow(0 0 0 rgba(124, 92, 255, 0));
+  }
+  50% {
+    filter:
+      drop-shadow(0 22px 36px rgba(91, 108, 255, 0.42))
+      drop-shadow(0 9px 20px rgba(147, 51, 234, 0.32))
+      drop-shadow(0 0 18px rgba(124, 92, 255, 0.28));
+  }
+}
+
+/* Starter card refined hover -------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms ease-out,
+    background 200ms ease-out !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #5b6cff 0%, #9333ea 100%);
+  border-radius: 18px 0 0 18px;
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition:
+    opacity 200ms ease-out,
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(79, 70, 229, 0.22) !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f3f4ff 100%) !important;
+  box-shadow:
+    0 14px 28px -18px rgba(91, 108, 255, 0.42),
+    0 2px 6px -4px rgba(36, 44, 92, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:hover::after {
+  opacity: 1;
+  transform: scaleY(1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:active {
+  transform: translateY(0) scale(0.985) !important;
+  transition-duration: 90ms !important;
+}
+
+/* Input row focus ring refinement --------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row {
+  transition:
+    border-color 180ms ease-out,
+    background 200ms ease-out,
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row:focus-within {
+  border-color: rgba(91, 108, 255, 0.5) !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 4px rgba(91, 108, 255, 0.12),
+    0 6px 16px -10px rgba(91, 108, 255, 0.32) !important;
+}
+
+/* Mode segment active underline indicator -------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment {
+  position: relative;
+  transition:
+    color 160ms ease-out,
+    background 200ms ease-out,
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #5b6cff 0%, #9333ea 100%);
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment.active::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* Send button press spring + glow burst --------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-send,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send,
+.ai-assistant-wrapper [class*='ai-send-btn'] {
+  position: relative;
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 180ms ease-out,
+    box-shadow 220ms ease-out !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:not(:disabled):active,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send:not(:disabled):active,
+.ai-assistant-wrapper [class*='ai-send-btn']:not(:disabled):active {
+  transform: translateY(0) scale(0.92) !important;
+  transition-duration: 80ms !important;
+  filter: brightness(0.96) !important;
+  box-shadow:
+    0 4px 10px -4px rgba(91, 108, 255, 0.36),
+    0 0 0 6px rgba(91, 108, 255, 0.14) !important;
+}
+
+/* Model select chevron rotation when dropdown opens --------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #647084 50%),
+    linear-gradient(135deg, #647084 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 14px) 12px,
+    calc(100% - 9px) 12px !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  transition:
+    border-color 160ms ease-out,
+    background-color 180ms ease-out,
+    box-shadow 200ms ease-out !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select:hover {
+  border-color: rgba(79, 70, 229, 0.24) !important;
+  background-color: #fafbff !important;
+  box-shadow: 0 4px 10px -6px rgba(91, 108, 255, 0.28) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select:focus {
+  outline: none;
+  border-color: rgba(91, 108, 255, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(91, 108, 255, 0.12) !important;
+}
+
+/* Reduced-motion respect for the new pass ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+    animation: none !important;
+  }
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter::after,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment::after,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-send,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send,
+  .ai-assistant-wrapper [class*='ai-send-btn'],
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select {
+    transition: none !important;
+  }
+}
+
+/* Dark variants for the new pass ---------------------------------------- */
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-starter:hover {
+  border-color: rgba(168, 139, 250, 0.32) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(124, 92, 255, 0.08) 100%) !important;
+  box-shadow:
+    0 14px 28px -18px rgba(124, 92, 255, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-footer-input-row:focus-within {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(168, 139, 250, 0.45) !important;
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 255, 0.18),
+    0 6px 16px -10px rgba(124, 92, 255, 0.4) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-model-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #aab0c2 50%),
+    linear-gradient(135deg, #aab0c2 50%, transparent 50%) !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Iteration pass: Doubao-faithful empty state
+ *  - Skill chip strip (horizontal, tone-tinted, hover lift)
+ *  - Rich starter cards: icon + title + 1-line description
+ *  - Tighter visual rhythm: greeting → chips → cards
+ * -------------------------------------------------------------------------- */
+
+/* Tone palette tokens used by chips + starter cards. Keep these grouped at
+ * the top so adjusting brand tones is a one-stop edit. */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  --ai-tone-violet-fg: #5b6cff;
+  --ai-tone-violet-bg: rgba(91, 108, 255, 0.1);
+  --ai-tone-violet-bd: rgba(91, 108, 255, 0.18);
+  --ai-tone-cyan-fg: #0891b2;
+  --ai-tone-cyan-bg: rgba(34, 211, 238, 0.12);
+  --ai-tone-cyan-bd: rgba(34, 211, 238, 0.22);
+  --ai-tone-amber-fg: #c2410c;
+  --ai-tone-amber-bg: rgba(251, 146, 60, 0.12);
+  --ai-tone-amber-bd: rgba(251, 146, 60, 0.22);
+  --ai-tone-emerald-fg: #047857;
+  --ai-tone-emerald-bg: rgba(16, 185, 129, 0.12);
+  --ai-tone-emerald-bd: rgba(16, 185, 129, 0.22);
+  --ai-tone-rose-fg: #be185d;
+  --ai-tone-rose-bg: rgba(244, 114, 182, 0.12);
+  --ai-tone-rose-bd: rgba(244, 114, 182, 0.22);
+  --ai-tone-sky-fg: #0369a1;
+  --ai-tone-sky-bg: rgba(56, 189, 248, 0.12);
+  --ai-tone-sky-bd: rgba(56, 189, 248, 0.22);
+}
+
+/* Skill chip strip --------------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  width: 100%;
+  margin: 18px 0 4px;
+  padding: 2px 2px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills::-webkit-scrollbar {
+  display: none;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475065;
+  font-family: var(--ai-font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  cursor: pointer;
+  box-shadow:
+    0 4px 10px -8px rgba(36, 44, 92, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 200ms ease-out,
+    border-color 180ms ease-out,
+    color 160ms ease-out,
+    box-shadow 220ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill:hover {
+  transform: translateY(-1px);
+  background: #fafbff;
+  border-color: rgba(91, 108, 255, 0.18);
+  color: #2d3346;
+  box-shadow:
+    0 8px 16px -10px rgba(91, 108, 255, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  background: var(--ai-skill-bg, var(--ai-tone-violet-bg));
+  color: var(--ai-skill-fg, var(--ai-tone-violet-fg));
+  border: 1px solid var(--ai-skill-bd, var(--ai-tone-violet-bd));
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill:hover .ai-empty-skill-icon {
+  transform: scale(1.08) rotate(-3deg);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='violet'] {
+  --ai-skill-fg: var(--ai-tone-violet-fg);
+  --ai-skill-bg: var(--ai-tone-violet-bg);
+  --ai-skill-bd: var(--ai-tone-violet-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='cyan'] {
+  --ai-skill-fg: var(--ai-tone-cyan-fg);
+  --ai-skill-bg: var(--ai-tone-cyan-bg);
+  --ai-skill-bd: var(--ai-tone-cyan-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='amber'] {
+  --ai-skill-fg: var(--ai-tone-amber-fg);
+  --ai-skill-bg: var(--ai-tone-amber-bg);
+  --ai-skill-bd: var(--ai-tone-amber-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='emerald'] {
+  --ai-skill-fg: var(--ai-tone-emerald-fg);
+  --ai-skill-bg: var(--ai-tone-emerald-bg);
+  --ai-skill-bd: var(--ai-tone-emerald-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='rose'] {
+  --ai-skill-fg: var(--ai-tone-rose-fg);
+  --ai-skill-bg: var(--ai-tone-rose-bg);
+  --ai-skill-bd: var(--ai-tone-rose-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill[data-skill-tone='sky'] {
+  --ai-skill-fg: var(--ai-tone-sky-fg);
+  --ai-skill-bg: var(--ai-tone-sky-bg);
+  --ai-skill-bd: var(--ai-tone-sky-bd);
+}
+
+/* Rich starter cards (icon + title + description) ---------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  max-width: none !important;
+  margin-top: 14px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  min-height: 76px !important;
+  padding: 12px 12px !important;
+  border-radius: 16px !important;
+  text-align: left !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-icon {
+  flex: 0 0 auto;
+  width: 34px !important;
+  height: 34px !important;
+  margin-right: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 18px;
+  line-height: 1;
+  background: var(--ai-starter-bg, var(--ai-tone-violet-bg));
+  border: 1px solid var(--ai-starter-bd, var(--ai-tone-violet-bd));
+  color: var(--ai-starter-fg, var(--ai-tone-violet-fg));
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='violet'] {
+  --ai-starter-fg: var(--ai-tone-violet-fg);
+  --ai-starter-bg: var(--ai-tone-violet-bg);
+  --ai-starter-bd: var(--ai-tone-violet-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='cyan'] {
+  --ai-starter-fg: var(--ai-tone-cyan-fg);
+  --ai-starter-bg: var(--ai-tone-cyan-bg);
+  --ai-starter-bd: var(--ai-tone-cyan-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='amber'] {
+  --ai-starter-fg: var(--ai-tone-amber-fg);
+  --ai-starter-bg: var(--ai-tone-amber-bg);
+  --ai-starter-bd: var(--ai-tone-amber-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='emerald'] {
+  --ai-starter-fg: var(--ai-tone-emerald-fg);
+  --ai-starter-bg: var(--ai-tone-emerald-bg);
+  --ai-starter-bd: var(--ai-tone-emerald-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-text {
+  display: block;
+  font-family: var(--ai-font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #1f2433;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-desc {
+  display: block;
+  font-family: var(--ai-font-display);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #6c7488;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter:hover .ai-empty-starter-icon {
+  filter: brightness(1.04) saturate(1.1);
+}
+
+/* Tighten the empty container so chips + cards breathe nicely */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  padding: 44px 14px 16px !important;
+  min-height: 320px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+  width: 66px;
+  height: 66px;
+  margin-bottom: 14px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p {
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::before {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::after {
+  max-width: 260px;
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* Dark variants ---------------------------------------------------- */
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-skill {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #c5cbdc;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-skill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(168, 139, 250, 0.32);
+  color: #ffffff;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-starter-text {
+  color: #e3e6f1;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-starter-desc {
+  color: #95a0bd;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill-icon {
+    transition: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Iteration pass: Doubao-faithful input toolbar
+ *  - Quick toggle row above input: 深度思考 + 联网搜索 (off=ghost, on=tinted)
+ *  - Larger mic button + dramatic recording state (red ripple ring)
+ *  - Send button "ready" pulse when textarea has content (CSS :has)
+ *  - Cleaner placeholder text colour
+ * -------------------------------------------------------------------------- */
+
+/* Quick toggles row ------------------------------------------------------ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-quick-toggles {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px 4px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #647084;
+  font-family: var(--ai-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    0 2px 6px -4px rgba(36, 44, 92, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 200ms ease-out,
+    border-color 180ms ease-out,
+    color 160ms ease-out,
+    box-shadow 220ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle .ai-quick-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.04);
+  font-size: 11px;
+  line-height: 1;
+  transition: background 200ms ease-out, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle:hover {
+  background: #fafbff;
+  border-color: rgba(91, 108, 255, 0.18);
+  color: #2d3346;
+  transform: translateY(-1px);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle:hover .ai-quick-toggle-icon {
+  background: rgba(91, 108, 255, 0.1);
+  transform: scale(1.06);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* Active (toggled-on) states — distinct tone per toggle for instant recognition */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-deepthink.active {
+  background: linear-gradient(180deg, rgba(91, 108, 255, 0.12), rgba(124, 92, 255, 0.16));
+  border-color: rgba(91, 108, 255, 0.34);
+  color: #4f46e5;
+  box-shadow:
+    0 6px 14px -8px rgba(91, 108, 255, 0.42),
+    0 0 0 3px rgba(91, 108, 255, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-deepthink.active .ai-quick-toggle-icon {
+  background: rgba(91, 108, 255, 0.2);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-websearch.active {
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.12), rgba(56, 189, 248, 0.16));
+  border-color: rgba(56, 189, 248, 0.36);
+  color: #0369a1;
+  box-shadow:
+    0 6px 14px -8px rgba(56, 189, 248, 0.4),
+    0 0 0 3px rgba(56, 189, 248, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-websearch.active .ai-quick-toggle-icon {
+  background: rgba(56, 189, 248, 0.22);
+}
+
+/* Mic button: bigger and more prominent, especially when recording -------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 14px !important;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 200ms ease-out,
+    color 160ms ease-out,
+    box-shadow 220ms ease-out !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording {
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.42), transparent 36%),
+    linear-gradient(135deg, #ef4444 0%, #f97316 100%) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow:
+    0 0 0 4px rgba(239, 68, 68, 0.18),
+    0 8px 20px -8px rgba(239, 68, 68, 0.55) !important;
+  animation: ai-mic-ripple 1.2s ease-out infinite;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording::after {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: inherit !important;
+  border: 2px solid rgba(239, 68, 68, 0.45) !important;
+  background: none !important;
+  animation: ai-mic-ring 1.6s ease-out infinite;
+  pointer-events: none !important;
+}
+@keyframes ai-mic-ripple {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px rgba(239, 68, 68, 0.18),
+      0 8px 20px -8px rgba(239, 68, 68, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px rgba(239, 68, 68, 0.1),
+      0 12px 24px -8px rgba(239, 68, 68, 0.7);
+  }
+}
+@keyframes ai-mic-ring {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.32);
+    opacity: 0;
+  }
+}
+
+/* Voice loop active state polish ----------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop.active {
+  background: linear-gradient(135deg, #5b6cff, #9333ea) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 6px 14px -6px rgba(91, 108, 255, 0.5),
+    0 0 0 3px rgba(91, 108, 255, 0.12) !important;
+}
+
+/* Send button "ready" state: subtle glow when the input has content ------- */
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-input-row:has(.ai-footer-textarea:not(:placeholder-shown)) .ai-send:not(:disabled),
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-input-row:has(.ai-footer-textarea:not(:placeholder-shown)) .ai-footer-send:not(:disabled) {
+  animation: ai-send-ready-glow 2.4s ease-in-out infinite;
+}
+@keyframes ai-send-ready-glow {
+  0%, 100% {
+    box-shadow:
+      0 10px 22px -8px rgba(91, 108, 255, 0.58),
+      0 4px 12px -8px rgba(147, 51, 234, 0.56);
+  }
+  50% {
+    box-shadow:
+      0 12px 28px -8px rgba(91, 108, 255, 0.72),
+      0 6px 18px -8px rgba(147, 51, 234, 0.7),
+      0 0 0 5px rgba(91, 108, 255, 0.08);
+  }
+}
+
+/* Placeholder colour refinement ----------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea::placeholder {
+  color: #9aa3b5 !important;
+  opacity: 1 !important;
+}
+
+/* Dark variants ---------------------------------------------------------- */
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #c5cbdc;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(168, 139, 250, 0.3);
+  color: #ffffff;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-toggle .ai-quick-toggle-icon {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-toggle-deepthink.active {
+  background: linear-gradient(180deg, rgba(124, 92, 255, 0.2), rgba(168, 139, 250, 0.22));
+  border-color: rgba(168, 139, 250, 0.45);
+  color: #c4b5fd;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-toggle-websearch.active {
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.16), rgba(56, 189, 248, 0.22));
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #7dd3fc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle .ai-quick-toggle-icon,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-mic,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording::before,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-send,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send,
+  .ai-assistant-wrapper.ai-assistant-wrapper
+    .ai-footer-input-row:has(.ai-footer-textarea:not(:placeholder-shown)) .ai-send,
+  .ai-assistant-wrapper.ai-assistant-wrapper
+    .ai-footer-input-row:has(.ai-footer-textarea:not(:placeholder-shown)) .ai-footer-send {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Iteration pass: Doubao-faithful message bubbles + bean avatar
+ *  - Assistant avatar = small bean mascot (consistent with FAB + empty-state orb)
+ *  - Avatar always visible next to assistant bubbles (override legacy hide)
+ *  - Bubble rounded-asymmetric corners + breathing padding
+ *  - User bubble: brighter brand gradient + white text + clean shadow
+ *  - Subtle hover lift for both roles
+ *  - Larger inter-message gap for conversation breathing room
+ * -------------------------------------------------------------------------- */
+
+/* Assistant avatar = bean mascot --------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar {
+  display: inline-flex !important;
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 8px 4px 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.55), transparent 38%),
+    linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%) !important;
+  box-shadow:
+    0 4px 10px -4px rgba(91, 108, 255, 0.42),
+    0 1px 0 rgba(255, 255, 255, 0.32) inset !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar::before,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar::before,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar::before {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 4px !important;
+  margin: auto !important;
+  background: #ffffff !important;
+  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat !important;
+  mask: var(--ai-bean-mask) center / contain no-repeat !important;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18)) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-image: none !important;
+  pointer-events: none;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: auto !important;
+  height: auto !important;
+  color: transparent !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar::after,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar::after,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+/* Force visibility even on idle assistant messages (overrides legacy hide) */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant:not(.ai-msg-streaming) .ai-assistant-avatar,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant:not(.ai-msg-streaming) .ai-assistant-avatar {
+  display: inline-flex !important;
+}
+
+/* Streaming avatar: gentle pulse (sleep → bob → glow) */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-loading {
+  animation: ai-bean-bubble-stream 1.4s ease-in-out infinite !important;
+}
+@keyframes ai-bean-bubble-stream {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 4px 10px -4px rgba(91, 108, 255, 0.42),
+      0 1px 0 rgba(255, 255, 255, 0.32) inset;
+  }
+  50% {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow:
+      0 6px 14px -4px rgba(91, 108, 255, 0.55),
+      0 0 0 4px rgba(91, 108, 255, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.34) inset;
+  }
+}
+
+/* Message gap + breathing rhythm --------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg + .ai-msg {
+  margin-top: 14px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant {
+  align-items: flex-start;
+}
+
+/* Assistant bubble polish ---------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fafbff 100%) !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 6px 18px 18px 18px !important;
+  padding: 11px 14px !important;
+  color: #1f2433 !important;
+  box-shadow:
+    0 6px 16px -10px rgba(36, 44, 92, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease-out !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant:hover {
+  transform: translateY(-1px);
+  border-color: rgba(91, 108, 255, 0.18) !important;
+  box-shadow:
+    0 10px 22px -10px rgba(91, 108, 255, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+
+/* User bubble polish: bright brand gradient ---------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.22), transparent 38%),
+    linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%) !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  border-radius: 18px 6px 18px 18px !important;
+  padding: 11px 14px !important;
+  box-shadow:
+    0 10px 22px -10px rgba(91, 108, 255, 0.55),
+    0 2px 4px -2px rgba(147, 51, 234, 0.32) !important;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 28px -10px rgba(91, 108, 255, 0.65),
+    0 4px 8px -4px rgba(147, 51, 234, 0.42) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble :not(pre) > code,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user :not(pre) > code {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.24) !important;
+  color: #ffffff !important;
+}
+
+/* Thinking bubble polish (Doubao "loading" stripe) --------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-bubble {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%) !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 6px 18px 18px 18px !important;
+  padding: 10px 14px !important;
+  color: #5b6cff !important;
+  font-weight: 600;
+  box-shadow:
+    0 6px 16px -10px rgba(36, 44, 92, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-orb {
+  background: linear-gradient(135deg, #5b6cff, #9333ea) !important;
+  box-shadow:
+    0 0 0 3px rgba(91, 108, 255, 0.12),
+    0 4px 10px -4px rgba(91, 108, 255, 0.42) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-dots span {
+  background: linear-gradient(135deg, #5b6cff, #9333ea) !important;
+}
+
+/* Dark variants -------------------------------------------------------- */
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-bubble-assistant {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e3e6f1 !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-assistant .ai-bubble:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-bubble-assistant:hover {
+  border-color: rgba(168, 139, 250, 0.32) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-thinking-bubble {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #c4b5fd !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-loading,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Iteration pass: Header + slash command panel + quick prompts polish
+ *  - Header: more spacious, prominent "+" new-session, status dot, group hover
+ *  - Settings dropdown: rounded items, brand-tinted hover, smooth fade-in
+ *  - Slash popup: Doubao-style card with icon block + name + desc
+ *  - Quick prompts (post-message): chip-pill treatment with brand tint hover
+ *  - Header title: subtle online/active status dot (decorative, always green)
+ * -------------------------------------------------------------------------- */
+
+/* Header: title + status dot ------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-title {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-title::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow:
+    0 0 0 2px rgba(16, 185, 129, 0.18),
+    0 0 6px rgba(16, 185, 129, 0.4);
+  animation: ai-status-blink 2.4s ease-in-out infinite;
+}
+@keyframes ai-status-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 2px rgba(16, 185, 129, 0.18),
+      0 0 6px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    opacity: 0.78;
+    box-shadow:
+      0 0 0 3px rgba(16, 185, 129, 0.1),
+      0 0 10px rgba(16, 185, 129, 0.55);
+  }
+}
+
+/* Header action buttons: tighter group + better hover -------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px !important;
+  padding: 2px;
+  border-radius: 12px;
+}
+
+/* New-session "+" button: make it the brand CTA of the header ------------ */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid rgba(91, 108, 255, 0.16) !important;
+  border-radius: 10px !important;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55), transparent 38%),
+    linear-gradient(135deg, rgba(91, 108, 255, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%) !important;
+  color: #4f46e5 !important;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow:
+    0 4px 10px -6px rgba(91, 108, 255, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 200ms ease-out,
+    border-color 180ms ease-out,
+    box-shadow 220ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session:hover {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.6), transparent 40%),
+    linear-gradient(135deg, #5b6cff 0%, #9333ea 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  transform: translateY(-1px) rotate(90deg);
+  box-shadow:
+    0 8px 18px -6px rgba(91, 108, 255, 0.55),
+    0 4px 12px -6px rgba(147, 51, 234, 0.4) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session:active {
+  transform: translateY(0) rotate(90deg) scale(0.94);
+  transition-duration: 80ms;
+}
+
+/* Header settings menu: Doubao-style rounded dropdown ------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid rgba(91, 108, 255, 0.08);
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow:
+    0 20px 44px -16px rgba(36, 44, 92, 0.32),
+    0 8px 20px -10px rgba(91, 108, 255, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+  z-index: 20;
+  animation: ai-settings-menu-pop 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top right;
+}
+@keyframes ai-settings-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item {
+  display: flex !important;
+  align-items: center;
+  gap: 10px !important;
+  width: 100%;
+  height: auto;
+  margin: 1px 0;
+  padding: 9px 10px !important;
+  border: 0;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #475065 !important;
+  font-family: var(--ai-font-display);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 160ms ease-out,
+    color 140ms ease-out,
+    transform 160ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item svg {
+  flex: 0 0 auto;
+  color: #647084;
+  transition: color 140ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item:hover {
+  background: rgba(91, 108, 255, 0.08) !important;
+  color: #1f2433 !important;
+  transform: translateX(2px);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item:hover svg {
+  color: #5b6cff;
+}
+
+/* Slash command popup: Doubao-style card with icon + name + desc -------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-popup {
+  padding: 6px !important;
+  border: 1px solid rgba(91, 108, 255, 0.1) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow:
+    0 22px 48px -18px rgba(36, 44, 92, 0.34),
+    0 8px 20px -10px rgba(91, 108, 255, 0.22) !important;
+  animation: ai-slash-pop 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes ai-slash-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item {
+  display: grid !important;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 0;
+  padding: 8px 10px !important;
+  border: 0;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #1f2433 !important;
+  font-family: var(--ai-font-display);
+  cursor: pointer;
+  transition:
+    background 160ms ease-out,
+    transform 160ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(91, 108, 255, 0.1);
+  color: #5b6cff;
+  opacity: 1 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1f2433 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-desc {
+  font-size: 11.5px;
+  color: #9aa3b5 !important;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item-active,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item.active,
+.ai-assistant-wrapper.ai-assistant-wrapper [class*='ai-slash-item'][data-active='true'] {
+  background: linear-gradient(180deg, rgba(91, 108, 255, 0.1), rgba(147, 51, 234, 0.06)) !important;
+  transform: translateX(2px);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item:hover .ai-slash-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item-active .ai-slash-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item.active .ai-slash-icon {
+  background: linear-gradient(135deg, #5b6cff, #9333ea);
+  color: #ffffff;
+}
+
+/* Quick prompts row (chips between messages and input) ------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 10px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-prompt-btn,
+.ai-assistant-wrapper.ai-assistant-wrapper [class*='quick-prompt'] button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #647084 !important;
+  font-family: var(--ai-font-display);
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow:
+    0 2px 6px -4px rgba(36, 44, 92, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 200ms ease-out,
+    border-color 180ms ease-out,
+    color 160ms ease-out,
+    box-shadow 220ms ease-out;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-prompt-btn:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper [class*='quick-prompt'] button:hover {
+  background: linear-gradient(180deg, #ffffff, #f3f4ff) !important;
+  border-color: rgba(91, 108, 255, 0.24) !important;
+  color: #4f46e5 !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 14px -8px rgba(91, 108, 255, 0.36),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+
+/* Header drag affordance refinement ------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header.ai-header-dragging {
+  cursor: grabbing;
+  box-shadow:
+    0 6px 18px -10px rgba(91, 108, 255, 0.4),
+    0 0 0 1px rgba(91, 108, 255, 0.1) !important;
+}
+
+/* Dark variants -------------------------------------------------------- */
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-new-session {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(124, 92, 255, 0.18) 0%, rgba(147, 51, 234, 0.2) 100%) !important;
+  border-color: rgba(168, 139, 250, 0.28) !important;
+  color: #c4b5fd !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-header-settings-menu,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-slash-popup {
+  background: rgba(20, 21, 28, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item {
+  color: #c5cbdc !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item:hover {
+  background: rgba(168, 139, 250, 0.1) !important;
+  color: #ffffff !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-slash-name {
+  color: #e3e6f1 !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-slash-desc {
+  color: #95a0bd !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-prompt-btn,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper [class*='quick-prompt'] button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #c5cbdc !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-quick-prompt-btn:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper [class*='quick-prompt'] button:hover {
+  background: rgba(168, 139, 250, 0.1) !important;
+  border-color: rgba(168, 139, 250, 0.3) !important;
+  color: #c4b5fd !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-title::after,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu .ai-header-settings-item,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-popup,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-slash-item,
+  .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-prompt-btn,
+  .ai-assistant-wrapper.ai-assistant-wrapper [class*='quick-prompt'] button {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+ * Iteration pass 6: critical layout fix — empty state was squashing the new
+ * skill chips + rich starter cards into 3-14px tall slivers that overflow:
+ * hidden then clipped.  Root cause traced via Playwright getComputedStyle:
+ *  - `09-modern-overhaul.css` (.ai-empty) sets `display: flex; flex: 1; min-
+ *    height: 200px; justify-content: center; overflow: hidden`
+ *  - `.ai-body` only feeds it ~200px because `.ai-panel` is height-locked
+ *    at 520px (PANEL_H constant) and header + footer eat ~320px
+ *  - children inherit default `flex-shrink: 1` and get squeezed
+ *
+ * Fix (two parts):
+ *  (A) Structural: `.ai-empty` loses the height cap + `flex-shrink:0` on
+ *      children so chips/cards keep their natural height.
+ *  (B) Tightening: shrink the greeting block + chip/card vertical rhythm
+ *      so the WHOLE empty state (greeting + chips + starters) lives inside
+ *      the available ~200px of `.ai-body` height without needing to scroll.
+ *      Brand mark + subtitle stay visible but get tighter typography.
+ *
+ * This is a fix, not new design — visual intent unchanged from rounds 2-5.
+ * ========================================================================== */
+
+/* IMPORTANT — specificity boost: hosts (e.g. playground main.ts) sometimes
+ * import BOTH our raw src CSS and the built dist/style.css. The dist file
+ * re-declares the older 09-modern rules AFTER our rules, beating us on
+ * source-order tie. To stay deterministic regardless of host import order,
+ * we triple the wrapper class to push specificity from (0,0,3,0) to
+ * (0,0,4,0), which wins over any prior `.ai-assistant-wrapper.ai-assistant-
+ * wrapper .ai-empty {…}` declaration. */
+
+/* (A) structural — strip the dominating "gradient pill" visual that was
+ * eating ~40% of panel vertical space. Empty state now reads as a
+ * lightweight inline greeting strip, not a card that monopolises the
+ * body. Container stays `flex: 1 1 auto + overflow: hidden` so layout
+ * stays predictable (no overflow into footer). */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
+  justify-content: flex-start !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  margin: 4px 2px 0 !important;
+  padding: 8px 8px 6px !important;
+  /* kill the heavy radial-gradient pill background + thick border + shadow
+   * that lived in 99-enterprise-overhaul.css:788. Keep a faint accent
+   * for warmth but lose the bordered card feel. */
+  border: 0 !important;
+  border-radius: 14px !important;
+  background:
+    radial-gradient(circle at 50% 4%, rgba(124, 92, 255, 0.05), transparent 60%) !important;
+  box-shadow: none !important;
+}
+
+/* USER DIRECTIVE (round 8): chip strip + starter cards are NOT wanted in
+ * the empty state — they make the panel feel cluttered and steal the
+ * conversation area. Hide via display:none so Vue template logic stays
+ * intact (easy to flip back on later via host option if needed). */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  display: none !important;
+}
+
+/* (B) tightening — keep brand mark + greeting + subtitle, just compress */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
+  width: 34px !important;
+  height: 34px !important;
+  margin-bottom: 4px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p {
+  font-size: 15px !important;
+  line-height: 1.12 !important;
+}
+/* Hide the "AI WORKSPACE COPILOT" sub-brand pseudo — title bar already
+ * says "AI 助手" + green status dot, so this is redundant + steals ~18px
+ * of vertical real estate that the starter strip badly needs. */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::before {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty p::after {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  margin-top: 3px !important;
+  max-width: 240px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills {
+  margin: 6px 0 0 !important;
+  padding-bottom: 4px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill {
+  min-height: 28px !important;
+  padding: 4px 12px 4px 8px !important;
+  font-size: 12px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skill-icon {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 11px !important;
+}
+
+/* Starters: single-row horizontal scroll (Doubao mobile-style chip+strip
+ * stack). 4 cards consume ~52px instead of 110px+. */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  grid-template-columns: none !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+  max-width: none !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-bottom: 4px !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters::-webkit-scrollbar {
+  display: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
+  flex: 0 0 auto !important;
+  min-height: 42px !important;
+  width: 134px !important;
+  padding: 6px 9px !important;
+  scroll-snap-align: start;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-icon {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 12px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-text {
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-desc {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+
+/* ==========================================================================
+ * USER DIRECTIVE (round 8, final): user does NOT want chip strip or starter
+ * cards inside the empty state — they clutter the panel and steal the
+ * conversation area. Hide via display:none at the absolute end of cascade
+ * so every prior `display: flex/grid/etc.` rule (incl. the same-file 09/99
+ * rules) gets beaten.
+ * Vue template logic stays intact (data, click handlers, i18n still there)
+ * — only the visual is hidden. Easy to flip back on later if the host
+ * really wants them.
+ * ========================================================================== */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-prompt-templates {
+  display: none !important;
+}
+
+/* ==========================================================================
+ * Iteration pass 8 — slim deep-think / web-search toggles
+ *
+ * Symptom: user feedback "深度思考和联网搜索占的空间太大了" — the two
+ * pills above the input row were 28px high with emoji-in-circle decoration
+ * and heavy box-shadows, eating ~40px of vertical real estate from the input.
+ *
+ * Fix: collapse to low-key hairline pills.
+ *   - height 28→22
+ *   - font 12/600 → 11/500
+ *   - padding 4-12-4-8 → 2-8-2-6, gap 6→4
+ *   - icon: kill the 18px circle background, render emoji raw at 12px
+ *   - box-shadow → none (rely on border + active-state tint only)
+ *   - row gap 6→4, row margin-bottom 8→4
+ *   - active tones kept but glow rings trimmed for a quieter "on" state
+ * ========================================================================== */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-quick-toggles {
+  gap: 4px !important;
+  margin: 0 0 4px !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle {
+  min-height: 22px !important;
+  padding: 2px 8px 2px 6px !important;
+  gap: 4px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle .ai-quick-toggle-icon {
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  border-radius: 0 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle:hover .ai-quick-toggle-icon {
+  background: transparent !important;
+  transform: none !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-deepthink.active {
+  box-shadow:
+    0 0 0 1px rgba(91, 108, 255, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-deepthink.active .ai-quick-toggle-icon {
+  background: transparent !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-websearch.active {
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.26),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-toggle-websearch.active .ai-quick-toggle-icon {
+  background: transparent !important;
+}
+
+/* ==========================================================================
+ * Iteration pass 8b — float quick-toggles ABOVE the .ai-footer card
+ *
+ * Symptom (round 2): user feedback "这两个胶囊外面不要有那个灰色的框,
+ * 这两个胶囊就在下面输入框上方就行" — the two pills still appeared
+ * "wrapped" because they sat inside the .ai-footer card (which has its own
+ * white-gradient background + violet hairline + 24px radius). Visually the
+ * pills looked like they were boxed by the footer card.
+ *
+ * Fix: absolute-position the quick-toggle row so it floats above the footer
+ * card with NO container frame. Pills sit naked on the panel background,
+ * just above the input row.
+ *
+ *   - position: absolute, bottom: calc(100% + 4px) — float above footer
+ *   - background: transparent — no container chrome
+ *   - row inherits .ai-footer's left/right alignment via left: 9px
+ *   - z-index 2 to render above the footer's border/shadow
+ *
+ * Side effect (intended): the row no longer occupies space inside .ai-footer,
+ * so the input row + buttons naturally shift up to fill the freed ~22px,
+ * giving the textarea a touch more breathing room.
+ * ========================================================================== */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-quick-toggles {
+  position: absolute !important;
+  left: 9px !important;
+  right: 9px !important;
+  bottom: calc(100% + 4px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  z-index: 2 !important;
+}
+

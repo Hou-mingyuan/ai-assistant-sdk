@@ -1,0 +1,12 @@
+/**
+ * Enterprise-grade font stack for the assistant UI.
+ *
+ * Geist Sans      — distinct, modern body / UI face (variable, from Vercel)
+ * JetBrains Mono  — code blocks, numeric counters, tabular monospace
+ * Noto Sans SC    — CJK fallback that pairs cleanly with Geist x-height
+ *
+ * Loaded via Google Fonts subset; consumers can ship their own copy and
+ * override the same `--ai-font-*` tokens in their host page if they need
+ * fully offline operation.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');

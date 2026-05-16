@@ -1,0 +1,195 @@
+/**
+ * Doubao-inspired tokens (light-first, indigo-violet brand).
+ *
+ * Default scope = light theme (matches Doubao's primary appearance on
+ * web/mobile). `.ai-dark` overlay later in this file flips a small set of
+ * tokens for the optional dark variant.
+ *
+ * Brand axis: indigo `#4f46e5` → violet `#7c3aed`, soft lavender supporting,
+ * with subtle warm whites for cards. Radii are deliberately large so the UI
+ * reads "friendly / consumer assistant" rather than "enterprise dashboard".
+ */
+
+.ai-assistant-wrapper,
+.ai-personalize-overlay,
+.ai-form-fill-overlay,
+.ai-form-fill-toast {
+  /* ===== Typography ===== */
+  --ai-font-display:
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans SC',
+    'Geist', -apple-system, 'BlinkMacSystemFont', system-ui, sans-serif;
+  --ai-font-body: var(--ai-font-display);
+  --ai-font-mono:
+    'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Code',
+    'Source Code Pro', 'Menlo', 'Consolas', monospace;
+
+  --ai-text-xs: 11px;
+  --ai-text-sm: 12px;
+  --ai-text-base: 13px;
+  --ai-text-md: 14px;
+  --ai-text-lg: 16px;
+  --ai-text-xl: 19px;
+  --ai-text-2xl: 22px;
+
+  --ai-leading-tight: 1.32;
+  --ai-leading-base: 1.56;
+  --ai-leading-loose: 1.72;
+
+  --ai-tracking-tight: -0.01em;
+  --ai-tracking-base: 0em;
+  --ai-tracking-wide: 0.04em;
+
+  /* ===== Spacing scale ===== */
+  --ai-space-0: 0;
+  --ai-space-1: 4px;
+  --ai-space-2: 8px;
+  --ai-space-3: 12px;
+  --ai-space-4: 16px;
+  --ai-space-5: 20px;
+  --ai-space-6: 24px;
+  --ai-space-8: 32px;
+  --ai-space-10: 40px;
+  --ai-space-12: 48px;
+
+  /* ===== Radius — generous, Doubao-like ===== */
+  --ai-radius-xs: 6px;
+  --ai-radius-sm: 8px;
+  --ai-radius-base: 12px;
+  --ai-radius-md: 16px;
+  --ai-radius-lg: 20px;
+  --ai-radius-xl: 24px;
+  --ai-radius-pill: 999px;
+
+  /* ===== Motion ===== */
+  --ai-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ai-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ai-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ai-dur-fast: 140ms;
+  --ai-dur-base: 220ms;
+  --ai-dur-slow: 360ms;
+
+  /* ===== Color (light by default) ===== */
+  --ai-color-bg-base: #ffffff;
+  --ai-color-bg-elevated: #ffffff;
+  --ai-color-bg-canvas: #f7f7f9;
+  --ai-color-bg-hover: #f0f1f5;
+  --ai-color-bg-active: #e7e8ee;
+  --ai-color-surface: rgba(15, 23, 42, 0.04);
+  --ai-color-surface-strong: rgba(15, 23, 42, 0.07);
+
+  --ai-color-border: rgba(15, 23, 42, 0.08);
+  --ai-color-border-strong: rgba(15, 23, 42, 0.14);
+  --ai-color-border-emphasis: rgba(15, 23, 42, 0.24);
+  --ai-color-divider: rgba(15, 23, 42, 0.06);
+
+  --ai-color-text-primary: #0f172a;
+  --ai-color-text-secondary: #475569;
+  --ai-color-text-tertiary: #94a3b8;
+  --ai-color-text-inverse: #ffffff;
+
+  /* Brand: indigo → violet (Doubao-style) */
+  --ai-color-primary: #4f46e5;
+  --ai-color-primary-strong: #4338ca;
+  --ai-color-primary-soft: rgba(79, 70, 229, 0.12);
+  --ai-color-primary-softer: rgba(79, 70, 229, 0.06);
+  --ai-color-primary-glow: rgba(79, 70, 229, 0.32);
+
+  --ai-color-accent-violet: #7c3aed;
+  --ai-color-accent-cyan: #06b6d4;
+  --ai-color-accent-emerald: #10b981;
+  --ai-color-accent-warm: #f0eaff;
+
+  --ai-color-success: #10b981;
+  --ai-color-warning: #f59e0b;
+  --ai-color-danger: #ef4444;
+  --ai-color-info: #3b82f6;
+
+  /* Brand gradients */
+  --ai-grad-brand: linear-gradient(135deg, #5b6cff 0%, #7c5cff 45%, #9333ea 100%);
+  --ai-grad-brand-soft: linear-gradient(
+    135deg,
+    rgba(91, 108, 255, 0.12) 0%,
+    rgba(147, 51, 234, 0.1) 100%
+  );
+
+  /* Bubbles */
+  --ai-color-user-bubble: var(--ai-grad-brand);
+  --ai-color-user-bubble-text: #ffffff;
+  --ai-color-assistant-bubble: #f4f5f9;
+  --ai-color-assistant-bubble-text: var(--ai-color-text-primary);
+
+  /* ===== Shadows ===== */
+  --ai-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --ai-shadow-base:
+    0 6px 18px -6px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+  --ai-shadow-md:
+    0 12px 28px -10px rgba(15, 23, 42, 0.16),
+    0 1px 4px rgba(15, 23, 42, 0.05),
+    0 0 0 1px rgba(15, 23, 42, 0.05);
+  --ai-shadow-lg:
+    0 32px 64px -16px rgba(15, 23, 42, 0.18),
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  --ai-shadow-glow:
+    0 12px 32px -6px var(--ai-color-primary-glow),
+    0 0 0 1px rgba(91, 108, 255, 0.18);
+
+  --ai-z-fab: 99999;
+  --ai-z-panel: 99999;
+  --ai-z-overlay: 2147483645;
+  --ai-z-toast: 2147483646;
+}
+
+/* Dark theme overlay — host opts in with `theme: 'dark'`. */
+.ai-assistant-wrapper.ai-dark,
+.ai-dark.ai-personalize-overlay,
+.ai-dark.ai-form-fill-overlay,
+.ai-dark.ai-form-fill-toast {
+  --ai-color-bg-base: #0e0f15;
+  --ai-color-bg-elevated: #14151c;
+  --ai-color-bg-canvas: #0a0b10;
+  --ai-color-bg-hover: #1c1d26;
+  --ai-color-bg-active: #25262f;
+  --ai-color-surface: rgba(255, 255, 255, 0.04);
+  --ai-color-surface-strong: rgba(255, 255, 255, 0.08);
+
+  --ai-color-border: rgba(255, 255, 255, 0.08);
+  --ai-color-border-strong: rgba(255, 255, 255, 0.14);
+  --ai-color-border-emphasis: rgba(255, 255, 255, 0.22);
+  --ai-color-divider: rgba(255, 255, 255, 0.06);
+
+  --ai-color-text-primary: #f5f5f7;
+  --ai-color-text-secondary: #a3a3a8;
+  --ai-color-text-tertiary: #6b6b73;
+  --ai-color-text-inverse: #0a0a0c;
+
+  --ai-color-primary-soft: rgba(91, 108, 255, 0.18);
+  --ai-color-primary-softer: rgba(91, 108, 255, 0.08);
+  --ai-color-primary-glow: rgba(91, 108, 255, 0.45);
+
+  --ai-color-assistant-bubble: rgba(255, 255, 255, 0.06);
+
+  --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --ai-shadow-base:
+    0 6px 18px -6px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --ai-shadow-md:
+    0 12px 28px -10px rgba(0, 0, 0, 0.6),
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  --ai-shadow-lg:
+    0 32px 64px -16px rgba(0, 0, 0, 0.65),
+    0 2px 8px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-wrapper,
+  .ai-personalize-overlay,
+  .ai-form-fill-overlay,
+  .ai-form-fill-toast {
+    --ai-dur-fast: 0ms;
+    --ai-dur-base: 0ms;
+    --ai-dur-slow: 0ms;
+  }
+}
