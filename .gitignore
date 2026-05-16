@@ -36,3 +36,6 @@ ai-assistant-vue-playground/*
 ai-assistant-vue-playground/.idea/
 ai-assistant-vue-playground/dist/
 ai-assistant-vue-playground/node_modules/
+
+# OpenAPI codegen tmp (generate-frontend-types.mjs caches the fetched spec here)
+.openapi-tmp/

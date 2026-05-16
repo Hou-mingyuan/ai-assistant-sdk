@@ -56,6 +56,10 @@ export default defineConfig({
           items: [
             { text: 'Git Hooks (pre-commit)', link: '/guide/git-hooks' },
             { text: 'Styling Tokens', link: '/guide/styling-tokens' },
+            {
+              text: 'OpenAPI → TypeScript codegen',
+              link: '/guide/openapi-typescript-codegen',
+            },
           ],
         },
       ],
