@@ -1487,6 +1487,16 @@
   --ai-starter-bg: var(--ai-tone-emerald-bg);
   --ai-starter-bd: var(--ai-tone-emerald-bd);
 }
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='rose'] {
+  --ai-starter-fg: var(--ai-tone-rose-fg);
+  --ai-starter-bg: var(--ai-tone-rose-bg);
+  --ai-starter-bd: var(--ai-tone-rose-bd);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter[data-starter-tone='sky'] {
+  --ai-starter-fg: var(--ai-tone-sky-fg);
+  --ai-starter-bg: var(--ai-tone-sky-bg);
+  --ai-starter-bd: var(--ai-tone-sky-bd);
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter-body {
   flex: 1 1 auto;
   display: flex;

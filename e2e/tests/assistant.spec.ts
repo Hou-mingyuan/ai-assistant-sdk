@@ -139,6 +139,35 @@ test.describe('AI Assistant Widget', () => {
     await expect(diagnostics).toContainText(/最近错误|Last error/)
   })
 
+  test('settings menu closes with Escape', async ({ page }) => {
+    await page.click('.ai-fab')
+    const settingsButton = page.locator('.ai-header-settings')
+    await settingsButton.click()
+    const settingsMenu = page.locator('.ai-header-settings-menu')
+    await expect(settingsMenu).toBeVisible()
+
+    await page.keyboard.press('Escape')
+
+    await expect(settingsMenu).not.toBeVisible()
+    await expect(settingsButton).toBeFocused()
+  })
+
+  test('settings menu supports keyboard navigation', async ({ page }) => {
+    await page.click('.ai-fab')
+    const settingsButton = page.locator('.ai-header-settings')
+    await settingsButton.focus()
+    await page.keyboard.press('Enter')
+
+    const menuItems = page.locator('.ai-header-settings-menu [role="menuitem"]')
+    await expect(menuItems.first()).toBeFocused()
+
+    await page.keyboard.press('ArrowDown')
+    await expect(menuItems.nth(1)).toBeFocused()
+
+    await page.keyboard.press('ArrowUp')
+    await expect(menuItems.first()).toBeFocused()
+  })
+
   // K56-dom-drift: relies on the same diagnostics opener as above
   test.skip('connection settings update diagnostics endpoint', async ({ page }) => {
     await page.click('.ai-fab')

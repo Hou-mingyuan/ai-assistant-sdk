@@ -11,6 +11,7 @@
     <div class="ai-header-actions">
       <div class="ai-header-settings-wrap">
         <button
+          ref="settingsButtonRef"
           type="button"
           class="ai-header-settings"
           :title="t.settingsLabel || 'More'"
@@ -36,7 +37,13 @@
             <circle cx="12" cy="12" r="3" />
           </svg>
         </button>
-        <div v-if="settingsMenuOpen" class="ai-header-settings-menu" role="menu">
+        <div
+          v-if="settingsMenuOpen"
+          ref="settingsMenuRef"
+          class="ai-header-settings-menu"
+          role="menu"
+          @keydown="onSettingsMenuKeydown"
+        >
           <button
             v-if="mode === 'chat' && showSystemPromptUi"
             type="button"
@@ -255,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount, type PropType } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch, type PropType } from 'vue';
 import type { I18nMessages } from '../utils/i18n/types';
 import type { AiPlugin } from '../composables/usePluginRegistry';
 
@@ -348,6 +355,8 @@ const themeToggleLabel = computed(() =>
 
 /* D2: Settings menu (聚合 personalize + diagnostics 入口) */
 const settingsMenuOpen = ref(false);
+const settingsButtonRef = ref<HTMLButtonElement | null>(null);
+const settingsMenuRef = ref<HTMLElement | null>(null);
 
 function onSettingsPick(kind: 'personalize' | 'diagnostics' | 'sessions') {
   settingsMenuOpen.value = false;
@@ -362,6 +371,48 @@ function onClickOutsideSettings(event: MouseEvent) {
   if (t && t.closest('.ai-header-settings-wrap')) return;
   settingsMenuOpen.value = false;
 }
-onMounted(() => document.addEventListener('mousedown', onClickOutsideSettings));
-onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideSettings));
+
+function getSettingsMenuItems() {
+  return Array.from(
+    settingsMenuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+  );
+}
+
+function focusSettingsMenuItem(index: number) {
+  const items = getSettingsMenuItems();
+  if (items.length === 0) return;
+  const nextIndex = (index + items.length) % items.length;
+  items[nextIndex]?.focus();
+}
+
+function onSettingsMenuKeydown(event: KeyboardEvent) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+  event.preventDefault();
+  const items = getSettingsMenuItems();
+  const currentIndex = items.findIndex((item) => item === document.activeElement);
+  const delta = event.key === 'ArrowDown' ? 1 : -1;
+  focusSettingsMenuItem(currentIndex < 0 ? 0 : currentIndex + delta);
+}
+
+function onSettingsEscape(event: KeyboardEvent) {
+  if (!settingsMenuOpen.value || event.key !== 'Escape') return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  settingsMenuOpen.value = false;
+  settingsButtonRef.value?.focus();
+}
+
+watch(settingsMenuOpen, (open) => {
+  if (!open) return;
+  void nextTick(() => focusSettingsMenuItem(0));
+});
+
+onMounted(() => {
+  document.addEventListener('mousedown', onClickOutsideSettings);
+  window.addEventListener('keydown', onSettingsEscape, true);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', onClickOutsideSettings);
+  window.removeEventListener('keydown', onSettingsEscape, true);
+});
 </script>

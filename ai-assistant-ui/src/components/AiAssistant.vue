@@ -259,9 +259,9 @@
                 <span>{{ skill.label }}</span>
               </button>
             </div>
-            <div v-if="mode === 'chat'" class="ai-empty-starters">
+            <div class="ai-empty-starters">
               <button
-                v-for="starter in defaultStartersRich"
+                v-for="starter in emptyStarterCards"
                 :key="starter.title"
                 type="button"
                 class="ai-empty-starter"
@@ -1113,7 +1113,7 @@ interface EmptyStarterCard {
   title: string;
   desc: string;
   prompt: string;
-  tone: 'violet' | 'cyan' | 'amber' | 'emerald';
+  tone: 'violet' | 'cyan' | 'amber' | 'emerald' | 'rose' | 'sky';
 }
 const defaultStartersRich = computed<EmptyStarterCard[]>(() => {
   const loc = options.locale ?? 'en';
@@ -1241,6 +1241,111 @@ const defaultStartersRich = computed<EmptyStarterCard[]>(() => {
   };
   return lib[loc] ?? lib.en;
 });
+
+const modeStarterCards = computed<EmptyStarterCard[]>(() => {
+  const loc = options.locale ?? 'en';
+  if (mode.value === 'translate') {
+    return loc === 'zh'
+      ? [
+          {
+            icon: '中',
+            title: '翻译成中文',
+            desc: '保留语气和格式',
+            prompt: '把下面内容翻译成中文：',
+            tone: 'cyan',
+          },
+          {
+            icon: 'EN',
+            title: '翻译成英文',
+            desc: '自然地道表达',
+            prompt: '把下面内容翻译成自然英文：',
+            tone: 'violet',
+          },
+          {
+            icon: '术',
+            title: '术语对齐',
+            desc: '适合技术/业务文本',
+            prompt: '翻译下面内容，并保持专业术语一致：',
+            tone: 'emerald',
+          },
+        ]
+      : [
+          {
+            icon: 'EN',
+            title: 'Translate to English',
+            desc: 'Natural and concise',
+            prompt: 'Translate this into natural English: ',
+            tone: 'violet',
+          },
+          {
+            icon: 'ZH',
+            title: 'Translate to Chinese',
+            desc: 'Keep tone and formatting',
+            prompt: 'Translate this into Chinese: ',
+            tone: 'cyan',
+          },
+          {
+            icon: 'TM',
+            title: 'Keep terminology',
+            desc: 'For technical content',
+            prompt: 'Translate this and keep terminology consistent: ',
+            tone: 'emerald',
+          },
+        ];
+  }
+  if (mode.value === 'summarize') {
+    return loc === 'zh'
+      ? [
+          {
+            icon: '摘',
+            title: '总结长文',
+            desc: '提炼核心结论',
+            prompt: '请总结下面内容的核心要点：',
+            tone: 'rose',
+          },
+          {
+            icon: '点',
+            title: '提炼要点',
+            desc: '输出清晰条目',
+            prompt: '请把下面内容提炼成 5 条要点：',
+            tone: 'sky',
+          },
+          {
+            icon: '办',
+            title: '整理待办',
+            desc: '会议/记录转行动项',
+            prompt: '请从下面内容中整理待办事项和负责人：',
+            tone: 'amber',
+          },
+        ]
+      : [
+          {
+            icon: 'SUM',
+            title: 'Summarize long text',
+            desc: 'Extract the core points',
+            prompt: 'Summarize the key points of this content: ',
+            tone: 'rose',
+          },
+          {
+            icon: '5',
+            title: 'Five bullets',
+            desc: 'Make it skimmable',
+            prompt: 'Extract this into 5 concise bullet points: ',
+            tone: 'sky',
+          },
+          {
+            icon: 'TODO',
+            title: 'Action items',
+            desc: 'Meeting notes to tasks',
+            prompt: 'Extract action items, owners, and deadlines from this: ',
+            tone: 'amber',
+          },
+        ];
+  }
+  return defaultStartersRich.value;
+});
+
+const emptyStarterCards = computed(() => modeStarterCards.value);
 
 function focusInput() {
   void nextTick(() => {
@@ -3828,6 +3933,10 @@ function onEscKeydown(e: KeyboardEvent) {
   if (sessionsDrawerOpen.value) {
     e.preventDefault();
     sessionsDrawerOpen.value = false;
+    return;
+  }
+  if (document.querySelector('.ai-header-settings-menu')) {
+    e.preventDefault();
     return;
   }
   if (isOpen.value) {
