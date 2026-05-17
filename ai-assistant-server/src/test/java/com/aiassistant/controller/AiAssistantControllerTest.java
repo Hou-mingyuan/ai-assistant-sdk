@@ -9,6 +9,7 @@ import com.aiassistant.model.ChatRequest;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -32,10 +33,13 @@ class AiAssistantControllerTest {
 
     @Test
     void chat_returnsOk_whenLlmSucceeds() {
-        /* K26: controller now calls the 7-arg chat overload
-         * (text, history, systemPrompt, model, imageData, sessionId, pageContext)
-         * after the chat-session WIP landed; update the mock to match. */
-        when(llmService.chat(anyString(), any(), any(), any(), any(), any(), any()))
+        /* K26 + K53: controller now calls the 7-arg chat overload
+         * (text, history, systemPrompt, model, imageDataList, sessionId, pageContext).
+         * After K53 introduced a second 7-arg overload taking List<String> imageDataList
+         * (instead of String imageData), we must disambiguate to that overload by
+         * giving Mockito a typed List matcher for the 5th argument. */
+        when(llmService.chat(
+                        anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn("Hello!");
         ChatRequest req = new ChatRequest();
         req.setText("hi");
@@ -75,8 +79,9 @@ class AiAssistantControllerTest {
 
     @Test
     void chat_returns503_whenLlmThrows() {
-        /* K26: match the 7-arg overload that the controller actually calls. */
-        when(llmService.chat(anyString(), any(), any(), any(), any(), any(), any()))
+        /* K26 + K53: match the 7-arg List<String> overload (see comment above). */
+        when(llmService.chat(
+                        anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenThrow(new RuntimeException("API down"));
         ChatRequest req = new ChatRequest();
         req.setText("hi");
@@ -88,8 +93,9 @@ class AiAssistantControllerTest {
 
     @Test
     void stream_returnsFlux_forChat() {
-        /* K26: controller now calls the 7-arg chatStream overload as well. */
-        when(llmService.chatStream(anyString(), any(), any(), any(), any(), any(), any()))
+        /* K26 + K53: match the 7-arg List<String> chatStream overload. */
+        when(llmService.chatStream(
+                        anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn(Flux.just("chunk1", "chunk2"));
         ChatRequest req = new ChatRequest();
         req.setText("hello");

@@ -74,7 +74,7 @@ class BlockingLlmCallExecutorTest {
                         null,
                         (op, model, p, c, ms, outcome) -> capturedOutcome.set(outcome));
 
-        String out = exec.execute("sysprompt", "hello", null, "chat", "gpt-x", null);
+        String out = exec.execute("sysprompt", "hello", null, "chat", "gpt-x", (List<String>) null);
         assertThat(out).isEqualTo("hi");
         verify(rotator, times(1)).markSuccess("key-A");
         verify(rotator, never()).markFailed(anyString());
@@ -106,7 +106,7 @@ class BlockingLlmCallExecutorTest {
                         null,
                         (op, model, p, c, ms, outcome) -> {});
 
-        String out = exec.execute("sys", "hi", null, "chat", "primary", null);
+        String out = exec.execute("sys", "hi", null, "chat", "primary", (List<String>) null);
         assertThat(out).isEqualTo("ok");
         verify(rotator, atLeastOnce()).markFailed("key-A");
         verify(rotator).markSuccess("key-A");
@@ -133,7 +133,7 @@ class BlockingLlmCallExecutorTest {
                         null,
                         (op, model, p, c, ms, outcome) -> capturedOutcome.set(outcome));
 
-        assertThatThrownBy(() -> exec.execute("sys", "hi", null, "chat", "gpt-x", null))
+        assertThatThrownBy(() -> exec.execute("sys", "hi", null, "chat", "gpt-x", (List<String>) null))
                 .hasMessageContaining("api 500");
         assertThat(capturedOutcome.get()).isEqualTo(AuditEvent.Outcome.ERROR);
         verify(rotator).markFailed("key-A");
@@ -161,7 +161,7 @@ class BlockingLlmCallExecutorTest {
          * peek into the captured body easily here; the smoke check that the call returns
          * without throwing is enough — the body-mutation path is covered by integration
          * tests in LlmServiceTest. */
-        String out = exec.execute("sys", "hi", null, "translate", "gpt-x", null);
+        String out = exec.execute("sys", "hi", null, "translate", "gpt-x", (List<String>) null);
         assertThat(out).isEqualTo("x");
     }
 

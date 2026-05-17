@@ -70,7 +70,9 @@ class StreamingLlmCallExecutorTest {
                         client, rotator, (op, model, p, c, ms, outcome) -> outcomeRef.set(outcome));
 
         List<String> chunks =
-                exec.stream("sys", "hi", null, "chat", "gpt-x", null).collectList().block();
+                exec.stream("sys", "hi", null, "chat", "gpt-x", (List<String>) null)
+                        .collectList()
+                        .block();
         assertThat(chunks).containsExactly("hello ", "world");
         assertThat(outcomeRef.get()).isEqualTo(AuditEvent.Outcome.SUCCESS);
         verify(rotator, never()).markFailed(anyString());
@@ -90,7 +92,10 @@ class StreamingLlmCallExecutorTest {
                 newExecutor(
                         client, rotator, (op, model, p, c, ms, outcome) -> outcomeRef.set(outcome));
 
-        assertThatThrownBy(() -> exec.stream("sys", "hi", null, "chat", "gpt-x", null).blockLast())
+        assertThatThrownBy(
+                        () ->
+                                exec.stream("sys", "hi", null, "chat", "gpt-x", (List<String>) null)
+                                        .blockLast())
                 .hasMessageContaining("upstream");
         verify(rotator, atLeastOnce()).markFailed("key-2");
         assertThat(outcomeRef.get()).isEqualTo(AuditEvent.Outcome.ERROR);
@@ -106,7 +111,9 @@ class StreamingLlmCallExecutorTest {
         StreamingLlmCallExecutor exec = newExecutor(client, rotator, (op, m, p, c, ms, o) -> {});
 
         List<String> chunks =
-                exec.stream("sys", "hi", null, "summarize", "gpt-x", null).collectList().block();
+                exec.stream("sys", "hi", null, "summarize", "gpt-x", (List<String>) null)
+                        .collectList()
+                        .block();
         assertThat(chunks).containsExactly("ok");
     }
 
@@ -120,7 +127,9 @@ class StreamingLlmCallExecutorTest {
         StreamingLlmCallExecutor exec = newExecutor(client, rotator, null);
 
         List<String> chunks =
-                exec.stream("sys", "hi", null, "chat", "gpt-x", null).collectList().block();
+                exec.stream("sys", "hi", null, "chat", "gpt-x", (List<String>) null)
+                        .collectList()
+                        .block();
         assertThat(chunks).containsExactly("hi");
     }
 
@@ -140,7 +149,7 @@ class StreamingLlmCallExecutorTest {
                         rotator,
                         (op, model, p, c, ms, outcome) -> completionTokensRef.set(c));
 
-        exec.stream("sys", "hi", null, "chat", "gpt-x", null).blockLast();
+        exec.stream("sys", "hi", null, "chat", "gpt-x", (List<String>) null).blockLast();
         assertThat(completionTokensRef.get()).isEqualTo(2);
     }
 }

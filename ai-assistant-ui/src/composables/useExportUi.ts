@@ -6,7 +6,7 @@ export function useExportUi() {
   const exportToastText = ref('');
   let exportToastClearTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function setExportToast(msg: string, clearAfterMs: number) {
+  function setExportToast(msg: string, clearAfterMs: number = 0) {
     if (exportToastClearTimer != null) {
       clearTimeout(exportToastClearTimer);
       exportToastClearTimer = null;
