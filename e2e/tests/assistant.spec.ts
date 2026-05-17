@@ -5,15 +5,15 @@ import { test, expect } from '@playwright/test'
  * + Phase 6 (OpenAPI auto-config) shipped to origin/main with DOM /
  * selector drift that the e2e suite below has not yet been realigned
  * against.  Specifically:
- *   - `.ai-mode-bar` is no longer rendered (mode bar removed/replaced
- *     during K56; only CSS rules remain).
+ *   - `.ai-mode-bar` is no longer rendered; restored mode tests now target
+ *     `.ai-mode-segmented` / `.ai-mode-segment`.
  *   - `.ai-code-wall-canvas` is rendered but timing/conditions changed
  *     so the post-click visibility assertion times out.
  *   - `.ai-header-diagnostics` / `.ai-diagnostics-panel` were moved out
  *     of AssistantHeader.vue (only ConnectionDiagnostics.vue still has
  *     them) and the open path differs.
  *
- * 9 specs below are temporarily marked `test.skip(...)` so CI can be
+ * 6 specs below are temporarily marked `test.skip(...)` so CI can be
  * green while we triage with the UI owner.  Issue / PR to track:
  *   - Decide whether DOM is the source of truth (e2e follows) or the
  *     e2e contract is (UI restores selectors).
@@ -94,12 +94,11 @@ test.describe('AI Assistant Widget', () => {
     expect(secondFrame).toBe(firstFrame)
   })
 
-  // K56-dom-drift: `.ai-mode-bar` element removed; only CSS rules remain
-  test.skip('panel has mode buttons', async ({ page }) => {
+  test('panel has mode buttons', async ({ page }) => {
     await page.click('.ai-fab')
-    const modeBar = page.locator('.ai-mode-bar')
+    const modeBar = page.locator('.ai-mode-segmented')
     await expect(modeBar).toBeVisible()
-    const buttons = modeBar.locator('button')
+    const buttons = modeBar.locator('.ai-mode-segment')
     await expect(buttons).toHaveCount(3)
   })
 
@@ -125,16 +124,14 @@ test.describe('AI Assistant Widget', () => {
     await expect(modelPicker).toContainText(/无法连接模型接口|Unable to reach model API|无模型列表|No models/)
   })
 
-  // K56-dom-drift: .ai-header-diagnostics moved out of AssistantHeader.vue
-  test.skip('diagnostics panel shows connection details', async ({ page }) => {
+  test('diagnostics panel shows connection details', async ({ page }) => {
     await page.click('.ai-fab')
-    const diagnosticsButton = page.locator('.ai-header-diagnostics')
-    await diagnosticsButton.click()
+    await page.click('.ai-header-settings')
+    await page.getByRole('menuitem', { name: /诊断|Diagnostics/ }).click()
     const diagnostics = page.locator('.ai-diagnostics-panel')
     await expect(diagnostics).toBeVisible()
     const diagnosticsRegion = page.getByRole('region', { name: /诊断|Diagnostics/ })
     await expect(diagnosticsRegion).toBeVisible()
-    await expect(diagnosticsButton).toHaveAttribute('aria-controls', await diagnosticsRegion.getAttribute('id'))
     await expect(diagnosticsRegion).toHaveAttribute('aria-busy', /true|false/)
     await expect(diagnostics).toContainText(/后端地址|Base URL/)
     await expect(diagnostics).toContainText(/模型接口|Models endpoint/)
@@ -217,12 +214,11 @@ test.describe('AI Assistant Widget', () => {
     await expect(searchInput).not.toBeVisible()
   })
 
-  // K56-dom-drift: `.ai-mode-bar` element removed (see above)
-  test.skip('mode switching works', async ({ page }) => {
+  test('mode switching works', async ({ page }) => {
     await page.click('.ai-fab')
-    const buttons = page.locator('.ai-mode-bar button')
-    await buttons.first().click()
-    await expect(buttons.first()).toHaveClass(/active/)
+    const buttons = page.locator('.ai-mode-segment')
+    await buttons.nth(1).click()
+    await expect(buttons.nth(1)).toHaveClass(/active/)
   })
 
   test('expand button toggles fullscreen', async ({ page }) => {

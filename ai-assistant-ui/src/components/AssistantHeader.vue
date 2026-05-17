@@ -9,13 +9,12 @@
     </span>
     <span class="ai-header-spacer" aria-hidden="true" />
     <div class="ai-header-actions">
-      <!-- D2: 统一 Settings 入口齿轮按钮（替代原 personalize + diagnostics 两个独立按钮） -->
-      <div v-if="mode === 'chat'" class="ai-header-settings-wrap">
+      <div class="ai-header-settings-wrap">
         <button
           type="button"
           class="ai-header-settings"
-          :title="t.settingsLabel || 'Settings'"
-          :aria-label="t.settingsLabel || 'Settings'"
+          :title="t.settingsLabel || 'More'"
+          :aria-label="t.settingsLabel || 'More'"
           :aria-haspopup="'menu'"
           :aria-expanded="settingsMenuOpen ? 'true' : 'false'"
           @click.stop="settingsMenuOpen = !settingsMenuOpen"
@@ -39,7 +38,7 @@
         </button>
         <div v-if="settingsMenuOpen" class="ai-header-settings-menu" role="menu">
           <button
-            v-if="showSystemPromptUi"
+            v-if="mode === 'chat' && showSystemPromptUi"
             type="button"
             role="menuitem"
             class="ai-header-settings-item"
@@ -76,121 +75,137 @@
             </svg>
             <span>{{ t.sessionsDrawerTitle || 'All sessions' }}</span>
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="
+              settingsMenuOpen = false;
+              emit('start-new-session');
+            "
+          >
+            <span aria-hidden="true">+</span>
+            <span>{{ t.newSession }}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="
+              settingsMenuOpen = false;
+              emit('toggle-theme');
+            "
+          >
+            <span aria-hidden="true">{{ isDark ? '☼' : '☾' }}</span>
+            <span>{{ themeToggleLabel }}</span>
+          </button>
+          <template v-if="hasMessages">
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('batch-export-all-json');
+              "
+            >
+              <span aria-hidden="true">JSON</span>
+              <span>{{ t.exportJson }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('batch-export-all-markdown');
+              "
+            >
+              <span aria-hidden="true">MD</span>
+              <span>{{ t.exportMarkdown }}</span>
+            </button>
+            <button
+              v-if="hasBaseUrl"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('batch-export-all-server', 'xlsx');
+              "
+            >
+              <span aria-hidden="true">XLSX</span>
+              <span>{{ t.exportServerXlsx }}</span>
+            </button>
+            <button
+              v-if="hasBaseUrl"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('batch-export-all-server', 'docx');
+              "
+            >
+              <span aria-hidden="true">DOCX</span>
+              <span>{{ t.exportServerDocx }}</span>
+            </button>
+            <button
+              v-if="hasBaseUrl"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('batch-export-all-server', 'pdf');
+              "
+            >
+              <span aria-hidden="true">PDF</span>
+              <span>{{ t.exportServerPdf }}</span>
+            </button>
+            <button
+              v-if="!loading"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              :aria-pressed="selectMode"
+              @click="
+                settingsMenuOpen = false;
+                emit('toggle-select-mode');
+              "
+            >
+              <span aria-hidden="true">☑</span>
+              <span>{{ t.selectModeToggle }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('clear-messages');
+              "
+            >
+              <span aria-hidden="true">×</span>
+              <span>{{ t.clear }}</span>
+            </button>
+          </template>
+          <button
+            v-for="pl in headerPlugins"
+            :key="pl.id"
+            type="button"
+            role="menuitem"
+            class="ai-header-settings-item"
+            @click="
+              settingsMenuOpen = false;
+              emit('run-plugin', pl);
+            "
+          >
+            <span aria-hidden="true">{{ pl.icon || pl.label.charAt(0) }}</span>
+            <span>{{ pl.label }}</span>
+          </button>
         </div>
       </div>
-      <button
-        v-for="pl in headerPlugins"
-        :key="pl.id"
-        type="button"
-        class="ai-plugin-btn"
-        :title="pl.label"
-        :aria-label="pl.label"
-        @click.stop="emit('run-plugin', pl)"
-      >
-        {{ pl.icon || pl.label.charAt(0) }}
-      </button>
-      <button
-        type="button"
-        class="ai-new-session"
-        :title="t.newSession"
-        :aria-label="t.newSession"
-        @click="emit('start-new-session')"
-      >
-        +
-      </button>
-      <div v-if="hasMessages" class="ai-batch-export-wrap">
-        <button
-          type="button"
-          class="ai-batch-export-btn"
-          :title="t.batchExport"
-          :aria-label="t.batchExport"
-          @click.stop="emit('toggle-batch-export-menu')"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-          </svg>
-        </button>
-        <div v-if="batchExportMenuOpen" class="ai-batch-export-menu">
-          <button type="button" @click="emit('batch-export-all-json')">
-            {{ t.exportJson }}
-          </button>
-          <button type="button" @click="emit('batch-export-all-markdown')">
-            {{ t.exportMarkdown }}
-          </button>
-          <button v-if="hasBaseUrl" type="button" @click="emit('batch-export-all-server', 'xlsx')">
-            {{ t.exportServerXlsx }}
-          </button>
-          <button v-if="hasBaseUrl" type="button" @click="emit('batch-export-all-server', 'docx')">
-            {{ t.exportServerDocx }}
-          </button>
-          <button v-if="hasBaseUrl" type="button" @click="emit('batch-export-all-server', 'pdf')">
-            {{ t.exportServerPdf }}
-          </button>
-        </div>
-      </div>
-      <button
-        v-if="hasMessages && !loading"
-        type="button"
-        class="ai-header-btn"
-        :class="{ active: selectMode }"
-        :title="t.selectModeToggle"
-        :aria-label="t.selectModeToggle"
-        :aria-pressed="selectMode"
-        @click="emit('toggle-select-mode')"
-      >
-        ☑
-      </button>
-      <button
-        v-if="hasMessages"
-        type="button"
-        class="ai-clear"
-        :title="t.clear"
-        :aria-label="t.clear"
-        @click="emit('clear-messages')"
-      >
-        &#x1f5d1;
-      </button>
-      <button
-        type="button"
-        class="ai-theme-toggle"
-        :title="themeToggleLabel"
-        :aria-label="themeToggleLabel"
-        @click.stop="emit('toggle-theme')"
-      >
-        <!-- 太阳：当前 dark，点击切到 light -->
-        <svg
-          v-if="isDark"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="4" />
-          <path
-            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-          />
-        </svg>
-        <!-- 太阳：当前 light，下一步切到 dark -->
-        <svg
-          v-else
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      </button>
       <button
         type="button"
         class="ai-expand"

@@ -1,26 +1,10 @@
-export interface HistoryMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import type { components } from '../types/api-generated';
 
-export interface ChatPayload {
-  action: 'translate' | 'summarize' | 'chat';
-  text: string;
-  targetLang?: string;
-  history?: HistoryMessage[];
-  /** 对话模式可选：覆盖服务端默认 system prompt（需后端 allow-client-system-prompt） */
-  systemPrompt?: string;
-  /** 对话模式可选：须在服务端 allowed-models 白名单内 */
-  model?: string;
-  /** Base64 image data (data URI or raw base64) for vision models */
-  imageData?: string;
-  /** Multiple Base64 image data entries for multimodal models; imageData remains first-image compat. */
-  imageDataList?: string[];
-  /** 前端采集的页面上下文文本（URL、标题、DOM 区块文字），后端注入系统提示 */
-  pageContext?: string;
-  /** 会话 ID，用于服务端会话记忆（跨轮对话上下文保持） */
-  sessionId?: string;
-}
+type ApiSchemas = components['schemas'];
+
+export type HistoryMessage = ApiSchemas['MessageItem'];
+
+export type ChatPayload = ApiSchemas['ChatRequest'];
 
 export interface ModelsListResult {
   success: boolean;
@@ -29,11 +13,7 @@ export interface ModelsListResult {
   error?: string;
 }
 
-export interface ChatResult {
-  success: boolean;
-  result?: string;
-  error?: string;
-}
+export type ChatResult = ApiSchemas['ChatResponse'];
 
 export interface UrlPreviewResult {
   success: boolean;

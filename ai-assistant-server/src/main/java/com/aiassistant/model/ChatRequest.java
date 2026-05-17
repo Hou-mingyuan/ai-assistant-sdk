@@ -1,5 +1,6 @@
 package com.aiassistant.model;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,7 @@ public class ChatRequest {
     private String targetLang;
 
     @Size(max = 500, message = "history exceeds 500 messages")
-    private List<MessageItem> history;
+    private List<@Valid MessageItem> history;
 
     /** 对话模式可选：覆盖服务端默认 system prompt，无需改配置重启（受服务端开关与长度上限约束）。 */
     @Size(max = 16_000)
@@ -144,7 +145,15 @@ public class ChatRequest {
     }
 
     public static class MessageItem {
+        @NotBlank(message = "history role is required")
+        @Pattern(
+                regexp = "user|assistant|system",
+                message = "history role must be one of: user, assistant, system")
+        @Size(max = 32, message = "history role exceeds 32 characters")
         private String role;
+
+        @NotBlank(message = "history content is required")
+        @Size(max = 300_000, message = "history content exceeds 300000 characters")
         private String content;
 
         public String getRole() {

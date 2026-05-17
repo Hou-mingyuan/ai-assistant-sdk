@@ -935,6 +935,7 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-mic,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-code-wall-toggle,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group .ai-plugin-btn {
   width: 30px !important;
@@ -949,9 +950,14 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-mic:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-code-wall-toggle:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group .ai-plugin-btn:hover {
   background: rgba(79, 70, 229, 0.08) !important;
+  color: #4f46e5 !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle.active {
+  background: rgba(79, 70, 229, 0.12) !important;
   color: #4f46e5 !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-send,

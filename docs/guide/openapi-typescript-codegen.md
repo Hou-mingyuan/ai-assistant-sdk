@@ -95,10 +95,11 @@ export type ChatEndpointResponse =
   paths['/chat']['post']['responses']['200']['content']['application/json'];
 ```
 
-You **delete** the hand-written `ChatRequest` interface in `utils/api.ts`
-and re-export from the generated file. From that moment on, any
-`ChatRequest.java` change that hits the front-end without a regenerated
-`api-generated.d.ts` fails the type checker.
+The current front-end client already follows this pattern for the chat
+wire contract: `ChatPayload` and `ChatResult` in `utils/api.ts` are aliases
+of generated `ChatRequest` / `ChatResponse` schemas. From that moment on,
+any `ChatRequest.java` or `ChatResponse.java` change that hits the
+front-end without a regenerated `api-generated.d.ts` fails the type checker.
 
 ## Tuning knobs
 
@@ -110,7 +111,8 @@ The generator script supports the following flags:
 | `--out` | `ai-assistant-ui/src/types/api-generated.d.ts` | Output `.d.ts` path |
 | `--token` | none | Sent as `X-AI-Token` header if your spec is auth-gated |
 | `--pin` | `openapi-typescript@7` | Pin the codegen version. Bump deliberately and commit a regenerated file in the same PR |
-| `--dry-run` | off | Fetch + validate spec, but do NOT write the `.d.ts`. CI uses this. |
+| `--dry-run` | off | Fetch + validate spec only; does not run codegen or compare output. |
+| `--check` | off | Generate to `.openapi-tmp/api-generated.check.d.ts` and fail if it differs from `--out`. CI should use this. |
 
 ## Recommended PR rules
 
@@ -138,12 +140,14 @@ The cheapest guard is a drift check in CI:
     SERVICE_PID=$!
     sleep 25  # crude wait; better: poll /actuator/health
     cd ..
-    node scripts/generate-frontend-types.mjs --dry-run
+    node scripts/generate-frontend-types.mjs --check
     kill $SERVICE_PID
 ```
 
-A stricter version regenerates the file and `git diff --exit-code`-checks
-it; that's the configuration we recommend once the workflow is stable.
+`--check` never overwrites the committed `.d.ts`; it writes a temporary
+generated file and compares it against `--out`. A mismatch fails CI and
+means the PR must run `node scripts/generate-frontend-types.mjs`, review
+the `.d.ts` diff, and commit it with the server contract change.
 
 ## Limitations and known gotchas
 
@@ -170,11 +174,12 @@ it; that's the configuration we recommend once the workflow is stable.
 
 ## Roadmap
 
-* **Now** (this commit, Phase 6 of the audit): scaffolding in place — the
-  auto-config bean, the generator script, this doc.
-* **Next**: hand-migrate `utils/api.ts` to the generated types, one DTO
-  at a time, starting with `ChatRequest` and `ChatResponse`. Each
-  migration is its own commit.
+* **Now**: scaffolding is in place — the auto-config bean, the generator
+  script, this doc, and the initial `ChatRequest` / `ChatResponse`
+  front-end type aliases.
+* **Next**: migrate the remaining hand-written response types in
+  `utils/api.ts` one DTO at a time (`ModelsListResult`,
+  `UrlPreviewResult`, prompt templates, export responses).
 * **Later**: wire the `--dry-run` drift check into CI as a required check.
 * **Eventually**: replace the standalone-service spec endpoint with a
   static-spec snapshot (`docs/api/openapi.json`) regenerated at release

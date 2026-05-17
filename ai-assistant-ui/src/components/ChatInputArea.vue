@@ -107,7 +107,7 @@
         <option value="ar">العربية</option>
       </select>
     </div>
-    <div class="ai-md-toolbar">
+    <div v-if="advancedToolsOpen" class="ai-md-toolbar">
       <button
         type="button"
         class="ai-md-btn"
@@ -170,7 +170,7 @@
       only renders in chat mode to keep translate/summarize footprints lean.
     -->
     <div
-      v-if="quickTogglesEnabled && mode === 'chat'"
+      v-if="advancedToolsOpen && quickTogglesEnabled && mode === 'chat'"
       class="ai-footer-quick-toggles"
       role="group"
       :aria-label="t.skillStripLabel || '快捷工具'"
@@ -283,6 +283,17 @@
           ↻
         </button>
         <button
+          type="button"
+          class="ai-tools-toggle"
+          :class="{ active: advancedToolsOpen }"
+          :title="t.skillStripLabel || 'Tools'"
+          :aria-label="t.skillStripLabel || 'Tools'"
+          :aria-expanded="advancedToolsOpen ? 'true' : 'false'"
+          @click="advancedToolsOpen = !advancedToolsOpen"
+        >
+          ⋯
+        </button>
+        <button
           class="ai-send"
           type="button"
           :style="{ backgroundColor: color }"
@@ -379,7 +390,7 @@
           }}
         </span>
       </button>
-      <slot name="model-row-actions" />
+      <slot v-if="advancedToolsOpen" name="model-row-actions" />
     </div>
   </div>
 </template>
@@ -496,6 +507,7 @@ const recallActive = ref(false);
 const fileInputRef = ref<HTMLInputElement>();
 const chatImageInputRef = ref<HTMLInputElement>();
 const textareaRef = ref<HTMLTextAreaElement>();
+const advancedToolsOpen = ref(false);
 
 /**
  * L1: 单一 paste 入口。同时发出 pasteImage（保留原行为）和 pasteText

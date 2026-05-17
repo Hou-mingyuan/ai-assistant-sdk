@@ -149,7 +149,6 @@
  * 避免重绘传播。
  * ============================================================================
  */
-.ai-mode-bar button.active,
 .ai-quick-actions button.active,
 .ai-btn-primary,
 .ai-fab,
@@ -184,7 +183,6 @@
 .ai-msg .ai-avatar,
 .ai-fab,
 .ai-btn,
-.ai-mode-bar button,
 .ai-quick-actions button,
 .ai-tab,
 .ai-session-item,

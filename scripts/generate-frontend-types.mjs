@@ -31,6 +31,7 @@
  *      --out <output-file>          Default: ai-assistant-ui/src/types/api-generated.d.ts
  *      --token <X-AI-Token value>   If the host gates /v3/api-docs behind auth
  *      --pin <openapi-typescript@x> Default: openapi-typescript@7
+ *      --check                      Generate to a temp file and fail if committed output differs
  *
  * After this completes, the file at the output path is the source of truth
  * for backend wire types. Import from it as
@@ -42,11 +43,12 @@
  * ----------
  * `scripts/bundle-size-check.mjs` does NOT track this file (it's a .d.ts,
  * stripped at build time). The CI workflow should call this script with
- * `--dry-run` to verify the spec didn't change unexpectedly — see the
- * "CI integration" section of docs/guide/openapi-typescript-codegen.md.
+ * `--check` to verify generated TypeScript did not drift from the live
+ * OpenAPI spec — see the "CI integration" section of
+ * docs/guide/openapi-typescript-codegen.md.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -57,13 +59,14 @@ const repoRoot = resolve(dirname(__filename), '..');
 // ─────────────────────────────────────────────────────────────────────────
 // CLI argument parsing (no third-party dependency)
 // ─────────────────────────────────────────────────────────────────────────
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = {
     url: 'http://localhost:8080/ai-assistant/v3/api-docs',
     out: 'ai-assistant-ui/src/types/api-generated.d.ts',
     token: null,
     pin: 'openapi-typescript@7',
     dryRun: false,
+    check: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -72,11 +75,12 @@ function parseArgs(argv) {
     else if (a === '--token') args.token = argv[++i];
     else if (a === '--pin') args.pin = argv[++i];
     else if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--check') args.check = true;
     else if (a === '-h' || a === '--help') {
       console.log(
         'Usage: node scripts/generate-frontend-types.mjs ' +
           '[--url <openapi-json-url>] [--out <file>] [--token <X-AI-Token>] ' +
-          '[--pin openapi-typescript@<ver>] [--dry-run]',
+          '[--pin openapi-typescript@<ver>] [--dry-run] [--check]',
       );
       process.exit(0);
     } else {
@@ -141,11 +145,32 @@ async function runCodegen(specPath, outPath, pinned) {
   });
 }
 
+function normalizeGeneratedTypes(content) {
+  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trimEnd();
+}
+
+async function assertGeneratedTypesUpToDate(expectedPath, actualPath) {
+  const [expected, actual] = await Promise.all([
+    readFile(expectedPath, 'utf-8'),
+    readFile(actualPath, 'utf-8'),
+  ]);
+  if (normalizeGeneratedTypes(expected) === normalizeGeneratedTypes(actual)) {
+    return;
+  }
+  throw new Error(
+    `OpenAPI TypeScript drift detected. Regenerate ${actualPath} with ` +
+      '`node scripts/generate-frontend-types.mjs` and commit the result.',
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────
 async function main() {
   const args = parseArgs(process.argv);
+  if (args.dryRun && args.check) {
+    throw new Error('Use either --dry-run or --check, not both.');
+  }
   console.log(`[generate-frontend-types] Fetching OpenAPI spec from ${args.url}`);
   const specText = await fetchSpec(args.url, args.token);
   console.log(
@@ -169,6 +194,17 @@ async function main() {
     process.exit(0);
   }
 
+  if (args.check) {
+    const checkOut = join(tmpDir, 'api-generated.check.d.ts');
+    console.log(
+      `[generate-frontend-types] --check: codegen with ${args.pin} → ${checkOut}`,
+    );
+    await runCodegen(specPath, checkOut, args.pin);
+    await assertGeneratedTypesUpToDate(checkOut, outAbsolute);
+    console.log('[generate-frontend-types] --check: generated types are up to date');
+    process.exit(0);
+  }
+
   console.log(
     `[generate-frontend-types] Codegen with ${args.pin} → ${args.out}`,
   );
@@ -179,7 +215,9 @@ async function main() {
   );
 }
 
-main().catch((e) => {
-  console.error('[generate-frontend-types] FAILED:', e.message);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === __filename) {
+  main().catch((e) => {
+    console.error('[generate-frontend-types] FAILED:', e.message);
+    process.exit(1);
+  });
+}

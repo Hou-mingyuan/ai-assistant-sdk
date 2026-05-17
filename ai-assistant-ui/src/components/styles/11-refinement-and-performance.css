@@ -152,7 +152,6 @@
 }
 
 .ai-btn,
-.ai-mode-bar button,
 .ai-quick-actions button {
   border-radius: var(--ai-radius-sm);
 }
@@ -218,7 +217,6 @@
  */
 .ai-panel,
 .ai-bubble,
-.ai-mode-bar,
 .ai-quick-actions {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;

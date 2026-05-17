@@ -1160,7 +1160,7 @@
  * 第三波 UX 现代化 #2 #6 #12 #14 #18 #20 #27
  * ────────────────────────────────────────────────────────────────*/
 
-/* 杜绝任何意外的横向溢出 — empty state、mode-bar、thinking 等都不该撑出滚动条 */
+/* 杜绝任何意外的横向溢出 — empty state、quick actions、thinking 等都不该撑出滚动条 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-body,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-panel,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty,
@@ -1168,15 +1168,13 @@
   overflow-x: hidden !important;
   max-width: 100%;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
   flex-wrap: wrap !important;
   max-width: 100% !important;
 }
 
-/* #2 模式按钮胶囊化（覆盖 03-input-popups.css 的 .ai-mode-bar/.ai-quick-actions）
+/* #2 quick action 胶囊化（覆盖 03-input-popups.css 的 .ai-quick-actions）
  * 用 wrapper 双重选择器获得 specificity，避开 !important 滥用 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
   display: flex !important;
   gap: 6px !important;
@@ -1185,7 +1183,6 @@
   border-top: none !important;
   border-radius: 0 !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button {
   flex: 0 0 auto !important;
   padding: 5px 14px !important;
@@ -1198,26 +1195,22 @@
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button:hover:not(.active),
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button:hover:not(.active) {
   background: rgba(14, 165, 233, 0.06) !important;
   border-color: rgba(14, 165, 233, 0.3) !important;
   color: var(--ai-text) !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-bar button.active,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button.active {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
   border-color: transparent !important;
   color: #fff !important;
   box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.5) !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-bar button,
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button {
   background: rgba(255, 255, 255, 0.04) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
   color: rgba(241, 245, 249, 0.7) !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-bar button.active,
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button.active {
   color: #fff !important;
 }
