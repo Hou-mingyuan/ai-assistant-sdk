@@ -168,6 +168,25 @@ test.describe('AI Assistant Widget', () => {
     await expect(menuItems.first()).toBeFocused()
   })
 
+  test('footer presents command dock and status rail', async ({ page }) => {
+    await page.click('.ai-fab')
+    const inputRow = page.locator('.ai-footer-input-row')
+    const sendGroup = page.locator('.ai-footer-send-group')
+    const statusRow = page.locator('.ai-footer-model-row')
+
+    await expect(inputRow).toBeVisible()
+    await expect(sendGroup).toBeVisible()
+    await expect(statusRow).toBeVisible()
+
+    await expect(inputRow).toHaveCSS('border-radius', '24px')
+    await expect
+      .poll(() => sendGroup.evaluate((el) => getComputedStyle(el).backgroundColor))
+      .not.toBe('rgba(0, 0, 0, 0)')
+    await expect
+      .poll(() => statusRow.evaluate((el) => getComputedStyle(el).backgroundColor))
+      .not.toBe('rgba(0, 0, 0, 0)')
+  })
+
   // K56-dom-drift: relies on the same diagnostics opener as above
   test.skip('connection settings update diagnostics endpoint', async ({ page }) => {
     await page.click('.ai-fab')
