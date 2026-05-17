@@ -2666,3 +2666,30 @@
   background: transparent !important;
   z-index: 2 !important;
 }
+
+/* Round 9: make translate/summarize mode feel like one compact input unit. */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-tools-row {
+  padding: 0 2px !important;
+  margin: 0 0 -2px !important;
+  background: transparent !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-inline {
+  height: 30px;
+  padding: 0 12px !important;
+  border-radius: var(--ai-radius-pill) !important;
+  background: #ffffff !important;
+  color: #647084 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle {
+  background: rgba(79, 70, 229, 0.04) !important;
+  color: #6b7280 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment::after {
+  display: none !important;
+}
