@@ -321,11 +321,7 @@ export function useFormAutoFill(deps: UseFormAutoFillDeps): UseFormAutoFillRetur
       const ms = matchFields(pairsForMatch, formRow.fields, buildMatcherOptions());
       const suffix = usableRows.length === 1 ? '' : ` #${i + 1}`;
       for (const m of ms) {
-        aggregated.push(
-          suffix
-            ? { ...m, pair: { ...m.pair, key: `${m.pair.key}${suffix}` } }
-            : m,
-        );
+        aggregated.push(suffix ? { ...m, pair: { ...m.pair, key: `${m.pair.key}${suffix}` } } : m);
       }
     }
     availableFields.value = allFields;

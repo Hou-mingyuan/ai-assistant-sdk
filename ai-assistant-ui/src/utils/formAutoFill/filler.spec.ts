@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  fillField,
-  undoFills,
-  highlightFilledField,
-  clearFillHighlights,
-} from './filler';
+import { fillField, undoFills, highlightFilledField, clearFillHighlights } from './filler';
 import type { FormField } from './scanner';
 
 function makeField(partial: Partial<FormField> & { el: HTMLElement }): FormField {

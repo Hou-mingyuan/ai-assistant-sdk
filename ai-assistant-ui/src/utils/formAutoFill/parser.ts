@@ -298,7 +298,10 @@ function splitTableRow(line: string, sep: TableSeparator): string[] {
   }
   if (sep.kind === 'comma') return splitCsvRow(line);
   // multispace: ≥2 个空格切
-  return line.split(/\s{2,}|\t/).map((c) => c.trim()).filter((_, i, arr) => arr.length > 1);
+  return line
+    .split(/\s{2,}|\t/)
+    .map((c) => c.trim())
+    .filter((_, i, arr) => arr.length > 1);
 }
 
 function splitSimple(line: string, sep: string): string[] {

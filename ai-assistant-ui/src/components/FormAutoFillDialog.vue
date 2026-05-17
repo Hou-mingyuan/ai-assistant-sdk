@@ -38,7 +38,10 @@
               {{ tableTruncatedText }}
             </span>
             <span v-if="llmFallbackHinted" class="ai-form-fill-llm-hint">
-              {{ t.formFillLlmHint || 'Some fields unmatched — enable LLM fallback for smarter guess.' }}
+              {{
+                t.formFillLlmHint ||
+                'Some fields unmatched — enable LLM fallback for smarter guess.'
+              }}
             </span>
           </p>
 
@@ -52,9 +55,7 @@
               />
               <span>{{ t.formFillSelectAll || 'Select all matched' }}</span>
             </label>
-            <span class="ai-form-fill-counter">
-              {{ selectedCount }} / {{ matchedCount }}
-            </span>
+            <span class="ai-form-fill-counter"> {{ selectedCount }} / {{ matchedCount }} </span>
           </div>
 
           <div class="ai-form-fill-table-wrapper">
@@ -129,7 +130,11 @@
                       :data-level="confidenceLevel(m.confidence)"
                     >
                       <span class="ai-form-fill-conf-dots" aria-hidden="true">
-                        <span v-for="n in 3" :key="n" :class="{ on: confidenceDots(m.confidence) >= n }" />
+                        <span
+                          v-for="n in 3"
+                          :key="n"
+                          :class="{ on: confidenceDots(m.confidence) >= n }"
+                        />
                       </span>
                       <span class="ai-form-fill-conf-num">{{ Math.round(m.confidence) }}</span>
                     </span>
@@ -177,7 +182,12 @@ const props = defineProps<{
   selectedIndices: Set<number>;
   availableFields: FormField[];
   llmFallbackHinted: boolean;
-  tableInfo: { headers: string[]; dataRowCount: number; formRowCount: number; truncatedRows: number } | null;
+  tableInfo: {
+    headers: string[];
+    dataRowCount: number;
+    formRowCount: number;
+    truncatedRows: number;
+  } | null;
 }>();
 
 const emit = defineEmits<{

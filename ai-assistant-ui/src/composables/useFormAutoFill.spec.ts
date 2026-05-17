@@ -281,9 +281,7 @@ describe('useFormAutoFill - table mode (Phase 2)', () => {
     mountTableForm();
     const { deps } = makeDeps({ tableMode: true });
     const f = useFormAutoFill(deps);
-    const opened = f.inspectPasteText(
-      '姓名\t电话\t邮箱\n张三\t138\ta@x.com\n李四\t139\tb@x.com',
-    );
+    const opened = f.inspectPasteText('姓名\t电话\t邮箱\n张三\t138\ta@x.com\n李四\t139\tb@x.com');
     expect(opened).toBe(true);
     expect(f.mode.value).toBe('table');
     expect(f.tableInfo.value).toEqual({
@@ -313,9 +311,7 @@ describe('useFormAutoFill - table mode (Phase 2)', () => {
     mountTableForm();
     const { deps } = makeDeps({ tableMode: true });
     const f = useFormAutoFill(deps);
-    f.inspectPasteText(
-      '姓名\t电话\n张三\t1\n李四\t2\n王五\t3\n赵六\t4',
-    );
+    f.inspectPasteText('姓名\t电话\n张三\t1\n李四\t2\n王五\t3\n赵六\t4');
     expect(f.mode.value).toBe('table');
     expect(f.tableInfo.value?.dataRowCount).toBe(4);
     expect(f.tableInfo.value?.formRowCount).toBe(2);
@@ -354,18 +350,13 @@ describe('useFormAutoFill - table mode (Phase 2)', () => {
     mountTableForm();
     const { deps } = makeDeps({ tableMode: true });
     const f = useFormAutoFill(deps);
-    f.inspectPasteText(
-      '姓名\t电话\t邮箱\n张三\t138\ta@x.com\n李四\t139\tb@x.com',
-    );
+    f.inspectPasteText('姓名\t电话\t邮箱\n张三\t138\ta@x.com\n李四\t139\tb@x.com');
     f.confirmFill();
     const inputs = Array.from(
       document.querySelectorAll<HTMLInputElement>('[data-ai-fillable-row] input'),
     );
     const values = inputs.map((i) => i.value);
-    expect(values).toEqual([
-      '张三', '138', 'a@x.com',
-      '李四', '139', 'b@x.com',
-    ]);
+    expect(values).toEqual(['张三', '138', 'a@x.com', '李四', '139', 'b@x.com']);
   });
 
   it('tableMode disabled by default — TSV paste goes to pair mode', () => {

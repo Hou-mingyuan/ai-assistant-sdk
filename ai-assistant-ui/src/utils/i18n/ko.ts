@@ -293,7 +293,8 @@ export const ko: I18nMessages = {
   slashCmdFillDesc: '클립보드에서 폼 필드 자동 채우기',
   formFillToastTemplate: '{filled}개 필드 채움 (실패 {failed}개)',
   formFillToastUndo: '실행 취소',
-  formFillPasteBannerTemplate: '붙여 넣은 항목에서 {n}개의 폼 데이터가 감지되었습니다. 페이지에 채울까요?',
+  formFillPasteBannerTemplate:
+    '붙여 넣은 항목에서 {n}개의 폼 데이터가 감지되었습니다. 페이지에 채울까요?',
   formFillPasteBannerFill: '자동 채우기',
   formFillPasteBannerDismiss: '무시',
   formFillTableSummary: '테이블 모드 · {dataRows} 행 × {cols} 열 → {formRows} 행 채움',

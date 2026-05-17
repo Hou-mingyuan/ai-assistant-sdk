@@ -24,13 +24,7 @@
 import type { ParsedPair } from './parser';
 import type { FormField } from './scanner';
 
-export type MatchStrategy =
-  | 'exact'
-  | 'contains'
-  | 'synonym'
-  | 'substring'
-  | 'levenshtein'
-  | 'none';
+export type MatchStrategy = 'exact' | 'contains' | 'synonym' | 'substring' | 'levenshtein' | 'none';
 
 export interface MatchResult {
   pair: ParsedPair;
@@ -54,8 +48,30 @@ export interface MatcherOptions {
 }
 
 const BUILTIN_SYNONYMS: string[][] = [
-  ['姓名', '名字', '客户', '客户名', '客户姓名', 'name', 'username', 'full name', 'client', 'customer'],
-  ['电话', '手机', '手机号', '手机号码', '联系电话', 'phone', 'mobile', 'tel', 'telephone', 'phone number'],
+  [
+    '姓名',
+    '名字',
+    '客户',
+    '客户名',
+    '客户姓名',
+    'name',
+    'username',
+    'full name',
+    'client',
+    'customer',
+  ],
+  [
+    '电话',
+    '手机',
+    '手机号',
+    '手机号码',
+    '联系电话',
+    'phone',
+    'mobile',
+    'tel',
+    'telephone',
+    'phone number',
+  ],
   ['邮箱', '电子邮件', '邮件', 'email', 'e-mail', 'mail'],
   ['地址', '联系地址', '住址', 'address', 'addr', 'street'],
   ['公司', '单位', '企业', 'company', 'organization', 'org', 'employer'],
@@ -206,9 +222,18 @@ export function normalize(s: string): string {
   v = v.replace(/[-_/\\.·•＊*#?？!！@()（）[\]【】<>《》:：;；,，"'`]/g, '');
   // 去常见提示性前后缀
   const trims = [
-    '请输入', '请填写', '请选择', '输入', '选择',
-    'please enter', 'please input', 'please select', 'enter', 'select',
-    '*', '＊',
+    '请输入',
+    '请填写',
+    '请选择',
+    '输入',
+    '选择',
+    'please enter',
+    'please input',
+    'please select',
+    'enter',
+    'select',
+    '*',
+    '＊',
   ];
   for (const t of trims) {
     if (v.startsWith(t)) v = v.slice(t.length).trim();

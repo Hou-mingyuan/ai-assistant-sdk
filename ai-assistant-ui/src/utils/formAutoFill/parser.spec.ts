@@ -32,9 +32,7 @@ describe('parseFormData', () => {
 
   it('keeps single space inside key alone (no separator)', () => {
     const r = parseFormData('Customer Name: Alice');
-    expect(r).toEqual([
-      { key: 'Customer Name', value: 'Alice', raw: 'Customer Name: Alice' },
-    ]);
+    expect(r).toEqual([{ key: 'Customer Name', value: 'Alice', raw: 'Customer Name: Alice' }]);
   });
 
   it('parses inline multi-pair with comma/semicolon/pipe', () => {
@@ -49,11 +47,7 @@ describe('parseFormData', () => {
 
   it('preserves quoted commas inside value', () => {
     const r = parseFormData('A: 1, B: "hello, world", C: 3');
-    expect(r.map((p) => `${p.key}=${p.value}`)).toEqual([
-      'A=1',
-      'B=hello, world',
-      'C=3',
-    ]);
+    expect(r.map((p) => `${p.key}=${p.value}`)).toEqual(['A=1', 'B=hello, world', 'C=3']);
   });
 
   it('strips wrapping single quotes', () => {
@@ -169,9 +163,7 @@ describe('parseFormDataAsTable', () => {
   });
 
   it('parses Markdown table (with separator row)', () => {
-    const r = parseFormDataAsTable(
-      '| name | phone |\n|---|---|\n| Alice | 138 |\n| Bob | 139 |',
-    );
+    const r = parseFormDataAsTable('| name | phone |\n|---|---|\n| Alice | 138 |\n| Bob | 139 |');
     expect(r).not.toBeNull();
     expect(r!.headers).toEqual(['name', 'phone']);
     expect(r!.rows).toEqual([
@@ -181,9 +173,7 @@ describe('parseFormDataAsTable', () => {
   });
 
   it('parses CSV with quoted comma inside cell', () => {
-    const r = parseFormDataAsTable(
-      'name,address\nAlice,"123 Main St, Apt 5"\nBob,"42 Oak Ave"',
-    );
+    const r = parseFormDataAsTable('name,address\nAlice,"123 Main St, Apt 5"\nBob,"42 Oak Ave"');
     expect(r).not.toBeNull();
     expect(r!.headers).toEqual(['name', 'address']);
     expect(r!.rows[0]).toEqual(['Alice', '123 Main St, Apt 5']);
@@ -220,9 +210,7 @@ describe('parseFormDataAsTable', () => {
   });
 
   it('honors minDataRows option', () => {
-    expect(
-      parseFormDataAsTable('a\tb\n1\t2\n3\t4', { minDataRows: 3 }),
-    ).toBeNull();
+    expect(parseFormDataAsTable('a\tb\n1\t2\n3\t4', { minDataRows: 3 })).toBeNull();
   });
 });
 

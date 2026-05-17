@@ -16,12 +16,12 @@
 .ai-form-fill-toast {
   /* ===== Typography ===== */
   --ai-font-display:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans SC',
-    'Geist', -apple-system, 'BlinkMacSystemFont', system-ui, sans-serif;
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans SC', 'Geist', -apple-system,
+    'BlinkMacSystemFont', system-ui, sans-serif;
   --ai-font-body: var(--ai-font-display);
   --ai-font-mono:
-    'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Code',
-    'Source Code Pro', 'Menlo', 'Consolas', monospace;
+    'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Source Code Pro', 'Menlo',
+    'Consolas', monospace;
 
   --ai-text-xs: 11px;
   --ai-text-sm: 12px;
@@ -120,20 +120,15 @@
 
   /* ===== Shadows ===== */
   --ai-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
-  --ai-shadow-base:
-    0 6px 18px -6px rgba(15, 23, 42, 0.12),
-    0 0 0 1px rgba(15, 23, 42, 0.04);
+  --ai-shadow-base: 0 6px 18px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
   --ai-shadow-md:
-    0 12px 28px -10px rgba(15, 23, 42, 0.16),
-    0 1px 4px rgba(15, 23, 42, 0.05),
+    0 12px 28px -10px rgba(15, 23, 42, 0.16), 0 1px 4px rgba(15, 23, 42, 0.05),
     0 0 0 1px rgba(15, 23, 42, 0.05);
   --ai-shadow-lg:
-    0 32px 64px -16px rgba(15, 23, 42, 0.18),
-    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 32px 64px -16px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.06),
     0 0 0 1px rgba(15, 23, 42, 0.06);
   --ai-shadow-glow:
-    0 12px 32px -6px var(--ai-color-primary-glow),
-    0 0 0 1px rgba(91, 108, 255, 0.18);
+    0 12px 32px -6px var(--ai-color-primary-glow), 0 0 0 1px rgba(91, 108, 255, 0.18);
 
   --ai-z-fab: 99999;
   --ai-z-panel: 99999;
@@ -171,15 +166,12 @@
   --ai-color-assistant-bubble: rgba(255, 255, 255, 0.06);
 
   --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --ai-shadow-base:
-    0 6px 18px -6px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --ai-shadow-base: 0 6px 18px -6px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --ai-shadow-md:
-    0 12px 28px -10px rgba(0, 0, 0, 0.6),
-    0 1px 4px rgba(0, 0, 0, 0.4),
+    0 12px 28px -10px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.06);
   --ai-shadow-lg:
-    0 32px 64px -16px rgba(0, 0, 0, 0.65),
-    0 2px 8px rgba(0, 0, 0, 0.42),
+    0 32px 64px -16px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.42),
     0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 

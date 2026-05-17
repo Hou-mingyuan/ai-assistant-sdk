@@ -113,7 +113,8 @@ export function scanFormFields(opts: ScanFormFieldsOptions = {}): FormField[] {
     const nodes = scope.querySelectorAll<HTMLElement>('input, textarea, select');
     for (const el of Array.from(nodes)) {
       if (visited.has(el)) continue;
-      if (shouldSkip(el, { excludeAssistant, excludeSelectorList, excludeRowContainerFields })) continue;
+      if (shouldSkip(el, { excludeAssistant, excludeSelectorList, excludeRowContainerFields }))
+        continue;
 
       if (el instanceof HTMLInputElement && (el.type === 'radio' || el.type === 'checkbox')) {
         const name = el.name || el.id || `__anon_${autoId++}`;
@@ -171,7 +172,9 @@ export function scanFormRows(opts: ScanFormRowsOptions = {}): FormRow[] {
   if (containers.length === 0) return [];
 
   // 去除嵌套：保留祖先，去掉子孙
-  const outermost = containers.filter((el) => !containers.some((other) => other !== el && other.contains(el)));
+  const outermost = containers.filter(
+    (el) => !containers.some((other) => other !== el && other.contains(el)),
+  );
 
   const out: FormRow[] = [];
   let autoIdx = 0;
@@ -425,8 +428,7 @@ function findTableColumnHeaderText(el: HTMLElement): string | null {
   if (colIndex < 0) return null;
   const table = tr.closest('table');
   if (!table) return null;
-  const headerRow =
-    table.querySelector('thead tr') || (table.tBodies[0]?.rows[0] ?? table.rows[0]);
+  const headerRow = table.querySelector('thead tr') || (table.tBodies[0]?.rows[0] ?? table.rows[0]);
   if (!headerRow || headerRow === tr) return null;
   const headerCell = headerRow.children[colIndex];
   if (!headerCell) return null;
@@ -461,7 +463,11 @@ function bestVisibleLabelForRadio(el: HTMLInputElement): string {
 
 function readValue(el: HTMLElement): string {
   if (el instanceof HTMLSelectElement) {
-    return el.multiple ? Array.from(el.selectedOptions).map((o) => o.value).join(',') : el.value;
+    return el.multiple
+      ? Array.from(el.selectedOptions)
+          .map((o) => o.value)
+          .join(',')
+      : el.value;
   }
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el.value;
   return '';

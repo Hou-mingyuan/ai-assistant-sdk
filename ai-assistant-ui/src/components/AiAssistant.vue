@@ -2344,9 +2344,7 @@ const formAutoFillToastText = computed(() => {
   const s = formAutoFill.toastSummary.value;
   if (!s) return '';
   const tpl = t.value.formFillToastTemplate || 'Filled {filled} field(s) ({failed} failed)';
-  return tpl
-    .replace('{filled}', String(s.filled))
-    .replace('{failed}', String(s.failed));
+  return tpl.replace('{filled}', String(s.filled)).replace('{failed}', String(s.failed));
 });
 
 const slashCmd = useSlashCommands({
@@ -2418,9 +2416,7 @@ const slashCmd = useSlashCommands({
           {
             name: '/fill',
             get description() {
-              return (
-                t.value.slashCmdFillDesc || 'Auto-fill form fields from clipboard pairs'
-              );
+              return t.value.slashCmdFillDesc || 'Auto-fill form fields from clipboard pairs';
             },
             icon: 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 12h8v2H8zm0 4h5v2H8z',
             action: () => {

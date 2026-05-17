@@ -80,11 +80,9 @@ describe('matchFields', () => {
   });
 
   it('honors custom synonyms', () => {
-    const r = matchFields(
-      [pair('foo')],
-      [fakeField(['bar'])],
-      { synonyms: { aliasGroup: ['foo', 'bar'] } },
-    );
+    const r = matchFields([pair('foo')], [fakeField(['bar'])], {
+      synonyms: { aliasGroup: ['foo', 'bar'] },
+    });
     expect(r[0]!.strategy).toBe('synonym');
   });
 
@@ -153,10 +151,7 @@ describe('matchFields', () => {
   });
 
   it('exposes matchedLabel for UI explanation', () => {
-    const r = matchFields(
-      [pair('客户名')],
-      [fakeField(['username', '客户名称', '姓名'])],
-    );
+    const r = matchFields([pair('客户名')], [fakeField(['username', '客户名称', '姓名'])]);
     expect(r[0]!.matchedLabel).toBe('客户名称');
   });
 });
