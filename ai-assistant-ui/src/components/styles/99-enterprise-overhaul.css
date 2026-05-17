@@ -2447,15 +2447,6 @@
   box-shadow: none !important;
 }
 
-/* USER DIRECTIVE (round 8): chip strip + starter cards are NOT wanted in
- * the empty state — they make the panel feel cluttered and steal the
- * conversation area. Hide via display:none so Vue template logic stays
- * intact (easy to flip back on later via host option if needed). */
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-skills,
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
-  display: none !important;
-}
-
 /* (B) tightening — keep brand mark + greeting + subtitle, just compress */
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
   width: 34px !important;

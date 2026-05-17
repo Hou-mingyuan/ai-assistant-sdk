@@ -246,6 +246,35 @@
           </div>
           <div v-if="messages.length === 0" class="ai-empty">
             <p>{{ t.greeting }}</p>
+            <div v-if="mode === 'chat'" class="ai-empty-skills" :aria-label="t.skillStripLabel">
+              <button
+                v-for="skill in defaultSkills"
+                :key="skill.label"
+                type="button"
+                class="ai-empty-skill"
+                :data-skill-tone="skill.tone"
+                @click="applyEmptySkill(skill)"
+              >
+                <span class="ai-empty-skill-icon" aria-hidden="true">{{ skill.icon }}</span>
+                <span>{{ skill.label }}</span>
+              </button>
+            </div>
+            <div v-if="mode === 'chat'" class="ai-empty-starters">
+              <button
+                v-for="starter in defaultStartersRich"
+                :key="starter.title"
+                type="button"
+                class="ai-empty-starter"
+                :data-starter-tone="starter.tone"
+                @click="applyEmptyStarter(starter)"
+              >
+                <span class="ai-empty-starter-icon" aria-hidden="true">{{ starter.icon }}</span>
+                <span class="ai-empty-starter-body">
+                  <span class="ai-empty-starter-text">{{ starter.title }}</span>
+                  <span class="ai-empty-starter-desc">{{ starter.desc }}</span>
+                </span>
+              </button>
+            </div>
             <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
               <button
                 v-for="(tpl, ti) in promptTemplateList"
@@ -1221,6 +1250,17 @@ function focusInput() {
     el?.focus();
   });
 }
+
+function applyEmptySkill(skill: EmptySkillChip) {
+  input.value = skill.prompt;
+  focusInput();
+}
+
+function applyEmptyStarter(starter: EmptyStarterCard) {
+  input.value = starter.prompt;
+  focusInput();
+}
+
 const loading = ref(false);
 const ctrlEnterToSend = ref(false);
 const soundEnabled = ref(false);
