@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
@@ -20,9 +19,9 @@ import org.junit.jupiter.api.Test;
 /**
  * Provider-agnostic contract tests for any {@link ChatCompletionClient} implementation.
  *
- * <p>Subclass this once per implementation (see {@link OpenAiCompatibleChatClientContractTest})
- * and the same negative / edge-case battery runs against the new provider, ensuring every client
- * obeys the same exception, timeout, and response-shape rules.
+ * <p>Subclass this once per implementation (see {@link OpenAiCompatibleChatClientContractTest}) and
+ * the same negative / edge-case battery runs against the new provider, ensuring every client obeys
+ * the same exception, timeout, and response-shape rules.
  *
  * <p><b>Why this exists</b>: the audit (2026-05-16) flagged that we had unit tests against the
  * single existing OpenAI-compatible implementation, but no contract-level tests that prove every
@@ -35,9 +34,12 @@ import org.junit.jupiter.api.Test;
  *   <li>HTTP 4xx / 5xx → {@link IllegalStateException} with the status code visible in the message
  *   <li>Network timeout → {@link IllegalStateException} (or a subtype thereof)
  *   <li>Connection refused / unreachable → {@link IllegalStateException}
- *   <li>Empty {@code choices[]} → {@link IllegalStateException} or empty string (NOT a NullPointerException)
- *   <li>Malformed (non-JSON) success body → {@link IllegalStateException} (not a Jackson parse leak)
- *   <li>SSE midstream disconnect → {@link Flux} terminates with onError ({@link IllegalStateException})
+ *   <li>Empty {@code choices[]} → {@link IllegalStateException} or empty string (NOT a
+ *       NullPointerException)
+ *   <li>Malformed (non-JSON) success body → {@link IllegalStateException} (not a Jackson parse
+ *       leak)
+ *   <li>SSE midstream disconnect → {@link Flux} terminates with onError ({@link
+ *       IllegalStateException})
  * </ul>
  *
  * <p>Subclasses provide:
@@ -98,7 +100,8 @@ public abstract class ChatCompletionClientContract {
         // Either the HTTP status or the upstream message must be visible to callers;
         // hosts use either to route to a usable 401 page / re-key prompt.
         assertTrue(
-                ex.getMessage().contains("401") || ex.getMessage().toLowerCase().contains("api key"),
+                ex.getMessage().contains("401")
+                        || ex.getMessage().toLowerCase().contains("api key"),
                 "401 should be reflected in the exception message; got: " + ex.getMessage());
     }
 
@@ -171,9 +174,7 @@ public abstract class ChatCompletionClientContract {
         try {
             String result = client.complete(newRequestBody(), "test-key");
             assertEquals(
-                    "",
-                    result,
-                    "Empty choices array should yield empty string, not null or NPE");
+                    "", result, "Empty choices array should yield empty string, not null or NPE");
         } catch (IllegalStateException ok) {
             // Or an IllegalStateException with a helpful message is also acceptable.
             assertTrue(
@@ -233,14 +234,15 @@ public abstract class ChatCompletionClientContract {
             // If the implementation does not throw, the emitted list MUST be empty —
             // a 502 must never silently appear as legitimate content.
             assertEquals(
-                    List.of(),
-                    emitted,
-                    "5xx before stream start must not emit any content frames");
+                    List.of(), emitted, "5xx before stream start must not emit any content frames");
         } catch (RuntimeException ok) {
             // Throwing is also acceptable; the message should reflect the status.
             String msg = ok.getMessage() == null ? "" : ok.getMessage();
             assertTrue(
-                    msg.contains("502") || (ok.getCause() != null && ok.getCause().getMessage() != null && ok.getCause().getMessage().contains("502")),
+                    msg.contains("502")
+                            || (ok.getCause() != null
+                                    && ok.getCause().getMessage() != null
+                                    && ok.getCause().getMessage().contains("502")),
                     "5xx during stream open should be visible to the caller; got: " + msg);
         }
     }

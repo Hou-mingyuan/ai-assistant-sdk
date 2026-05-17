@@ -38,8 +38,7 @@ class AiAssistantControllerTest {
          * After K53 introduced a second 7-arg overload taking List<String> imageDataList
          * (instead of String imageData), we must disambiguate to that overload by
          * giving Mockito a typed List matcher for the 5th argument. */
-        when(llmService.chat(
-                        anyString(), any(), any(), any(), any(List.class), any(), any()))
+        when(llmService.chat(anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn("Hello!");
         ChatRequest req = new ChatRequest();
         req.setText("hi");
@@ -80,8 +79,7 @@ class AiAssistantControllerTest {
     @Test
     void chat_returns503_whenLlmThrows() {
         /* K26 + K53: match the 7-arg List<String> overload (see comment above). */
-        when(llmService.chat(
-                        anyString(), any(), any(), any(), any(List.class), any(), any()))
+        when(llmService.chat(anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenThrow(new RuntimeException("API down"));
         ChatRequest req = new ChatRequest();
         req.setText("hi");
@@ -94,8 +92,7 @@ class AiAssistantControllerTest {
     @Test
     void stream_returnsFlux_forChat() {
         /* K26 + K53: match the 7-arg List<String> chatStream overload. */
-        when(llmService.chatStream(
-                        anyString(), any(), any(), any(), any(List.class), any(), any()))
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn(Flux.just("chunk1", "chunk2"));
         ChatRequest req = new ChatRequest();
         req.setText("hello");

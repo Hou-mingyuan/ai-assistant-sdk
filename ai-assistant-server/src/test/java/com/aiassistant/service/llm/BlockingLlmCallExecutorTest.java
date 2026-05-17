@@ -133,7 +133,8 @@ class BlockingLlmCallExecutorTest {
                         null,
                         (op, model, p, c, ms, outcome) -> capturedOutcome.set(outcome));
 
-        assertThatThrownBy(() -> exec.execute("sys", "hi", null, "chat", "gpt-x", (List<String>) null))
+        assertThatThrownBy(
+                        () -> exec.execute("sys", "hi", null, "chat", "gpt-x", (List<String>) null))
                 .hasMessageContaining("api 500");
         assertThat(capturedOutcome.get()).isEqualTo(AuditEvent.Outcome.ERROR);
         verify(rotator).markFailed("key-A");
