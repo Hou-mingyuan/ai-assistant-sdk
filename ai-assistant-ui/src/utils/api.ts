@@ -59,6 +59,20 @@ function parseSseDataEvent(event: string): string | undefined {
 const DEFAULT_TIMEOUT_MS = 60_000;
 const FILE_UPLOAD_TIMEOUT_MS = 300_000;
 const EXPORT_TIMEOUT_MS = 180_000;
+const MODEL_LIST_CACHE_TTL_MS = 30_000;
+
+type CachedModelsResult = {
+  expiresAt: number;
+  result: ModelsListResult;
+};
+
+const modelsCache = new Map<string, CachedModelsResult>();
+const modelsInFlight = new Map<string, Promise<ModelsListResult>>();
+
+export function __clearApiCachesForTests(): void {
+  modelsCache.clear();
+  modelsInFlight.clear();
+}
 
 export type ExportFormat = 'xlsx' | 'docx' | 'pdf';
 
@@ -188,17 +202,41 @@ export async function fetchPromptTemplates(
 
 /** Fetch the list of available models from the server. */
 export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
-  const headers: Record<string, string> = {};
   const normalizedToken = normalizeToken(token);
-  if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
-  const res = await fetch(apiUrl(baseUrl, '/models'), {
-    headers,
-    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
-  });
-  if (!res.ok) {
-    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+  const cacheKey = `${baseUrl.replace(/\/+$/, '')}::${normalizedToken ?? ''}`;
+  const now = Date.now();
+  const cached = modelsCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.result;
   }
-  return res.json();
+  const pending = modelsInFlight.get(cacheKey);
+  if (pending) return pending;
+
+  const headers: Record<string, string> = {};
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
+  const request = (async () => {
+    const res = await fetch(apiUrl(baseUrl, '/models'), {
+      headers,
+      signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+    }
+    const result = (await res.json()) as ModelsListResult;
+    if (result.success) {
+      modelsCache.set(cacheKey, {
+        expiresAt: Date.now() + MODEL_LIST_CACHE_TTL_MS,
+        result,
+      });
+    }
+    return result;
+  })();
+  modelsInFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    modelsInFlight.delete(cacheKey);
+  }
 }
 
 /** Fetch URL preview (title, summary, images) from the server. */

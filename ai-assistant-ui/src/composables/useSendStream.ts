@@ -44,6 +44,7 @@ const DEFAULT_VISION_MODEL_PATTERNS: RegExp[] = [
   /pixtral/i,
   /vision/i,
 ];
+const STREAM_FLUSH_MIN_INTERVAL_MS = 48;
 
 export function isVisionCapableModel(model: string, extraPatterns: RegExp[] = []): boolean {
   const normalized = model.trim();
@@ -290,8 +291,11 @@ export function useSendStream(deps: UseSendStreamDeps) {
   ): Promise<string> {
     let pending = '';
     let raf = 0;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastFlushAt = 0;
     function flush() {
       raf = 0;
+      lastFlushAt = performance.now();
       const prev = deps.messages.value[msgIndex];
       const sanitized = sanitizeAssistantContent(pending, tNow());
       const { thinking, content: afterThink } = extractThinking(sanitized);
@@ -310,6 +314,20 @@ export function useSendStream(deps: UseSendStreamDeps) {
       };
       deps.scrollToBottom(false);
     }
+    function scheduleFlush() {
+      const now = performance.now();
+      const waitMs = Math.max(0, STREAM_FLUSH_MIN_INTERVAL_MS - (now - lastFlushAt));
+      if (waitMs <= 0) {
+        if (!raf) raf = requestAnimationFrame(flush);
+        return;
+      }
+      if (!flushTimer) {
+        flushTimer = setTimeout(() => {
+          flushTimer = null;
+          if (!raf) raf = requestAnimationFrame(flush);
+        }, waitMs);
+      }
+    }
     try {
       for await (const chunk of stream) {
         pending += chunk;
@@ -318,9 +336,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
         if (firstTokenAt.value == null && pending.length > 0) {
           firstTokenAt.value = Date.now();
         }
-        if (!raf) raf = requestAnimationFrame(flush);
+        scheduleFlush();
       }
     } finally {
+      if (flushTimer) clearTimeout(flushTimer);
       if (raf) cancelAnimationFrame(raf);
       pending = sanitizeAssistantContent(pending, tNow());
       const { thinking, content: afterThinkFinal } = extractThinking(pending);

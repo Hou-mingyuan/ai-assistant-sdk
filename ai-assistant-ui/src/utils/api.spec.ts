@@ -21,6 +21,7 @@ import {
   uploadFile,
   postServerExport,
   fetchPromptTemplates,
+  __clearApiCachesForTests,
 } from './api';
 
 beforeEach(() => {
@@ -29,6 +30,7 @@ beforeEach(() => {
   mockRevokeObjectURL.mockClear();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  __clearApiCachesForTests();
 });
 
 describe('postChat', () => {
@@ -112,6 +114,36 @@ describe('fetchModels', () => {
     await fetchModels('/ai', '   ');
     const headers = mockFetch.mock.calls[0][1].headers;
     expect(headers['X-AI-Token']).toBeUndefined();
+  });
+
+  it('reuses successful model list responses within the short cache window', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, models: ['gpt-5.4-mini'] }),
+    });
+
+    const first = await fetchModels('/ai');
+    const second = await fetchModels('/ai/');
+
+    expect(first.models).toEqual(['gpt-5.4-mini']);
+    expect(second).toBe(first);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it('deduplicates concurrent model list requests for the same base URL and token', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, models: ['gpt-5.4'] }),
+    });
+
+    const [first, second] = await Promise.all([
+      fetchModels('/ai', ' t '),
+      fetchModels('/ai/', 't'),
+    ]);
+
+    expect(first.models).toEqual(['gpt-5.4']);
+    expect(second).toBe(first);
+    expect(mockFetch).toHaveBeenCalledOnce();
   });
 });
 

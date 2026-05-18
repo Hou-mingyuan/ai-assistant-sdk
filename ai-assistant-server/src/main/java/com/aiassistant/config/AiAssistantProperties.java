@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -90,6 +91,8 @@ public class AiAssistantProperties {
 
     /** 允许前端在 /chat、/stream 请求体中指定的模型 id；为空则忽略客户端 model，始终用 resolveModel()。 */
     private List<String> allowedModels;
+    private transient volatile List<String> cachedClientModels;
+    private transient volatile String cachedClientModelsDefault;
 
     // ── Custom setters with validation ──────────────────────────────
 
@@ -112,6 +115,18 @@ public class AiAssistantProperties {
 
     public void setLlmMaxRetries(int llmMaxRetries) {
         this.llmMaxRetries = Math.max(0, Math.min(llmMaxRetries, 5));
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+        this.cachedClientModels = null;
+        this.cachedClientModelsDefault = null;
+    }
+
+    public void setAllowedModels(List<String> allowedModels) {
+        this.allowedModels = allowedModels;
+        this.cachedClientModels = null;
+        this.cachedClientModelsDefault = null;
     }
 
     public void setFileMaxExtractedChars(int fileMaxExtractedChars) {
@@ -549,15 +564,25 @@ public class AiAssistantProperties {
     /** 供 GET /models：白名单为空时仅返回默认模型一条。 */
     public java.util.List<String> listModelsForClient() {
         String def = resolveModel();
+        List<String> cached = cachedClientModels;
+        if (cached != null && Objects.equals(cachedClientModelsDefault, def)) return cached;
         List<String> allowed = allowedModels;
-        if (allowed == null || allowed.isEmpty()) return java.util.List.of(def);
+        if (allowed == null || allowed.isEmpty()) {
+            List<String> fallback = java.util.List.of(def);
+            cachedClientModelsDefault = def;
+            cachedClientModels = fallback;
+            return fallback;
+        }
         java.util.ArrayList<String> models = new java.util.ArrayList<>();
         for (String m : allowed) {
             if (m == null || m.isBlank()) continue;
             String normalized = m.trim();
             if (!models.contains(normalized)) models.add(normalized);
         }
-        return models.isEmpty() ? java.util.List.of(def) : java.util.List.copyOf(models);
+        List<String> result = models.isEmpty() ? java.util.List.of(def) : java.util.List.copyOf(models);
+        cachedClientModelsDefault = def;
+        cachedClientModels = result;
+        return result;
     }
 
     /** Resolve the actual API base URL based on provider if not explicitly set. */

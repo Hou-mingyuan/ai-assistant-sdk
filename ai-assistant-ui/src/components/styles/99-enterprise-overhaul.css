@@ -5973,3 +5973,15 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Round 35 — render containment for long conversations ------------------ */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 92px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.ai-msg-streaming,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:focus-within,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:hover {
+  content-visibility: visible;
+}

@@ -805,6 +805,7 @@
          all share the "shows briefly then dismisses" pattern and have no
          coupling to chat state, so they're cheap to extract. -->
     <AssistantBottomTransients
+      v-if="bottomTransientsActive"
       :export-toast-text="exportToastText"
       :color="color"
       :is-dark="isDark"
@@ -879,6 +880,7 @@
 
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
     <CommandPalette
+      v-if="cmdPalette.open.value"
       :open="cmdPalette.open.value"
       :commands="cmdPalette.commands.value"
       @update:open="(v) => (cmdPalette.open.value = v)"
@@ -3260,6 +3262,12 @@ function onFabPointerUp(e: PointerEvent) {
 }
 
 const fabStyle = computed(() => ({ backgroundColor: color.value }));
+const bottomTransientsActive = computed(
+  () =>
+    !!exportToastText.value ||
+    (pageSel.value.show && !isOpen.value) ||
+    inlineTranslatePopover.value.show,
+);
 const fabLayoutStyle = computed(() => {
   const base = fabStyle.value;
   if (fabLeft.value !== null) {
