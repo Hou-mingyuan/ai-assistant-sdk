@@ -1,8 +1,15 @@
-import { defineConfig } from 'vitest/config'
-import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
+import { defineConfig } from 'vitest/config';
+import vue from '@vitejs/plugin-vue';
+import { resolve } from 'path';
 
-const isWC = process.env.BUILD_TARGET === 'wc'
+const isWC = process.env.BUILD_TARGET === 'wc';
+const libEntries = {
+  'ai-assistant': resolve(__dirname, 'src/index.ts'),
+  admin: resolve(__dirname, 'src/entries/admin.ts'),
+  'form-fill': resolve(__dirname, 'src/entries/form-fill.ts'),
+  mcp: resolve(__dirname, 'src/entries/mcp.ts'),
+  screenshot: resolve(__dirname, 'src/entries/screenshot.ts'),
+};
 
 export default defineConfig({
   plugins: [vue()],
@@ -61,9 +68,11 @@ export default defineConfig({
       }
     : {
         lib: {
-          entry: resolve(__dirname, 'src/index.ts'),
+          entry: libEntries,
           name: 'AiAssistant',
-          fileName: (format) => (format === 'es' ? 'ai-assistant.mjs' : 'ai-assistant.umd.cjs'),
+          formats: ['es', 'cjs'],
+          fileName: (format, entryName) =>
+            format === 'es' ? `${entryName}.mjs` : `${entryName}.umd.cjs`,
           /* Pin the lib-mode CSS output filename to `style.css`.
              Vite 6 lib mode defaults to `<package-name-last-segment>.css`
              (so `@ai-assistant/vue` would emit `vue.css`), but every
@@ -87,4 +96,4 @@ export default defineConfig({
           },
         },
       },
-})
+});

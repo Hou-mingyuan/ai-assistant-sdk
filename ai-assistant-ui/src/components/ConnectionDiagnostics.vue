@@ -125,8 +125,8 @@
           <label>
             <span>{{ t.diagnosticsToken }}</span>
             <input
-              :value="tokenInput"
               ref="tokenInputRef"
+              :value="tokenInput"
               type="password"
               class="ai-token-input"
               :placeholder="t.connectionConfigTokenPlaceholder"

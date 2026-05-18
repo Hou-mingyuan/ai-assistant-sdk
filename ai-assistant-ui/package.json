@@ -20,6 +20,26 @@
       "import": "./dist/ai-assistant.mjs",
       "require": "./dist/ai-assistant.umd.cjs"
     },
+    "./admin": {
+      "types": "./dist/entries/admin.d.ts",
+      "import": "./dist/admin.mjs",
+      "require": "./dist/admin.umd.cjs"
+    },
+    "./form-fill": {
+      "types": "./dist/entries/form-fill.d.ts",
+      "import": "./dist/form-fill.mjs",
+      "require": "./dist/form-fill.umd.cjs"
+    },
+    "./mcp": {
+      "types": "./dist/entries/mcp.d.ts",
+      "import": "./dist/mcp.mjs",
+      "require": "./dist/mcp.umd.cjs"
+    },
+    "./screenshot": {
+      "types": "./dist/entries/screenshot.d.ts",
+      "import": "./dist/screenshot.mjs",
+      "require": "./dist/screenshot.umd.cjs"
+    },
     "./plugin": {
       "import": "./src/vite-plugin.ts",
       "types": "./src/vite-plugin.ts"

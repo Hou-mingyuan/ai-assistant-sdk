@@ -215,7 +215,7 @@ export function useMarkdownWorker(opts: UseMarkdownWorkerOptions) {
       inFlight.value += 1;
       try {
         w.postMessage({ id, markdown });
-      } catch (e) {
+      } catch {
         pending.delete(id);
         clearTimeout(timeoutHandle);
         inFlight.value = Math.max(0, inFlight.value - 1);
