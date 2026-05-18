@@ -156,7 +156,10 @@
                       <span class="ai-sessions-drawer-match-role">
                         {{ match.role === 'user' ? '👤' : '🤖' }}
                       </span>
+                      <!-- match.snippet is escaped in useCrossSessionSearch; only <mark> is injected. -->
+                      <!-- eslint-disable vue/no-v-html -->
                       <span class="ai-sessions-drawer-match-snippet" v-html="match.snippet" />
+                      <!-- eslint-enable vue/no-v-html -->
                     </button>
                   </li>
                 </ul>

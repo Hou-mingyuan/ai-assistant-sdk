@@ -160,6 +160,7 @@ export interface UseFormAutoFillDeps {
 
 const TOAST_AUTO_DISMISS_MS = 5000;
 
+// eslint-disable-next-line max-lines-per-function
 export function useFormAutoFill(deps: UseFormAutoFillDeps): UseFormAutoFillReturn {
   const dialogOpen = ref(false);
   const mode = ref<'pair' | 'table'>('pair');

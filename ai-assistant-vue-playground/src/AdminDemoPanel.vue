@@ -291,7 +291,7 @@ import {
   adminUnloadPlugin,
   adminSystemInfo,
   type AdminResult,
-} from '@ai-assistant/vue';
+} from '../../ai-assistant-ui/src/entries/admin';
 
 interface TabDef {
   id: 'overview' | 'tokens' | 'prompts' | 'rag' | 'ab' | 'fallback' | 'plugins';

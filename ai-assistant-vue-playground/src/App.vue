@@ -292,10 +292,10 @@
 
 <script setup lang="ts">
 import { defineAsyncComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import AdminDemoPanel from './AdminDemoPanel.vue';
 import ColorThemeSwitcher from '../../ai-assistant-ui/src/components/ColorThemeSwitcher.vue';
 import { useCommandPalette } from '../../ai-assistant-ui/src/composables/useCommandPalette';
 
+const AdminDemoPanel = defineAsyncComponent(() => import('./AdminDemoPanel.vue'));
 const CommandPalette = defineAsyncComponent(() => import('../../ai-assistant-ui/src/components/CommandPalette.vue'));
 
 /* K16 demo wiring: Color theme switcher controls the playground primary color

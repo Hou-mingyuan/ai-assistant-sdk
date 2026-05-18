@@ -13,6 +13,7 @@ export interface FabDragState {
   fabDragging: Ref<boolean>;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useFabDrag(
   isOpen: Ref<boolean>,
   fabHidden: Ref<boolean>,

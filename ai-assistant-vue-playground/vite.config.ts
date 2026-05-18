@@ -18,5 +18,27 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/vue')) return 'vendor-vue'
+            if (id.includes('node_modules/marked') || id.includes('node_modules/dompurify')) {
+              return 'markdown-rendering'
+            }
+            if (id.includes('node_modules/highlight.js')) return 'syntax-highlight'
+            if (id.includes('AdminDemoPanel.vue') || id.includes('/src/entries/admin')) {
+              return 'admin-demo'
+            }
+            if (id.includes('/src/composables/useFormAutoFill') || id.includes('/src/utils/formAutoFill')) {
+              return 'form-fill'
+            }
+            if (id.includes('/src/composables/useScreenCapture') || id.includes('/src/utils/pageScreenshot')) {
+              return 'screenshot'
+            }
+          },
+        },
+      },
+    },
   }
 })

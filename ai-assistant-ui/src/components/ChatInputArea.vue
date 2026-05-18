@@ -129,389 +129,80 @@
         <option value="ar">العربية</option>
       </select>
     </div>
-    <div class="ai-footer-model-row">
-      <div class="ai-mode-segmented" role="tablist" aria-label="Mode">
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'chat' }"
-          :aria-selected="mode === 'chat' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'chat')"
-        >
-          {{ t.chat }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'translate' }"
-          :aria-selected="mode === 'translate' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'translate')"
-        >
-          {{ t.translate }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'summarize' }"
-          :aria-selected="mode === 'summarize' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'summarize')"
-        >
-          {{ t.summarize }}
-        </button>
-      </div>
-      <div
-        v-if="showModelPicker && hasBaseUrl"
-        class="ai-model-picker"
-        :class="{ 'ai-model-picker-open': modelPickerOpen }"
-      >
-        <button
-          type="button"
-          class="ai-model-select ai-model-picker-trigger"
-          :disabled="loading || modelChoices.length === 0"
-          :aria-label="t.modelLabel"
-          :aria-expanded="modelPickerOpen ? 'true' : 'false'"
-          @click="modelPickerOpen = !modelPickerOpen"
-        >
-          <span class="ai-model-picker-current">{{ selectedModel || modelListMessage }}</span>
-          <span
-            v-if="selectedModel && selectedModel === effectiveDefaultModel"
-            class="ai-model-default-badge"
-          >
-            {{ t.modelDefaultBadge }}
-          </span>
-        </button>
-        <Transition name="ai-slash-fade">
-          <div v-if="modelPickerOpen" class="ai-model-menu" role="listbox">
-            <input
-              v-model="modelSearch"
-              class="ai-model-search-input"
-              type="search"
-              :placeholder="t.modelSearchPlaceholder"
-              autocomplete="off"
-              @keydown.escape.stop.prevent="modelPickerOpen = false"
-            />
-            <div v-if="groupedModelChoices.length" class="ai-model-groups">
-              <div v-for="group in groupedModelChoices" :key="group.name" class="ai-model-group">
-                <div class="ai-model-group-title">{{ group.name }}</div>
-                <button
-                  v-for="model in group.models"
-                  :key="model"
-                  type="button"
-                  class="ai-model-option"
-                  :class="{ active: model === selectedModel }"
-                  role="option"
-                  :aria-selected="model === selectedModel ? 'true' : 'false'"
-                  @click="selectModel(model)"
-                >
-                  <span class="ai-model-option-name">{{ model }}</span>
-                  <span v-if="model === effectiveDefaultModel" class="ai-model-default-badge">
-                    {{ t.modelDefaultBadge }}
-                  </span>
-                </button>
-              </div>
-            </div>
-            <div v-else class="ai-model-empty">{{ t.modelNoMatches }}</div>
-          </div>
-        </Transition>
-      </div>
-      <span
-        class="ai-model-runtime"
-        :class="`ai-model-runtime-${modelStatusKind}`"
-        :title="modelStatusText"
-      >
-        <span class="ai-model-runtime-dot" aria-hidden="true"></span>
-        <span class="ai-model-runtime-label">{{ modelStatusText }}</span>
-      </span>
-      <span v-if="modelCapabilityTags.length" class="ai-model-capabilities">
-        <span
-          v-for="tag in modelCapabilityTags"
-          :key="tag"
-          class="ai-model-capability"
-          :class="{ 'ai-model-capability-vision': tag === t.modelCapabilityVision }"
-        >
-          {{ tag }}
-        </span>
-      </span>
-      <span class="ai-model-row-spacer" />
-      <button
-        v-if="pageContextConfigured"
-        type="button"
-        class="ai-page-context-badge"
-        :class="{ 'ai-page-context-badge-off': !pageContextEnabled }"
-        :title="
-          pageContextEnabled
-            ? t.pageContextOnTooltip || 'Page context will be attached to your next message'
-            : t.pageContextOffTooltip || 'Page context attachment is disabled'
-        "
-        :aria-pressed="pageContextEnabled ? 'true' : 'false'"
-        @click="$emit('togglePageContext')"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path
-            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
-          />
-        </svg>
-        <span class="ai-page-context-badge-label">
-          {{
-            pageContextEnabled
-              ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
-              : t.pageContextOff || 'Context off'
-          }}
-        </span>
-      </button>
-      <slot v-if="advancedToolsOpen" name="model-row-actions" />
-    </div>
-    <div v-if="advancedToolsOpen" class="ai-md-toolbar">
-      <button
-        type="button"
-        class="ai-md-btn"
-        title="Bold (Ctrl+B)"
-        @click="wrapSelection('**', '**')"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
-          />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="ai-md-btn"
-        title="Italic (Ctrl+I)"
-        @click="wrapSelection('*', '*')"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z" />
-        </svg>
-      </button>
-      <button type="button" class="ai-md-btn" title="Code" @click="wrapSelection('`', '`')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
-          />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="ai-md-btn"
-        title="Code block"
-        @click="wrapSelection('\n```\n', '\n```\n')"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-8-8l-4 4h3v2h2v-2h3l-4-4z"
-          />
-        </svg>
-      </button>
-      <button type="button" class="ai-md-btn" title="Link" @click="insertLink">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
-          />
-        </svg>
-      </button>
-      <button type="button" class="ai-md-btn" title="List" @click="insertPrefix('- ')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
-          />
-        </svg>
-      </button>
-    </div>
-    <!--
-      Doubao-style quick toggles row: 深度思考 + 联网搜索. Visible by default;
-      host can hide the whole row via `quickTogglesEnabled = false`. The row
-      only renders in chat mode to keep translate/summarize footprints lean.
-    -->
-    <div
-      v-if="advancedToolsOpen && quickTogglesEnabled && mode === 'chat'"
-      class="ai-footer-quick-toggles"
-      role="group"
-      :aria-label="t.skillStripLabel || '快捷工具'"
+    <ChatInputModelRow
+      :mode="mode"
+      :loading="loading"
+      :has-base-url="hasBaseUrl"
+      :show-model-picker="showModelPicker"
+      :selected-model="selectedModel"
+      :default-model="defaultModel"
+      :model-choices="modelChoices"
+      :model-list-message="modelListMessage"
+      :model-status-text="modelStatusText"
+      :model-status-kind="modelStatusKind"
+      :page-context-configured="pageContextConfigured"
+      :page-context-enabled="pageContextEnabled"
+      :page-context-block-count="pageContextBlockCount"
+      :advanced-tools-open="advancedToolsOpen"
+      :t="t"
+      @change-mode="$emit('changeMode', $event)"
+      @update:selected-model="$emit('update:selectedModel', $event)"
+      @toggle-page-context="$emit('togglePageContext')"
     >
-      <button
-        type="button"
-        class="ai-quick-toggle ai-quick-toggle-deepthink"
-        :class="{ active: deepThinkEnabled }"
-        :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
-        :title="
-          deepThinkEnabled
-            ? t.deepThinkOn || '深度思考 已开启'
-            : t.deepThinkOff || '深度思考 已关闭'
-        "
-        @click="$emit('toggleDeepThink', !deepThinkEnabled)"
-      >
-        <span class="ai-quick-toggle-icon" aria-hidden="true">🧠</span>
-        <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
-      </button>
-      <button
-        type="button"
-        class="ai-quick-toggle ai-quick-toggle-websearch"
-        :class="{ active: webSearchEnabled }"
-        :aria-pressed="webSearchEnabled ? 'true' : 'false'"
-        :title="
-          webSearchEnabled
-            ? t.webSearchOn || '联网搜索 已开启'
-            : t.webSearchOff || '联网搜索 已关闭'
-        "
-        @click="$emit('toggleWebSearch', !webSearchEnabled)"
-      >
-        <span class="ai-quick-toggle-icon" aria-hidden="true">🌐</span>
-        <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
-      </button>
-    </div>
-    <div class="ai-footer-input-row">
-      <textarea
-        ref="textareaRef"
-        :value="modelValue"
-        class="ai-footer-textarea"
-        :placeholder="`${placeholder} (${ctrlEnterToSend ? 'Ctrl+Enter' : t.newline})`"
-        rows="2"
-        :data-recall-active="recallActive ? 'true' : null"
-        @input="onTextareaInput"
-        @keydown="onTextareaKeydown"
-        @paste="onTextareaPaste"
-      />
-      <span
-        v-if="charCountLabel"
-        class="ai-char-counter"
-        :class="{ 'ai-char-counter-warn': charCountNearLimit }"
-        >{{ charCountLabel }}</span
-      >
-      <div v-if="charLimitWarningText" class="ai-input-risk" role="note">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M11 7h2v7h-2V7zm0 9h2v2h-2v-2z" />
-          <path d="M12 2 1 21h22L12 2zm0 4.04L19.53 19H4.47L12 6.04z" />
-        </svg>
-        <span>{{ charLimitWarningText }}</span>
-      </div>
-      <div v-if="sendBlockedReason && modelValue.trim()" class="ai-send-risk" role="note">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-        </svg>
-        <span>{{ sendBlockedReason }}</span>
-        <button
-          v-if="sendBlockedActionLabel"
-          type="button"
-          class="ai-send-risk-action"
-          @click="$emit('sendBlockedAction')"
-        >
-          {{ sendBlockedActionLabel }}
-        </button>
-      </div>
-      <div class="ai-footer-send-group">
+      <template #model-row-actions>
+        <slot name="model-row-actions" />
+      </template>
+    </ChatInputModelRow>
+    <ChatInputComposer
+      :model-value="modelValue"
+      :mode="mode"
+      :loading="loading"
+      :ctrl-enter-to-send="ctrlEnterToSend"
+      :color="color"
+      :placeholder="placeholder"
+      :char-count-label="charCountLabel"
+      :char-count-near-limit="charCountNearLimit"
+      :char-limit-warning-text="charLimitWarningText"
+      :send-blocked-reason="sendBlockedReason"
+      :send-blocked-action-label="sendBlockedActionLabel"
+      :voice-supported="voiceSupported"
+      :voice-recording="voiceRecording"
+      :voice-conversation-active="voiceConversationActive"
+      :slash-visible="slashVisible"
+      :slash-commands="slashCommands"
+      :history-enabled="historyEnabled"
+      :advanced-tools-open="advancedToolsOpen"
+      :quick-toggles-enabled="quickTogglesEnabled"
+      :deep-think-enabled="deepThinkEnabled"
+      :web-search-enabled="webSearchEnabled"
+      :t="t"
+      @update:model-value="$emit('update:modelValue', $event)"
+      @update:advanced-tools-open="advancedToolsOpen = $event"
+      @send="$emit('send')"
+      @paste-image="$emit('pasteImage', $event)"
+      @paste-text="$emit('pasteText', $event)"
+      @chat-image="$emit('chatImage', $event)"
+      @slash-keydown="$emit('slashKeydown', $event)"
+      @history-older="$emit('historyOlder')"
+      @history-newer="$emit('historyNewer')"
+      @history-reset="$emit('historyReset')"
+      @toggle-voice="$emit('toggleVoice')"
+      @toggle-voice-conversation="$emit('toggleVoiceConversation')"
+      @toggle-deep-think="$emit('toggleDeepThink', $event)"
+      @toggle-web-search="$emit('toggleWebSearch', $event)"
+      @send-blocked-action="$emit('sendBlockedAction')"
+    >
+      <template #footer-plugins>
         <slot name="footer-plugins" />
-        <div
-          class="ai-footer-secondary-actions"
-          role="group"
-          :aria-label="t.skillStripLabel || 'Tools'"
-        >
-          <input
-            v-if="mode === 'chat'"
-            ref="chatImageInputRef"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="onChatImageChange"
-          />
-          <button
-            v-if="mode === 'chat'"
-            type="button"
-            class="ai-attach-image"
-            :disabled="loading"
-            :title="t.pendingImage"
-            :aria-label="t.pendingImage"
-            @click="chatImageInputRef?.click()"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
-              />
-            </svg>
-          </button>
-          <button
-            v-if="voiceSupported"
-            class="ai-mic"
-            :class="{ recording: voiceRecording }"
-            type="button"
-            :disabled="loading"
-            :title="voiceRecording ? t.micStop : t.micStart"
-            :aria-label="voiceRecording ? t.micStop : t.micStart"
-            :aria-pressed="voiceRecording ? 'true' : 'false'"
-            @click="$emit('toggleVoice')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"
-              />
-              <path
-                d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
-              />
-            </svg>
-          </button>
-          <button
-            v-if="voiceSupported && mode === 'chat'"
-            class="ai-voice-loop"
-            :class="{ active: voiceConversationActive }"
-            type="button"
-            :disabled="loading"
-            :title="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
-            :aria-label="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
-            :aria-pressed="voiceConversationActive ? 'true' : 'false'"
-            @click="$emit('toggleVoiceConversation')"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 4a8 8 0 0 1 7.75 6H22l-3 4-3-4h1.7A6 6 0 1 0 12 18a5.9 5.9 0 0 0 3.76-1.33l1.27 1.55A8 8 0 1 1 12 4z"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="ai-tools-toggle"
-            :class="{ active: advancedToolsOpen }"
-            :title="t.skillStripLabel || 'Tools'"
-            :aria-label="t.skillStripLabel || 'Tools'"
-            :aria-expanded="advancedToolsOpen ? 'true' : 'false'"
-            @click="advancedToolsOpen = !advancedToolsOpen"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
-              />
-            </svg>
-          </button>
-        </div>
-        <button
-          class="ai-send"
-          type="button"
-          :style="{ backgroundColor: color }"
-          :disabled="sendDisabled"
-          :title="sendButtonTitle"
-          :aria-label="sendButtonTitle"
-          @click="$emit('send')"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-            class="ai-send-icon"
-          >
-            <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
-        </button>
-      </div>
-    </div>
+      </template>
+    </ChatInputComposer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
+import ChatInputComposer from './ChatInputComposer.vue';
+import ChatInputModelRow from './ChatInputModelRow.vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SlashCommand } from '../composables/useSlashCommands';
 
@@ -626,44 +317,11 @@ const emit = defineEmits<{
   sendBlockedAction: [];
 }>();
 
-/**
- * K36 prompt-history 回放状态：true 表示当前 textarea 内容是 ↑ 召回出来的，
- * ↓ 继续走更新；Escape 退出回放并清空；用户主动 input 则隐式退出。
- */
-const recallActive = ref(false);
-
 const fileInputRef = ref<HTMLInputElement>();
-const chatImageInputRef = ref<HTMLInputElement>();
-const textareaRef = ref<HTMLTextAreaElement>();
 const advancedToolsOpen = ref(false);
-const modelPickerOpen = ref(false);
-const modelSearch = ref('');
-const COMPOSER_MIN_HEIGHT = 34;
-const COMPOSER_MAX_HEIGHT = 78;
-
-const effectiveDefaultModel = computed(() => props.defaultModel || props.modelChoices[0] || '');
-const filteredModelChoices = computed(() => {
-  const q = modelSearch.value.trim().toLowerCase();
-  if (!q) return props.modelChoices;
-  return props.modelChoices.filter((model) => model.toLowerCase().includes(q));
-});
-const groupedModelChoices = computed(() => {
-  const groups = new Map<string, string[]>();
-  for (const model of filteredModelChoices.value) {
-    const group = inferModelGroup(model);
-    groups.set(group, [...(groups.get(group) ?? []), model]);
-  }
-  return Array.from(groups, ([name, models]) => ({ name, models }));
-});
 const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowerCase());
 const selectedModelLooksVisionCapable = computed(() =>
   isLikelyVisionModel(selectedModelNormalized.value),
-);
-const selectedModelLooksToolCapable = computed(() =>
-  isLikelyToolModel(selectedModelNormalized.value),
-);
-const selectedModelLooksLongContext = computed(() =>
-  isLikelyLongContextModel(selectedModelNormalized.value),
 );
 const imageRiskVisible = computed(
   () =>
@@ -678,29 +336,9 @@ const firstVisionModel = computed(
       (model) => model !== props.selectedModel && isLikelyVisionModel(model.toLowerCase()),
     ) || '',
 );
-const modelCapabilityTags = computed(() => {
-  if (!props.selectedModel.trim()) return [];
-  const tags = [props.t.modelCapabilityText];
-  if (selectedModelLooksVisionCapable.value) tags.push(props.t.modelCapabilityVision);
-  if (selectedModelLooksToolCapable.value) tags.push(props.t.modelCapabilityTools);
-  if (selectedModelLooksLongContext.value) tags.push(props.t.modelCapabilityLongContext);
-  return tags;
-});
-const sendDisabled = computed(
-  () => !props.modelValue.trim() || props.loading || !!props.sendBlockedReason,
-);
-const sendButtonTitle = computed(() => props.sendBlockedReason || props.t.send);
-
-function inferModelGroup(model: string) {
-  const token = model.trim().split(/[/:_\-\s.]+/)[0];
-  if (!token || token.length < 2) return props.t.modelGroupOther;
-  return token;
-}
 
 function selectModel(model: string) {
   emit('update:selectedModel', model);
-  modelPickerOpen.value = false;
-  modelSearch.value = '';
 }
 
 function isLikelyVisionModel(model: string) {
@@ -709,182 +347,6 @@ function isLikelyVisionModel(model: string) {
     /(?:^|[-_:./])(?:vl|vision|visual|image|multimodal|omni)(?:[-_:./]|$)/i.test(model) ||
     /gpt-4o|gemini|pixtral|llava|qwen.*vl|claude-(?:3|4)/i.test(model)
   );
-}
-
-function isLikelyToolModel(model: string) {
-  if (!model) return false;
-  return /tool|function|agent|mcp|assistant|gpt-|claude|qwen|deepseek|glm|kimi|doubao|minimax/i.test(
-    model,
-  );
-}
-
-function isLikelyLongContextModel(model: string) {
-  if (!model) return false;
-  return /(?:32k|64k|100k|128k|200k|256k|1m|long|context)/i.test(model);
-}
-
-/**
- * L1: 单一 paste 入口。同时发出 pasteImage（保留原行为）和 pasteText
- * （供 useFormAutoFill 等监听者）。两路互不影响：image handler 会忽略
- * 没有图片的事件；text handler 会忽略空文本。
- */
-function onTextareaPaste(event: ClipboardEvent) {
-  emit('pasteImage', event);
-  const text = event.clipboardData?.getData('text/plain') ?? '';
-  if (text) emit('pasteText', { text, event });
-}
-
-function wrapSelection(before: string, after: string) {
-  const el = textareaRef.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const val = el.value;
-  const selected = val.slice(start, end) || 'text';
-  const newVal = val.slice(0, start) + before + selected + after + val.slice(end);
-  emit('update:modelValue', newVal);
-  requestAnimationFrame(() => {
-    el.focus();
-    const cursorPos = start + before.length + selected.length;
-    el.setSelectionRange(start + before.length, cursorPos);
-  });
-}
-
-function insertLink() {
-  const el = textareaRef.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const val = el.value;
-  const selected = val.slice(start, end) || 'text';
-  const insert = `[${selected}](url)`;
-  const newVal = val.slice(0, start) + insert + val.slice(end);
-  emit('update:modelValue', newVal);
-  requestAnimationFrame(() => {
-    el.focus();
-    const urlStart = start + selected.length + 3;
-    el.setSelectionRange(urlStart, urlStart + 3);
-  });
-}
-
-function insertPrefix(prefix: string) {
-  const el = textareaRef.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const val = el.value;
-  const lineStart = val.lastIndexOf('\n', start - 1) + 1;
-  const newVal = val.slice(0, lineStart) + prefix + val.slice(lineStart);
-  emit('update:modelValue', newVal);
-  requestAnimationFrame(() => {
-    el.focus();
-    el.setSelectionRange(start + prefix.length, start + prefix.length);
-  });
-}
-
-function onChatImageChange(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  target.value = '';
-  if (file) emit('chatImage', file);
-}
-
-function onTextareaInput(event: Event) {
-  const el = event.target as HTMLTextAreaElement;
-  if (recallActive.value) {
-    recallActive.value = false;
-  }
-  emit('update:modelValue', el.value);
-  syncTextareaHeight(el);
-}
-
-function syncTextareaHeight(el = textareaRef.value) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height =
-    Math.min(
-      Math.max(el.scrollHeight || COMPOSER_MIN_HEIGHT, COMPOSER_MIN_HEIGHT),
-      COMPOSER_MAX_HEIGHT,
-    ) + 'px';
-}
-
-watch(
-  () => props.modelValue,
-  () => {
-    void nextTick(() => syncTextareaHeight());
-  },
-);
-
-function onTextareaKeydown(e: KeyboardEvent) {
-  if (props.slashVisible && props.slashCommands && props.slashCommands.length > 0) {
-    if (
-      ['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key) ||
-      (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey)
-    ) {
-      e.preventDefault();
-      emit('slashKeydown', e);
-      return;
-    }
-  }
-  if (props.historyEnabled && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
-    if (e.key === 'ArrowUp') {
-      const empty = !props.modelValue || !props.modelValue.trim();
-      if (empty || recallActive.value) {
-        e.preventDefault();
-        recallActive.value = true;
-        emit('historyOlder');
-        return;
-      }
-    } else if (e.key === 'ArrowDown') {
-      if (recallActive.value) {
-        e.preventDefault();
-        emit('historyNewer');
-        return;
-      }
-    } else if (e.key === 'Escape') {
-      if (recallActive.value) {
-        e.preventDefault();
-        recallActive.value = false;
-        emit('historyReset');
-        return;
-      }
-    }
-  }
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
-    if (e.key === 'b') {
-      e.preventDefault();
-      wrapSelection('**', '**');
-      return;
-    }
-    if (e.key === 'i') {
-      e.preventDefault();
-      wrapSelection('*', '*');
-      return;
-    }
-    if (e.key === 'e') {
-      e.preventDefault();
-      wrapSelection('`', '`');
-      return;
-    }
-    if (e.key === 'k') {
-      e.preventDefault();
-      insertLink();
-      return;
-    }
-  }
-  if (e.key !== 'Enter') return;
-  if (props.ctrlEnterToSend) {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      recallActive.value = false;
-      emit('send');
-    }
-  } else {
-    if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      recallActive.value = false;
-      emit('send');
-    }
-  }
 }
 
 function onFileChange(e: Event) {

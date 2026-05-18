@@ -46,6 +46,7 @@ interface MsgCtxDeps {
   reportError: (source: string, msg: string) => void;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useMsgContextMenu(deps: MsgCtxDeps) {
   const msgCtxMenu = ref<MsgCtxMenuState>({
     show: false,

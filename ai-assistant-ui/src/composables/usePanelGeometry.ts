@@ -3,8 +3,10 @@
  * Extracted from AiAssistant.vue to reduce its script size by ~500 lines.
  */
 import { ref, computed, type Ref } from 'vue';
+import { usePanelResize, type PanelResizeEdge } from './usePanelResize';
 
-export type PanelResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+export type { PanelResizeEdge };
+
 type FabScreenQuadrant = 'tl' | 'tr' | 'bl' | 'br';
 
 const PANEL_W = 480;
@@ -41,6 +43,7 @@ function getViewportCssSize(): { w: number; h: number } {
   return { w: window.innerWidth, h: window.innerHeight };
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function usePanelGeometry(deps: PanelGeometryDeps) {
   const { fabLeft, fabTop, fabSize, isOpen, saveFabPos, defaultPosition } = deps;
 
@@ -49,7 +52,6 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
   const openPanelQuadrant = ref<FabScreenQuadrant>('br');
   const panelMountedForLayout = ref(false);
   const panelDragging = ref(false);
-  let panelResizedThisSession = false;
   let panelHeaderDraggedWhileOpen = false;
 
   const panelDrag = ref<{
@@ -58,13 +60,6 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     lastY: number;
   } | null>(null);
 
-  let panelResizeDrag: {
-    pointerId: number;
-    edge: PanelResizeEdge;
-    r0: { wl: number; wt: number; w: number; h: number };
-  } | null = null;
-  let panelResizePendingRect: { w: number; h: number; wl: number; wt: number } | null = null;
-  let panelResizeFlushRaf = 0;
   let panelHeaderDragPendingDx = 0;
   let panelHeaderDragPendingDy = 0;
   let panelHeaderDragFlushRaf = 0;
@@ -147,89 +142,6 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     }
   }
 
-  function computeRectFromResizePointer(
-    edge: PanelResizeEdge,
-    r0: { wl: number; wt: number; w: number; h: number },
-    ex: number,
-    ey: number,
-  ): { wl: number; wt: number; w: number; h: number } {
-    let { wl, wt, w, h } = { ...r0 };
-    switch (edge) {
-      case 'se':
-        w = ex - r0.wl;
-        h = ey - r0.wt;
-        break;
-      case 'sw':
-        w = r0.wl + r0.w - ex;
-        h = ey - r0.wt;
-        wl = ex;
-        break;
-      case 'ne':
-        w = ex - r0.wl;
-        h = r0.wt + r0.h - ey;
-        wt = ey;
-        break;
-      case 'nw':
-        w = r0.wl + r0.w - ex;
-        h = r0.wt + r0.h - ey;
-        wl = ex;
-        wt = ey;
-        break;
-      case 'e':
-        w = ex - r0.wl;
-        break;
-      case 'w':
-        w = r0.wl + r0.w - ex;
-        wl = ex;
-        break;
-      case 's':
-        h = ey - r0.wt;
-        break;
-      case 'n':
-        h = r0.wt + r0.h - ey;
-        wt = ey;
-        break;
-    }
-    const cl = clampPanelSize(w, h);
-    w = cl.w;
-    h = cl.h;
-    switch (edge) {
-      case 'se':
-        wl = r0.wl;
-        wt = r0.wt;
-        break;
-      case 'sw':
-        wl = r0.wl + r0.w - w;
-        wt = r0.wt;
-        break;
-      case 'ne':
-        wl = r0.wl;
-        wt = r0.wt + r0.h - h;
-        break;
-      case 'nw':
-        wl = r0.wl + r0.w - w;
-        wt = r0.wt + r0.h - h;
-        break;
-      case 'e':
-        wl = r0.wl;
-        wt = r0.wt;
-        break;
-      case 'w':
-        wl = r0.wl + r0.w - w;
-        wt = r0.wt;
-        break;
-      case 's':
-        wl = r0.wl;
-        wt = r0.wt;
-        break;
-      case 'n':
-        wl = r0.wl;
-        wt = r0.wt + r0.h - h;
-        break;
-    }
-    return { wl, wt, w, h };
-  }
-
   function ensurePanelInViewport() {
     if (fabLeft.value === null || fabTop.value === null) return;
     const m = PANEL_VIEWPORT_MARGIN;
@@ -290,61 +202,15 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     }
   }
 
-  // --- Resize pointer handlers ---
-
-  function onPanelResizePointerDown(e: PointerEvent, edge: PanelResizeEdge) {
-    if (e.button !== 0) return;
-    const r0 = getPanelScreenRect();
-    if (!r0) return;
-    panelResizeDrag = { pointerId: e.pointerId, edge, r0 };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    window.addEventListener('pointermove', onPanelResizePointerMove);
-    window.addEventListener('pointerup', onPanelResizePointerUp, true);
-    window.addEventListener('pointercancel', onPanelResizePointerUp, true);
-  }
-
-  function flushPanelResizeFrame() {
-    panelResizeFlushRaf = 0;
-    const p = panelResizePendingRect;
-    if (!p || !panelResizeDrag) return;
-    panelUserSize.value = { w: p.w, h: p.h };
-    syncFabToPanelRect(p.wl, p.wt, p.w, p.h);
-    ensurePanelInViewport();
-  }
-
-  function onPanelResizePointerMove(e: PointerEvent) {
-    if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return;
-    const r = computeRectFromResizePointer(
-      panelResizeDrag.edge,
-      panelResizeDrag.r0,
-      e.clientX,
-      e.clientY,
-    );
-    panelResizePendingRect = { w: r.w, h: r.h, wl: r.wl, wt: r.wt };
-    if (!panelResizeFlushRaf) panelResizeFlushRaf = requestAnimationFrame(flushPanelResizeFrame);
-  }
-
-  function onPanelResizePointerUp(e: PointerEvent) {
-    window.removeEventListener('pointermove', onPanelResizePointerMove);
-    window.removeEventListener('pointerup', onPanelResizePointerUp, true);
-    window.removeEventListener('pointercancel', onPanelResizePointerUp, true);
-    if (!panelResizeDrag || e.pointerId !== panelResizeDrag.pointerId) return;
-    const d = panelResizeDrag;
-    panelResizeDrag = null;
-    if (panelResizeFlushRaf) {
-      cancelAnimationFrame(panelResizeFlushRaf);
-      panelResizeFlushRaf = 0;
-    }
-    panelResizePendingRect = null;
-    const r = computeRectFromResizePointer(d.edge, d.r0, e.clientX, e.clientY);
-    panelUserSize.value = { w: r.w, h: r.h };
-    syncFabToPanelRect(r.wl, r.wt, r.w, r.h);
-    if (isOpen.value) {
-      panelResizedThisSession = true;
-      ensurePanelInViewport();
-      saveFabPos();
-    }
-  }
+  const panelResize = usePanelResize(
+    panelUserSize,
+    getPanelScreenRect,
+    syncFabToPanelRect,
+    ensurePanelInViewport,
+    saveFabPos,
+    clampPanelSize,
+    isOpen,
+  );
 
   // --- Header drag ---
 
@@ -453,7 +319,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     wrapperEl: HTMLElement | undefined,
     edgeDock: Ref<'none' | 'left' | 'right'>,
   ) {
-    panelResizedThisSession = false;
+    panelResize.panelResizedThisSession.value = false;
     panelHeaderDraggedWhileOpen = false;
     openPanelQuadrant.value = resolveFabScreenQuadrant();
     panelMountedForLayout.value = true;
@@ -467,17 +333,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
   function onPanelClose() {
     panelExpanded.value = false;
     panelUserSize.value = null;
-    if (panelResizeDrag) {
-      window.removeEventListener('pointermove', onPanelResizePointerMove);
-      window.removeEventListener('pointerup', onPanelResizePointerUp, true);
-      window.removeEventListener('pointercancel', onPanelResizePointerUp, true);
-      panelResizeDrag = null;
-    }
-    if (panelResizeFlushRaf) {
-      cancelAnimationFrame(panelResizeFlushRaf);
-      panelResizeFlushRaf = 0;
-    }
-    panelResizePendingRect = null;
+    panelResize.cleanupPanelResize();
     if (panelDrag.value) {
       window.removeEventListener('pointermove', onPanelHeaderPointerMove);
       window.removeEventListener('pointerup', onPanelHeaderPointerUp, true);
@@ -502,12 +358,9 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
   }
 
   function cleanupGeometry() {
-    if (panelResizeFlushRaf) cancelAnimationFrame(panelResizeFlushRaf);
     if (panelHeaderDragFlushRaf) cancelAnimationFrame(panelHeaderDragFlushRaf);
+    panelResize.cleanupPanelResize();
     cleanupPanelHeaderTentative();
-    window.removeEventListener('pointermove', onPanelResizePointerMove);
-    window.removeEventListener('pointerup', onPanelResizePointerUp, true);
-    window.removeEventListener('pointercancel', onPanelResizePointerUp, true);
     window.removeEventListener('pointermove', onPanelHeaderPointerMove);
     window.removeEventListener('pointerup', onPanelHeaderPointerUp, true);
     window.removeEventListener('pointercancel', onPanelHeaderPointerUp, true);
@@ -538,7 +391,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     panelOpenFabAlignClass,
     panelTransformOrigin,
     get panelResizedThisSession() {
-      return panelResizedThisSession;
+      return panelResize.panelResizedThisSession.value;
     },
     get panelHeaderDraggedWhileOpen() {
       return panelHeaderDraggedWhileOpen;
@@ -551,7 +404,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     resolveFabScreenQuadrant,
     syncFabPixelFromWrapperDom,
     clampPanelSize,
-    onPanelResizePointerDown,
+    onPanelResizePointerDown: panelResize.onPanelResizePointerDown,
     onPanelHeaderPointerDown,
     onPanelOpen,
     onPanelClose,

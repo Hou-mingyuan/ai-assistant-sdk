@@ -63,6 +63,7 @@ export function shouldDownscaleImage(
  *
  * 行为与拆分前完全一致，包括 5 MiB 上限、缩略图压缩参数 (0.7) 和错误消息文案。
  */
+// eslint-disable-next-line max-lines-per-function
 export function useImagePasteAndDrop<TMessage extends UseImagePasteAndDropMessage>(
   deps: UseImagePasteAndDropDeps<TMessage>,
 ) {

@@ -257,6 +257,7 @@ export interface UseSendStreamDeps {
   pageContextEnabled?: Ref<boolean>;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useSendStream(deps: UseSendStreamDeps) {
   /**
    * D5: 流式生成的起始时间戳（ms epoch）。
@@ -401,31 +402,70 @@ export function useSendStream(deps: UseSendStreamDeps) {
     deps.trimMessagesForMemoryCap();
   }
 
-  async function send() {
+  function normalizeUserTextForSend(): string {
     let text = deps.input.value.trim();
-    if (!text || deps.loading.value) return;
-    if (!deps.options.baseUrl) return;
+    if (!text || deps.loading.value || !deps.options.baseUrl) return '';
     const ucap = deps.options.maxUserMessageChars;
     if (ucap !== undefined && ucap > 0 && text.length > ucap) {
       text = `${text.slice(0, ucap)}\n…`;
     }
+    return text;
+  }
 
+  function attachDirectImageUrlsToUserEntry(userEntry: Message, text: string) {
+    let content = text;
+    for (const u of deps.extractHttpUrls(text)) {
+      if (deps.isProbablyDirectImageUrl(u) && !content.includes(`![](${u})`)) {
+        const disp = deps.preferHttpsImageUrlWhenPageIsSecure(u);
+        content += `\n\n![](${disp})`;
+      }
+    }
+    userEntry.content = content;
+  }
+
+  function applyChatModePayloadOptions(payload: ChatPayload, hasImageAttachment: boolean) {
+    if (deps.mode.value !== 'chat') return;
+    const memFrag = deps.memoryPromptFragment?.value ?? '';
+    const sp = deps.chatSystemPrompt.value.trim();
+    const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
+    if (combinedSp) payload.systemPrompt = combinedSp;
+    const mid = deps.selectedChatModel.value.trim();
+    if (mid && deps.modelChoices.value.includes(mid)) {
+      payload.model = mid;
+      if (shouldWarnForVisionModel(mid, hasImageAttachment, deps.options.visionCapableModels)) {
+        deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
+      }
+    }
+    if (deps.messages.value.length > 1) {
+      payload.history = deps.messages.value.slice(0, -1).map((m) => ({
+        role: m.role,
+        content: m.contentArchive ?? m.content,
+      }));
+    }
+  }
+
+  function applyPageContextPayloadOptions(payload: ChatPayload, text: string) {
+    const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
+    if (!pageContextEnabled || !deps.options.pageContextBlocks?.length) return;
+    const minChars = deps.options.pageContextMinUserChars ?? 0;
+    if (text.length < minChars) return;
+    const ctxOpts = {
+      blocks: deps.options.pageContextBlocks,
+      maxCharsPerBlock: deps.options.pageContextMaxCharsPerBlock,
+      maxTotalChars: deps.options.pageContextMaxTotalChars,
+    };
+    const ctx = deps.options.smartPageContext
+      ? collectSmartPageContext(ctxOpts)
+      : collectPageContextText(ctxOpts);
+    if (ctx) payload.pageContext = ctx;
+  }
+
+  function prepareSendRequest(text: string) {
     const userEntry: Message = { role: 'user', content: text, timestamp: Date.now() };
     deps.messages.value.push(userEntry);
     const userMsgIdx = deps.messages.value.length - 1;
 
-    /* 翻译/摘要/对话均支持：气泡内嵌直连图、网页链接触发 url-preview（与模式无关） */
-    {
-      let d = text;
-      for (const u of deps.extractHttpUrls(text)) {
-        if (deps.isProbablyDirectImageUrl(u) && !d.includes(`![](${u})`)) {
-          const disp = deps.preferHttpsImageUrlWhenPageIsSecure(u);
-          d += `\n\n![](${disp})`;
-        }
-      }
-      userEntry.content = d;
-    }
-
+    attachDirectImageUrlsToUserEntry(userEntry, text);
     deps.input.value = '';
     deps.loading.value = true;
     deps.scrollToBottom(true);
@@ -450,47 +490,8 @@ export function useSendStream(deps: UseSendStreamDeps) {
       payload.imageData = imageDataListForPayload[0];
       payload.imageDataList = imageDataListForPayload;
     }
-    if (deps.mode.value === 'chat') {
-      const memFrag = deps.memoryPromptFragment?.value ?? '';
-      const sp = deps.chatSystemPrompt.value.trim();
-      const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
-      if (combinedSp) payload.systemPrompt = combinedSp;
-      const mid = deps.selectedChatModel.value.trim();
-      if (mid && deps.modelChoices.value.includes(mid)) {
-        payload.model = mid;
-        if (
-          shouldWarnForVisionModel(
-            mid,
-            imageDataListForPayload.length > 0,
-            deps.options.visionCapableModels,
-          )
-        ) {
-          deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
-        }
-      }
-    }
-    if (deps.mode.value === 'chat' && deps.messages.value.length > 1) {
-      payload.history = deps.messages.value.slice(0, -1).map((m) => ({
-        role: m.role,
-        content: m.contentArchive ?? m.content,
-      }));
-    }
-
-    const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
-    if (pageContextEnabled && deps.options.pageContextBlocks?.length) {
-      const minChars = deps.options.pageContextMinUserChars ?? 0;
-      if (text.length >= minChars) {
-        const ctxOpts = {
-          blocks: deps.options.pageContextBlocks,
-          maxCharsPerBlock: deps.options.pageContextMaxCharsPerBlock,
-          maxTotalChars: deps.options.pageContextMaxTotalChars,
-        };
-        const ctx = deps.options.smartPageContext
-          ? collectSmartPageContext(ctxOpts)
-          : collectPageContextText(ctxOpts);
-        if (ctx) payload.pageContext = ctx;
-      }
-    }
+    applyChatModePayloadOptions(payload, imageDataListForPayload.length > 0);
+    applyPageContextPayloadOptions(payload, text);
 
     const sid = deps.activeSessionId.value;
     if (sid) payload.sessionId = sid;
@@ -511,36 +512,131 @@ export function useSendStream(deps: UseSendStreamDeps) {
     deps.messages.value.push(assistantMsg);
     const msgIndex = deps.messages.value.length - 1;
     deps.scrollToBottom(true);
+    return { payload, requestStartedAt, text, userMsgIdx, msgIndex };
+  }
 
+  function startUrlPreviewSideChannel(
+    text: string,
+    userMsgIdx: number,
+    msgIndex: number,
+    getStreamDone: () => boolean,
+    setPreviewImages: (imgs: string[]) => void,
+  ) {
+    const pageUrl = deps.firstNonImageHttpUrl(deps.extractHttpUrls(text));
+    if (!pageUrl || !deps.options.baseUrl) return;
+    deps
+      .fetchUrlPreview(deps.options.baseUrl, pageUrl, deps.options.accessToken)
+      .then((r) => {
+        /* 勿与 userEntry 做引用相等：Vue 会把消息项包成 Proxy，恒不等于原始对象，会导致整段预览永远不执行 */
+        const userSlot = deps.messages.value[userMsgIdx];
+        if (!userSlot || userSlot.role !== 'user') return;
+        if (r.success === false) return;
+        const imgs =
+          r.imageUrls && r.imageUrls.length > 0 ? r.imageUrls : r.imageUrl ? [r.imageUrl] : [];
+        if (!imgs.length) return;
+        setPreviewImages(imgs);
+        /* 用户气泡保持用户原文（仅链接等）；预览图只挂助手回复，避免标题/摘要把用户消息撑成整页 */
+        if (getStreamDone()) {
+          appendUrlPreviewImagesToAssistant(msgIndex, imgs);
+          deps.scrollToBottom(false);
+        }
+      })
+      .catch(() => {
+        /* URL preview is optional; ignore preview failures. */
+      });
+  }
+
+  function handleStreamSuccess(
+    fullContent: string,
+    text: string,
+    msgIndex: number,
+    requestStartedAt: number,
+    urlPreviewImgs: string[],
+  ) {
+    /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
+    if (!fullContent && !urlPreviewImgs.length) {
+      const prevSlot = deps.messages.value[msgIndex];
+      deps.messages.value[msgIndex] = {
+        role: 'assistant',
+        content: tNow().noResponse,
+        timestamp: prevSlot?.timestamp,
+        contentArchive: prevSlot?.contentArchive,
+        feedback: prevSlot?.feedback,
+        meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
+      };
+    } else {
+      stampAssistantMeta(msgIndex, requestStartedAt);
+      appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
+    }
+    if (urlPreviewImgs.length) deps.scrollToBottom(false);
+    if (!deps.sessionTitle.value && text.trim()) {
+      const raw = text.replace(/\n+/g, ' ').trim();
+      deps.sessionTitle.value = raw.length > 20 ? raw.slice(0, 20) + '…' : raw;
+      deps.updateActiveSessionTitle(deps.sessionTitle.value);
+    }
+    deps.emitResponse(fullContent);
+  }
+
+  function handleStreamError(e: unknown, msgIndex: number, requestStartedAt: number): boolean {
+    if (isAssistantAbortError(e, deps.getStreamStoppedByUser())) {
+      const currentContent = sanitizeAssistantContent(
+        deps.messages.value[msgIndex]?.content || '',
+        tNow(),
+      );
+      if (currentContent) {
+        const prevSlot = deps.messages.value[msgIndex];
+        deps.messages.value[msgIndex] = {
+          role: 'assistant',
+          content: currentContent,
+          timestamp: prevSlot?.timestamp,
+          contentArchive: prevSlot?.contentArchive,
+          feedback: prevSlot?.feedback,
+          meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
+        };
+      } else {
+        deps.messages.value.splice(msgIndex, 1);
+      }
+      deps.scrollToBottom(false);
+      return true;
+    }
+    const message = normalizeAssistantServiceError(
+      e instanceof Error ? e.message : String(e),
+      tNow(),
+    );
+    const currentContent = deps.messages.value[msgIndex]?.content || '';
+    if (!currentContent) {
+      const prevSlot = deps.messages.value[msgIndex];
+      deps.messages.value[msgIndex] = {
+        role: 'assistant',
+        content: `${tNow().errorPrefix}: ${message}`,
+        timestamp: prevSlot?.timestamp,
+        contentArchive: prevSlot?.contentArchive,
+        feedback: prevSlot?.feedback,
+        meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
+      };
+    }
+    deps.reportAssistantError('send', message);
+    deps.emitError(message || 'Unknown error');
+    deps.scrollToBottom(false);
+    return false;
+  }
+
+  async function send() {
+    const text = normalizeUserTextForSend();
+    if (!text) return;
+    const { payload, requestStartedAt, userMsgIdx, msgIndex } = prepareSendRequest(text);
     let urlPreviewImgs: string[] = [];
     let streamDone = false;
 
-    if (deps.options.baseUrl) {
-      const pageUrl = deps.firstNonImageHttpUrl(deps.extractHttpUrls(text));
-      if (pageUrl) {
-        deps
-          .fetchUrlPreview(deps.options.baseUrl, pageUrl, deps.options.accessToken)
-          .then((r) => {
-            /* 勿与 userEntry 做引用相等：Vue 会把消息项包成 Proxy，恒不等于原始对象，会导致整段预览永远不执行 */
-            const userSlot = deps.messages.value[userMsgIdx];
-            if (!userSlot || userSlot.role !== 'user') return;
-            if (r.success === false) return;
-            const imgs =
-              r.imageUrls && r.imageUrls.length > 0 ? r.imageUrls : r.imageUrl ? [r.imageUrl] : [];
-            if (!imgs.length) return;
-            urlPreviewImgs = imgs;
-            /* 用户气泡保持用户原文（仅链接等）；预览图只挂助手回复，避免标题/摘要把用户消息撑成整页 */
-            if (streamDone) {
-              appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
-              deps.scrollToBottom(false);
-            }
-          })
-          .catch(() => {
-            /* URL preview is optional; ignore preview failures. */
-          });
-      }
-    }
-
+    startUrlPreviewSideChannel(
+      text,
+      userMsgIdx,
+      msgIndex,
+      () => streamDone,
+      (imgs) => {
+        urlPreviewImgs = imgs;
+      },
+    );
     deps.setStreamStoppedByUser(false);
     streamStartedAt.value = Date.now();
     firstTokenAt.value = null;
@@ -557,69 +653,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
         ),
       );
       streamDone = true;
-      /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
-      if (!fullContent && !urlPreviewImgs.length) {
-        const prevSlot = deps.messages.value[msgIndex];
-        deps.messages.value[msgIndex] = {
-          role: 'assistant',
-          content: tNow().noResponse,
-          timestamp: prevSlot?.timestamp,
-          contentArchive: prevSlot?.contentArchive,
-          feedback: prevSlot?.feedback,
-          meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
-        };
-      } else {
-        stampAssistantMeta(msgIndex, requestStartedAt);
-        appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
-      }
-      if (urlPreviewImgs.length) deps.scrollToBottom(false);
-      if (!deps.sessionTitle.value && text.trim()) {
-        const raw = text.replace(/\n+/g, ' ').trim();
-        deps.sessionTitle.value = raw.length > 20 ? raw.slice(0, 20) + '…' : raw;
-        deps.updateActiveSessionTitle(deps.sessionTitle.value);
-      }
-      deps.emitResponse(fullContent);
+      handleStreamSuccess(fullContent, text, msgIndex, requestStartedAt, urlPreviewImgs);
     } catch (e: unknown) {
-      if (isAssistantAbortError(e, deps.getStreamStoppedByUser())) {
-        const currentContent = sanitizeAssistantContent(
-          deps.messages.value[msgIndex]?.content || '',
-          tNow(),
-        );
-        if (currentContent) {
-          const prevSlot = deps.messages.value[msgIndex];
-          deps.messages.value[msgIndex] = {
-            role: 'assistant',
-            content: currentContent,
-            timestamp: prevSlot?.timestamp,
-            contentArchive: prevSlot?.contentArchive,
-            feedback: prevSlot?.feedback,
-            meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
-          };
-        } else {
-          deps.messages.value.splice(msgIndex, 1);
-        }
-        deps.scrollToBottom(false);
-        return;
-      }
-      const message = normalizeAssistantServiceError(
-        e instanceof Error ? e.message : String(e),
-        tNow(),
-      );
-      const currentContent = deps.messages.value[msgIndex]?.content || '';
-      if (!currentContent) {
-        const prevSlot = deps.messages.value[msgIndex];
-        deps.messages.value[msgIndex] = {
-          role: 'assistant',
-          content: `${tNow().errorPrefix}: ${message}`,
-          timestamp: prevSlot?.timestamp,
-          contentArchive: prevSlot?.contentArchive,
-          feedback: prevSlot?.feedback,
-          meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
-        };
-      }
-      deps.reportAssistantError('send', message);
-      deps.emitError(message || 'Unknown error');
-      deps.scrollToBottom(false);
+      if (handleStreamError(e, msgIndex, requestStartedAt)) return;
     } finally {
       deps.setStreamAbortController(null);
       deps.setStreamStoppedByUser(false);

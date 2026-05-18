@@ -25,6 +25,7 @@ function genId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function useMultiSession(storageKey = STORAGE_KEY) {
   const sessions = ref<SessionEntry[]>([]);
   const activeSessionId = ref('');
