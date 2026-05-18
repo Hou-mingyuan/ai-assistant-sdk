@@ -2067,6 +2067,71 @@
   color: #c4b5fd !important;
 }
 
+/* Message action rail --------------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-actions {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px !important;
+  min-height: 28px;
+  padding: 3px !important;
+  border: 1px solid rgba(91, 108, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 8px 18px -14px rgba(36, 44, 92, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-msg-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-msg-actions {
+  margin: 5px 0 0 42px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-actions,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-msg-actions {
+  align-self: flex-end;
+  margin-top: 5px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-copy,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-regenerate,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-edit,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-feedback {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #737b8f !important;
+  font-size: 0 !important;
+  box-shadow: none !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-copy:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-regenerate:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-edit:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-feedback:hover {
+  background: rgba(91, 108, 255, 0.1) !important;
+  color: #4f46e5 !important;
+  transform: translateY(-1px);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-feedback.active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-action-text {
+  padding: 0 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar,
   .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-loading,
@@ -2511,6 +2576,26 @@
   .ai-header-settings-item.ai-header-settings-item-danger:hover {
   background: rgba(248, 113, 113, 0.12) !important;
   color: #fecaca !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-actions {
+  background: rgba(20, 21, 28, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 10px 22px -16px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-copy,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-regenerate,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-edit,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-feedback {
+  color: #a9b2c8 !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-copy:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-regenerate:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-edit:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-feedback:hover {
+  background: rgba(168, 139, 250, 0.12) !important;
+  color: #c4b5fd !important;
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-slash-name {
   color: #e3e6f1 !important;
