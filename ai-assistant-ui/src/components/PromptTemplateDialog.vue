@@ -81,23 +81,23 @@
                 </button>
               </label>
               <div v-if="draft.variables && draft.variables.length > 0" class="ai-tpl-vars">
-                <div v-for="(v, i) in draft.variables" :key="i" class="ai-tpl-var-row">
+                <div v-for="i in draft.variables.length" :key="i - 1" class="ai-tpl-var-row">
                   <input
-                    v-model="draft.variables[i].name"
+                    v-model="draft.variables[i - 1].name"
                     type="text"
                     class="ai-tpl-input ai-tpl-var-name"
                     placeholder="name"
                     :disabled="selected.source === 'preset'"
                   />
                   <input
-                    v-model="draft.variables[i].label"
+                    v-model="draft.variables[i - 1].label"
                     type="text"
                     class="ai-tpl-input ai-tpl-var-label"
                     :placeholder="t.tplVarLabelPlaceholder"
                     :disabled="selected.source === 'preset'"
                   />
                   <input
-                    v-model="draft.variables[i].default"
+                    v-model="draft.variables[i - 1].default"
                     type="text"
                     class="ai-tpl-input ai-tpl-var-default"
                     :placeholder="t.tplVarDefaultPlaceholder"
@@ -107,7 +107,7 @@
                     v-if="selected.source !== 'preset'"
                     type="button"
                     class="ai-tpl-mini-btn"
-                    @click="removeVariable(i)"
+                    @click="removeVariable(i - 1)"
                   >
                     ×
                   </button>

@@ -37,8 +37,6 @@ import { useMarkdownWorker, type UseMarkdownWorkerOptions } from './useMarkdownW
  * produce a constructor that returns a real Worker. The default cast keeps the
  * type checker happy when Vite types are not loaded (e.g. when ts-checking the
  * library outside of a Vite build). */
-/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */
-// @ts-expect-error Vite worker import (resolved at build time)
 import MarkdownHljsWorker from '../workers/markdownHljs.worker.ts?worker';
 
 export type UseHljsMarkdownWorkerOptions = Omit<UseMarkdownWorkerOptions, 'workerFactory'> & {

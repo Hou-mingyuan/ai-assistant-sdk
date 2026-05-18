@@ -4,11 +4,9 @@ import hljs, { ensureLanguage } from './hljsRegistered';
 
 describe('hljsRegistered (core)', () => {
   it('eagerly registers the core code block languages', () => {
-    ['javascript', 'typescript', 'json', 'python', 'bash', 'shell', 'xml', 'sql'].forEach(
-      (language) => {
-        expect(hljs.getLanguage(language), language).toBeTruthy();
-      },
-    );
+    ['javascript', 'typescript', 'json', 'python', 'bash', 'shell', 'xml'].forEach((language) => {
+      expect(hljs.getLanguage(language), language).toBeTruthy();
+    });
   });
 
   it('eagerly registers the core aliases used in fenced Markdown blocks', () => {
@@ -34,6 +32,7 @@ describe('hljsRegistered (extended, lazy-loaded)', () => {
     expect(hljs.getLanguage('rust')).toBeUndefined();
     expect(hljs.getLanguage('csharp')).toBeUndefined();
     expect(hljs.getLanguage('kotlin')).toBeUndefined();
+    expect(hljs.getLanguage('sql')).toBeUndefined();
   });
 
   it('returns false synchronously for an unknown alias', () => {

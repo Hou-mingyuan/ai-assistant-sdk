@@ -301,7 +301,7 @@ function splitTableRow(line: string, sep: TableSeparator): string[] {
   return line
     .split(/\s{2,}|\t/)
     .map((c) => c.trim())
-    .filter((_, i, arr) => arr.length > 1);
+    .filter((_, _i, arr) => arr.length > 1);
 }
 
 function splitSimple(line: string, sep: string): string[] {

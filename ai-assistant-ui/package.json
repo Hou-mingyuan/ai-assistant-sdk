@@ -16,9 +16,9 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/ai-assistant.mjs",
-      "require": "./dist/ai-assistant.umd.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/ai-assistant.umd.cjs"
     },
     "./plugin": {
       "import": "./src/vite-plugin.ts",

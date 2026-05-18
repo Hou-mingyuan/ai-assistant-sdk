@@ -367,9 +367,7 @@
             :on-bubble-context-menu="onBubbleContextMenu"
             :is-error-message="isErrorMessage"
             :virtual-slice="virtualSliceForList"
-            :on-measure-height="
-              virtualScrollOption ? virtualScroll.updateMeasuredHeight : undefined
-            "
+            :on-measure-height="virtualScrollOption ? onVirtualMeasureHeight : undefined"
             @show-all-older-messages="showAllOlderMessages"
             @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"
@@ -698,6 +696,7 @@
          kbFileInputRef / kbUploadTargetId / addMemoryItem / createKb /
          triggerKbUpload / onKbFileSelect. -->
     <AssistantInlineOverlays
+      v-if="inlineOverlaysActive"
       v-model:memory-open="memoryOpen"
       v-model:kb-open="kbPanelOpen"
       v-model:plugins-open="pluginsPanelOpen"
@@ -918,6 +917,7 @@ import { useCrossSessionMemory } from '../composables/useCrossSessionMemory';
 import { useKnowledgeBase } from '../composables/useKnowledgeBase';
 import { useMultiModelChat } from '../composables/useMultiModelChat';
 import { useTextToSpeech } from '../composables/useTextToSpeech';
+import { useAudioPreferences } from '../composables/useAudioPreferences';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll';
@@ -2294,54 +2294,29 @@ const tts = useTextToSpeech();
 const AUDIO_PREFS_VOICE_KEY = 'ai-assistant.audio.voice.v1';
 const AUDIO_PREFS_RATE_KEY = 'ai-assistant.audio.rate.v1';
 const AUDIO_PREFS_AUTOREAD_KEY = 'ai-assistant.audio.autoRead.v1';
-function loadAudioPref(key: string, fallback: string): string {
-  try {
-    return localStorage.getItem(key) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-const audioVoice = ref(loadAudioPref(AUDIO_PREFS_VOICE_KEY, ''));
-const audioRate = ref(parseFloat(loadAudioPref(AUDIO_PREFS_RATE_KEY, '1')) || 1);
-const audioAutoRead = ref(loadAudioPref(AUDIO_PREFS_AUTOREAD_KEY, '0') === '1');
-watch(audioVoice, (v) => {
-  try {
-    localStorage.setItem(AUDIO_PREFS_VOICE_KEY, v);
-  } catch {
-    /* ignore */
-  }
-});
-watch(audioRate, (v) => {
-  try {
-    localStorage.setItem(AUDIO_PREFS_RATE_KEY, String(v));
-  } catch {
-    /* ignore */
-  }
-});
-watch(audioAutoRead, (v) => {
-  try {
-    localStorage.setItem(AUDIO_PREFS_AUTOREAD_KEY, v ? '1' : '0');
-  } catch {
-    /* ignore */
-  }
+const audioPreferences = useAudioPreferences({
+  voiceKey: AUDIO_PREFS_VOICE_KEY,
+  rateKey: AUDIO_PREFS_RATE_KEY,
+  autoReadKey: AUDIO_PREFS_AUTOREAD_KEY,
 });
 
 /** PersonalizeDialog 渲染所需的 view-model（轻量 voices 列表，避免传引用）。 */
 const audioPrefs = computed(() => ({
   supported: tts.supported.value,
-  voice: audioVoice.value,
-  rate: audioRate.value,
-  autoRead: audioAutoRead.value,
+  voice: audioPreferences.voice.value,
+  rate: audioPreferences.rate.value,
+  autoRead: audioPreferences.autoRead.value,
   voices: tts.voices.value.map((v) => ({
     voiceURI: v.voiceURI,
     name: v.name,
     lang: v.lang,
   })),
 }));
+watch(personalizeOpen, (open) => {
+  if (open) tts.refreshVoices();
+});
 function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
-  if (patch.voice !== undefined) audioVoice.value = patch.voice;
-  if (patch.rate !== undefined) audioRate.value = patch.rate;
-  if (patch.autoRead !== undefined) audioAutoRead.value = patch.autoRead;
+  audioPreferences.update(patch);
 }
 
 function ttsToggleCurrent() {
@@ -2352,8 +2327,8 @@ function ttsToggleCurrent() {
   const text = m.contentArchive ?? m.content;
   closeMsgCtxMenu();
   tts.toggleMessage(text, idx, {
-    voice: audioVoice.value || undefined,
-    rate: audioRate.value,
+    voice: audioPreferences.voice.value || undefined,
+    rate: audioPreferences.rate.value,
   });
 }
 function ttsPauseToggle() {
@@ -2486,7 +2461,7 @@ function onCompareClearSet() {
  * 自动朗读（受 audioAutoRead 偏好门控）。可手动 toggleMessage 取消。
  */
 watch(loading, (now, prev) => {
-  if (!audioAutoRead.value && !voiceConversationActive.value) return;
+  if (!audioPreferences.autoRead.value && !voiceConversationActive.value) return;
   if (prev !== true || now !== false) return;
   if (!tts.supported.value) return;
   const idx = messages.value.length - 1;
@@ -2497,8 +2472,8 @@ watch(loading, (now, prev) => {
   if (!text) return;
   void tts.speak(text, {
     messageIndex: idx,
-    voice: audioVoice.value || undefined,
-    rate: audioRate.value,
+    voice: audioPreferences.voice.value || undefined,
+    rate: audioPreferences.rate.value,
   });
 });
 
@@ -2562,6 +2537,15 @@ const virtualScroll = useMessageVirtualScroll({
 const virtualSliceForList = computed(() =>
   virtualScrollOption.value ? virtualScroll.window.value : null,
 );
+
+function onVirtualMeasureHeight(index: number, height: number) {
+  const delta = virtualScroll.updateMeasuredHeight(index, height);
+  const slice = virtualScroll.window.value;
+  const el = bodyRef.value;
+  if (!delta || !slice.enabled || !el || index >= slice.startIndex) return;
+  el.scrollTop += delta;
+  virtualScrollTop.value = el.scrollTop;
+}
 
 let virtualScrollRaf = 0;
 function onBodyScrollForVirtual() {
@@ -2837,7 +2821,7 @@ function applyPromptTemplate(tpl: PromptTemplate) {
   }
   let text = tpl.template;
   for (const [k, val] of Object.entries(values)) {
-    text = text.replaceAll(`{{${k}}}`, val);
+    text = text.split(`{{${k}}}`).join(val);
   }
   input.value = text;
   setMode('chat');
@@ -3267,6 +3251,9 @@ const bottomTransientsActive = computed(
     !!exportToastText.value ||
     (pageSel.value.show && !isOpen.value) ||
     inlineTranslatePopover.value.show,
+);
+const inlineOverlaysActive = computed(
+  () => memoryOpen.value || kbPanelOpen.value || pluginsPanelOpen.value,
 );
 const fabLayoutStyle = computed(() => {
   const base = fabStyle.value;
@@ -4260,4 +4247,5 @@ onUnmounted(() => {
 <style src="./styles/10-polish-wave-6.css"></style>
 <style src="./styles/11-refinement-and-performance.css"></style>
 <style src="./styles/12-extreme-performance.css"></style>
+<style src="./styles/13-containment.css"></style>
 <style src="./styles/99-enterprise-overhaul.css"></style>

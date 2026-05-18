@@ -110,8 +110,10 @@ export function useTextToSpeech() {
   const voices = ref<SpeechSynthesisVoice[]>([]);
   let voicesListener: (() => void) | null = null;
   let voicesReadyTimer: number | null = null;
+  let voicesWatching = false;
 
   function refreshVoices() {
+    ensureVoicesWatching();
     if (!supported.value) return;
     try {
       voices.value = window.speechSynthesis.getVoices() ?? [];
@@ -119,8 +121,9 @@ export function useTextToSpeech() {
       /* ignore */
     }
   }
-  if (supported.value) {
-    refreshVoices();
+  function ensureVoicesWatching() {
+    if (voicesWatching || !supported.value) return;
+    voicesWatching = true;
     voicesListener = () => refreshVoices();
     try {
       window.speechSynthesis.addEventListener('voiceschanged', voicesListener);
@@ -130,6 +133,7 @@ export function useTextToSpeech() {
   }
 
   function ensureVoicesLoaded(synth: SpeechSynthesis): Promise<void> {
+    ensureVoicesWatching();
     if (synth.getVoices().length > 0) return Promise.resolve();
     return new Promise((resolve) => {
       const cleanup = () => {
@@ -153,6 +157,7 @@ export function useTextToSpeech() {
 
   async function speak(rawText: string, opts: TtsSpeakOptions = {}) {
     if (!supported.value) return;
+    ensureVoicesWatching();
     const text = stripMarkdownForSpeech(rawText).slice(0, MAX_TTS_CHARS);
     if (!text) return;
     stop();

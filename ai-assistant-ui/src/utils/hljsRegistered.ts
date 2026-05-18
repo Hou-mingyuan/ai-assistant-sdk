@@ -10,7 +10,6 @@ import python from 'highlight.js/lib/languages/python';
 import bash from 'highlight.js/lib/languages/bash';
 import shell from 'highlight.js/lib/languages/shell';
 import xml from 'highlight.js/lib/languages/xml';
-import sql from 'highlight.js/lib/languages/sql';
 
 hljs.registerLanguage('javascript', javascript);
 hljs.registerAliases(['js'], { languageName: 'javascript' });
@@ -24,8 +23,6 @@ hljs.registerLanguage('shell', shell);
 hljs.registerAliases(['sh', 'zsh'], { languageName: 'shell' });
 hljs.registerLanguage('xml', xml);
 hljs.registerAliases(['html', 'xhtml'], { languageName: 'xml' });
-hljs.registerLanguage('sql', sql);
-
 type LangLoader = () => Promise<{ default: Parameters<typeof hljs.registerLanguage>[1] }>;
 
 const extendedLangs: Record<string, { loader: LangLoader; aliases?: string[] }> = {
@@ -42,6 +39,7 @@ const extendedLangs: Record<string, { loader: LangLoader; aliases?: string[] }> 
   yaml: { loader: () => import('highlight.js/lib/languages/yaml'), aliases: ['yml'] },
   css: { loader: () => import('highlight.js/lib/languages/css'), aliases: ['scss', 'less'] },
   markdown: { loader: () => import('highlight.js/lib/languages/markdown'), aliases: ['md', 'mkd'] },
+  sql: { loader: () => import('highlight.js/lib/languages/sql') },
 };
 
 const aliasMap = new Map<string, string>();

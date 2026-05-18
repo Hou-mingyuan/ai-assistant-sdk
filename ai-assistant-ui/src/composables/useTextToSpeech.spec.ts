@@ -145,6 +145,8 @@ describe('useTextToSpeech', () => {
 
   it('K37: exposes loaded voices to UI consumers (PersonalizeDialog)', () => {
     const { api, unmount } = mountWithTts();
+    expect(api.voices.value).toHaveLength(0);
+    api.refreshVoices();
     expect(api.voices.value).toHaveLength(2);
     expect(api.voices.value[0]?.lang).toBe('zh-CN');
     expect(api.voices.value[1]?.lang).toBe('en-US');

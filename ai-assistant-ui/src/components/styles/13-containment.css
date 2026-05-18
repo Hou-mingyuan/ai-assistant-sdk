@@ -1,0 +1,40 @@
+/* ============================================================================
+ * 13-containment.css
+ * ---------------------------------------------------------------------------
+ * Layout / paint containment for expensive long-conversation and overlay
+ * regions. Kept separate from 99-enterprise-overhaul.css so performance-only
+ * rules do not keep expanding the visual override layer.
+ * ============================================================================
+ */
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-messages,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-message-list {
+  contain: layout paint;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 92px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.ai-msg-streaming,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:focus-within,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg:hover {
+  content-visibility: visible;
+}
+
+.ai-personalize-overlay,
+.ai-memory-overlay,
+.ai-kb-picker-shell,
+.ai-form-fill-toast,
+.ai-msg-ctx-menu,
+.ai-fab-ctx-menu {
+  contain: layout paint style;
+}
+
+.ai-personalize-dialog,
+.ai-diagnostics-dialog,
+.ai-form-fill-dialog,
+.ai-kb-picker-card {
+  contain: layout paint;
+}

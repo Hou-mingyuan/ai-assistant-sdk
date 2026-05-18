@@ -262,7 +262,7 @@
       <pre v-if="tableInspectJson" class="formfill-inspect">{{ tableInspectJson }}</pre>
     </section>
 
-    <CommandPalette v-model:open="cmd.open.value" :commands="cmd.commands.value" />
+    <CommandPalette v-if="cmd.open.value" v-model:open="cmd.open.value" :commands="cmd.commands.value" />
 
     <!-- K32: K24 onReaction visualisation. Stacks at the bottom-left when
          the user clicks a reaction emoji under an assistant message, so the
@@ -291,11 +291,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { defineAsyncComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import AdminDemoPanel from './AdminDemoPanel.vue';
-import CommandPalette from '../../ai-assistant-ui/src/components/CommandPalette.vue';
 import ColorThemeSwitcher from '../../ai-assistant-ui/src/components/ColorThemeSwitcher.vue';
 import { useCommandPalette } from '../../ai-assistant-ui/src/composables/useCommandPalette';
+
+const CommandPalette = defineAsyncComponent(() => import('../../ai-assistant-ui/src/components/CommandPalette.vue'));
 
 /* K16 demo wiring: Color theme switcher controls the playground primary color
  * via CSS variable update; useCommandPalette registers two demo commands. */
@@ -343,28 +344,36 @@ const cmd = useCommandPalette({
       label: '主题: Sky',
       group: '主题',
       icon: '🩵',
-      action: () => (theme.value = 'sky'),
+      action: () => {
+        theme.value = 'sky';
+      },
     },
     {
       id: 'theme-sunset',
       label: '主题: Sunset',
       group: '主题',
       icon: '🌅',
-      action: () => (theme.value = 'sunset'),
+      action: () => {
+        theme.value = 'sunset';
+      },
     },
     {
       id: 'theme-forest',
       label: '主题: Forest',
       group: '主题',
       icon: '🌲',
-      action: () => (theme.value = 'forest'),
+      action: () => {
+        theme.value = 'forest';
+      },
     },
     {
       id: 'theme-plum',
       label: '主题: Plum',
       group: '主题',
       icon: '🫐',
-      action: () => (theme.value = 'plum'),
+      action: () => {
+        theme.value = 'plum';
+      },
     },
     {
       id: 'open-github',
@@ -372,7 +381,9 @@ const cmd = useCommandPalette({
       group: '外链',
       icon: '🔗',
       keywords: ['github', 'repo'],
-      action: () => window.open('https://github.com/Hou-mingyuan/ai-assistant-sdk', '_blank'),
+      action: () => {
+        window.open('https://github.com/Hou-mingyuan/ai-assistant-sdk', '_blank');
+      },
     },
     {
       id: 'open-docs',
@@ -380,7 +391,9 @@ const cmd = useCommandPalette({
       group: '外链',
       icon: '📖',
       keywords: ['docs', 'guide'],
-      action: () => window.open('http://localhost:5174', '_blank'),
+      action: () => {
+        window.open('http://localhost:5174', '_blank');
+      },
     },
   ],
 });

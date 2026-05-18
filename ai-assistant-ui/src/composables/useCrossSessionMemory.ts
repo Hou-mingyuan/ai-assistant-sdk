@@ -21,8 +21,11 @@ function genId(): string {
 
 export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
   const items = ref<MemoryItem[]>([]);
+  let loaded = false;
 
   function load() {
+    if (loaded) return;
+    loaded = true;
     if (typeof window === 'undefined') return;
     try {
       const raw = localStorage.getItem(storageKey);
@@ -45,6 +48,7 @@ export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
   }
 
   function save() {
+    load();
     try {
       localStorage.setItem(storageKey, JSON.stringify(items.value.slice(0, MAX_ITEMS)));
     } catch {
@@ -53,6 +57,7 @@ export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
   }
 
   function addItem(text: string, source: 'manual' | 'auto' = 'manual'): MemoryItem {
+    load();
     const trimmed = text.trim();
     const existing = items.value.find((m) => m.text === trimmed);
     if (existing) return existing;
@@ -67,11 +72,13 @@ export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
   }
 
   function removeItem(id: string) {
+    load();
     items.value = items.value.filter((m) => m.id !== id);
     save();
   }
 
   function clearAll() {
+    load();
     items.value = [];
     save();
   }
@@ -81,6 +88,7 @@ export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
    * respecting a character budget.
    */
   const memoryPromptFragment = computed(() => {
+    load();
     if (items.value.length === 0) return '';
     let budget = MAX_CHAR_BUDGET;
     const lines: string[] = [];
@@ -93,8 +101,6 @@ export function useCrossSessionMemory(storageKey = STORAGE_KEY) {
     if (lines.length === 0) return '';
     return `[User Memory]\nThe following are facts/preferences the user wants you to remember across conversations:\n${lines.join('\n')}\n`;
   });
-
-  load();
 
   return {
     items,

@@ -29,8 +29,11 @@ function genId(): string {
 
 export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   const bases = ref<KnowledgeBase[]>([]);
+  let loaded = false;
 
   function load() {
+    if (loaded) return;
+    loaded = true;
     if (typeof window === 'undefined') return;
     try {
       const raw = localStorage.getItem(storageKey);
@@ -45,6 +48,7 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   function save() {
+    load();
     try {
       localStorage.setItem(storageKey, JSON.stringify(bases.value.slice(0, MAX_BASES)));
     } catch {
@@ -53,6 +57,7 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   function createBase(name: string): KnowledgeBase {
+    load();
     const kb: KnowledgeBase = {
       id: genId(),
       name: name.trim() || `知识库 ${bases.value.length + 1}`,
@@ -66,11 +71,13 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   function deleteBase(id: string) {
+    load();
     bases.value = bases.value.filter((b) => b.id !== id);
     save();
   }
 
   function toggleBase(id: string) {
+    load();
     const b = bases.value.find((kb) => kb.id === id);
     if (b) {
       b.enabled = !b.enabled;
@@ -79,6 +86,7 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   function addDoc(baseId: string, file: File): KnowledgeDoc {
+    load();
     const doc: KnowledgeDoc = {
       id: genId(),
       name: file.name,
@@ -96,6 +104,7 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
   }
 
   function removeDoc(baseId: string, docId: string) {
+    load();
     const b = bases.value.find((kb) => kb.id === baseId);
     if (b) {
       b.docs = b.docs.filter((d) => d.id !== docId);
@@ -105,6 +114,7 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
 
   function simulateIndexing(baseId: string, docId: string) {
     setTimeout(() => {
+      load();
       const b = bases.value.find((kb) => kb.id === baseId);
       const d = b?.docs.find((doc) => doc.id === docId);
       if (d && d.status === 'uploading') {
@@ -120,19 +130,18 @@ export function useKnowledgeBase(storageKey = STORAGE_KEY) {
     }, 1000);
   }
 
-  const enabledBaseNames = computed(() =>
-    bases.value
+  const enabledBaseNames = computed(() => {
+    load();
+    return bases.value
       .filter((b) => b.enabled && b.docs.some((d) => d.status === 'ready'))
-      .map((b) => b.name),
-  );
+      .map((b) => b.name);
+  });
 
   const ragPromptFragment = computed(() => {
     const enabled = enabledBaseNames.value;
     if (enabled.length === 0) return '';
     return `[Knowledge Bases Active]\nThe following knowledge bases are enabled for RAG retrieval: ${enabled.join(', ')}\nPlease reference relevant documents when answering.\n`;
   });
-
-  load();
 
   return {
     bases,

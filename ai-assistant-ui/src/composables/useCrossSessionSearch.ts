@@ -20,7 +20,15 @@
  *   1000 条 session × 50 条 msg × 200 char content ≈ 10MB 字符串扫描，
  *   在 chrome 上 < 5ms，单次输入足够 ride debounce。
  */
-import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from 'vue';
+import {
+  computed,
+  getCurrentInstance,
+  onUnmounted,
+  ref,
+  watch,
+  type ComputedRef,
+  type Ref,
+} from 'vue';
 
 export interface CrossSessionSearchMessageView {
   role: 'user' | 'assistant';
@@ -128,12 +136,13 @@ export function useCrossSessionSearch(
     },
     { immediate: true },
   );
-  onUnmounted(() => {
+  const cleanup = () => {
     if (timer != null) {
       clearTimeout(timer);
       timer = null;
     }
-  });
+  };
+  if (getCurrentInstance()) onUnmounted(cleanup);
 
   const effectiveQuery = computed(() => debouncedQuery.value.trim());
 

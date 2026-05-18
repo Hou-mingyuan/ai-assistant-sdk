@@ -78,6 +78,42 @@ describe('useMessageVirtualScroll', () => {
     expect(vs.totalHeight.value).toBe(5750);
   });
 
+  it('returns the measured height delta for scroll anchor compensation', () => {
+    const messageCount = ref(100);
+    const viewportHeight = ref(300);
+    const scrollTop = ref(500);
+    const vs = useMessageVirtualScroll({
+      messageCount,
+      viewportHeight,
+      scrollTop,
+      estimatedItemHeight: 50,
+      minActivationCount: 10,
+    });
+
+    expect(vs.updateMeasuredHeight(2, 80)).toBe(30);
+    expect(vs.updateMeasuredHeight(2, 110)).toBe(30);
+    expect(vs.updateMeasuredHeight(2, 110)).toBe(0);
+  });
+
+  it('drops measured heights beyond the current message count when sessions shrink', () => {
+    const messageCount = ref(100);
+    const viewportHeight = ref(300);
+    const scrollTop = ref(0);
+    const vs = useMessageVirtualScroll({
+      messageCount,
+      viewportHeight,
+      scrollTop,
+      estimatedItemHeight: 50,
+      minActivationCount: 10,
+    });
+    vs.updateMeasuredHeight(90, 500);
+    expect(vs.totalHeight.value).toBe(5450);
+
+    messageCount.value = 20;
+
+    expect(vs.totalHeight.value).toBe(1000);
+  });
+
   it('clearMeasured wipes the measurement cache', () => {
     const messageCount = ref(80);
     const viewportHeight = ref(300);
