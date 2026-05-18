@@ -25,6 +25,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const { options, t, showModelPicker, selectedModelStorageKey, pendingTimers } = opts;
 
   const modelChoices = ref<string[]>([]);
+  const modelCapabilities = ref<Record<string, string[]>>({});
   const selectedChatModel = ref('');
   const defaultChatModel = ref('');
   const diagnosticsOpen = ref(false);
@@ -117,6 +118,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
 
   async function refreshChatModels() {
     modelChoices.value = [];
+    modelCapabilities.value = {};
     selectedChatModel.value = '';
     defaultChatModel.value = '';
     modelListStatus.value = '';
@@ -134,6 +136,11 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
         return;
       }
       modelChoices.value = r.models;
+      modelCapabilities.value = Object.fromEntries(
+        (r.modelDetails ?? [])
+          .filter((detail) => detail.id && Array.isArray(detail.capabilities))
+          .map((detail) => [detail.id, detail.capabilities ?? []]),
+      );
       const def =
         r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0];
       defaultChatModel.value = def;
@@ -261,6 +268,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
 
   return {
     modelChoices,
+    modelCapabilities,
     selectedChatModel,
     defaultChatModel,
     diagnosticsOpen,

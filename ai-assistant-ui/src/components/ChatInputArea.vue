@@ -137,6 +137,7 @@
       :selected-model="selectedModel"
       :default-model="defaultModel"
       :model-choices="modelChoices"
+      :model-capabilities="modelCapabilities"
       :model-list-message="modelListMessage"
       :model-status-text="modelStatusText"
       :model-status-kind="modelStatusKind"
@@ -227,6 +228,7 @@ const props = withDefaults(
     selectedModel: string;
     defaultModel: string;
     modelChoices: string[];
+    modelCapabilities?: Record<string, string[]>;
     modelListMessage: string;
     modelStatusText: string;
     modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
@@ -272,6 +274,7 @@ const props = withDefaults(
     modelStatusText: '',
     modelStatusKind: 'offline',
     defaultModel: '',
+    modelCapabilities: () => ({}),
     charLimitWarningText: '',
     sendBlockedReason: '',
     sendBlockedActionLabel: '',
@@ -320,8 +323,10 @@ const emit = defineEmits<{
 const fileInputRef = ref<HTMLInputElement>();
 const advancedToolsOpen = ref(false);
 const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowerCase());
-const selectedModelLooksVisionCapable = computed(() =>
-  isLikelyVisionModel(selectedModelNormalized.value),
+const selectedModelLooksVisionCapable = computed(
+  () =>
+    modelHasCapability(props.selectedModel, 'vision') ||
+    isLikelyVisionModel(selectedModelNormalized.value),
 );
 const imageRiskVisible = computed(
   () =>
@@ -345,8 +350,13 @@ function isLikelyVisionModel(model: string) {
   if (!model) return false;
   return (
     /(?:^|[-_:./])(?:vl|vision|visual|image|multimodal|omni)(?:[-_:./]|$)/i.test(model) ||
-    /gpt-4o|gemini|pixtral|llava|qwen.*vl|claude-(?:3|4)/i.test(model)
+    /gpt-4o|gemini|pixtral|llava|qwen.*vl|minimax-m2\.\d+|claude-(?:3|4)/i.test(model)
   );
+}
+
+function modelHasCapability(model: string, capability: string) {
+  const caps = props.modelCapabilities?.[model] ?? props.modelCapabilities?.[model.trim()];
+  return caps?.some((cap) => cap.toLowerCase() === capability.toLowerCase()) ?? false;
 }
 
 function onFileChange(e: Event) {

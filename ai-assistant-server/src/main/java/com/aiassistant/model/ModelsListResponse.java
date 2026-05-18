@@ -8,12 +8,19 @@ public class ModelsListResponse {
     private boolean success = true;
     private List<String> models;
     private String defaultModel;
+    private List<ModelDetail> modelDetails;
 
-    public static ModelsListResponse ok(List<String> models, String defaultModel) {
+    public static ModelsListResponse ok(
+            List<String> models, String defaultModel, List<ModelDetail> modelDetails) {
         ModelsListResponse r = new ModelsListResponse();
         r.models = models;
         r.defaultModel = defaultModel;
+        r.modelDetails = modelDetails;
         return r;
+    }
+
+    public static ModelsListResponse ok(List<String> models, String defaultModel) {
+        return ok(models, defaultModel, List.of());
     }
 
     public boolean isSuccess() {
@@ -38,5 +45,61 @@ public class ModelsListResponse {
 
     public void setDefaultModel(String defaultModel) {
         this.defaultModel = defaultModel;
+    }
+
+    public List<ModelDetail> getModelDetails() {
+        return modelDetails;
+    }
+
+    public void setModelDetails(List<ModelDetail> modelDetails) {
+        this.modelDetails = modelDetails;
+    }
+
+    public static class ModelDetail {
+        private String id;
+        private List<String> capabilities;
+        private String source;
+        private String updatedAt;
+
+        public ModelDetail() {}
+
+        public ModelDetail(String id, List<String> capabilities, String source, String updatedAt) {
+            this.id = id;
+            this.capabilities = capabilities;
+            this.source = source;
+            this.updatedAt = updatedAt;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public List<String> getCapabilities() {
+            return capabilities;
+        }
+
+        public void setCapabilities(List<String> capabilities) {
+            this.capabilities = capabilities;
+        }
+
+        public String getSource() {
+            return source;
+        }
+
+        public void setSource(String source) {
+            this.source = source;
+        }
+
+        public String getUpdatedAt() {
+            return updatedAt;
+        }
+
+        public void setUpdatedAt(String updatedAt) {
+            this.updatedAt = updatedAt;
+        }
     }
 }

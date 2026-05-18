@@ -100,6 +100,30 @@ describe('fetchModels', () => {
     expect(res.models).toHaveLength(2);
   });
 
+  it('keeps model capability details from the models endpoint', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          success: true,
+          models: ['company-router'],
+          defaultModel: 'company-router',
+          modelDetails: [
+            {
+              id: 'company-router',
+              capabilities: ['text', 'vision', 'tools'],
+              source: 'registry',
+              updatedAt: '2026-05-18T00:00:00Z',
+            },
+          ],
+        }),
+    });
+
+    const res = await fetchModels('/ai');
+
+    expect(res.modelDetails?.[0].capabilities).toContain('vision');
+  });
+
   it('returns error on failure', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' });
     const res = await fetchModels('/ai');

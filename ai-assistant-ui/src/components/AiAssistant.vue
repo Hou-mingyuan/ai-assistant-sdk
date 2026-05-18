@@ -468,6 +468,7 @@
           :selected-model="selectedChatModel"
           :default-model="defaultChatModel"
           :model-choices="modelChoices"
+          :model-capabilities="modelCapabilities"
           :model-list-message="modelListMessage"
           :model-status-text="modelStatusText"
           :model-status-kind="modelStatusKind"
@@ -1622,6 +1623,7 @@ const assistantDiagnostics = useAssistantDiagnostics({
 });
 const {
   modelChoices,
+  modelCapabilities,
   selectedChatModel,
   defaultChatModel,
   diagnosticsOpen,
@@ -3619,6 +3621,7 @@ const {
   chatSystemPrompt,
   selectedChatModel,
   modelChoices,
+  modelCapabilities,
   pendingImageDataList,
   pendingImageThumbs,
   options,

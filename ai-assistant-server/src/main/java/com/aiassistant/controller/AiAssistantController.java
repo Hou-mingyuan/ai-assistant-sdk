@@ -4,6 +4,7 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.ChatInputLimits;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.model.ChatResponse;
+import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.model.ModelsListResponse;
 import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.service.LlmService;
@@ -37,16 +38,19 @@ public class AiAssistantController {
     private final UsageStats usageStats;
     private final UrlFetchService urlFetchService;
     private final AiAssistantProperties assistantProperties;
+    private final ModelCapabilityRegistry modelCapabilityRegistry;
 
     public AiAssistantController(
             LlmService llmService,
             UsageStats usageStats,
             UrlFetchService urlFetchService,
-            AiAssistantProperties assistantProperties) {
+            AiAssistantProperties assistantProperties,
+            ModelCapabilityRegistry modelCapabilityRegistry) {
         this.llmService = llmService;
         this.usageStats = usageStats;
         this.urlFetchService = urlFetchService;
         this.assistantProperties = assistantProperties;
+        this.modelCapabilityRegistry = modelCapabilityRegistry;
     }
 
     @io.swagger.v3.oas.annotations.Operation(
@@ -206,8 +210,11 @@ public class AiAssistantController {
                             + "falls back to the single default model when not configured.")
     @GetMapping("/models")
     public ModelsListResponse listModels() {
+        var models = assistantProperties.listModelsForClient();
         return ModelsListResponse.ok(
-                assistantProperties.listModelsForClient(), assistantProperties.resolveModel());
+                models,
+                assistantProperties.resolveModel(),
+                modelCapabilityRegistry.describeAll(assistantProperties.getProvider(), models));
     }
 
     @io.swagger.v3.oas.annotations.Operation(

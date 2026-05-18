@@ -32,6 +32,7 @@ import {
 } from '../types/message';
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
+import { captureScreenshot } from '../utils/pageScreenshot';
 import {
   collectPageSnapshotMarkdown,
   isDirectPageSnapshotRequest,
@@ -45,11 +46,14 @@ const DEFAULT_VISION_MODEL_PATTERNS: RegExp[] = [
   /claude-(?:3|4|opus|sonnet)/i,
   /gemini-(?:1\.5|2|2\.5|pro|flash)/i,
   /qwen.*-?vl/i,
+  /minimax-m2\.\d+/i,
   /llava/i,
   /pixtral/i,
   /vision/i,
 ];
 const STREAM_FLUSH_MIN_INTERVAL_MS = 48;
+
+type ScreenshotCaptureResult = { type: 'image'; data: string } | { type: 'text'; data: string };
 
 export function isVisionCapableModel(model: string, extraPatterns: RegExp[] = []): boolean {
   const normalized = model.trim();
@@ -67,6 +71,20 @@ export function shouldWarnForVisionModel(
   if (!hasImageAttachment) return false;
   if (!model.trim()) return false;
   return !isVisionCapableModel(model, extraPatterns);
+}
+
+export function isScreenshotAnalysisRequest(text: string): boolean {
+  const normalized = text.trim();
+  if (!normalized) return false;
+  const asksForVisualInput =
+    /截图|截屏|屏幕|画面|视觉|图片|图像|照片|screenshot|screen|visual|image|picture/i.test(
+      normalized,
+    );
+  const asksForAnalysis =
+    /分析|识别|看看|看一下|看下|有什么|内容|描述|理解|analy[sz]e|describe|understand|what/i.test(
+      normalized,
+    );
+  return asksForVisualInput && asksForAnalysis;
 }
 
 /** Brace / bracket balance counter shared by {@link stripInternalToolTrace}. */
@@ -200,6 +218,8 @@ export interface UseSendStreamDeps {
   selectedChatModel: Ref<string>;
   /** Allowed-model whitelist; used to validate `selectedChatModel`. */
   modelChoices: Ref<string[]>;
+  /** Optional server-provided model capability map keyed by model id. */
+  modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
   pendingImageDataList: Ref<string[]>;
   /** Pending image thumbnail previews for message history rendering. */
@@ -255,6 +275,8 @@ export interface UseSendStreamDeps {
   getStreamStoppedByUser: () => boolean;
   /** Set the stop flag (true on user-stop, false on each new send). */
   setStreamStoppedByUser: (stopped: boolean) => void;
+  /** Optional override for tests/hosts; defaults to capturing the current document. */
+  captureScreenshotForAnalysis?: () => Promise<ScreenshotCaptureResult>;
   /** Cross-session memory fragment to prepend to systemPrompt. */
   memoryPromptFragment?: Ref<string>;
   /**
@@ -441,7 +463,11 @@ export function useSendStream(deps: UseSendStreamDeps) {
     const mid = deps.selectedChatModel.value.trim();
     if (mid && deps.modelChoices.value.includes(mid)) {
       payload.model = mid;
-      if (shouldWarnForVisionModel(mid, hasImageAttachment, deps.options.visionCapableModels)) {
+      const hasServerVisionCapability = modelHasCapability(mid, 'vision');
+      if (
+        !hasServerVisionCapability &&
+        shouldWarnForVisionModel(mid, hasImageAttachment, deps.options.visionCapableModels)
+      ) {
         deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
       }
     }
@@ -451,6 +477,12 @@ export function useSendStream(deps: UseSendStreamDeps) {
         content: m.contentArchive ?? m.content,
       }));
     }
+  }
+
+  function modelHasCapability(model: string, capability: string) {
+    const caps =
+      deps.modelCapabilities?.value[model] ?? deps.modelCapabilities?.value[model.trim()] ?? [];
+    return caps.some((cap) => cap.toLowerCase() === capability.toLowerCase());
   }
 
   function applyPageContextPayloadOptions(payload: ChatPayload, text: string) {
@@ -475,6 +507,32 @@ export function useSendStream(deps: UseSendStreamDeps) {
       });
     }
     if (ctx) payload.pageContext = ctx;
+  }
+
+  function attachTextContext(payload: ChatPayload, ctx: string) {
+    const clean = ctx.trim();
+    if (!clean) return;
+    payload.pageContext = [payload.pageContext, `# 当前页面截图文本回退\n${clean}`]
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  async function prepareAutomaticScreenshotForVisualRequest(text: string): Promise<string> {
+    if (!isScreenshotAnalysisRequest(text)) return '';
+    if (deps.pendingImageDataList.value.some(Boolean)) return '';
+    const capture = deps.captureScreenshotForAnalysis ?? (() => captureScreenshot());
+    let result: ScreenshotCaptureResult;
+    try {
+      result = await capture();
+    } catch {
+      return '';
+    }
+    if (result.type === 'image' && result.data) {
+      deps.pendingImageDataList.value = [result.data];
+      deps.pendingImageThumbs.value = [result.data];
+      return '';
+    }
+    return result.data || '';
   }
 
   function completeLocalPageSnapshot(text: string): boolean {
@@ -671,7 +729,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
     const text = normalizeUserTextForSend();
     if (!text) return;
+    const autoScreenshotTextContext = await prepareAutomaticScreenshotForVisualRequest(text);
     const { payload, requestStartedAt, userMsgIdx, msgIndex } = prepareSendRequest(text);
+    attachTextContext(payload, autoScreenshotTextContext);
     let urlPreviewImgs: string[] = [];
     let streamDone = false;
 

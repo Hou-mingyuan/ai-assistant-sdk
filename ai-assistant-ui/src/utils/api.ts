@@ -10,7 +10,15 @@ export interface ModelsListResult {
   success: boolean;
   models?: string[];
   defaultModel?: string;
+  modelDetails?: ModelDetail[];
   error?: string;
+}
+
+export interface ModelDetail {
+  id: string;
+  capabilities?: string[];
+  source?: string;
+  updatedAt?: string;
 }
 
 export type ChatResult = ApiSchemas['ChatResponse'];

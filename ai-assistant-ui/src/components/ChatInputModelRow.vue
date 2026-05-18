@@ -148,6 +148,7 @@ const props = defineProps<{
   selectedModel: string;
   defaultModel: string;
   modelChoices: string[];
+  modelCapabilities?: Record<string, string[]>;
   modelListMessage: string;
   modelStatusText: string;
   modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
@@ -185,9 +186,22 @@ const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowe
 const modelCapabilityTags = computed(() => {
   if (!props.selectedModel.trim()) return [];
   const tags = [props.t.modelCapabilityText];
-  if (isLikelyVisionModel(selectedModelNormalized.value)) tags.push(props.t.modelCapabilityVision);
-  if (isLikelyToolModel(selectedModelNormalized.value)) tags.push(props.t.modelCapabilityTools);
-  if (isLikelyLongContextModel(selectedModelNormalized.value)) {
+  if (
+    modelHasCapability(props.selectedModel, 'vision') ||
+    isLikelyVisionModel(selectedModelNormalized.value)
+  ) {
+    tags.push(props.t.modelCapabilityVision);
+  }
+  if (
+    modelHasCapability(props.selectedModel, 'tools') ||
+    isLikelyToolModel(selectedModelNormalized.value)
+  ) {
+    tags.push(props.t.modelCapabilityTools);
+  }
+  if (
+    modelHasCapability(props.selectedModel, 'longContext') ||
+    isLikelyLongContextModel(selectedModelNormalized.value)
+  ) {
     tags.push(props.t.modelCapabilityLongContext);
   }
   return tags;
@@ -209,7 +223,7 @@ function isLikelyVisionModel(model: string) {
   if (!model) return false;
   return (
     /(?:^|[-_:./])(?:vl|vision|visual|image|multimodal|omni)(?:[-_:./]|$)/i.test(model) ||
-    /gpt-4o|gemini|pixtral|llava|qwen.*vl|claude-(?:3|4)/i.test(model)
+    /gpt-4o|gemini|pixtral|llava|qwen.*vl|minimax-m2\.\d+|claude-(?:3|4)/i.test(model)
   );
 }
 
@@ -223,5 +237,10 @@ function isLikelyToolModel(model: string) {
 function isLikelyLongContextModel(model: string) {
   if (!model) return false;
   return /(?:32k|64k|100k|128k|200k|256k|1m|long|context)/i.test(model);
+}
+
+function modelHasCapability(model: string, capability: string) {
+  const caps = props.modelCapabilities?.[model] ?? props.modelCapabilities?.[model.trim()];
+  return caps?.some((cap) => cap.toLowerCase() === capability.toLowerCase()) ?? false;
 }
 </script>

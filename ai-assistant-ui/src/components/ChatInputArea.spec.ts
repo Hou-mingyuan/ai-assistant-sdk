@@ -290,6 +290,29 @@ describe('ChatInputArea (K44)', () => {
       expect(w.find('.ai-model-risk').exists()).toBe(false);
       w.unmount();
     });
+
+    it('treats MiniMax-M2.7 as vision-capable for image prompts', () => {
+      const w = mountInput({
+        selectedModel: 'MiniMax-M2.7',
+        pendingImageThumbs: ['data:image/png;base64,thumb'],
+      });
+
+      expect(w.text()).toContain('Vision');
+      expect(w.find('.ai-model-risk').exists()).toBe(false);
+      w.unmount();
+    });
+
+    it('trusts server-provided model capability details for opaque router names', () => {
+      const w = mountInput({
+        selectedModel: 'company-router',
+        modelCapabilities: { 'company-router': ['text', 'vision', 'tools'] },
+        pendingImageThumbs: ['data:image/png;base64,thumb'],
+      });
+
+      expect(w.text()).toContain('Vision');
+      expect(w.find('.ai-model-risk').exists()).toBe(false);
+      w.unmount();
+    });
   });
 
   describe('Input length risk', () => {

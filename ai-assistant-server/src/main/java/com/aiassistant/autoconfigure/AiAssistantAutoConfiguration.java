@@ -19,6 +19,7 @@ import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.RuntimeConfigController;
 import com.aiassistant.controller.SessionController;
 import com.aiassistant.controller.StatsController;
+import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.service.AssistantExportService;
 import com.aiassistant.service.FileParserService;
 import com.aiassistant.service.LlmService;
@@ -311,13 +312,24 @@ public class AiAssistantAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public ModelCapabilityRegistry modelCapabilityRegistry() {
+        return new ModelCapabilityRegistry();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public AiAssistantController aiAssistantController(
             LlmService llmService,
             UsageStats usageStats,
             UrlFetchService urlFetchService,
-            AiAssistantProperties assistantProperties) {
+            AiAssistantProperties assistantProperties,
+            ModelCapabilityRegistry modelCapabilityRegistry) {
         return new AiAssistantController(
-                llmService, usageStats, urlFetchService, assistantProperties);
+                llmService,
+                usageStats,
+                urlFetchService,
+                assistantProperties,
+                modelCapabilityRegistry);
     }
 
     @Bean

@@ -189,6 +189,7 @@ describe('vision model guard', () => {
     expect(isVisionCapableModel('claude-3-5-sonnet-latest')).toBe(true);
     expect(isVisionCapableModel('gemini-2.5-pro')).toBe(true);
     expect(isVisionCapableModel('qwen2.5-vl')).toBe(true);
+    expect(isVisionCapableModel('MiniMax-M2.7')).toBe(true);
   });
 
   it('lets hosts extend the vision-capable pattern list', () => {
@@ -198,6 +199,7 @@ describe('vision model guard', () => {
   it('warns only when an attached image targets a known non-vision model', () => {
     expect(shouldWarnForVisionModel('gpt-3.5-turbo', true)).toBe(true);
     expect(shouldWarnForVisionModel('gpt-4o', true)).toBe(false);
+    expect(shouldWarnForVisionModel('MiniMax-M2.7', true)).toBe(false);
     expect(shouldWarnForVisionModel('', true)).toBe(false);
     expect(shouldWarnForVisionModel('gpt-3.5-turbo', false)).toBe(false);
   });
@@ -267,5 +269,123 @@ describe('useSendStream local page snapshot', () => {
     expect(messages.value[1].content).toContain('# 当前页面内容');
     expect(messages.value[1].content).toContain('- 客户姓名: 张三');
     expect(emitResponse).toHaveBeenCalledWith(expect.stringContaining('客户档案'));
+  });
+
+  it('attaches an automatic screenshot when the user asks for visual page analysis', async () => {
+    const messages = ref([]);
+    const input = ref('分析当前截图里有什么');
+    const loading = ref(false);
+    const streamWithFallback = vi.fn(async function* (_baseUrl, _payload) {
+      yield '截图中包含客户档案';
+    });
+    const captureScreenshotForAnalysis = vi
+      .fn()
+      .mockResolvedValue({ type: 'image', data: 'data:image/png;base64,shot' });
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref('MiniMax-M2.7'),
+      modelChoices: ref(['MiniMax-M2.7']),
+      pendingImageDataList: ref([]),
+      pendingImageThumbs: ref([]),
+      options: { baseUrl: '/ai-assistant' },
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview: vi.fn(),
+      extractHttpUrls: () => [],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: () => undefined,
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      scrollToBottom: vi.fn(),
+      playNotificationSound: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse: vi.fn(),
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+      captureScreenshotForAnalysis,
+    }).send;
+
+    await send();
+
+    expect(captureScreenshotForAnalysis).toHaveBeenCalled();
+    expect(streamWithFallback).toHaveBeenCalledWith(
+      '/ai-assistant',
+      expect.objectContaining({
+        model: 'MiniMax-M2.7',
+        imageData: 'data:image/png;base64,shot',
+        imageDataList: ['data:image/png;base64,shot'],
+      }),
+      undefined,
+      expect.any(AbortSignal),
+    );
+    expect(messages.value[0].imageThumbs).toEqual(['data:image/png;base64,shot']);
+  });
+
+  it('trusts server-provided vision capability details for opaque model names', async () => {
+    const messages = ref([]);
+    const input = ref('看一下这张图');
+    const loading = ref(false);
+    const notify = vi.fn();
+    const streamWithFallback = vi.fn(async function* () {
+      yield 'ok';
+    });
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref('company-router'),
+      modelChoices: ref(['company-router']),
+      modelCapabilities: ref({ 'company-router': ['text', 'vision'] }),
+      pendingImageDataList: ref(['data:image/png;base64,img']),
+      pendingImageThumbs: ref(['data:image/png;base64,thumb']),
+      options: { baseUrl: '/ai-assistant' },
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview: vi.fn(),
+      extractHttpUrls: () => [],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: () => undefined,
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      notify,
+      scrollToBottom: vi.fn(),
+      playNotificationSound: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse: vi.fn(),
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+    }).send;
+
+    await send();
+
+    expect(notify).not.toHaveBeenCalled();
   });
 });
