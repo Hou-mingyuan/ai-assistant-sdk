@@ -35,6 +35,7 @@ public class OpenAiCompatibleChatClient
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final WebClient webClient;
+    private final WebClient minimaxVisionWebClient;
     private final Duration timeout;
     private final int maxRetries;
     private final ConnectionProvider connectionProvider;
@@ -73,6 +74,16 @@ public class OpenAiCompatibleChatClient
                         .exchangeStrategies(strategies)
                         .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .build();
+        this.minimaxVisionWebClient =
+                minimaxProvider
+                        ? WebClient.builder()
+                                .baseUrl(properties.resolveMinimaxVlmBaseUrl())
+                                .clientConnector(new ReactorClientHttpConnector(reactorHttpClient))
+                                .exchangeStrategies(strategies)
+                                .defaultHeader(
+                                        HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .build()
+                        : this.webClient;
     }
 
     @Override
@@ -312,7 +323,7 @@ public class OpenAiCompatibleChatClient
         vlmBody.put("image_url", imageUrl);
         try {
             String body =
-                    webClient
+                    minimaxVisionWebClient
                             .post()
                             .uri("/coding_plan/vlm")
                             .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
@@ -335,7 +346,9 @@ public class OpenAiCompatibleChatClient
     }
 
     private String parseMinimaxVisionContent(String json) throws Exception {
-        if (json == null || json.isBlank()) return "";
+        if (json == null || json.isBlank()) {
+            throw new IllegalStateException("MiniMax VLM returned empty content");
+        }
         JsonNode root = mapper.readTree(json);
         JsonNode err = root.path("error");
         if (err.isObject() && err.has("message")) {
@@ -348,7 +361,23 @@ public class OpenAiCompatibleChatClient
             throw new IllegalStateException(
                     baseResp.path("status_msg").asText("MiniMax VLM error"));
         }
-        return firstText(root, "content", "output", "text", "result");
+        String content = firstContentText(root);
+        if (content.isBlank()) {
+            throw new IllegalStateException("MiniMax VLM returned empty content");
+        }
+        return content;
+    }
+
+    private String firstContentText(JsonNode root) {
+        String direct = firstText(root, "content", "output", "text", "result");
+        if (!direct.isBlank()) return direct;
+        JsonNode choices = root.path("choices");
+        if (choices.isArray() && choices.size() > 0) {
+            JsonNode message = choices.get(0).path("message");
+            String choiceContent = firstText(message, "content");
+            if (!choiceContent.isBlank()) return choiceContent;
+        }
+        return "";
     }
 
     private String firstUserText(ObjectNode requestBody) {

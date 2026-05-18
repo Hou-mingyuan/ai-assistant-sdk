@@ -24,6 +24,7 @@ public class AiAssistantProperties {
     private String apiKey;
     private List<String> apiKeys;
     private String baseUrl;
+    private String minimaxVlmBaseUrl;
     private String model;
     private String contextPath = "/ai-assistant";
 
@@ -613,6 +614,25 @@ public class AiAssistantProperties {
                                     + provider
                                     + ". Please set ai-assistant.base-url explicitly.");
         };
+    }
+
+    /** Resolve MiniMax's dedicated Coding Plan VLM API base URL for image understanding. */
+    public String resolveMinimaxVlmBaseUrl() {
+        if (minimaxVlmBaseUrl != null && !minimaxVlmBaseUrl.isBlank()) {
+            return trimTrailingSlash(minimaxVlmBaseUrl);
+        }
+        String base = baseUrl == null ? "" : baseUrl.trim();
+        if (base.contains("api.minimaxi.com")) return "https://api.minimaxi.com/v1";
+        if (base.contains("api.minimax.io")) return "https://api.minimax.io/v1";
+        return "https://api.minimax.io/v1";
+    }
+
+    private static String trimTrailingSlash(String value) {
+        String normalized = value.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 
     /** Resolve the default model name based on provider if not explicitly set. */

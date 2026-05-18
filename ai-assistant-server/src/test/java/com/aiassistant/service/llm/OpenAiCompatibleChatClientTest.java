@@ -192,6 +192,34 @@ class OpenAiCompatibleChatClientTest {
     }
 
     @Test
+    void completeMinimaxVisionThrowsWhenVlmReturnsNoVisibleContent() {
+        OpenAiCompatibleChatClient minimaxClient = minimaxClient();
+        server.enqueue(jsonResponse("{\"content\":\"\",\"base_resp\":{\"status_code\":0}}"));
+
+        IllegalStateException ex =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> minimaxClient.complete(imageRequestBody(), "test-key"));
+
+        assertTrue(ex.getMessage().contains("empty content"));
+        minimaxClient.destroy();
+    }
+
+    @Test
+    void completeMinimaxVisionThrowsWhenVlmReturnsBlankBody() {
+        OpenAiCompatibleChatClient minimaxClient = minimaxClient();
+        server.enqueue(jsonResponse(""));
+
+        IllegalStateException ex =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> minimaxClient.complete(imageRequestBody(), "test-key"));
+
+        assertTrue(ex.getMessage().contains("empty content"));
+        minimaxClient.destroy();
+    }
+
+    @Test
     void completeReturnsEmptyStringForBlankBody() {
         server.enqueue(jsonResponse(""));
 
@@ -240,6 +268,7 @@ class OpenAiCompatibleChatClientTest {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setProvider("minimax");
         properties.setBaseUrl(server.url("/v1").toString());
+        properties.setMinimaxVlmBaseUrl(server.url("/v1").toString());
         properties.setTimeoutSeconds(2);
         properties.setLlmMaxRetries(0);
         properties.setChatMaxTotalChars(16_000);

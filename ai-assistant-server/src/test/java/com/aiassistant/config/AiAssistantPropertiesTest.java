@@ -28,6 +28,18 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void resolveMinimaxVlmBaseUrlUsesDedicatedVisionEndpointHost() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setProvider("minimax");
+        p.setBaseUrl("https://api.minimax.chat/v1");
+
+        assertEquals("https://api.minimax.io/v1", p.resolveMinimaxVlmBaseUrl());
+
+        p.setMinimaxVlmBaseUrl("https://api.minimaxi.com/v1/");
+        assertEquals("https://api.minimaxi.com/v1", p.resolveMinimaxVlmBaseUrl());
+    }
+
+    @Test
     void resolveModelDefaultPerProvider() {
         AiAssistantProperties p = new AiAssistantProperties();
         p.setProvider("openai");
