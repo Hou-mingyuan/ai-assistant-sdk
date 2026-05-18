@@ -486,7 +486,11 @@ export function useSendStream(deps: UseSendStreamDeps) {
     return caps.some((cap) => cap.toLowerCase() === capability.toLowerCase());
   }
 
-  function applyPageContextPayloadOptions(payload: ChatPayload, text: string) {
+  function applyPageContextPayloadOptions(
+    payload: ChatPayload,
+    text: string,
+    hasImageInput = false,
+  ) {
     const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
     if (!pageContextEnabled) return;
     const minChars = deps.options.pageContextMinUserChars ?? 0;
@@ -502,7 +506,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
         ? collectSmartPageContext(ctxOpts)
         : collectPageContextText(ctxOpts);
     }
-    if (!ctx && isPageSnapshotContextRequest(text)) {
+    if (
+      !ctx &&
+      (isPageSnapshotContextRequest(text) || (hasImageInput && isScreenshotAnalysisRequest(text)))
+    ) {
       ctx = collectPageSnapshotMarkdown({
         maxChars: deps.options.pageContextMaxTotalChars ?? 12000,
       });
@@ -590,7 +597,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       payload.imageDataList = imageDataListForPayload;
     }
     applyChatModePayloadOptions(payload, imageDataListForPayload.length > 0);
-    applyPageContextPayloadOptions(payload, text);
+    applyPageContextPayloadOptions(payload, text, imageDataListForPayload.length > 0);
 
     const sid = deps.activeSessionId.value;
     if (sid) payload.sessionId = sid;

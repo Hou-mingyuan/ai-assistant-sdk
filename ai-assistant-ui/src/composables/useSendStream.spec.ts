@@ -272,6 +272,14 @@ describe('useSendStream local page snapshot', () => {
   });
 
   it('attaches an automatic screenshot when the user asks for visual page analysis', async () => {
+    document.title = '客户资料页';
+    document.body.innerHTML = `
+      <main>
+        <h1>客户档案</h1>
+        <label for="name">客户姓名</label>
+        <input id="name" value="张三" />
+      </main>
+    `;
     const messages = ref([]);
     const input = ref('分析当前截图里有什么');
     const loading = ref(false);
@@ -337,6 +345,7 @@ describe('useSendStream local page snapshot', () => {
         model: 'MiniMax-M2.7',
         imageData: 'data:image/png;base64,shot',
         imageDataList: ['data:image/png;base64,shot'],
+        pageContext: expect.stringContaining('# 当前页面内容'),
       }),
       undefined,
       expect.any(AbortSignal),
@@ -352,6 +361,61 @@ describe('useSendStream local page snapshot', () => {
         visionRoute: 'minimax-vlm',
       }),
     );
+  });
+
+  it('shows a specific empty vision result when a visual request returns no text', async () => {
+    const messages = ref([]);
+    const input = ref('分析当前截图里有什么');
+    const loading = ref(false);
+    const streamWithFallback = vi.fn(async function* (_baseUrl, _payload, _token, _signal, onMeta) {
+      onMeta?.({ visionInputCount: 1, visionRoute: 'minimax-vlm' });
+      yield* [];
+    });
+    const captureScreenshotForAnalysis = vi
+      .fn()
+      .mockResolvedValue({ type: 'image', data: 'data:image/png;base64,shot' });
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref('MiniMax-M2.7'),
+      modelChoices: ref(['MiniMax-M2.7']),
+      pendingImageDataList: ref([]),
+      pendingImageThumbs: ref([]),
+      options: { baseUrl: '/ai-assistant' },
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview: vi.fn(),
+      extractHttpUrls: () => [],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: () => undefined,
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      scrollToBottom: vi.fn(),
+      playNotificationSound: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse: vi.fn(),
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+      captureScreenshotForAnalysis,
+    }).send;
+
+    await send();
+
+    expect(messages.value[1].content).toBe('模型返回空视觉结果');
   });
 
   it('trusts server-provided vision capability details for opaque model names', async () => {

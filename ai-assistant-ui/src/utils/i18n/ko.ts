@@ -258,6 +258,7 @@ export const ko: I18nMessages = {
   streamStageGenerating: '생성 중…',
   responseMetaEffectiveModel: '실제 모델',
   responseMetaVision: '비전 이미지',
+  responseMetaVisionRoute: '비전 경로',
   responseMetaFallback: '모델 전환됨',
   visionEmptyResponse: '모델이 빈 비전 결과를 반환했습니다',
   responseMetaElapsed: '소요',

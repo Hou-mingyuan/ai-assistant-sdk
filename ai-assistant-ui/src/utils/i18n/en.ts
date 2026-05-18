@@ -266,6 +266,7 @@ export const en: I18nMessages = {
   streamStageGenerating: 'Generating…',
   responseMetaEffectiveModel: 'Actual model',
   responseMetaVision: 'Vision images',
+  responseMetaVisionRoute: 'Vision route',
   responseMetaFallback: 'Model switched',
   visionEmptyResponse: 'The model returned an empty vision result',
   responseMetaElapsed: 'Elapsed',

@@ -336,6 +336,7 @@ export interface I18nMessages {
   /** Assistant response metadata labels. */
   responseMetaEffectiveModel?: string;
   responseMetaVision?: string;
+  responseMetaVisionRoute?: string;
   responseMetaFallback?: string;
   visionEmptyResponse?: string;
   responseMetaElapsed?: string;

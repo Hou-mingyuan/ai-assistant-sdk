@@ -413,6 +413,9 @@
         <span v-if="msg.meta.visionInputCount" class="ai-msg-meta-pill">
           {{ t.responseMetaVision || 'Vision' }} {{ msg.meta.visionInputCount }}
         </span>
+        <span v-if="msg.meta.visionRoute" class="ai-msg-meta-pill">
+          {{ t.responseMetaVisionRoute || 'Vision route' }} {{ msg.meta.visionRoute }}
+        </span>
         <span v-if="msg.meta.fallback" class="ai-msg-meta-pill">
           {{ t.responseMetaFallback || 'Model switched' }}
         </span>

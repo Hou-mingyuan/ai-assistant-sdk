@@ -22,6 +22,14 @@ describe('collectPageSnapshotMarkdown', () => {
         <label><input type="radio" name="gender" value="男" checked />男 / Male</label>
         <label><input type="checkbox" name="hobby" checked />系统</label>
         <select aria-label="城市"><option selected>广州</option></select>
+        <table>
+          <thead>
+            <tr><th>合同号</th><th>金额</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>C-001</td><td>1000</td></tr>
+          </tbody>
+        </table>
         <button>保存</button>
         <a href="/formfill">表单填充 Demo</a>
       </main>
@@ -44,6 +52,16 @@ describe('collectPageSnapshotMarkdown', () => {
     expect(md).toContain('- 系统: 已勾选');
     expect(md).toContain('- 保存');
     expect(md).toContain('表单填充 Demo');
+  });
+
+  it('summarizes page structure and table rows for page understanding', () => {
+    const md = collectPageSnapshotMarkdown();
+
+    expect(md).toContain('## 页面概览');
+    expect(md).toContain('- 表格: 1 个');
+    expect(md).toContain('## 表格');
+    expect(md).toContain('| 合同号 | 金额 |');
+    expect(md).toContain('| C-001 | 1000 |');
   });
 
   it('hides sensitive field values and strips assistant DOM', () => {

@@ -261,6 +261,7 @@ export const ja: I18nMessages = {
   streamStageGenerating: '生成中…',
   responseMetaEffectiveModel: '実モデル',
   responseMetaVision: '画像数',
+  responseMetaVisionRoute: '視覚ルート',
   responseMetaFallback: 'モデル切替済み',
   visionEmptyResponse: 'モデルが空の視覚結果を返しました',
   responseMetaElapsed: '所要時間',

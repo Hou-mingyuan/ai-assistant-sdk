@@ -64,6 +64,7 @@ describe('MessageList assistant metadata', () => {
           effectiveModel: 'MiniMax-M2.5',
           fallback: true,
           visionInputCount: 1,
+          visionRoute: 'minimax-vlm',
         },
       },
     ]);
@@ -71,6 +72,7 @@ describe('MessageList assistant metadata', () => {
     const meta = wrapper.find('.ai-msg-meta');
     expect(meta.text()).toContain('Actual model MiniMax-M2.5');
     expect(meta.text()).toContain('Vision images 1');
+    expect(meta.text()).toContain('Vision route minimax-vlm');
     expect(meta.text()).toContain('Model switched');
   });
 });

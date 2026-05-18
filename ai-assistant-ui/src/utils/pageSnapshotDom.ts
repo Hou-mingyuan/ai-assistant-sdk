@@ -9,12 +9,16 @@ export interface PageSnapshotOptions {
   maxTextItems?: number;
   maxFormItems?: number;
   maxActionItems?: number;
+  maxTableItems?: number;
+  maxTableRows?: number;
   maxChars?: number;
 }
 
 const DEFAULT_MAX_TEXT_ITEMS = 24;
 const DEFAULT_MAX_FORM_ITEMS = 80;
 const DEFAULT_MAX_ACTION_ITEMS = 30;
+const DEFAULT_MAX_TABLE_ITEMS = 6;
+const DEFAULT_MAX_TABLE_ROWS = 8;
 const DEFAULT_MAX_CHARS = 12000;
 
 const ASSISTANT_SELECTORS = [
@@ -104,6 +108,10 @@ function truncate(text: string, maxChars: number): string {
   return text.length > maxChars ? `${text.slice(0, maxChars)}...(truncated)` : text;
 }
 
+function escapeMarkdownCell(text: string): string {
+  return collapseWhitespace(text).replace(/\|/g, '\\|');
+}
+
 function collectMainText(maxItems: number): string[] {
   const root = document.querySelector('main, article, [role="main"]') ?? document.body;
   const candidates = Array.from(
@@ -170,6 +178,34 @@ function collectActions(maxItems: number): string[] {
   return lines;
 }
 
+function collectTables(maxTables: number, maxRows: number): string[] {
+  const tables = Array.from(document.querySelectorAll('table')).filter(
+    (el): el is HTMLTableElement => el instanceof HTMLTableElement && !isInsideAssistant(el),
+  );
+  const blocks: string[] = [];
+  for (const table of tables.slice(0, maxTables)) {
+    const rows = Array.from(table.querySelectorAll('tr'))
+      .filter((row) => !isInsideAssistant(row))
+      .map((row) =>
+        Array.from(row.querySelectorAll('th,td'))
+          .map((cell) => escapeMarkdownCell(cell.textContent ?? ''))
+          .filter(Boolean),
+      )
+      .filter((cells) => cells.length > 0);
+    if (!rows.length) continue;
+    const header = rows[0];
+    const bodyRows = rows.slice(1, maxRows + 1);
+    const separator = header.map(() => '---');
+    const lines = [
+      `| ${header.join(' | ')} |`,
+      `| ${separator.join(' | ')} |`,
+      ...bodyRows.map((row) => `| ${row.join(' | ')} |`),
+    ];
+    blocks.push(lines.join('\n'));
+  }
+  return blocks;
+}
+
 export function collectPageSnapshotMarkdown(options: PageSnapshotOptions = {}): string {
   if (typeof document === 'undefined') return '';
   const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
@@ -179,16 +215,34 @@ export function collectPageSnapshotMarkdown(options: PageSnapshotOptions = {}): 
   if (typeof location !== 'undefined' && location.href) parts.push(`- 页面URL: ${location.href}`);
 
   const textItems = collectMainText(options.maxTextItems ?? DEFAULT_MAX_TEXT_ITEMS);
+  const forms = collectForms(options.maxFormItems ?? DEFAULT_MAX_FORM_ITEMS);
+  const actions = collectActions(options.maxActionItems ?? DEFAULT_MAX_ACTION_ITEMS);
+  const tables = collectTables(
+    options.maxTableItems ?? DEFAULT_MAX_TABLE_ITEMS,
+    options.maxTableRows ?? DEFAULT_MAX_TABLE_ROWS,
+  );
+
+  parts.push(
+    '',
+    '## 页面概览',
+    `- 文本片段: ${textItems.length} 条`,
+    `- 表单字段: ${forms.length} 个`,
+    `- 表格: ${tables.length} 个`,
+    `- 可交互元素: ${actions.length} 个`,
+  );
+
   if (textItems.length) {
     parts.push('', '## 页面文本', ...textItems.map((item) => `- ${item}`));
   }
 
-  const forms = collectForms(options.maxFormItems ?? DEFAULT_MAX_FORM_ITEMS);
   if (forms.length) {
     parts.push('', '## 表单字段', ...forms);
   }
 
-  const actions = collectActions(options.maxActionItems ?? DEFAULT_MAX_ACTION_ITEMS);
+  if (tables.length) {
+    parts.push('', '## 表格', ...tables);
+  }
+
   if (actions.length) {
     parts.push('', '## 可交互元素', ...actions);
   }

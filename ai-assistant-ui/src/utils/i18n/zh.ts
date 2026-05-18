@@ -249,6 +249,7 @@ export const zh: I18nMessages = {
   streamStageGenerating: '正在生成…',
   responseMetaEffectiveModel: '实际模型',
   responseMetaVision: '视觉图数',
+  responseMetaVisionRoute: '视觉通道',
   responseMetaFallback: '已切换模型',
   visionEmptyResponse: '模型返回空视觉结果',
   responseMetaElapsed: '耗时',
