@@ -141,7 +141,7 @@ OpenAI、DeepSeek、通义千问、智谱 GLM、火山引擎豆包、MiniMax、K
 <dependency>
   <groupId>com.aiassistant</groupId>
   <artifactId>ai-assistant-spring-boot-starter</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 

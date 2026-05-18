@@ -1530,6 +1530,39 @@
   filter: brightness(1.04) saturate(1.1);
 }
 
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-capabilities {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0 4px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-capability {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 4px 9px;
+  border: 1px solid rgba(79, 70, 229, 0.07);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #7b8191;
+  font-family: var(--ai-font-display);
+  font-size: 11.5px;
+  font-weight: 500;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82) inset;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-capability-icon {
+  color: #5b6cff;
+  font-size: 12px;
+  line-height: 1;
+}
+
 /* Tighten the empty container so chips + cards breathe nicely */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
   padding: 44px 14px 16px !important;
@@ -1572,6 +1605,11 @@
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-starter-desc {
   color: #95a0bd;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-empty-capability {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #9ba4ba;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2141,8 +2179,8 @@
   top: calc(100% + 8px) !important;
   right: 0 !important;
   margin-top: 0;
-  min-width: 180px;
-  padding: 6px;
+  min-width: 220px;
+  padding: 7px;
   border: 1px solid rgba(91, 108, 255, 0.08);
   border-radius: 14px !important;
   background: #ffffff !important;
@@ -2156,6 +2194,27 @@
   pointer-events: auto;
   animation: ai-settings-menu-pop 180ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: top right;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-section {
+  padding: 4px 0;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-section
+  + .ai-header-settings-section {
+  border-top: 1px solid rgba(91, 108, 255, 0.08);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-section-title {
+  padding: 4px 8px 6px;
+  color: #8b93a7;
+  font-family: var(--ai-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-wrap {
@@ -2211,6 +2270,61 @@
   .ai-header-settings-item:hover
   svg {
   color: #5b6cff;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-export-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-export-item {
+  min-height: 48px;
+  margin: 0;
+  padding: 8px !important;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px !important;
+  border: 1px solid rgba(91, 108, 255, 0.08) !important;
+  background: rgba(248, 250, 255, 0.72) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-export-item
+  span:first-child {
+  color: #5b6cff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-export-item
+  span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  color: #5b6376;
+  font-size: 11.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-settings-item-danger {
+  color: #b42318 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-settings-item-danger:hover {
+  background: rgba(244, 63, 94, 0.1) !important;
+  color: #991b1b !important;
 }
 
 /* Slash command popup: Doubao-style card with icon + name + desc -------- */
@@ -2362,10 +2476,41 @@
   color: #c5cbdc !important;
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
+  .ai-header-settings-section
+  + .ai-header-settings-section {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-header-settings-section-title {
+  color: #7f88a2;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
   .ai-header-settings-menu
   .ai-header-settings-item:hover {
   background: rgba(168, 139, 250, 0.1) !important;
   color: #ffffff !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-export-item {
+  background: rgba(255, 255, 255, 0.045) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-export-item
+  span:last-child {
+  color: #a7b0c6;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-settings-item-danger {
+  color: #fca5a5 !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper
+  .ai-header-settings-menu
+  .ai-header-settings-item.ai-header-settings-item-danger:hover {
+  background: rgba(248, 113, 113, 0.12) !important;
+  color: #fecaca !important;
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-slash-name {
   color: #e3e6f1 !important;
@@ -2803,4 +2948,218 @@
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
   background: rgba(255, 255, 255, 0.055) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================================================
+ * Round 11 — input hierarchy cleanup
+ *
+ * Move mode/model/context into a quiet control shelf above the input, then
+ * separate secondary tools from the primary send action. The footer now reads:
+ * context controls -> optional advanced tools -> prompt composer -> send.
+ * ========================================================================== */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row {
+  order: 1;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 5px !important;
+  border-radius: 16px !important;
+  background: rgba(248, 250, 255, 0.72) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-md-toolbar,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-quick-toggles {
+  order: 2;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-input-row {
+  order: 3;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-send-group {
+  gap: 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-secondary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow:
+    0 8px 20px -18px rgba(36, 44, 92, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-secondary-actions:empty {
+  display: none;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-attach-image,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle {
+  width: 31px !important;
+  height: 31px !important;
+  min-width: 31px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-voice-loop svg,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle svg {
+  display: block;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-tools-toggle.active {
+  background: var(--ai-color-primary-soft) !important;
+  color: var(--ai-color-primary-strong) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-send {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 17px !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-secondary-actions {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================================================
+ * Round 12 — compact conversation search
+ *
+ * Keep the common search path visible and move advanced match modes into a
+ * small filter popover. This prevents Aa/W/.* from competing with navigation.
+ * ========================================================================== */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-chat-search {
+  position: relative;
+  gap: 6px !important;
+  padding: 8px 12px 6px !important;
+  background: rgba(248, 250, 255, 0.8);
+  border-bottom: 1px solid rgba(79, 70, 229, 0.06);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(79, 70, 229, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #7b8191;
+  cursor: pointer;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-toggle:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-toggle.active {
+  background: var(--ai-color-primary-soft);
+  color: var(--ai-color-primary-strong);
+  border-color: rgba(79, 70, 229, 0.18);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 100020;
+  min-width: 178px;
+  padding: 6px;
+  border: 1px solid rgba(79, 70, 229, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 18px 34px -18px rgba(36, 44, 92, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 30px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 8px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #4b5567 !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode
+  span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  border-radius: 7px;
+  background: rgba(79, 70, 229, 0.06);
+  color: #4f46e5;
+  font-size: 11px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode.active {
+  background: rgba(79, 70, 229, 0.08) !important;
+  color: #1f2433 !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-chat-search {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-toggle,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-options-menu {
+  background: rgba(20, 21, 28, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode {
+  color: #c5cbdc !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-search-options-menu
+  .ai-search-mode.active {
+  background: rgba(168, 139, 250, 0.12) !important;
+  color: #ffffff !important;
 }

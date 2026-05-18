@@ -23,6 +23,7 @@ const mavenVersion = releaseMode
 syncPackageJson('../ai-assistant-ui/package.json', releaseVersion)
 syncPackageLock('../ai-assistant-ui/package-lock.json', releaseVersion)
 
+syncPomProjectVersion('../pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-server/pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-service/pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-client/pom.xml', mavenVersion)
@@ -59,6 +60,11 @@ function syncPomProjectVersion(relativePath, nextVersion) {
     /(<artifactId>[^<]+<\/artifactId>\s*<version>)[^<]+(<\/version>)/,
     `$1${nextVersion}$2`,
   )
-  pom = updatedPom.replace(parentPlaceholder, parentMatch?.[0] ?? '')
+  pom = updatedPom
+    .replace(parentPlaceholder, parentMatch?.[0] ?? '')
+    .replace(
+      /(<ai-assistant\.version>)[^<]+(<\/ai-assistant\.version>)/,
+      `$1${nextVersion}$2`,
+    )
   fs.writeFileSync(file, pom)
 }

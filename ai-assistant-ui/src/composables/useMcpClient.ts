@@ -124,7 +124,7 @@ export function useMcpClient(opts: McpClientOptions) {
   async function initialize(): Promise<McpInitializeResult> {
     const result = await rpc<McpInitializeResult>('initialize', {
       protocolVersion: opts.protocolVersion ?? DEFAULT_PROTOCOL,
-      clientInfo: { name: 'ai-assistant-ui', version: '1.0.0' },
+      clientInfo: { name: 'ai-assistant-ui', version: '1.0.1' },
       capabilities: {},
     });
     serverInfo.value = result.serverInfo;

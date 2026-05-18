@@ -11,7 +11,7 @@ services:
         https_proxy: ${DOCKER_BUILD_HTTPS_PROXY:-}
         no_proxy: ${DOCKER_BUILD_NO_PROXY:-localhost,127.0.0.1,host.docker.internal}
         MAVEN_OPTS: ${DOCKER_BUILD_MAVEN_OPTS:-}
-        APP_VERSION: ${AI_ASSISTANT_IMAGE_VERSION:-1.0.0-SNAPSHOT}
+        APP_VERSION: ${AI_ASSISTANT_IMAGE_VERSION:-1.0.1}
         VCS_REF: ${AI_ASSISTANT_IMAGE_REVISION:-unknown}
         BUILD_DATE: ${AI_ASSISTANT_IMAGE_CREATED:-unknown}
     ports:

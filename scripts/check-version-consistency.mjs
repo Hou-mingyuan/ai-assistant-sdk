@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const releaseMode = process.argv.includes('--release')
 
 const mavenModules = [
+  'pom.xml',
   'ai-assistant-server/pom.xml',
   'ai-assistant-service/pom.xml',
   'ai-assistant-client/pom.xml',
@@ -38,6 +39,12 @@ if (uniqueMavenVersions.size !== 1) {
 
 const mavenVersion = [...uniqueMavenVersions][0]
 const releaseVersion = mavenVersion?.replace(/-SNAPSHOT$/, '')
+const rootPom = fs.readFileSync(path.join(root, 'pom.xml'), 'utf8')
+const rootProperty = rootPom.match(/<ai-assistant\.version>([^<]+)<\/ai-assistant\.version>/)?.[1]
+
+if (rootProperty && rootProperty !== mavenVersion) {
+  errors.push(`pom.xml ai-assistant.version ${rootProperty} does not match Maven version ${mavenVersion}`)
+}
 
 if (releaseMode && mavenVersion?.endsWith('-SNAPSHOT')) {
   errors.push(`Maven release version must not end with -SNAPSHOT: ${mavenVersion}`)

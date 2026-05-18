@@ -7,8 +7,8 @@
  *   1. 检查工作区干净（除非 --allow-dirty）
  *   2. 读取当前所有模块 version（maven + npm），确认一致
  *   3. 计算新版本号（--version <semver> 显式指定，或 --patch/--minor/--major 自增）
- *   4. 同步写回 ai-assistant-server/service/client 的 pom.xml + ai-assistant-ui/package.json
- *      + ai-assistant-ui/package-lock.json
+ *   4. 同步写回根 pom.xml、ai-assistant-server/service/client 的 pom.xml
+ *      + ai-assistant-ui/package.json + ai-assistant-ui/package-lock.json
  *   5. 跑 check-version-consistency.mjs --release 验证一致
  *   6. 用 generate-changelog.mjs --since-tag 生成新版段落，插入 CHANGELOG.md 顶部
  *   7. git add 改动 + commit "chore(release): vX.Y.Z" + git tag vX.Y.Z
@@ -38,6 +38,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = parseArgs(process.argv.slice(2));
 
 const POMS = [
+  'pom.xml',
   'ai-assistant-server/pom.xml',
   'ai-assistant-service/pom.xml',
   'ai-assistant-client/pom.xml',
@@ -119,7 +120,12 @@ function writeMavenVersion(rel, newVersion) {
     /(<artifactId>[^<]+<\/artifactId>\s*<version>)([^<]+)(<\/version>)/,
     (_, p1, _old, p3) => `${p1}${newVersion}${p3}`,
   );
-  const restored = replaced.replace('\u0000PARENT\u0000', parentBlock);
+  const restored = replaced
+    .replace('\u0000PARENT\u0000', parentBlock)
+    .replace(
+      /(<ai-assistant\.version>)[^<]+(<\/ai-assistant\.version>)/,
+      `$1${newVersion}$2`,
+    );
   writeFile(rel, restored);
 }
 

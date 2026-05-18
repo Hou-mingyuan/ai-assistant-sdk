@@ -13,7 +13,7 @@
 <dependency>
     <groupId>com.aiassistant</groupId>
     <artifactId>ai-assistant-spring-boot-starter</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -45,14 +45,17 @@ ai-assistant:
 ## 4. 前端集成
 
 ```bash
-npm install ai-assistant-ui
+npm install @ai-assistant/vue
 ```
 
-```vue
-<template>
-  <AiAssistant :api-base="'/ai-assistant'" />
-</template>
+```ts
+import AiAssistant from '@ai-assistant/vue'
+import '@ai-assistant/vue/dist/style.css'
+
+app.use(AiAssistant, { baseUrl: '/ai-assistant', locale: 'zh' })
 ```
+
+然后在模板里放置 `<AiAssistant />`；如果不想改根组件模板，也可以配置 `autoMountToBody: true` 自动挂载。
 
 ## 下一步
 

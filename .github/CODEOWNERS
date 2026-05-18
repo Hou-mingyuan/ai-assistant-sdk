@@ -12,6 +12,12 @@
 # Owners" in the branch protection settings for `main` on GitHub.
 
 # ── Default owner for everything ───────────────────────────────────────────
+# ⚠️ Bus factor = 1.  This project is actively looking for a second
+# maintainer.  If you've shipped two or more non-trivial PRs and want to
+# help review, open an issue titled "Co-maintainer interest: <your handle>"
+# with a short note (what you'd be willing to review, what your timezone
+# is) and we'll discuss adding you next to the entries below.
+# See CONTRIBUTING.md §"Branch protection" for the long-term governance plan.
 * @Hou-mingyuan
 
 # ── Backend ────────────────────────────────────────────────────────────────

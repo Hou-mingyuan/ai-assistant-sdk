@@ -107,6 +107,83 @@
         <option value="ar">العربية</option>
       </select>
     </div>
+    <div class="ai-footer-model-row">
+      <div class="ai-mode-segmented" role="tablist" aria-label="Mode">
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'chat' }"
+          :aria-selected="mode === 'chat' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'chat')"
+        >
+          {{ t.chat }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'translate' }"
+          :aria-selected="mode === 'translate' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'translate')"
+        >
+          {{ t.translate }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="ai-mode-segment"
+          :class="{ active: mode === 'summarize' }"
+          :aria-selected="mode === 'summarize' ? 'true' : 'false'"
+          @click="$emit('changeMode', 'summarize')"
+        >
+          {{ t.summarize }}
+        </button>
+      </div>
+      <select
+        v-if="showModelPicker && hasBaseUrl"
+        :value="selectedModel"
+        class="ai-model-select"
+        :disabled="loading || modelChoices.length === 0"
+        :aria-label="t.modelLabel"
+        @change="$emit('update:selectedModel', ($event.target as HTMLSelectElement).value)"
+      >
+        <template v-if="modelChoices.length === 0">
+          <option value="" disabled>{{ modelListMessage }}</option>
+        </template>
+        <template v-else>
+          <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
+        </template>
+      </select>
+      <span class="ai-model-row-spacer" />
+      <button
+        v-if="pageContextConfigured"
+        type="button"
+        class="ai-page-context-badge"
+        :class="{ 'ai-page-context-badge-off': !pageContextEnabled }"
+        :title="
+          pageContextEnabled
+            ? t.pageContextOnTooltip || 'Page context will be attached to your next message'
+            : t.pageContextOffTooltip || 'Page context attachment is disabled'
+        "
+        :aria-pressed="pageContextEnabled ? 'true' : 'false'"
+        @click="$emit('togglePageContext')"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path
+            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+          />
+        </svg>
+        <span class="ai-page-context-badge-label">
+          {{
+            pageContextEnabled
+              ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
+              : t.pageContextOff || 'Context off'
+          }}
+        </span>
+      </button>
+      <slot v-if="advancedToolsOpen" name="model-row-actions" />
+    </div>
     <div v-if="advancedToolsOpen" class="ai-md-toolbar">
       <button
         type="button"
@@ -226,73 +303,87 @@
       >
       <div class="ai-footer-send-group">
         <slot name="footer-plugins" />
-        <input
-          v-if="mode === 'chat'"
-          ref="chatImageInputRef"
-          type="file"
-          accept="image/*"
-          style="display: none"
-          @change="onChatImageChange"
-        />
-        <button
-          v-if="mode === 'chat'"
-          type="button"
-          class="ai-attach-image"
-          :disabled="loading"
-          :title="t.pendingImage"
-          :aria-label="t.pendingImage"
-          @click="chatImageInputRef?.click()"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path
-              d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
-            />
-          </svg>
-        </button>
-        <button
-          v-if="voiceSupported"
-          class="ai-mic"
-          :class="{ recording: voiceRecording }"
-          type="button"
-          :disabled="loading"
-          :title="voiceRecording ? t.micStop : t.micStart"
-          :aria-label="voiceRecording ? t.micStop : t.micStart"
-          :aria-pressed="voiceRecording ? 'true' : 'false'"
-          @click="$emit('toggleVoice')"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path
-              d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"
-            />
-            <path
-              d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
-            />
-          </svg>
-        </button>
-        <button
-          v-if="voiceSupported && mode === 'chat'"
-          class="ai-voice-loop"
-          :class="{ active: voiceConversationActive }"
-          type="button"
-          :disabled="loading"
-          :title="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
-          :aria-label="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
-          :aria-pressed="voiceConversationActive ? 'true' : 'false'"
-          @click="$emit('toggleVoiceConversation')"
-        >
-          ↻
-        </button>
-        <button
-          type="button"
-          class="ai-tools-toggle"
-          :class="{ active: advancedToolsOpen }"
-          :title="t.skillStripLabel || 'Tools'"
+        <div
+          class="ai-footer-secondary-actions"
+          role="group"
           :aria-label="t.skillStripLabel || 'Tools'"
-          :aria-expanded="advancedToolsOpen ? 'true' : 'false'"
-          @click="advancedToolsOpen = !advancedToolsOpen"
         >
-          ⋯
-        </button>
+          <input
+            v-if="mode === 'chat'"
+            ref="chatImageInputRef"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="onChatImageChange"
+          />
+          <button
+            v-if="mode === 'chat'"
+            type="button"
+            class="ai-attach-image"
+            :disabled="loading"
+            :title="t.pendingImage"
+            :aria-label="t.pendingImage"
+            @click="chatImageInputRef?.click()"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+              />
+            </svg>
+          </button>
+          <button
+            v-if="voiceSupported"
+            class="ai-mic"
+            :class="{ recording: voiceRecording }"
+            type="button"
+            :disabled="loading"
+            :title="voiceRecording ? t.micStop : t.micStart"
+            :aria-label="voiceRecording ? t.micStop : t.micStart"
+            :aria-pressed="voiceRecording ? 'true' : 'false'"
+            @click="$emit('toggleVoice')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"
+              />
+              <path
+                d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+              />
+            </svg>
+          </button>
+          <button
+            v-if="voiceSupported && mode === 'chat'"
+            class="ai-voice-loop"
+            :class="{ active: voiceConversationActive }"
+            type="button"
+            :disabled="loading"
+            :title="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
+            :aria-label="voiceConversationActive ? t.voiceLoopOn : t.voiceLoopOff"
+            :aria-pressed="voiceConversationActive ? 'true' : 'false'"
+            @click="$emit('toggleVoiceConversation')"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 4a8 8 0 0 1 7.75 6H22l-3 4-3-4h1.7A6 6 0 1 0 12 18a5.9 5.9 0 0 0 3.76-1.33l1.27 1.55A8 8 0 1 1 12 4z"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="ai-tools-toggle"
+            :class="{ active: advancedToolsOpen }"
+            :title="t.skillStripLabel || 'Tools'"
+            :aria-label="t.skillStripLabel || 'Tools'"
+            :aria-expanded="advancedToolsOpen ? 'true' : 'false'"
+            @click="advancedToolsOpen = !advancedToolsOpen"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M12 8.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+              />
+            </svg>
+          </button>
+        </div>
         <button
           class="ai-send"
           type="button"
@@ -314,83 +405,6 @@
           </svg>
         </button>
       </div>
-    </div>
-    <div class="ai-footer-model-row">
-      <div class="ai-mode-segmented" role="tablist" aria-label="Mode">
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'chat' }"
-          :aria-selected="mode === 'chat' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'chat')"
-        >
-          {{ t.chat }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'translate' }"
-          :aria-selected="mode === 'translate' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'translate')"
-        >
-          {{ t.translate }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="ai-mode-segment"
-          :class="{ active: mode === 'summarize' }"
-          :aria-selected="mode === 'summarize' ? 'true' : 'false'"
-          @click="$emit('changeMode', 'summarize')"
-        >
-          {{ t.summarize }}
-        </button>
-      </div>
-      <select
-        v-if="showModelPicker && hasBaseUrl"
-        :value="selectedModel"
-        class="ai-model-select"
-        :disabled="loading || modelChoices.length === 0"
-        :aria-label="t.modelLabel"
-        @change="$emit('update:selectedModel', ($event.target as HTMLSelectElement).value)"
-      >
-        <template v-if="modelChoices.length === 0">
-          <option value="" disabled>{{ modelListMessage }}</option>
-        </template>
-        <template v-else>
-          <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
-        </template>
-      </select>
-      <span class="ai-model-row-spacer" />
-      <button
-        v-if="pageContextConfigured"
-        type="button"
-        class="ai-page-context-badge"
-        :class="{ 'ai-page-context-badge-off': !pageContextEnabled }"
-        :title="
-          pageContextEnabled
-            ? t.pageContextOnTooltip || 'Page context will be attached to your next message'
-            : t.pageContextOffTooltip || 'Page context attachment is disabled'
-        "
-        :aria-pressed="pageContextEnabled ? 'true' : 'false'"
-        @click="$emit('togglePageContext')"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path
-            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
-          />
-        </svg>
-        <span class="ai-page-context-badge-label">
-          {{
-            pageContextEnabled
-              ? `${t.pageContextOn || 'Context'}${(pageContextBlockCount ?? 0) > 1 ? ' · ' + pageContextBlockCount : ''}`
-              : t.pageContextOff || 'Context off'
-          }}
-        </span>
-      </button>
-      <slot v-if="advancedToolsOpen" name="model-row-actions" />
     </div>
   </div>
 </template>

@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-ARG APP_VERSION=1.0.0-SNAPSHOT
+ARG APP_VERSION=1.0.1
 ARG VCS_REF=unknown
 ARG BUILD_DATE=unknown
 

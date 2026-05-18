@@ -1,10 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-// L1: directly import from src/ instead of the npm package so the Phase 1
-// changes (formAutoFill) work without rebuilding dist/. style.css still
-// loads via the published path for the chat bubble visuals.
+// Import from src so playground reflects SDK logic and component styles via Vite HMR.
 import AiAssistant from '../../ai-assistant-ui/src/index'
-import '@ai-assistant/vue/dist/style.css'
 
 const app = createApp(App)
 app.use(AiAssistant, {

@@ -162,37 +162,70 @@
               <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
             </svg>
           </button>
-          <!-- H6: 三模式 toggle -->
-          <button
-            type="button"
-            class="ai-search-mode"
-            :class="{ active: searchCaseSensitive }"
-            :title="t.searchCaseSensitive || 'Case sensitive (Aa)'"
-            :aria-pressed="searchCaseSensitive ? 'true' : 'false'"
-            @click="searchCaseSensitive = !searchCaseSensitive"
-          >
-            Aa
-          </button>
-          <button
-            type="button"
-            class="ai-search-mode"
-            :class="{ active: searchWholeWord }"
-            :title="t.searchWholeWord || 'Whole word (\\b)'"
-            :aria-pressed="searchWholeWord ? 'true' : 'false'"
-            @click="searchWholeWord = !searchWholeWord"
-          >
-            W
-          </button>
-          <button
-            type="button"
-            class="ai-search-mode"
-            :class="{ active: searchRegex }"
-            :title="t.searchRegex || 'Regular expression (.*?)'"
-            :aria-pressed="searchRegex ? 'true' : 'false'"
-            @click="searchRegex = !searchRegex"
-          >
-            .*
-          </button>
+          <div v-if="debouncedSearchQuery.trim()" class="ai-search-options">
+            <button
+              type="button"
+              class="ai-search-options-toggle"
+              :class="{ active: searchCaseSensitive || searchWholeWord || searchRegex }"
+              :title="t.settingsLabel || 'Search options'"
+              :aria-label="t.settingsLabel || 'Search options'"
+              :aria-expanded="searchOptionsOpen ? 'true' : 'false'"
+              @click="searchOptionsOpen = !searchOptionsOpen"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7h16" />
+                <path d="M7 12h10" />
+                <path d="M10 17h4" />
+              </svg>
+            </button>
+            <div v-if="searchOptionsOpen" class="ai-search-options-menu" role="menu">
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                class="ai-search-mode"
+                :class="{ active: searchCaseSensitive }"
+                :title="t.searchCaseSensitive || 'Case sensitive (Aa)'"
+                :aria-checked="searchCaseSensitive ? 'true' : 'false'"
+                @click="searchCaseSensitive = !searchCaseSensitive"
+              >
+                <span aria-hidden="true">Aa</span>
+                <span>{{ t.searchCaseSensitive || 'Case sensitive' }}</span>
+              </button>
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                class="ai-search-mode"
+                :class="{ active: searchWholeWord }"
+                :title="t.searchWholeWord || 'Whole word (\\b)'"
+                :aria-checked="searchWholeWord ? 'true' : 'false'"
+                @click="searchWholeWord = !searchWholeWord"
+              >
+                <span aria-hidden="true">W</span>
+                <span>{{ t.searchWholeWord || 'Whole word' }}</span>
+              </button>
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                class="ai-search-mode"
+                :class="{ active: searchRegex }"
+                :title="t.searchRegex || 'Regular expression (.*?)'"
+                :aria-checked="searchRegex ? 'true' : 'false'"
+                @click="searchRegex = !searchRegex"
+              >
+                <span aria-hidden="true">.*</span>
+                <span>{{ t.searchRegex || 'Regular expression' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- AI streaming progress bar -->
@@ -274,6 +307,16 @@
                   <span class="ai-empty-starter-desc">{{ starter.desc }}</span>
                 </span>
               </button>
+            </div>
+            <div class="ai-empty-capabilities" aria-label="Assistant capabilities">
+              <span
+                v-for="hint in emptyCapabilityHints"
+                :key="hint.label"
+                class="ai-empty-capability"
+              >
+                <span class="ai-empty-capability-icon" aria-hidden="true">{{ hint.icon }}</span>
+                <span>{{ hint.label }}</span>
+              </span>
             </div>
             <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
               <button
@@ -1346,6 +1389,33 @@ const modeStarterCards = computed<EmptyStarterCard[]>(() => {
 });
 
 const emptyStarterCards = computed(() => modeStarterCards.value);
+
+const emptyCapabilityHints = computed(() => {
+  const loc = options.locale ?? 'en';
+  const lib: Record<string, { icon: string; label: string }[]> = {
+    zh: [
+      { icon: '⌘', label: '页面上下文' },
+      { icon: '📎', label: '文件摘要' },
+      { icon: '🎙', label: '语音输入' },
+    ],
+    en: [
+      { icon: '⌘', label: 'Page context' },
+      { icon: '📎', label: 'File summaries' },
+      { icon: '🎙', label: 'Voice input' },
+    ],
+    ja: [
+      { icon: '⌘', label: 'ページ文脈' },
+      { icon: '📎', label: 'ファイル要約' },
+      { icon: '🎙', label: '音声入力' },
+    ],
+    ko: [
+      { icon: '⌘', label: '페이지 컨텍스트' },
+      { icon: '📎', label: '파일 요약' },
+      { icon: '🎙', label: '음성 입력' },
+    ],
+  };
+  return lib[loc] ?? lib.en;
+});
 
 function focusInput() {
   void nextTick(() => {
@@ -2664,6 +2734,7 @@ const {
   resetSearch,
   disposeSearch,
 } = useSessionSearch(messages, loading, renderAllMessages, MAX_RENDERED_MESSAGES, panelRef);
+const searchOptionsOpen = ref(false);
 
 const showEarlierLabel = computed(() =>
   t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),

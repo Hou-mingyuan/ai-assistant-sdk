@@ -30,7 +30,7 @@ mvn -q -f pom.xml -DskipTests package
 生成的可执行 jar：
 
 ```text
-target/ai-assistant-service-1.0.0-SNAPSHOT.jar
+target/ai-assistant-service-1.0.1.jar
 ```
 
 ## Docker 运行

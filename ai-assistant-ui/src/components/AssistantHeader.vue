@@ -9,6 +9,27 @@
     </span>
     <span class="ai-header-spacer" aria-hidden="true" />
     <div class="ai-header-actions">
+      <button
+        type="button"
+        class="ai-new-session"
+        :title="t.newSession"
+        :aria-label="t.newSession"
+        @click.stop="emit('start-new-session')"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      </button>
       <div class="ai-header-settings-wrap">
         <button
           ref="settingsButtonRef"
@@ -44,173 +65,190 @@
           role="menu"
           @keydown="onSettingsMenuKeydown"
         >
-          <button
-            v-if="mode === 'chat' && showSystemPromptUi"
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="onSettingsPick('personalize')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
-              />
-            </svg>
-            <span>{{ t.personalizeTitle }}</span>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="onSettingsPick('diagnostics')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M3 3v18h18v-2H5V3H3zm14 14l-4-4-2 2-4-4 1.41-1.41L11 12.17 13 10l5 5L17 17z"
-              />
-            </svg>
-            <span>{{ t.diagnosticsTitle }}</span>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="onSettingsPick('sessions')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z" />
-            </svg>
-            <span>{{ t.sessionsDrawerTitle || 'All sessions' }}</span>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="
-              settingsMenuOpen = false;
-              emit('start-new-session');
-            "
-          >
-            <span aria-hidden="true">+</span>
-            <span>{{ t.newSession }}</span>
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="
-              settingsMenuOpen = false;
-              emit('toggle-theme');
-            "
-          >
-            <span aria-hidden="true">{{ isDark ? '☼' : '☾' }}</span>
-            <span>{{ themeToggleLabel }}</span>
-          </button>
+          <div class="ai-header-settings-section" role="group" :aria-label="t.settingsLabel">
+            <button
+              v-if="mode === 'chat' && showSystemPromptUi"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="onSettingsPick('personalize')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                />
+              </svg>
+              <span>{{ t.personalizeTitle }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="onSettingsPick('diagnostics')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 3v18h18v-2H5V3H3zm14 14l-4-4-2 2-4-4 1.41-1.41L11 12.17 13 10l5 5L17 17z"
+                />
+              </svg>
+              <span>{{ t.diagnosticsTitle }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="onSettingsPick('sessions')"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M3 5h18v2H3V5zm0 4h18v2H3V9zm0 4h18v2H3v-2zm0 4h18v2H3v-2z" />
+              </svg>
+              <span>{{ t.sessionsDrawerTitle || 'All sessions' }}</span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('toggle-theme');
+              "
+            >
+              <span aria-hidden="true">{{ isDark ? '☼' : '☾' }}</span>
+              <span>{{ themeToggleLabel }}</span>
+            </button>
+          </div>
           <template v-if="hasMessages">
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('batch-export-all-json');
-              "
-            >
-              <span aria-hidden="true">JSON</span>
-              <span>{{ t.exportJson }}</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('batch-export-all-markdown');
-              "
-            >
-              <span aria-hidden="true">MD</span>
-              <span>{{ t.exportMarkdown }}</span>
-            </button>
-            <button
-              v-if="hasBaseUrl"
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('batch-export-all-server', 'xlsx');
-              "
-            >
-              <span aria-hidden="true">XLSX</span>
-              <span>{{ t.exportServerXlsx }}</span>
-            </button>
-            <button
-              v-if="hasBaseUrl"
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('batch-export-all-server', 'docx');
-              "
-            >
-              <span aria-hidden="true">DOCX</span>
-              <span>{{ t.exportServerDocx }}</span>
-            </button>
-            <button
-              v-if="hasBaseUrl"
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('batch-export-all-server', 'pdf');
-              "
-            >
-              <span aria-hidden="true">PDF</span>
-              <span>{{ t.exportServerPdf }}</span>
-            </button>
-            <button
-              v-if="!loading"
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              :aria-pressed="selectMode"
-              @click="
-                settingsMenuOpen = false;
-                emit('toggle-select-mode');
-              "
-            >
-              <span aria-hidden="true">☑</span>
-              <span>{{ t.selectModeToggle }}</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item"
-              @click="
-                settingsMenuOpen = false;
-                emit('clear-messages');
-              "
-            >
-              <span aria-hidden="true">×</span>
-              <span>{{ t.clear }}</span>
-            </button>
+            <div class="ai-header-settings-section" role="group" :aria-label="t.export">
+              <div class="ai-header-settings-section-title">{{ t.export }}</div>
+              <div class="ai-header-export-grid">
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="ai-header-settings-item ai-header-export-item"
+                  @click="
+                    settingsMenuOpen = false;
+                    emit('batch-export-all-json');
+                  "
+                >
+                  <span aria-hidden="true">JSON</span>
+                  <span>{{ t.exportJson }}</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="ai-header-settings-item ai-header-export-item"
+                  @click="
+                    settingsMenuOpen = false;
+                    emit('batch-export-all-markdown');
+                  "
+                >
+                  <span aria-hidden="true">MD</span>
+                  <span>{{ t.exportMarkdown }}</span>
+                </button>
+                <button
+                  v-if="hasBaseUrl"
+                  type="button"
+                  role="menuitem"
+                  class="ai-header-settings-item ai-header-export-item"
+                  @click="
+                    settingsMenuOpen = false;
+                    emit('batch-export-all-server', 'xlsx');
+                  "
+                >
+                  <span aria-hidden="true">XLSX</span>
+                  <span>{{ t.exportServerXlsx }}</span>
+                </button>
+                <button
+                  v-if="hasBaseUrl"
+                  type="button"
+                  role="menuitem"
+                  class="ai-header-settings-item ai-header-export-item"
+                  @click="
+                    settingsMenuOpen = false;
+                    emit('batch-export-all-server', 'docx');
+                  "
+                >
+                  <span aria-hidden="true">DOCX</span>
+                  <span>{{ t.exportServerDocx }}</span>
+                </button>
+                <button
+                  v-if="hasBaseUrl"
+                  type="button"
+                  role="menuitem"
+                  class="ai-header-settings-item ai-header-export-item"
+                  @click="
+                    settingsMenuOpen = false;
+                    emit('batch-export-all-server', 'pdf');
+                  "
+                >
+                  <span aria-hidden="true">PDF</span>
+                  <span>{{ t.exportServerPdf }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="ai-header-settings-section" role="group" :aria-label="t.selectModeToggle">
+              <button
+                v-if="!loading"
+                type="button"
+                role="menuitem"
+                class="ai-header-settings-item"
+                :aria-pressed="selectMode"
+                @click="
+                  settingsMenuOpen = false;
+                  emit('toggle-select-mode');
+                "
+              >
+                <span aria-hidden="true">☑</span>
+                <span>{{ t.selectModeToggle }}</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                class="ai-header-settings-item ai-header-settings-item-danger"
+                @click="
+                  settingsMenuOpen = false;
+                  emit('clear-messages');
+                "
+              >
+                <span aria-hidden="true">×</span>
+                <span>{{ t.clear }}</span>
+              </button>
+            </div>
           </template>
-          <button
-            v-for="pl in headerPlugins"
-            :key="pl.id"
-            type="button"
-            role="menuitem"
-            class="ai-header-settings-item"
-            @click="
-              settingsMenuOpen = false;
-              emit('run-plugin', pl);
-            "
-          >
-            <span aria-hidden="true">{{ pl.icon || pl.label.charAt(0) }}</span>
-            <span>{{ pl.label }}</span>
-          </button>
+          <div v-if="headerPlugins.length > 0" class="ai-header-settings-section" role="group">
+            <button
+              v-for="pl in headerPlugins"
+              :key="pl.id"
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item"
+              @click="
+                settingsMenuOpen = false;
+                emit('run-plugin', pl);
+              "
+            >
+              <span aria-hidden="true">{{ pl.icon || pl.label.charAt(0) }}</span>
+              <span>{{ pl.label }}</span>
+            </button>
+          </div>
         </div>
       </div>
       <button

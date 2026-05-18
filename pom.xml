@@ -6,7 +6,7 @@
 
     <groupId>com.aiassistant</groupId>
     <artifactId>ai-assistant-sdk</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
 
     <name>AI Assistant SDK</name>
@@ -28,7 +28,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <ai-assistant.version>1.0.0-SNAPSHOT</ai-assistant.version>
+        <ai-assistant.version>1.0.1</ai-assistant.version>
     </properties>
 
     <modules>
