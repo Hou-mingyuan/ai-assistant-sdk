@@ -32,6 +32,11 @@ import {
 } from '../types/message';
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
+import {
+  collectPageSnapshotMarkdown,
+  isDirectPageSnapshotRequest,
+  isPageSnapshotContextRequest,
+} from '../utils/pageSnapshotDom';
 
 const DEFAULT_VISION_MODEL_PATTERNS: RegExp[] = [
   /(?:^|[-_:])gpt-4o(?:[-_:]|$)/i,
@@ -167,7 +172,11 @@ export function sanitizeAssistantContent(message: string, t: I18nMessages): stri
 
 /** True iff the sanitised body has any non-whitespace character. */
 export function hasVisibleAssistantContent(message: string, t: I18nMessages): boolean {
-  return sanitizeAssistantContent(message || '', t).trim().length > 0;
+  const sanitized = sanitizeAssistantContent(message || '', t);
+  const { content: afterThink } = extractThinking(sanitized);
+  const { content: afterTools } = extractToolCalls(afterThink);
+  const { content } = extractAgentSteps(afterTools);
+  return content.trim().length > 0;
 }
 
 export interface UseSendStreamDeps {
@@ -446,18 +455,49 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
   function applyPageContextPayloadOptions(payload: ChatPayload, text: string) {
     const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
-    if (!pageContextEnabled || !deps.options.pageContextBlocks?.length) return;
+    if (!pageContextEnabled) return;
     const minChars = deps.options.pageContextMinUserChars ?? 0;
     if (text.length < minChars) return;
-    const ctxOpts = {
-      blocks: deps.options.pageContextBlocks,
-      maxCharsPerBlock: deps.options.pageContextMaxCharsPerBlock,
-      maxTotalChars: deps.options.pageContextMaxTotalChars,
-    };
-    const ctx = deps.options.smartPageContext
-      ? collectSmartPageContext(ctxOpts)
-      : collectPageContextText(ctxOpts);
+    let ctx = '';
+    if (deps.options.pageContextBlocks?.length) {
+      const ctxOpts = {
+        blocks: deps.options.pageContextBlocks,
+        maxCharsPerBlock: deps.options.pageContextMaxCharsPerBlock,
+        maxTotalChars: deps.options.pageContextMaxTotalChars,
+      };
+      ctx = deps.options.smartPageContext
+        ? collectSmartPageContext(ctxOpts)
+        : collectPageContextText(ctxOpts);
+    }
+    if (!ctx && isPageSnapshotContextRequest(text)) {
+      ctx = collectPageSnapshotMarkdown({
+        maxChars: deps.options.pageContextMaxTotalChars ?? 12000,
+      });
+    }
     if (ctx) payload.pageContext = ctx;
+  }
+
+  function completeLocalPageSnapshot(text: string): boolean {
+    if (!isDirectPageSnapshotRequest(text)) return false;
+    const snapshot = collectPageSnapshotMarkdown({
+      maxChars: deps.options.pageContextMaxTotalChars ?? 12000,
+    });
+    if (!snapshot) return false;
+
+    deps.messages.value.push({ role: 'user', content: text, timestamp: Date.now() });
+    deps.messages.value.push({ role: 'assistant', content: snapshot, timestamp: Date.now() });
+    deps.input.value = '';
+    deps.emitSend({ action: 'chat', text });
+    deps.emitResponse(snapshot);
+    deps.clearRenderCache();
+    deps.trimMessagesForMemoryCap();
+    deps.scrollToBottom(true);
+    if (!deps.sessionTitle.value && text.trim()) {
+      const raw = text.replace(/\n+/g, ' ').trim();
+      deps.sessionTitle.value = raw.length > 20 ? raw.slice(0, 20) + '…' : raw;
+      deps.updateActiveSessionTitle(deps.sessionTitle.value);
+    }
+    return true;
   }
 
   function prepareSendRequest(text: string) {
@@ -554,11 +594,15 @@ export function useSendStream(deps: UseSendStreamDeps) {
     urlPreviewImgs: string[],
   ) {
     /* 流式正文为空时若先插图再被「无响应」覆盖，会丢掉预览图 */
-    if (!fullContent && !urlPreviewImgs.length) {
+    const visibleContent = deps.messages.value[msgIndex]?.content ?? fullContent;
+    if (!hasVisibleAssistantContent(visibleContent, tNow()) && !urlPreviewImgs.length) {
       const prevSlot = deps.messages.value[msgIndex];
       deps.messages.value[msgIndex] = {
         role: 'assistant',
         content: tNow().noResponse,
+        thinking: prevSlot?.thinking,
+        toolCalls: prevSlot?.toolCalls,
+        agentSteps: prevSlot?.agentSteps,
         timestamp: prevSlot?.timestamp,
         contentArchive: prevSlot?.contentArchive,
         feedback: prevSlot?.feedback,
@@ -622,6 +666,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
   }
 
   async function send() {
+    const localText = deps.input.value.trim();
+    if (localText && !deps.loading.value && completeLocalPageSnapshot(localText)) return;
+
     const text = normalizeUserTextForSend();
     if (!text) return;
     const { payload, requestStartedAt, userMsgIdx, msgIndex } = prepareSendRequest(text);

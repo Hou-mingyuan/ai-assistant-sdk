@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-18T06:15:56.157Z",
+  "updatedAt": "2026-05-18T06:43:33.971Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
       "size": 706140,
@@ -22,10 +22,6 @@
       "gzip": 92320
     },
     "style.css": {
-      "size": 376743,
-      "gzip": 55488
-    },
-    "vue.css": {
       "size": 376743,
       "gzip": 55488
     },
@@ -416,6 +412,24 @@
     "_plugin-vue_export-helper-CC_fc8JW.cjs": {
       "size": 101,
       "gzip": 110
+    }
+  },
+  "groups": {
+    "wc": {
+      "files": 4,
+      "gzip": 497466
+    },
+    "main": {
+      "files": 3,
+      "gzip": 355161
+    },
+    "chunks": {
+      "files": 86,
+      "gzip": 219382
+    },
+    "secondary": {
+      "files": 10,
+      "gzip": 6650
     }
   }
 }

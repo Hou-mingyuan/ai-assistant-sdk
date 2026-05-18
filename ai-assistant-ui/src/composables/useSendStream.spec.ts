@@ -9,7 +9,8 @@
  * silently regress upstream-service-error mapping, abort detection, or tool-
  * trace stripping.
  */
-import { describe, expect, it } from 'vitest';
+import { computed, ref } from 'vue';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMessages } from '../utils/i18n';
 import {
@@ -21,6 +22,7 @@ import {
   sanitizeAssistantContent,
   shouldWarnForVisionModel,
   stripInternalToolTrace,
+  useSendStream,
 } from './useSendStream';
 
 const en = getMessages('en');
@@ -172,6 +174,10 @@ describe('hasVisibleAssistantContent', () => {
     expect(hasVisibleAssistantContent(input, en)).toBe(false);
   });
 
+  it('returns false when the stream only contains thinking markup', () => {
+    expect(hasVisibleAssistantContent('<think>Inspecting the page...</think>', zh)).toBe(false);
+  });
+
   it('returns true for any plain response body', () => {
     expect(hasVisibleAssistantContent('Hi there', en)).toBe(true);
   });
@@ -194,5 +200,72 @@ describe('vision model guard', () => {
     expect(shouldWarnForVisionModel('gpt-4o', true)).toBe(false);
     expect(shouldWarnForVisionModel('', true)).toBe(false);
     expect(shouldWarnForVisionModel('gpt-3.5-turbo', false)).toBe(false);
+  });
+});
+
+describe('useSendStream local page snapshot', () => {
+  beforeEach(() => {
+    document.title = '客户资料页';
+    document.body.innerHTML = `
+      <main>
+        <h1>客户档案</h1>
+        <label for="customer">客户姓名</label>
+        <input id="customer" value="张三" />
+      </main>
+    `;
+  });
+
+  it('answers current-page content requests locally without requiring a backend stream', async () => {
+    const messages = ref([]);
+    const input = ref('当前页面有什么内容？');
+    const loading = ref(false);
+    const streamWithFallback = vi.fn();
+    const emitResponse = vi.fn();
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref(''),
+      modelChoices: ref([]),
+      pendingImageDataList: ref([]),
+      pendingImageThumbs: ref([]),
+      options: {},
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview: vi.fn(),
+      extractHttpUrls: () => [],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: () => undefined,
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      scrollToBottom: vi.fn(),
+      playNotificationSound: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse,
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+    }).send;
+
+    await send();
+
+    expect(streamWithFallback).not.toHaveBeenCalled();
+    expect(input.value).toBe('');
+    expect(messages.value).toHaveLength(2);
+    expect(messages.value[1].content).toContain('# 当前页面内容');
+    expect(messages.value[1].content).toContain('- 客户姓名: 张三');
+    expect(emitResponse).toHaveBeenCalledWith(expect.stringContaining('客户档案'));
   });
 });

@@ -117,6 +117,27 @@ class OpenAiCompatibleChatClientTest {
     }
 
     @Test
+    void completeStreamPreservesReasoningDeltasAsThinkMarkup() {
+        server.enqueue(
+                new MockResponse()
+                        .setHeader("Content-Type", "text/event-stream")
+                        .setBody(
+                                """
+                                data: {"choices":[{"delta":{"reasoning_content":"checking page"}}]}
+
+                                data: {"choices":[{"delta":{"content":"done"}}]}
+
+                                data: [DONE]
+
+                                """));
+
+        List<String> chunks =
+                client.completeStream(requestBody(), "test-key").take(1).collectList().block();
+
+        assertEquals(List.of("<think>checking page</think>"), chunks);
+    }
+
+    @Test
     void completeReturnsEmptyStringForBlankBody() {
         server.enqueue(jsonResponse(""));
 

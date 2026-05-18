@@ -58,6 +58,7 @@ export default defineConfig({
           name: 'AiAssistantWC',
           fileName: (format) =>
             format === 'es' ? 'ai-assistant-wc.mjs' : 'ai-assistant-wc.umd.cjs',
+          cssFileName: 'style',
         },
         cssCodeSplit: false,
         emptyOutDir: !preserveDist,

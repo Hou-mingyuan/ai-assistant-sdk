@@ -52,6 +52,9 @@ jobs:
       - name: Check package version consistency
         run: node scripts/check-version-consistency.mjs
 
+      - name: Run repo script tests
+        run: node --test scripts/*.test.mjs
+
       - name: Multi-replica config lint
         # K1: warn-only on push to main, strict on PRs targeting main so that
         # accidentally adding in-process state with replicas>1 to .env /
@@ -162,6 +165,10 @@ jobs:
 
       - name: Package exports smoke check
         run: npm run check:exports
+        working-directory: ai-assistant-ui
+
+      - name: Package install smoke check
+        run: npm run smoke:package
         working-directory: ai-assistant-ui
 
       - name: Bundle size watchdog (vs baseline)

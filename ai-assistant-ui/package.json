@@ -65,6 +65,7 @@
     "build:wc": "cross-env BUILD_TARGET=wc vite build",
     "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist",
     "check:exports": "node ../scripts/check-package-exports.mjs",
+    "smoke:package": "node ../scripts/smoke-package-install.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

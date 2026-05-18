@@ -286,6 +286,10 @@ public class OpenAiCompatibleChatClient
             JsonNode choices = root.path("choices");
             if (choices.isArray() && choices.size() > 0) {
                 JsonNode delta = choices.get(0).path("delta");
+                String reasoning = firstText(delta, "reasoning_content", "reasoningContent");
+                if (!reasoning.isEmpty()) {
+                    out.add("<think>" + reasoning + "</think>");
+                }
                 if (delta.hasNonNull("content")) {
                     out.add(delta.get("content").asText(""));
                 }
@@ -294,5 +298,14 @@ public class OpenAiCompatibleChatClient
             log.trace("skip sse line: {}", e.toString());
         }
         return out;
+    }
+
+    private String firstText(JsonNode node, String... fields) {
+        for (String field : fields) {
+            if (node.hasNonNull(field)) {
+                return node.get(field).asText("");
+            }
+        }
+        return "";
     }
 }
