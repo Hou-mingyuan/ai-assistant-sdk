@@ -81,7 +81,9 @@
         aria-live="polite"
       >
         <span class="ai-thinking-orb" aria-hidden="true"></span>
-        <span class="ai-thinking-text">{{ t.replying }}</span>
+        <span class="ai-thinking-text">
+          {{ streamStageText(displayOffset + renderedStart + idx, msg) }}
+        </span>
         <span class="ai-thinking-dots" aria-hidden="true">
           <span></span>
           <span></span>
@@ -222,6 +224,21 @@
         "
       ></div>
       <!-- eslint-enable vue/no-v-html -->
+      <div v-if="msg.role === 'assistant' && msg.meta" class="ai-msg-meta">
+        <span v-if="msg.meta.model" class="ai-msg-meta-pill">
+          <span class="ai-msg-meta-dot" aria-hidden="true"></span>
+          {{ msg.meta.model }}
+        </span>
+        <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
+          {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
+        </span>
+        <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
+          {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
+        </span>
+        <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
+          {{ t.responseMetaRetried || 'Retried' }}
+        </span>
+      </div>
       <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
     </template>
     <span
@@ -235,6 +252,10 @@
       aria-live="polite"
     >
       <span class="ai-stream-progress-dot" aria-hidden="true"></span>
+      <span class="ai-stream-progress-stage">
+        {{ streamStageText(displayOffset + renderedStart + idx, msg) }}
+      </span>
+      ·
       <span v-if="firstTokenAt != null" class="ai-stream-progress-ttft">
         {{ t.streamTtftLabel || 'TTFT' }}
         {{ ((firstTokenAt - streamStartedAt) / 1000).toFixed(1) }}s ·
@@ -435,6 +456,26 @@ import type { I18nMessages } from '../utils/i18n/types';
  * a message is actually rendered. */
 import { defineAsyncComponent } from 'vue';
 const MessageReactionBar = defineAsyncComponent(() => import('./MessageReactionBar.vue'));
+
+function formatMs(value: number) {
+  if (!Number.isFinite(value) || value < 0) return '0.0s';
+  return `${(value / 1000).toFixed(1)}s`;
+}
+
+function streamStageText(globalIdx: number, msg: Message) {
+  if (!props.isActiveStreaming(globalIdx, msg)) return props.t.replying;
+  if (props.firstTokenAt != null || props.hasVisibleContent(msg.content)) {
+    return props.t.streamStageGenerating || props.t.replying;
+  }
+  if (
+    props.streamStartedAt != null &&
+    props.streamingNowMs > 0 &&
+    props.streamingNowMs - props.streamStartedAt >= 1200
+  ) {
+    return props.t.streamStageWaitingFirstToken || props.t.replying;
+  }
+  return props.t.streamStageConnecting || props.t.replying;
+}
 
 /** C10: Virtual scroll slice passed from the parent. When `enabled` is true,
  *  MessageList only renders `[startIndex, endIndex)` of `messages` and pads

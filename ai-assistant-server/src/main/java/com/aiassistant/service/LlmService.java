@@ -339,6 +339,8 @@ public class LlmService {
                             history,
                             new java.util.HashMap<>());
             ctx = runBeforeInterceptors(ctx);
+            String effectiveModelId = ctx.modelId() != null ? ctx.modelId() : modelId;
+            ctx = ctx.withSystemPrompt(appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
 
             String result =
                     callLlm(
@@ -346,7 +348,7 @@ public class LlmService {
                             requestEnricher.enrichUserText(ctx.userMessage()),
                             history,
                             "chat",
-                            ctx.modelId() != null ? ctx.modelId() : modelId,
+                            effectiveModelId,
                             imageDataList);
             result = runAfterInterceptors(ctx, result);
             recordToMemory(sessionId, userMessage, result);
@@ -497,6 +499,8 @@ public class LlmService {
                             history,
                             new java.util.HashMap<>());
             ctx = runBeforeInterceptors(ctx);
+            String effectiveModelId = ctx.modelId() != null ? ctx.modelId() : modelId;
+            ctx = ctx.withSystemPrompt(appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
 
             final String finalSessionId = sessionId;
             final String originalMessage = userMessage;
@@ -506,7 +510,7 @@ public class LlmService {
                             requestEnricher.enrichUserText(ctx.userMessage()),
                             history,
                             "chat",
-                            ctx.modelId() != null ? ctx.modelId() : modelId,
+                            effectiveModelId,
                             imageDataList);
 
             if (memoryProvider != null && finalSessionId != null && !finalSessionId.isBlank()) {
@@ -659,6 +663,19 @@ public class LlmService {
 
     private String resolveModelWithRouter(String requestModel, String operation) {
         return resolveModelWithRouter(requestModel, operation, 0);
+    }
+
+    private String appendRuntimeModelIdentity(String systemPrompt, String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return systemPrompt;
+        }
+        String prompt = systemPrompt == null ? "" : systemPrompt;
+        return prompt
+                + "\n\nRuntime model identity: The current model for this request is `"
+                + modelId
+                + "`. If the user asks what model you are, what the current model is, or what"
+                + " underlying model is being used, answer with this current model name. Do not"
+                + " invent or hard-code a different model name.";
     }
 
     private String resolveModelWithRouter(

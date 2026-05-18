@@ -37,6 +37,37 @@
             </button>
           </div>
         </div>
+        <div class="ai-diagnostics-model-card" :data-status="modelStatusKind">
+          <span class="ai-diagnostics-model-dot" aria-hidden="true"></span>
+          <div>
+            <span class="ai-diagnostics-model-kicker">{{ t.modelLabel }}</span>
+            <strong>{{ selectedModel || t.diagnosticsNoSelectedModel }}</strong>
+            <p>{{ modelHintText }}</p>
+          </div>
+        </div>
+        <div v-if="remedyKind !== 'ready'" class="ai-diagnostics-remedy" :data-kind="remedyKind">
+          <strong>{{ remedyTitle }}</strong>
+          <p>{{ remedyText }}</p>
+          <div class="ai-diagnostics-remedy-actions">
+            <button
+              type="button"
+              class="ai-diagnostics-remedy-primary"
+              :disabled="busy"
+              @click="runPrimaryRemedy"
+            >
+              {{ primaryRemedyLabel }}
+            </button>
+            <button
+              v-if="secondaryRemedyLabel"
+              type="button"
+              class="ai-diagnostics-remedy-secondary"
+              :disabled="busy"
+              @click="runSecondaryRemedy"
+            >
+              {{ secondaryRemedyLabel }}
+            </button>
+          </div>
+        </div>
         <dl class="ai-diagnostics-list">
           <div>
             <dt>{{ t.diagnosticsStatus }}</dt>
@@ -63,6 +94,14 @@
             <dd>{{ selectedModel || t.diagnosticsNoSelectedModel }}</dd>
           </div>
           <div>
+            <dt>{{ t.diagnosticsModelSource }}</dt>
+            <dd>{{ modelSourceText }}</dd>
+          </div>
+          <div>
+            <dt>{{ t.modelLabel }}</dt>
+            <dd>{{ modelStatusText }}</dd>
+          </div>
+          <div>
             <dt>{{ t.diagnosticsAvailableModels }}</dt>
             <dd>{{ modelCount }}</dd>
           </div>
@@ -87,7 +126,9 @@
             <span>{{ t.diagnosticsToken }}</span>
             <input
               :value="tokenInput"
+              ref="tokenInputRef"
               type="password"
+              class="ai-token-input"
               :placeholder="t.connectionConfigTokenPlaceholder"
               autocomplete="off"
               @input="$emit('update:tokenInput', ($event.target as HTMLInputElement).value)"
@@ -124,9 +165,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 
-defineProps<{
+type RemedyKind =
+  | 'ready'
+  | 'noBaseUrl'
+  | 'unauthorized'
+  | 'rateLimited'
+  | 'serverError'
+  | 'network'
+  | 'failed'
+  | 'empty';
+
+const props = defineProps<{
   uid: string;
   busy: boolean;
   copied: boolean;
@@ -137,6 +189,11 @@ defineProps<{
   modelEndpoint: string;
   tokenText: string;
   selectedModel: string;
+  modelStatusText: string;
+  modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
+  modelSourceText: string;
+  modelHintText: string;
+  remedyKind: RemedyKind;
   modelCount: number;
   lastChecked: string;
   baseUrlInput: string;
@@ -147,14 +204,86 @@ defineProps<{
   t: I18nMessages;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: [];
   copy: [];
   close: [];
   testConfig: [];
   saveConfig: [];
+  useDefaultBaseUrl: [];
   'update:baseUrlInput': [value: string];
   'update:tokenInput': [value: string];
   'update:persistEnabled': [value: boolean];
 }>();
+
+const tokenInputRef = ref<HTMLInputElement>();
+
+const remedyTitle = computed(() => {
+  switch (props.remedyKind) {
+    case 'noBaseUrl':
+      return props.t.diagnosticsRemedyNoBaseUrlTitle;
+    case 'unauthorized':
+      return props.t.diagnosticsRemedyUnauthorizedTitle;
+    case 'rateLimited':
+      return props.t.diagnosticsRemedyRateLimitedTitle;
+    case 'serverError':
+      return props.t.diagnosticsRemedyServerTitle;
+    case 'network':
+      return props.t.diagnosticsRemedyNetworkTitle;
+    default:
+      return props.t.diagnosticsRemedyGenericTitle;
+  }
+});
+
+const remedyText = computed(() => {
+  switch (props.remedyKind) {
+    case 'noBaseUrl':
+      return props.t.diagnosticsRemedyNoBaseUrlText;
+    case 'unauthorized':
+      return props.t.diagnosticsRemedyUnauthorizedText;
+    case 'rateLimited':
+      return props.t.diagnosticsRemedyRateLimitedText;
+    case 'serverError':
+      return props.t.diagnosticsRemedyServerText;
+    case 'network':
+      return props.t.diagnosticsRemedyNetworkText;
+    default:
+      return props.t.diagnosticsRemedyGenericText;
+  }
+});
+
+const primaryRemedyLabel = computed(() => {
+  if (props.remedyKind === 'noBaseUrl' || props.remedyKind === 'network') {
+    return props.t.diagnosticsUseDefaultBaseUrl;
+  }
+  if (props.remedyKind === 'unauthorized') return props.t.diagnosticsFocusToken;
+  return props.t.diagnosticsRefresh;
+});
+
+const secondaryRemedyLabel = computed(() => {
+  if (props.remedyKind === 'unauthorized') return props.t.diagnosticsClearToken;
+  if (props.remedyKind === 'noBaseUrl') return '';
+  return props.t.diagnosticsRefresh;
+});
+
+function runPrimaryRemedy() {
+  if (props.remedyKind === 'noBaseUrl' || props.remedyKind === 'network') {
+    emit('useDefaultBaseUrl');
+    return;
+  }
+  if (props.remedyKind === 'unauthorized') {
+    tokenInputRef.value?.focus();
+    return;
+  }
+  emit('refresh');
+}
+
+function runSecondaryRemedy() {
+  if (props.remedyKind === 'unauthorized') {
+    emit('update:tokenInput', '');
+    tokenInputRef.value?.focus();
+    return;
+  }
+  emit('refresh');
+}
 </script>

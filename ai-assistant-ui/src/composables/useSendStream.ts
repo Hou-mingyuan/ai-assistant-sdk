@@ -306,6 +306,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
         timestamp: prev?.timestamp,
         contentArchive: prev?.contentArchive,
         feedback: prev?.feedback,
+        meta: prev?.meta,
       };
       deps.scrollToBottom(false);
     }
@@ -345,6 +346,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
         timestamp: prevDone?.timestamp,
         contentArchive: prevDone?.contentArchive,
         feedback: prevDone?.feedback,
+        meta: prevDone?.meta,
       };
       deps.scrollToBottom(false);
       deps.trimMessagesForMemoryCap();
@@ -374,6 +376,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       timestamp: m.timestamp,
       contentArchive: m.contentArchive,
       feedback: m.feedback,
+      meta: m.meta,
     };
     deps.clearRenderCache();
     deps.trimMessagesForMemoryCap();
@@ -475,7 +478,17 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
     deps.emitSend({ action: deps.mode.value, text });
 
-    const assistantMsg: Message = { role: 'assistant', content: '', timestamp: Date.now() };
+    const requestStartedAt = Date.now();
+    const requestModel =
+      typeof payload.model === 'string' && payload.model.trim() ? payload.model.trim() : undefined;
+    const assistantMsg: Message = {
+      role: 'assistant',
+      content: '',
+      timestamp: requestStartedAt,
+      meta: {
+        model: requestModel,
+      },
+    };
     deps.messages.value.push(assistantMsg);
     const msgIndex = deps.messages.value.length - 1;
     deps.scrollToBottom(true);
@@ -534,8 +547,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
           timestamp: prevSlot?.timestamp,
           contentArchive: prevSlot?.contentArchive,
           feedback: prevSlot?.feedback,
+          meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
         };
       } else {
+        stampAssistantMeta(msgIndex, requestStartedAt);
         appendUrlPreviewImagesToAssistant(msgIndex, urlPreviewImgs);
       }
       if (urlPreviewImgs.length) deps.scrollToBottom(false);
@@ -559,6 +574,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
             timestamp: prevSlot?.timestamp,
             contentArchive: prevSlot?.contentArchive,
             feedback: prevSlot?.feedback,
+            meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
           };
         } else {
           deps.messages.value.splice(msgIndex, 1);
@@ -579,6 +595,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
           timestamp: prevSlot?.timestamp,
           contentArchive: prevSlot?.contentArchive,
           feedback: prevSlot?.feedback,
+          meta: withResponseTiming(prevSlot?.meta, requestStartedAt),
         };
       }
       deps.reportAssistantError('send', message);
@@ -593,6 +610,26 @@ export function useSendStream(deps: UseSendStreamDeps) {
       deps.playNotificationSound();
       deps.scrollToBottom(false);
     }
+  }
+
+  function withResponseTiming(meta: Message['meta'], requestStartedAt: number): Message['meta'] {
+    return {
+      ...meta,
+      elapsedMs: Date.now() - requestStartedAt,
+      ttftMs:
+        firstTokenAt.value != null && firstTokenAt.value >= requestStartedAt
+          ? firstTokenAt.value - requestStartedAt
+          : meta?.ttftMs,
+    };
+  }
+
+  function stampAssistantMeta(msgIndex: number, requestStartedAt: number) {
+    const current = deps.messages.value[msgIndex];
+    if (!current || current.role !== 'assistant') return;
+    deps.messages.value[msgIndex] = {
+      ...current,
+      meta: withResponseTiming(current.meta, requestStartedAt),
+    };
   }
 
   function sanitizeForTemplate(message: string): string {

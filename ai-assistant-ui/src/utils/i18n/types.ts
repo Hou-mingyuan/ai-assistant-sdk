@@ -72,6 +72,22 @@ export interface I18nMessages {
   modelsUnauthorized: string;
   modelsRateLimited: string;
   modelsServerError: string;
+  modelStatusChecking: string;
+  modelStatusUnavailable: string;
+  modelStatusUnconfigured: string;
+  modelSearchPlaceholder: string;
+  modelDefaultBadge: string;
+  modelNoMatches: string;
+  modelGroupOther: string;
+  modelCapabilityText: string;
+  modelCapabilityVision: string;
+  modelCapabilityTools: string;
+  modelCapabilityLongContext: string;
+  modelImageRiskWarning: string;
+  modelSwitchToVision: string;
+  inputNearLimitWarning: string;
+  inputOverLimitWarning: string;
+  sendUnavailableNoBackend: string;
   diagnosticsTitle: string;
   diagnosticsRefresh: string;
   diagnosticsCopy: string;
@@ -85,6 +101,28 @@ export interface I18nMessages {
   diagnosticsTokenMissing: string;
   diagnosticsSelectedModel: string;
   diagnosticsNoSelectedModel: string;
+  diagnosticsModelSource: string;
+  diagnosticsModelSourceSelected: string;
+  diagnosticsModelSourceDefault: string;
+  diagnosticsModelSourceUnavailable: string;
+  diagnosticsModelHintReady: string;
+  diagnosticsModelHintCheck: string;
+  diagnosticsModelHintNoBaseUrl: string;
+  diagnosticsRemedyNoBaseUrlTitle: string;
+  diagnosticsRemedyNoBaseUrlText: string;
+  diagnosticsRemedyUnauthorizedTitle: string;
+  diagnosticsRemedyUnauthorizedText: string;
+  diagnosticsRemedyRateLimitedTitle: string;
+  diagnosticsRemedyRateLimitedText: string;
+  diagnosticsRemedyServerTitle: string;
+  diagnosticsRemedyServerText: string;
+  diagnosticsRemedyNetworkTitle: string;
+  diagnosticsRemedyNetworkText: string;
+  diagnosticsRemedyGenericTitle: string;
+  diagnosticsRemedyGenericText: string;
+  diagnosticsUseDefaultBaseUrl: string;
+  diagnosticsFocusToken: string;
+  diagnosticsClearToken: string;
   diagnosticsAvailableModels: string;
   diagnosticsLastChecked: string;
   diagnosticsNeverChecked: string;
@@ -103,6 +141,7 @@ export interface I18nMessages {
   connectionConfigSaved: string;
   connectionConfigTested: string;
   connectionConfigFailed: string;
+  connectionConfigDefaultApplied: string;
   openInIde: string;
   exportServerXlsx: string;
   exportServerDocx: string;
@@ -284,6 +323,13 @@ export interface I18nMessages {
   streamProgressChars: string;
   /** E2: TTFT (Time To First Token) 缩写标签，例如 "首字" / "TTFT" */
   streamTtftLabel: string;
+  streamStageConnecting?: string;
+  streamStageWaitingFirstToken?: string;
+  streamStageGenerating?: string;
+  /** Assistant response metadata labels. */
+  responseMetaElapsed?: string;
+  responseMetaTtft?: string;
+  responseMetaRetried?: string;
   /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
   settingsLabel: string;
   /** E1: Keyboard shortcuts dialog title */

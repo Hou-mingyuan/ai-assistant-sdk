@@ -35,6 +35,28 @@
         &times;
       </button>
     </div>
+    <div
+      v-if="imageRiskVisible"
+      class="ai-model-risk"
+      role="note"
+      :title="t.modelImageRiskWarning.replace('{model}', selectedModel || t.modelStatusUnavailable)"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+      </svg>
+      <span>{{
+        t.modelImageRiskWarning.replace('{model}', selectedModel || t.modelStatusUnavailable)
+      }}</span>
+      <button
+        v-if="firstVisionModel"
+        type="button"
+        class="ai-model-risk-action"
+        :title="firstVisionModel"
+        @click="selectModel(firstVisionModel)"
+      >
+        {{ t.modelSwitchToVision }}
+      </button>
+    </div>
     <!-- Slash command popup -->
     <Transition name="ai-slash-fade">
       <div
@@ -140,21 +162,79 @@
           {{ t.summarize }}
         </button>
       </div>
-      <select
+      <div
         v-if="showModelPicker && hasBaseUrl"
-        :value="selectedModel"
-        class="ai-model-select"
-        :disabled="loading || modelChoices.length === 0"
-        :aria-label="t.modelLabel"
-        @change="$emit('update:selectedModel', ($event.target as HTMLSelectElement).value)"
+        class="ai-model-picker"
+        :class="{ 'ai-model-picker-open': modelPickerOpen }"
       >
-        <template v-if="modelChoices.length === 0">
-          <option value="" disabled>{{ modelListMessage }}</option>
-        </template>
-        <template v-else>
-          <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
-        </template>
-      </select>
+        <button
+          type="button"
+          class="ai-model-select ai-model-picker-trigger"
+          :disabled="loading || modelChoices.length === 0"
+          :aria-label="t.modelLabel"
+          :aria-expanded="modelPickerOpen ? 'true' : 'false'"
+          @click="modelPickerOpen = !modelPickerOpen"
+        >
+          <span class="ai-model-picker-current">{{ selectedModel || modelListMessage }}</span>
+          <span
+            v-if="selectedModel && selectedModel === effectiveDefaultModel"
+            class="ai-model-default-badge"
+          >
+            {{ t.modelDefaultBadge }}
+          </span>
+        </button>
+        <Transition name="ai-slash-fade">
+          <div v-if="modelPickerOpen" class="ai-model-menu" role="listbox">
+            <input
+              v-model="modelSearch"
+              class="ai-model-search-input"
+              type="search"
+              :placeholder="t.modelSearchPlaceholder"
+              autocomplete="off"
+              @keydown.escape.stop.prevent="modelPickerOpen = false"
+            />
+            <div v-if="groupedModelChoices.length" class="ai-model-groups">
+              <div v-for="group in groupedModelChoices" :key="group.name" class="ai-model-group">
+                <div class="ai-model-group-title">{{ group.name }}</div>
+                <button
+                  v-for="model in group.models"
+                  :key="model"
+                  type="button"
+                  class="ai-model-option"
+                  :class="{ active: model === selectedModel }"
+                  role="option"
+                  :aria-selected="model === selectedModel ? 'true' : 'false'"
+                  @click="selectModel(model)"
+                >
+                  <span class="ai-model-option-name">{{ model }}</span>
+                  <span v-if="model === effectiveDefaultModel" class="ai-model-default-badge">
+                    {{ t.modelDefaultBadge }}
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div v-else class="ai-model-empty">{{ t.modelNoMatches }}</div>
+          </div>
+        </Transition>
+      </div>
+      <span
+        class="ai-model-runtime"
+        :class="`ai-model-runtime-${modelStatusKind}`"
+        :title="modelStatusText"
+      >
+        <span class="ai-model-runtime-dot" aria-hidden="true"></span>
+        <span class="ai-model-runtime-label">{{ modelStatusText }}</span>
+      </span>
+      <span v-if="modelCapabilityTags.length" class="ai-model-capabilities">
+        <span
+          v-for="tag in modelCapabilityTags"
+          :key="tag"
+          class="ai-model-capability"
+          :class="{ 'ai-model-capability-vision': tag === t.modelCapabilityVision }"
+        >
+          {{ tag }}
+        </span>
+      </span>
       <span class="ai-model-row-spacer" />
       <button
         v-if="pageContextConfigured"
@@ -301,6 +381,27 @@
         :class="{ 'ai-char-counter-warn': charCountNearLimit }"
         >{{ charCountLabel }}</span
       >
+      <div v-if="charLimitWarningText" class="ai-input-risk" role="note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M11 7h2v7h-2V7zm0 9h2v2h-2v-2z" />
+          <path d="M12 2 1 21h22L12 2zm0 4.04L19.53 19H4.47L12 6.04z" />
+        </svg>
+        <span>{{ charLimitWarningText }}</span>
+      </div>
+      <div v-if="sendBlockedReason && modelValue.trim()" class="ai-send-risk" role="note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+        </svg>
+        <span>{{ sendBlockedReason }}</span>
+        <button
+          v-if="sendBlockedActionLabel"
+          type="button"
+          class="ai-send-risk-action"
+          @click="$emit('sendBlockedAction')"
+        >
+          {{ sendBlockedActionLabel }}
+        </button>
+      </div>
       <div class="ai-footer-send-group">
         <slot name="footer-plugins" />
         <div
@@ -388,9 +489,9 @@
           class="ai-send"
           type="button"
           :style="{ backgroundColor: color }"
-          :disabled="!modelValue.trim() || loading"
-          :title="t.send"
-          :aria-label="t.send"
+          :disabled="sendDisabled"
+          :title="sendButtonTitle"
+          :aria-label="sendButtonTitle"
           @click="$emit('send')"
         >
           <svg
@@ -410,7 +511,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SlashCommand } from '../composables/useSlashCommands';
 
@@ -425,13 +526,19 @@ const props = withDefaults(
     placeholder: string;
     charCountLabel: string;
     charCountNearLimit: boolean;
+    charLimitWarningText: string;
+    sendBlockedReason: string;
+    sendBlockedActionLabel: string;
     pendingImageThumbs: string[];
     acceptTypes: string;
     hasBaseUrl: boolean;
     showModelPicker: boolean;
     selectedModel: string;
+    defaultModel: string;
     modelChoices: string[];
     modelListMessage: string;
+    modelStatusText: string;
+    modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
     targetLang: string;
     voiceSupported: boolean;
     voiceRecording: boolean;
@@ -471,6 +578,12 @@ const props = withDefaults(
     quickTogglesEnabled: true,
     deepThinkEnabled: false,
     webSearchEnabled: false,
+    modelStatusText: '',
+    modelStatusKind: 'offline',
+    defaultModel: '',
+    charLimitWarningText: '',
+    sendBlockedReason: '',
+    sendBlockedActionLabel: '',
   },
 );
 
@@ -510,6 +623,7 @@ const emit = defineEmits<{
    */
   toggleDeepThink: [value: boolean];
   toggleWebSearch: [value: boolean];
+  sendBlockedAction: [];
 }>();
 
 /**
@@ -522,6 +636,92 @@ const fileInputRef = ref<HTMLInputElement>();
 const chatImageInputRef = ref<HTMLInputElement>();
 const textareaRef = ref<HTMLTextAreaElement>();
 const advancedToolsOpen = ref(false);
+const modelPickerOpen = ref(false);
+const modelSearch = ref('');
+const COMPOSER_MIN_HEIGHT = 34;
+const COMPOSER_MAX_HEIGHT = 78;
+
+const effectiveDefaultModel = computed(() => props.defaultModel || props.modelChoices[0] || '');
+const filteredModelChoices = computed(() => {
+  const q = modelSearch.value.trim().toLowerCase();
+  if (!q) return props.modelChoices;
+  return props.modelChoices.filter((model) => model.toLowerCase().includes(q));
+});
+const groupedModelChoices = computed(() => {
+  const groups = new Map<string, string[]>();
+  for (const model of filteredModelChoices.value) {
+    const group = inferModelGroup(model);
+    groups.set(group, [...(groups.get(group) ?? []), model]);
+  }
+  return Array.from(groups, ([name, models]) => ({ name, models }));
+});
+const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowerCase());
+const selectedModelLooksVisionCapable = computed(() =>
+  isLikelyVisionModel(selectedModelNormalized.value),
+);
+const selectedModelLooksToolCapable = computed(() =>
+  isLikelyToolModel(selectedModelNormalized.value),
+);
+const selectedModelLooksLongContext = computed(() =>
+  isLikelyLongContextModel(selectedModelNormalized.value),
+);
+const imageRiskVisible = computed(
+  () =>
+    props.mode === 'chat' &&
+    props.pendingImageThumbs.length > 0 &&
+    !!props.selectedModel.trim() &&
+    !selectedModelLooksVisionCapable.value,
+);
+const firstVisionModel = computed(
+  () =>
+    props.modelChoices.find(
+      (model) => model !== props.selectedModel && isLikelyVisionModel(model.toLowerCase()),
+    ) || '',
+);
+const modelCapabilityTags = computed(() => {
+  if (!props.selectedModel.trim()) return [];
+  const tags = [props.t.modelCapabilityText];
+  if (selectedModelLooksVisionCapable.value) tags.push(props.t.modelCapabilityVision);
+  if (selectedModelLooksToolCapable.value) tags.push(props.t.modelCapabilityTools);
+  if (selectedModelLooksLongContext.value) tags.push(props.t.modelCapabilityLongContext);
+  return tags;
+});
+const sendDisabled = computed(
+  () => !props.modelValue.trim() || props.loading || !!props.sendBlockedReason,
+);
+const sendButtonTitle = computed(() => props.sendBlockedReason || props.t.send);
+
+function inferModelGroup(model: string) {
+  const token = model.trim().split(/[/:_\-\s.]+/)[0];
+  if (!token || token.length < 2) return props.t.modelGroupOther;
+  return token;
+}
+
+function selectModel(model: string) {
+  emit('update:selectedModel', model);
+  modelPickerOpen.value = false;
+  modelSearch.value = '';
+}
+
+function isLikelyVisionModel(model: string) {
+  if (!model) return false;
+  return (
+    /(?:^|[-_:./])(?:vl|vision|visual|image|multimodal|omni)(?:[-_:./]|$)/i.test(model) ||
+    /gpt-4o|gemini|pixtral|llava|qwen.*vl|claude-(?:3|4)/i.test(model)
+  );
+}
+
+function isLikelyToolModel(model: string) {
+  if (!model) return false;
+  return /tool|function|agent|mcp|assistant|gpt-|claude|qwen|deepseek|glm|kimi|doubao|minimax/i.test(
+    model,
+  );
+}
+
+function isLikelyLongContextModel(model: string) {
+  if (!model) return false;
+  return /(?:32k|64k|100k|128k|200k|256k|1m|long|context)/i.test(model);
+}
 
 /**
  * L1: 单一 paste 入口。同时发出 pasteImage（保留原行为）和 pasteText
@@ -594,12 +794,25 @@ function onTextareaInput(event: Event) {
     recallActive.value = false;
   }
   emit('update:modelValue', el.value);
-  el.style.height = 'auto';
-  const lineHeight = 22;
-  const minH = lineHeight * 2;
-  const maxH = lineHeight * 6;
-  el.style.height = Math.min(Math.max(el.scrollHeight, minH), maxH) + 'px';
+  syncTextareaHeight(el);
 }
+
+function syncTextareaHeight(el = textareaRef.value) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height =
+    Math.min(
+      Math.max(el.scrollHeight || COMPOSER_MIN_HEIGHT, COMPOSER_MIN_HEIGHT),
+      COMPOSER_MAX_HEIGHT,
+    ) + 'px';
+}
+
+watch(
+  () => props.modelValue,
+  () => {
+    void nextTick(() => syncTextareaHeight());
+  },
+);
 
 function onTextareaKeydown(e: KeyboardEvent) {
   if (props.slashVisible && props.slashCommands && props.slashCommands.length > 0) {

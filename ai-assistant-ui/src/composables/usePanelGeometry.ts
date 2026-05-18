@@ -7,7 +7,7 @@ import { ref, computed, type Ref } from 'vue';
 export type PanelResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 type FabScreenQuadrant = 'tl' | 'tr' | 'bl' | 'br';
 
-const PANEL_W = 380;
+const PANEL_W = 480;
 const PANEL_H = 520;
 const PANEL_VIEWPORT_MARGIN = 16;
 const DRAG_CLICK_PX = 8;

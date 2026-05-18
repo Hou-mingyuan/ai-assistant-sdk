@@ -88,7 +88,8 @@ class LlmServiceTest {
         assertEquals("image understood", result);
         ObjectNode body = client.requests.get(0);
         assertEquals("vision-model", body.path("model").asText());
-        assertEquals("system", body.path("messages").get(0).path("content").asText());
+        assertTrue(body.path("messages").get(0).path("content").asText().startsWith("system"));
+        assertTrue(body.path("messages").get(0).path("content").asText().contains("vision-model"));
         assertEquals("old question", body.path("messages").get(1).path("content").asText());
         assertEquals("old answer", body.path("messages").get(2).path("content").asText());
         assertEquals(
@@ -121,6 +122,23 @@ class LlmServiceTest {
         assertEquals(
                 "data:image/jpeg;base64,two",
                 content.get(2).path("image_url").path("url").asText());
+    }
+
+    @Test
+    void chatSystemPromptIncludesResolvedModelIdentity() throws Exception {
+        AiAssistantProperties properties = baseProperties();
+        properties.setAllowedModels(List.of("configured-model"));
+
+        CapturingChatClient client = new CapturingChatClient();
+        client.enqueueRaw(chatResponse("I am configured-model"));
+        LlmService service = newService(properties, client);
+
+        assertEquals("I am configured-model", service.chat("你是什么模型", null, null, "configured-model"));
+
+        String systemPrompt =
+                client.requests.get(0).path("messages").get(0).path("content").asText();
+        assertTrue(systemPrompt.contains("configured-model"));
+        assertTrue(systemPrompt.contains("current model"));
     }
 
     @Test

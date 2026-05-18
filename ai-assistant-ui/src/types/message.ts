@@ -69,6 +69,13 @@ export interface Message {
    * absent => no reactions yet.
    */
   reactions?: { selected?: string; counts?: Record<string, number> };
+  /** Lightweight runtime metadata for assistant responses. */
+  meta?: {
+    model?: string;
+    elapsedMs?: number;
+    ttftMs?: number;
+    retried?: boolean;
+  };
   timestamp?: number;
 }
 

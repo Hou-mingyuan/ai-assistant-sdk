@@ -126,7 +126,14 @@
           @delete="deleteSessionTab"
         />
 
-        <div v-if="messages.length > 0" class="ai-chat-search">
+        <div
+          v-if="messages.length > 0"
+          class="ai-chat-search"
+          :class="{
+            'ai-chat-search-active': !!debouncedSearchQuery.trim(),
+            'ai-chat-search-empty': !!debouncedSearchQuery.trim() && totalMatches === 0,
+          }"
+        >
           <input
             v-model="chatSearchInput"
             type="search"
@@ -137,7 +144,13 @@
             @keydown.enter.exact.prevent="goNextMatch"
             @keydown.enter.shift.prevent="goPrevMatch"
           />
-          <span v-if="searchCountLabel" class="ai-search-count">{{ searchCountLabel }}</span>
+          <span
+            v-if="searchCountLabel"
+            class="ai-search-count"
+            :class="{ 'ai-search-count-empty': totalMatches === 0 }"
+          >
+            {{ searchCountLabel }}
+          </span>
           <button
             v-if="debouncedSearchQuery.trim()"
             type="button"
@@ -375,7 +388,24 @@
           <div v-if="selectMode && selectedMsgIndices.size > 0" class="ai-batch-delete-bar">
             <span class="ai-batch-delete-count">{{ selectedMsgIndices.size }}</span>
             <button type="button" class="ai-batch-delete-btn" @click="deleteSelectedMessages">
-              🗑️ {{ t.msgCtxDelete }}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M19 6 18 20H6L5 6" />
+                <path d="M10 11v5" />
+                <path d="M14 11v5" />
+              </svg>
+              <span>{{ t.msgCtxDelete }}</span>
             </button>
             <button type="button" class="ai-batch-cancel-btn" @click="toggleSelectMode">
               {{ t.closePanel }}
@@ -390,7 +420,20 @@
             :aria-label="'↓'"
             @click="scrollToBottomClick"
           >
-            ↓
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14" />
+              <path d="m19 12-7 7-7-7" />
+            </svg>
           </button>
         </Transition>
 
@@ -417,13 +460,19 @@
           :placeholder="placeholder"
           :char-count-label="charCountLabel"
           :char-count-near-limit="charCountNearLimit"
+          :char-limit-warning-text="charLimitWarningText"
+          :send-blocked-reason="sendBlockedReason"
+          :send-blocked-action-label="sendBlockedActionLabel"
           :pending-image-thumbs="pendingImageThumbs"
           :accept-types="ACCEPT_TYPES"
           :has-base-url="!!options.baseUrl"
           :show-model-picker="showModelPickerResolved"
           :selected-model="selectedChatModel"
+          :default-model="defaultChatModel"
           :model-choices="modelChoices"
           :model-list-message="modelListMessage"
+          :model-status-text="modelStatusText"
+          :model-status-kind="modelStatusKind"
           :target-lang="targetLang"
           :voice-supported="voiceSupported"
           :voice-recording="voiceRecording"
@@ -442,6 +491,7 @@
           @toggle-page-context="togglePageContext"
           @toggle-deep-think="(v) => (deepThinkEnabled = v)"
           @toggle-web-search="(v) => (webSearchEnabled = v)"
+          @send-blocked-action="handleSendBlockedAction"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
           @edit-pending-image="openAnnotationForPendingImage"
@@ -726,6 +776,11 @@
       :model-endpoint="diagnosticsModelEndpoint"
       :token-text="diagnosticsTokenText"
       :selected-model="selectedChatModel"
+      :model-status-text="modelStatusText"
+      :model-status-kind="modelStatusKind"
+      :model-source-text="modelSourceText"
+      :model-hint-text="modelHintText"
+      :remedy-kind="diagnosticsRemedyKind"
       :model-count="modelChoices.length"
       :last-checked="diagnosticsLastChecked"
       :base-url-input="connectionBaseUrlInput"
@@ -739,6 +794,7 @@
       @close="diagnosticsOpen = false"
       @test-config="testConnectionConfig"
       @save-config="saveConnectionConfig"
+      @use-default-base-url="useDefaultBaseUrlForDiagnostics"
       @update:base-url-input="connectionBaseUrlInput = $event"
       @update:token-input="connectionTokenInput = $event"
       @update:persist-enabled="connectionPersistEnabled = $event"
@@ -1471,6 +1527,26 @@ const charCountNearLimit = computed(() => {
   if (!maxUserChars.value) return false;
   return input.value.length > maxUserChars.value * 0.85;
 });
+const charLimitWarningText = computed(() => {
+  if (!maxUserChars.value || !input.value) return '';
+  if (input.value.length > maxUserChars.value) {
+    return t.value.inputOverLimitWarning.replace('{max}', String(maxUserChars.value));
+  }
+  if (input.value.length > maxUserChars.value * 0.85) {
+    return t.value.inputNearLimitWarning.replace('{max}', String(maxUserChars.value));
+  }
+  return '';
+});
+const sendBlockedReason = computed(() => {
+  if (!input.value.trim()) return '';
+  if (!options.baseUrl) return t.value.sendUnavailableNoBackend;
+  return '';
+});
+const sendBlockedActionLabel = computed(() => {
+  if (!input.value.trim()) return '';
+  if (!options.baseUrl) return t.value.diagnosticsUseDefaultBaseUrl;
+  return '';
+});
 let streamAbortController: AbortController | null = null;
 let streamStoppedByUser = false;
 const messages = ref<Message[]>(
@@ -1525,6 +1601,7 @@ const systemPromptStorageKeyResolved = computed(() => {
 
 const modelChoices = ref<string[]>([]);
 const selectedChatModel = ref('');
+const defaultChatModel = ref('');
 const showModelPickerResolved = computed(() => options.showModelPicker !== false);
 const selectedModelStorageKeyResolved = computed(
   () => options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
@@ -1584,6 +1661,37 @@ const diagnosticsStatusMessage = computed(() => {
   if (modelChoices.value.length > 0) return t.value.diagnosticsStatusReady;
   return modelListMessage.value;
 });
+const modelStatusKind = computed<'ready' | 'checking' | 'warning' | 'offline'>(() => {
+  if (!options.baseUrl) return 'offline';
+  if (diagnosticsBusy.value) return 'checking';
+  if (selectedChatModel.value) return 'ready';
+  if (modelListStatus.value) return 'warning';
+  return 'offline';
+});
+const modelStatusText = computed(() => {
+  if (!options.baseUrl) return t.value.modelStatusUnconfigured;
+  if (diagnosticsBusy.value) return t.value.modelStatusChecking;
+  if (selectedChatModel.value) return selectedChatModel.value;
+  if (modelListStatus.value) return modelListMessage.value;
+  return t.value.modelStatusUnavailable;
+});
+const modelSourceText = computed(() => {
+  if (!options.baseUrl) return t.value.diagnosticsModelSourceUnavailable;
+  if (selectedChatModel.value) return t.value.diagnosticsModelSourceSelected;
+  return t.value.diagnosticsModelSourceDefault;
+});
+const modelHintText = computed(() => {
+  if (!options.baseUrl) return t.value.diagnosticsModelHintNoBaseUrl;
+  if (selectedChatModel.value) {
+    return t.value.diagnosticsModelHintReady.replace('{model}', selectedChatModel.value);
+  }
+  return t.value.diagnosticsModelHintCheck;
+});
+const diagnosticsRemedyKind = computed(() => {
+  if (selectedChatModel.value && modelChoices.value.length > 0) return 'ready';
+  if (!options.baseUrl) return 'noBaseUrl';
+  return modelListStatus.value || 'failed';
+});
 
 function modelListStatusFromError(error?: string): ModelListStatus {
   if (!error) return 'failed';
@@ -1597,6 +1705,7 @@ function modelListStatusFromError(error?: string): ModelListStatus {
 async function refreshChatModels() {
   modelChoices.value = [];
   selectedChatModel.value = '';
+  defaultChatModel.value = '';
   modelListStatus.value = '';
   modelListError.value = '';
   if (!options.baseUrl || !showModelPickerResolved.value) return;
@@ -1613,6 +1722,7 @@ async function refreshChatModels() {
     }
     modelChoices.value = r.models;
     const def = r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0];
+    defaultChatModel.value = def;
     let pick = def;
     try {
       const saved = localStorage.getItem(selectedModelStorageKeyResolved.value);
@@ -1675,6 +1785,18 @@ function persistConnectionConfigIfEnabled() {
   }
 }
 
+function useDefaultBaseUrlForDiagnostics() {
+  connectionBaseUrlInput.value = '/ai-assistant';
+  connectionConfigMessage.value = t.value.connectionConfigDefaultApplied;
+}
+
+function handleSendBlockedAction() {
+  if (options.baseUrl) return;
+  diagnosticsOpen.value = true;
+  syncConnectionInputsFromOptions();
+  useDefaultBaseUrlForDiagnostics();
+}
+
 async function testConnectionConfig() {
   applyConnectionConfigInputs();
   await runModelDiagnostics();
@@ -1698,6 +1820,8 @@ async function copyDiagnostics() {
     `Status: ${diagnosticsStatusMessage.value}`,
     `Last error: ${modelListError.value || '(none)'}`,
     `Selected model: ${selectedChatModel.value || '(not selected)'}`,
+    `Model source: ${modelSourceText.value}`,
+    `Model status: ${modelStatusText.value}`,
     `Available models: ${modelChoices.value.length}`,
     `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,
   ];
@@ -2812,7 +2936,16 @@ function removeTransientAssistantMessages() {
 const searchCountLabel = computed(() => {
   const q = debouncedSearchQuery.value.trim();
   if (!q) return '';
-  if (totalMatches.value === 0) return '0';
+  if (totalMatches.value === 0) {
+    const loc = options.locale ?? 'en';
+    return loc === 'zh'
+      ? '无结果'
+      : loc === 'ja'
+        ? '結果なし'
+        : loc === 'ko'
+          ? '결과 없음'
+          : 'No results';
+  }
   return `${currentMatchIdx.value + 1}/${totalMatches.value}`;
 });
 const a11yStatusText = computed(() => {
