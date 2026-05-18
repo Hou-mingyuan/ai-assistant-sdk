@@ -324,7 +324,8 @@ public class OpenAiCompatibleChatClient
                             .block();
             return parseMinimaxVisionContent(body);
         } catch (WebClientResponseException e) {
-            throw new IllegalStateException("MiniMax VLM error: HTTP " + e.getStatusCode().value(), e);
+            throw new IllegalStateException(
+                    "MiniMax VLM error: HTTP " + e.getStatusCode().value(), e);
         } catch (Exception e) {
             if (e instanceof IllegalStateException ise) {
                 throw ise;

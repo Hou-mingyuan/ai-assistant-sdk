@@ -220,7 +220,9 @@ public class AiAssistantController {
                     models,
                     assistantProperties.resolveModel(),
                     modelCapabilityRegistry.describeAllWithVisionProbe(
-                            assistantProperties.getProvider(), models, this::probeVisionCapability));
+                            assistantProperties.getProvider(),
+                            models,
+                            this::probeVisionCapability));
         }
         return ModelsListResponse.ok(
                 models,

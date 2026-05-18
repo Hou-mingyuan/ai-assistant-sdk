@@ -340,7 +340,9 @@ public class LlmService {
                             new java.util.HashMap<>());
             ctx = runBeforeInterceptors(ctx);
             String effectiveModelId = ctx.modelId() != null ? ctx.modelId() : modelId;
-            ctx = ctx.withSystemPrompt(appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
+            ctx =
+                    ctx.withSystemPrompt(
+                            appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
 
             String result =
                     callLlm(
@@ -500,7 +502,9 @@ public class LlmService {
                             new java.util.HashMap<>());
             ctx = runBeforeInterceptors(ctx);
             String effectiveModelId = ctx.modelId() != null ? ctx.modelId() : modelId;
-            ctx = ctx.withSystemPrompt(appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
+            ctx =
+                    ctx.withSystemPrompt(
+                            appendRuntimeModelIdentity(ctx.systemPrompt(), effectiveModelId));
 
             final String finalSessionId = sessionId;
             final String originalMessage = userMessage;

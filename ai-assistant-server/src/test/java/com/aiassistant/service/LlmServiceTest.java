@@ -133,7 +133,8 @@ class LlmServiceTest {
         client.enqueueRaw(chatResponse("I am configured-model"));
         LlmService service = newService(properties, client);
 
-        assertEquals("I am configured-model", service.chat("你是什么模型", null, null, "configured-model"));
+        assertEquals(
+                "I am configured-model", service.chat("你是什么模型", null, null, "configured-model"));
 
         String systemPrompt =
                 client.requests.get(0).path("messages").get(0).path("content").asText();

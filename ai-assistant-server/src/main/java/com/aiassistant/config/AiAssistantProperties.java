@@ -91,6 +91,7 @@ public class AiAssistantProperties {
 
     /** 允许前端在 /chat、/stream 请求体中指定的模型 id；为空则忽略客户端 model，始终用 resolveModel()。 */
     private List<String> allowedModels;
+
     private transient volatile List<String> cachedClientModels;
     private transient volatile String cachedClientModelsDefault;
 
@@ -579,7 +580,8 @@ public class AiAssistantProperties {
             String normalized = m.trim();
             if (!models.contains(normalized)) models.add(normalized);
         }
-        List<String> result = models.isEmpty() ? java.util.List.of(def) : java.util.List.copyOf(models);
+        List<String> result =
+                models.isEmpty() ? java.util.List.of(def) : java.util.List.copyOf(models);
         cachedClientModelsDefault = def;
         cachedClientModels = result;
         return result;

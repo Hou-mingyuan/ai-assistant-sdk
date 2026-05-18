@@ -185,14 +185,7 @@ public class ModelCapabilityRegistry {
                 "tools",
                 "longContext",
                 "reasoning");
-        add(
-                rules,
-                "",
-                "glm-(?:4|5)|glm.*(?:v|vision)",
-                true,
-                "tools",
-                "longContext",
-                "reasoning");
+        add(rules, "", "glm-(?:4|5)|glm.*(?:v|vision)", true, "tools", "longContext", "reasoning");
         add(
                 rules,
                 "",
@@ -209,12 +202,7 @@ public class ModelCapabilityRegistry {
                 true,
                 "tools",
                 "longContext");
-        add(
-                rules,
-                "",
-                "(?:vl|vision|visual|image|multimodal|omni|llava|pixtral)",
-                false,
-                "vision");
+        add(rules, "", "(?:vl|vision|visual|image|multimodal|omni|llava|pixtral)", false, "vision");
         add(rules, "", "(?:audio|voice|speech|asr|tts|whisper)", false, "audio", "speech");
         add(rules, "", "(?:video|sora|veo|wan|hailuo)", false, "video");
         add(rules, "", "(?:embed|embedding|text-embedding|bge-m3|gte)", false, "embedding");
