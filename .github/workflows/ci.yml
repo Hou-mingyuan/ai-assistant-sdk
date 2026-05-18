@@ -145,8 +145,8 @@ jobs:
         run: npm run format:check
         working-directory: ai-assistant-ui
 
-      - name: Type check + Build
-        run: npm run build:lib
+      - name: Type check + Publish Build
+        run: npm run build
         working-directory: ai-assistant-ui
 
       - name: Test with coverage
@@ -160,8 +160,8 @@ jobs:
         #   git add scripts/.coverage-baseline.json
         run: node scripts/coverage-check.mjs --max-drop-percent 1.0
 
-      - name: Build Web Component
-        run: npm run build:wc
+      - name: Package exports smoke check
+        run: npm run check:exports
         working-directory: ai-assistant-ui
 
       - name: Bundle size watchdog (vs baseline)

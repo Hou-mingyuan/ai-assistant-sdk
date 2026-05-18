@@ -16,9 +16,17 @@ describe('package secondary exports', () => {
         types: './dist/entries/mcp.d.ts',
         import: './dist/mcp.mjs',
       },
+      './plugin': {
+        types: './dist/vite-plugin.d.ts',
+        import: './dist/plugin.mjs',
+      },
       './screenshot': {
         types: './dist/entries/screenshot.d.ts',
         import: './dist/screenshot.mjs',
+      },
+      './wc': {
+        import: './dist/ai-assistant-wc.mjs',
+        require: './dist/ai-assistant-wc.umd.cjs',
       },
     });
   });

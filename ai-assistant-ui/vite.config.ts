@@ -3,11 +3,13 @@ import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
 const isWC = process.env.BUILD_TARGET === 'wc';
+const preserveDist = process.env.PRESERVE_DIST === 'true';
 const libEntries = {
   'ai-assistant': resolve(__dirname, 'src/index.ts'),
   admin: resolve(__dirname, 'src/entries/admin.ts'),
   'form-fill': resolve(__dirname, 'src/entries/form-fill.ts'),
   mcp: resolve(__dirname, 'src/entries/mcp.ts'),
+  plugin: resolve(__dirname, 'src/vite-plugin.ts'),
   screenshot: resolve(__dirname, 'src/entries/screenshot.ts'),
 };
 
@@ -58,6 +60,7 @@ export default defineConfig({
             format === 'es' ? 'ai-assistant-wc.mjs' : 'ai-assistant-wc.umd.cjs',
         },
         cssCodeSplit: false,
+        emptyOutDir: !preserveDist,
         minify: 'terser',
         rollupOptions: {
           output: {

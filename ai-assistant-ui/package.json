@@ -41,8 +41,9 @@
       "require": "./dist/screenshot.umd.cjs"
     },
     "./plugin": {
-      "import": "./src/vite-plugin.ts",
-      "types": "./src/vite-plugin.ts"
+      "types": "./dist/vite-plugin.d.ts",
+      "import": "./dist/plugin.mjs",
+      "require": "./dist/plugin.umd.cjs"
     },
     "./wc": {
       "import": "./dist/ai-assistant-wc.mjs",
@@ -58,10 +59,12 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vue-tsc --declaration --emitDeclarationOnly --outDir dist",
+    "build": "npm run build:publish",
     "build:lib": "vite build",
+    "build:publish": "npm run build:lib && cross-env BUILD_TARGET=wc PRESERVE_DIST=true vite build && npm run build:types && npm run check:exports",
     "build:wc": "cross-env BUILD_TARGET=wc vite build",
     "build:types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist",
+    "check:exports": "node ../scripts/check-package-exports.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
