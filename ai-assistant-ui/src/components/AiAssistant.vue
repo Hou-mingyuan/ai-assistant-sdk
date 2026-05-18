@@ -918,6 +918,11 @@ import { useKnowledgeBase } from '../composables/useKnowledgeBase';
 import { useMultiModelChat } from '../composables/useMultiModelChat';
 import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { useAudioPreferences } from '../composables/useAudioPreferences';
+import {
+  useAssistantDiagnostics,
+  writeClipboardText,
+} from '../composables/useAssistantDiagnostics';
+import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll';
@@ -945,7 +950,7 @@ const AssistantInlineOverlays = defineAsyncComponent(() => import('./AssistantIn
  * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
 const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
 import type { AiAssistantOptions } from '../index';
-import { uploadFile, fetchUrlPreview, fetchModels, fetchPromptTemplates } from '../utils/api';
+import { uploadFile, fetchUrlPreview, fetchPromptTemplates } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
@@ -1601,269 +1606,55 @@ const systemPromptStorageKeyResolved = computed(() => {
   return k || 'ai-assistant-chat-system-prompt';
 });
 
-const modelChoices = ref<string[]>([]);
-const selectedChatModel = ref('');
-const defaultChatModel = ref('');
 const showModelPickerResolved = computed(() => options.showModelPicker !== false);
 const selectedModelStorageKeyResolved = computed(
   () => options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
 );
-const diagnosticsOpen = ref(false);
+const pendingTimers: number[] = [];
 const keyboardHelpOpen = ref(false);
 const sessionsDrawerOpen = ref(false);
-const diagnosticsBusy = ref(false);
-const diagnosticsCopied = ref(false);
-const diagnosticsCopyMessage = ref('');
-const diagnosticsLastChecked = ref('');
-const modelListError = ref('');
-const connectionBaseUrlInput = ref(options.baseUrl || '');
-const connectionTokenInput = ref(options.accessToken || '');
-const connectionPersistEnabled = ref(true);
-const connectionConfigMessage = ref('');
-const CONNECTION_BASE_URL_STORAGE_KEY = 'ai-assistant-connection-base-url';
-const CONNECTION_TOKEN_STORAGE_KEY = 'ai-assistant-connection-token';
-type ModelListStatus =
-  | ''
-  | 'empty'
-  | 'network'
-  | 'unauthorized'
-  | 'rateLimited'
-  | 'serverError'
-  | 'failed';
-const modelListStatus = ref<ModelListStatus>('');
-const modelListMessage = computed(() => {
-  switch (modelListStatus.value) {
-    case 'empty':
-      return t.value.modelsListEmpty;
-    case 'network':
-      return t.value.modelsNetworkError;
-    case 'unauthorized':
-      return t.value.modelsUnauthorized;
-    case 'rateLimited':
-      return t.value.modelsRateLimited;
-    case 'serverError':
-      return t.value.modelsServerError;
-    case 'failed':
-      return t.value.modelsLoadFailed;
-    default:
-      return t.value.modelsListEmpty;
-  }
+const assistantDiagnostics = useAssistantDiagnostics({
+  options,
+  t,
+  showModelPicker: showModelPickerResolved,
+  selectedModelStorageKey: selectedModelStorageKeyResolved,
+  pendingTimers,
 });
-const diagnosticsModelEndpoint = computed(() =>
-  options.baseUrl ? `${options.baseUrl.replace(/\/+$/, '')}/models` : '—',
-);
-const diagnosticsTokenText = computed(() =>
-  options.accessToken?.trim()
-    ? t.value.diagnosticsTokenConfigured
-    : t.value.diagnosticsTokenMissing,
-);
-const diagnosticsStatusMessage = computed(() => {
-  if (!options.baseUrl) return t.value.diagnosticsStatusNoBaseUrl;
-  if (diagnosticsBusy.value) return t.value.diagnosticsStatusChecking;
-  if (modelChoices.value.length > 0) return t.value.diagnosticsStatusReady;
-  return modelListMessage.value;
-});
-const modelStatusKind = computed<'ready' | 'checking' | 'warning' | 'offline'>(() => {
-  if (!options.baseUrl) return 'offline';
-  if (diagnosticsBusy.value) return 'checking';
-  if (selectedChatModel.value) return 'ready';
-  if (modelListStatus.value) return 'warning';
-  return 'offline';
-});
-const modelStatusText = computed(() => {
-  if (!options.baseUrl) return t.value.modelStatusUnconfigured;
-  if (diagnosticsBusy.value) return t.value.modelStatusChecking;
-  if (selectedChatModel.value) return selectedChatModel.value;
-  if (modelListStatus.value) return modelListMessage.value;
-  return t.value.modelStatusUnavailable;
-});
-const modelSourceText = computed(() => {
-  if (!options.baseUrl) return t.value.diagnosticsModelSourceUnavailable;
-  if (selectedChatModel.value) return t.value.diagnosticsModelSourceSelected;
-  return t.value.diagnosticsModelSourceDefault;
-});
-const modelHintText = computed(() => {
-  if (!options.baseUrl) return t.value.diagnosticsModelHintNoBaseUrl;
-  if (selectedChatModel.value) {
-    return t.value.diagnosticsModelHintReady.replace('{model}', selectedChatModel.value);
-  }
-  return t.value.diagnosticsModelHintCheck;
-});
-const diagnosticsRemedyKind = computed(() => {
-  if (selectedChatModel.value && modelChoices.value.length > 0) return 'ready';
-  if (!options.baseUrl) return 'noBaseUrl';
-  return modelListStatus.value || 'failed';
-});
-
-function modelListStatusFromError(error?: string): ModelListStatus {
-  if (!error) return 'failed';
-  if (/\b(401|403)\b/.test(error)) return 'unauthorized';
-  if (/\b429\b/.test(error)) return 'rateLimited';
-  if (/\b5\d\d\b/.test(error)) return 'serverError';
-  if (/failed to fetch|networkerror|timeout|aborted/i.test(error)) return 'network';
-  return 'failed';
-}
-
-async function refreshChatModels() {
-  modelChoices.value = [];
-  selectedChatModel.value = '';
-  defaultChatModel.value = '';
-  modelListStatus.value = '';
-  modelListError.value = '';
-  if (!options.baseUrl || !showModelPickerResolved.value) return;
-  try {
-    const r = await fetchModels(options.baseUrl, options.accessToken);
-    if (!r.success) {
-      modelListStatus.value = modelListStatusFromError(r.error);
-      modelListError.value = r.error || t.value.modelsLoadFailed;
-      return;
-    }
-    if (!r.models?.length) {
-      modelListStatus.value = 'empty';
-      return;
-    }
-    modelChoices.value = r.models;
-    const def = r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0];
-    defaultChatModel.value = def;
-    let pick = def;
-    try {
-      const saved = localStorage.getItem(selectedModelStorageKeyResolved.value);
-      if (saved && r.models.includes(saved)) pick = saved;
-    } catch {
-      /* ignore */
-    }
-    selectedChatModel.value = pick;
-  } catch (e: unknown) {
-    modelListStatus.value = 'network';
-    modelListError.value = e instanceof Error ? e.message : String(e || t.value.modelsNetworkError);
-  }
-}
-
-async function runModelDiagnostics() {
-  diagnosticsBusy.value = true;
-  try {
-    await refreshChatModels();
-  } finally {
-    diagnosticsLastChecked.value = new Date().toLocaleString();
-    diagnosticsBusy.value = false;
-  }
-}
-
-function toggleDiagnostics() {
-  diagnosticsOpen.value = !diagnosticsOpen.value;
-  if (diagnosticsOpen.value) {
-    syncConnectionInputsFromOptions();
-    void runModelDiagnostics();
-  }
-}
-
-function syncConnectionInputsFromOptions() {
-  connectionBaseUrlInput.value = options.baseUrl || '';
-  connectionTokenInput.value = options.accessToken || '';
-}
-
-function applyConnectionConfigInputs() {
-  const baseUrl = connectionBaseUrlInput.value.trim();
-  const token = connectionTokenInput.value.trim();
-  options.baseUrl = baseUrl || undefined;
-  options.accessToken = token || undefined;
-}
-
-function persistConnectionConfigIfEnabled() {
-  const baseUrl = connectionBaseUrlInput.value.trim();
-  const token = connectionTokenInput.value.trim();
-  try {
-    if (!connectionPersistEnabled.value) {
-      localStorage.removeItem(CONNECTION_BASE_URL_STORAGE_KEY);
-      localStorage.removeItem(CONNECTION_TOKEN_STORAGE_KEY);
-      return;
-    }
-    if (baseUrl) localStorage.setItem(CONNECTION_BASE_URL_STORAGE_KEY, baseUrl);
-    else localStorage.removeItem(CONNECTION_BASE_URL_STORAGE_KEY);
-    if (token) localStorage.setItem(CONNECTION_TOKEN_STORAGE_KEY, token);
-    else localStorage.removeItem(CONNECTION_TOKEN_STORAGE_KEY);
-  } catch {
-    /* localStorage may be unavailable or full. */
-  }
-}
-
-function useDefaultBaseUrlForDiagnostics() {
-  connectionBaseUrlInput.value = '/ai-assistant';
-  connectionConfigMessage.value = t.value.connectionConfigDefaultApplied;
-}
-
-function handleSendBlockedAction() {
-  if (options.baseUrl) return;
-  diagnosticsOpen.value = true;
-  syncConnectionInputsFromOptions();
-  useDefaultBaseUrlForDiagnostics();
-}
-
-async function testConnectionConfig() {
-  applyConnectionConfigInputs();
-  await runModelDiagnostics();
-  connectionConfigMessage.value =
-    modelChoices.value.length > 0 ? t.value.connectionConfigTested : t.value.connectionConfigFailed;
-}
-
-async function saveConnectionConfig() {
-  applyConnectionConfigInputs();
-  persistConnectionConfigIfEnabled();
-  await runModelDiagnostics();
-  connectionConfigMessage.value = t.value.connectionConfigSaved;
-}
-
-async function copyDiagnostics() {
-  const lines = [
-    'AI Assistant Diagnostics',
-    `Base URL: ${options.baseUrl || '(not configured)'}`,
-    `Models endpoint: ${diagnosticsModelEndpoint.value}`,
-    `Access token: ${options.accessToken?.trim() ? 'configured' : 'missing'}`,
-    `Status: ${diagnosticsStatusMessage.value}`,
-    `Last error: ${modelListError.value || '(none)'}`,
-    `Selected model: ${selectedChatModel.value || '(not selected)'}`,
-    `Model source: ${modelSourceText.value}`,
-    `Model status: ${modelStatusText.value}`,
-    `Available models: ${modelChoices.value.length}`,
-    `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,
-  ];
-  const text = lines.join('\n');
-  try {
-    await writeClipboardText(text);
-    diagnosticsCopied.value = true;
-    diagnosticsCopyMessage.value = t.value.diagnosticsCopied;
-    pendingTimers.push(
-      window.setTimeout(() => {
-        diagnosticsCopied.value = false;
-        diagnosticsCopyMessage.value = '';
-      }, 1500),
-    );
-  } catch {
-    diagnosticsCopied.value = false;
-    diagnosticsCopyMessage.value = t.value.diagnosticsCopyFailed;
-  }
-}
-
-async function writeClipboardText(text: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  textarea.style.top = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    const copied = document.execCommand('copy');
-    if (!copied) throw new Error('copy command failed');
-  } finally {
-    document.body.removeChild(textarea);
-  }
-}
+const {
+  modelChoices,
+  selectedChatModel,
+  defaultChatModel,
+  diagnosticsOpen,
+  diagnosticsBusy,
+  diagnosticsCopied,
+  diagnosticsCopyMessage,
+  diagnosticsLastChecked,
+  modelListError,
+  connectionBaseUrlInput,
+  connectionTokenInput,
+  connectionPersistEnabled,
+  connectionConfigMessage,
+  modelListMessage,
+  diagnosticsModelEndpoint,
+  diagnosticsTokenText,
+  diagnosticsStatusMessage,
+  modelStatusKind,
+  modelStatusText,
+  modelSourceText,
+  modelHintText,
+  diagnosticsRemedyKind,
+  refreshChatModels,
+  runModelDiagnostics,
+  toggleDiagnostics,
+  syncConnectionInputsFromOptions,
+  useDefaultBaseUrlForDiagnostics,
+  handleSendBlockedAction,
+  testConnectionConfig,
+  saveConnectionConfig,
+  copyDiagnostics,
+  connectionBaseUrlStorageKey,
+  connectionTokenStorageKey,
+} = assistantDiagnostics;
 
 function openPersonalize() {
   personalizeOpen.value = true;
@@ -1991,7 +1782,6 @@ const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileUploading = ref(false);
 const selectMode = ref(false);
 const selectedMsgIndices = ref<Set<number>>(new Set());
-const pendingTimers: number[] = [];
 const {
   dragActive,
   pendingImageDataList,
@@ -4002,147 +3792,30 @@ watch(loading, (now, prev) => {
   if (!now && prev) removeTransientAssistantMessages();
 });
 
-function trapFocus(e: KeyboardEvent) {
-  if (e.key !== 'Tab' || !panelRef.value) return;
-  const focusable = panelRef.value.querySelectorAll<HTMLElement>(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-  );
-  if (!focusable.length) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (e.shiftKey) {
-    if (document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    }
-  } else {
-    if (document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
-}
-
-function matchesToggleShortcut(e: KeyboardEvent): boolean {
-  const shortcut = options.toggleShortcut;
-  if (shortcut === false) return false;
-  const raw = shortcut || '/';
-  const parts = raw.split('+');
-  const mainKey = parts[parts.length - 1];
-  if (e.key !== mainKey && e.key.toLowerCase() !== mainKey.toLowerCase()) return false;
-  const modifiers = parts.slice(0, -1).map((m) => m.toLowerCase());
-  const isMac = navigator.platform?.startsWith('Mac') || navigator.userAgent?.includes('Mac');
-  const needCtrl = modifiers.includes('ctrl') || (!modifiers.some((m) => m === 'meta') && !isMac);
-  const needMeta = modifiers.includes('meta') || (!modifiers.some((m) => m === 'ctrl') && isMac);
-  const needShift = modifiers.includes('shift');
-  const needAlt = modifiers.includes('alt');
-  return (
-    (needCtrl ? e.ctrlKey : !e.ctrlKey || isMac) &&
-    (needMeta ? e.metaKey : !e.metaKey || !isMac) &&
-    needShift === e.shiftKey &&
-    needAlt === e.altKey
-  );
-}
-
-function onEscKeydown(e: KeyboardEvent) {
-  if (matchesToggleShortcut(e)) {
-    e.preventDefault();
-    if (fabHidden.value) return;
-    isOpen.value = !isOpen.value;
-    return;
-  }
-
-  const ctrl = e.ctrlKey || e.metaKey;
-  if (matchesScreenCaptureShortcut(e) && isOpen.value && mode.value === 'chat') {
-    e.preventDefault();
-    void captureScreenIntoPendingImage();
-    return;
-  }
-  if (ctrl && e.shiftKey && !e.altKey && isOpen.value) {
-    switch (e.key.toLowerCase()) {
-      case 'l':
-        e.preventDefault();
-        clearMessages();
-        return;
-      case 'n':
-        e.preventDefault();
-        startNewSession();
-        return;
-      case 'f': {
-        e.preventDefault();
-        const searchEl = wrapperRef.value?.querySelector<HTMLInputElement>('.ai-chat-search-input');
-        if (searchEl) searchEl.focus();
-        return;
-      }
-      case 's':
-        e.preventDefault();
-        toggleBatchExportMenu();
-        return;
-      case 'm':
-        e.preventDefault();
-        toggleMemoryPanel();
-        return;
-    }
-  }
-
-  /* E1: Ctrl+/ (or Cmd+/) toggles keyboard shortcuts cheat sheet */
-  if (ctrl && !e.shiftKey && !e.altKey && e.key === '/' && isOpen.value) {
-    e.preventDefault();
-    keyboardHelpOpen.value = !keyboardHelpOpen.value;
-    return;
-  }
-
-  if (e.key !== 'Escape') return;
-  /* K36/K53.3: textarea 处于 prompt-history recall 状态时，把 Escape
-   * 让给 ChatInputArea 自己处理（清空回放内容、退出回放），而不是
-   * 直接被这里的 capture-phase 全局监听器抢去关闭 panel。
-   * ChatInputArea 通过 textarea 上的 data-recall-active="true" 表达此状态。 */
-  const activeEl = document.activeElement as HTMLElement | null;
-  if (activeEl?.dataset?.recallActive === 'true') return;
-  if (inlineTranslatePopover.value.show) {
-    e.preventDefault();
-    closeInlineTranslatePopover();
-    return;
-  }
-  if (msgCtxMenu.value.show) {
-    e.preventDefault();
-    closeMsgCtxMenu();
-    return;
-  }
-  if (fabCtxMenu.value.show) {
-    e.preventDefault();
-    closeFabCtxMenu();
-    return;
-  }
-  if (personalizeOpen.value) {
-    e.preventDefault();
-    personalizeOpen.value = false;
-    return;
-  }
-  if (diagnosticsOpen.value) {
-    e.preventDefault();
-    diagnosticsOpen.value = false;
-    return;
-  }
-  if (keyboardHelpOpen.value) {
-    e.preventDefault();
-    keyboardHelpOpen.value = false;
-    return;
-  }
-  if (sessionsDrawerOpen.value) {
-    e.preventDefault();
-    sessionsDrawerOpen.value = false;
-    return;
-  }
-  if (document.querySelector('.ai-header-settings-menu')) {
-    e.preventDefault();
-    return;
-  }
-  if (isOpen.value) {
-    e.preventDefault();
-    isOpen.value = false;
-  }
-}
+const { trapFocus, onEscKeydown } = useAssistantKeyboard({
+  options,
+  panelRef,
+  wrapperRef,
+  isOpen,
+  fabHidden,
+  mode,
+  keyboardHelpOpen,
+  personalizeOpen,
+  diagnosticsOpen,
+  sessionsDrawerOpen,
+  inlineTranslatePopover,
+  msgCtxMenu,
+  fabCtxMenu,
+  matchesScreenCaptureShortcut,
+  captureScreenIntoPendingImage,
+  clearMessages,
+  startNewSession,
+  toggleBatchExportMenu,
+  toggleMemoryPanel,
+  closeInlineTranslatePopover,
+  closeMsgCtxMenu,
+  closeFabCtxMenu,
+});
 
 function onVisualViewportChange() {
   onWinResize();
@@ -4173,8 +3846,8 @@ watch([reducedMotionRef, pageVisibleRef, codeWallDisabled], () => {
 
 onMounted(() => {
   try {
-    const savedBaseUrl = localStorage.getItem(CONNECTION_BASE_URL_STORAGE_KEY);
-    const savedToken = localStorage.getItem(CONNECTION_TOKEN_STORAGE_KEY);
+    const savedBaseUrl = localStorage.getItem(connectionBaseUrlStorageKey);
+    const savedToken = localStorage.getItem(connectionTokenStorageKey);
     if (savedBaseUrl) options.baseUrl = savedBaseUrl;
     if (savedToken) options.accessToken = savedToken;
     syncConnectionInputsFromOptions();
