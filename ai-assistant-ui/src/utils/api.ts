@@ -26,6 +26,7 @@ export interface FetchModelsOptions {
 }
 
 export type ChatResult = ApiSchemas['ChatResponse'];
+export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'];
 
 export interface UrlPreviewResult {
   success: boolean;
@@ -66,6 +67,20 @@ function parseSseDataEvent(event: string): string | undefined {
   if (!data) return undefined;
   if (data === '[DONE]') return undefined;
   return data;
+}
+
+function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
+  if (!headers) return undefined;
+  const visionInputCountRaw = headers.get('X-AI-Vision-Input-Count');
+  const meta: ChatRuntimeMeta = {
+    requestedModel: headers.get('X-AI-Requested-Model') || undefined,
+    effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
+    provider: headers.get('X-AI-Provider') || undefined,
+    fallback: headers.get('X-AI-Fallback') === 'true' ? true : undefined,
+    visionInputCount: visionInputCountRaw ? Number(visionInputCountRaw) : undefined,
+    visionRoute: headers.get('X-AI-Vision-Route') || undefined,
+  };
+  return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -334,6 +349,7 @@ export async function* streamChat(
   payload: ChatPayload,
   token?: string,
   signal?: AbortSignal,
+  onMeta?: (meta: ChatRuntimeMeta) => void,
 ): AsyncGenerator<string> {
   const res = await fetch(apiUrl(baseUrl, '/stream'), {
     method: 'POST',
@@ -344,6 +360,9 @@ export async function* streamChat(
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   }
+
+  const meta = streamMetaFromHeaders(res.headers);
+  if (meta) onMeta?.(meta);
 
   const reader = res.body?.getReader();
   if (!reader) throw new Error('Stream not available');

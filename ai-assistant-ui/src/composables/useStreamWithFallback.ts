@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { streamChat, type ChatPayload } from '../utils/api';
+import { streamChat, type ChatPayload, type ChatRuntimeMeta } from '../utils/api';
 import { wsStreamChat } from '../utils/wsChat';
 
 type Protocol = 'sse' | 'ws';
@@ -44,6 +44,7 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     payload: ChatPayload,
     token?: string,
     signal?: AbortSignal,
+    onMeta?: (meta: ChatRuntimeMeta) => void,
   ): AsyncGenerator<string> {
     if (preferredProtocol.value === 'ws') {
       try {
@@ -58,7 +59,7 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
 
     try {
       let gotChunk = false;
-      for await (const chunk of streamChat(baseUrl, payload, token, signal)) {
+      for await (const chunk of streamChat(baseUrl, payload, token, signal, onMeta)) {
         gotChunk = true;
         yield chunk;
       }

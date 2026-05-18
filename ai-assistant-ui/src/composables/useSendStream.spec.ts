@@ -275,7 +275,15 @@ describe('useSendStream local page snapshot', () => {
     const messages = ref([]);
     const input = ref('分析当前截图里有什么');
     const loading = ref(false);
-    const streamWithFallback = vi.fn(async function* (_baseUrl, _payload) {
+    const streamWithFallback = vi.fn(async function* (_baseUrl, _payload, _token, _signal, onMeta) {
+      onMeta?.({
+        requestedModel: 'MiniMax-M2.7',
+        effectiveModel: 'MiniMax-M2.7',
+        provider: 'minimax',
+        fallback: false,
+        visionInputCount: 1,
+        visionRoute: 'minimax-vlm',
+      });
       yield '截图中包含客户档案';
     });
     const captureScreenshotForAnalysis = vi
@@ -332,8 +340,18 @@ describe('useSendStream local page snapshot', () => {
       }),
       undefined,
       expect.any(AbortSignal),
+      expect.any(Function),
     );
     expect(messages.value[0].imageThumbs).toEqual(['data:image/png;base64,shot']);
+    expect(messages.value[1].meta).toEqual(
+      expect.objectContaining({
+        effectiveModel: 'MiniMax-M2.7',
+        provider: 'minimax',
+        fallback: false,
+        visionInputCount: 1,
+        visionRoute: 'minimax-vlm',
+      }),
+    );
   });
 
   it('trusts server-provided vision capability details for opaque model names', async () => {

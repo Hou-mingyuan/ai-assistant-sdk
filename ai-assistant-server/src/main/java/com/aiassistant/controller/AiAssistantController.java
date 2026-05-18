@@ -11,9 +11,11 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -85,6 +87,7 @@ public class AiAssistantController {
                         .body(ChatResponse.fail("INPUT_TOO_LARGE", tooLarge));
             }
             String action = request.getAction() == null ? "chat" : request.getAction();
+            ChatResponse.RuntimeMeta meta = runtimeMeta(request, action);
             String result =
                     switch (action) {
                         case "translate" ->
@@ -105,7 +108,7 @@ public class AiAssistantController {
                                         request.getPageContext());
                     };
             usageStats.recordCall(action);
-            return ResponseEntity.ok(ChatResponse.ok(result));
+            return ResponseEntity.ok(ChatResponse.ok(result, meta));
         } catch (LlmService.QuotaExceededException e) {
             usageStats.recordError();
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
@@ -145,6 +148,7 @@ public class AiAssistantController {
                     .body(Flux.just("[VALIDATION_ERROR] " + tooLarge));
         }
         String action = request.getAction() == null ? "chat" : request.getAction();
+        ChatResponse.RuntimeMeta meta = runtimeMeta(request, action);
         usageStats.recordCall("stream_" + action);
         Flux<String> flux =
                 switch (action) {
@@ -167,7 +171,57 @@ public class AiAssistantController {
                 };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
+                .headers(runtimeHeaders(meta))
                 .body(fluxWithFriendlyErrors(flux));
+    }
+
+    private ChatResponse.RuntimeMeta runtimeMeta(ChatRequest request, String action) {
+        ChatResponse.RuntimeMeta meta = new ChatResponse.RuntimeMeta();
+        meta.setProvider(assistantProperties.getProvider());
+        String requestedModel =
+                "chat".equals(action) && request.getModel() != null && !request.getModel().isBlank()
+                        ? request.getModel().trim()
+                        : null;
+        meta.setRequestedModel(requestedModel);
+        String effectiveModel =
+                "chat".equals(action)
+                        ? assistantProperties.resolveEffectiveModel(requestedModel)
+                        : assistantProperties.resolveModel();
+        meta.setEffectiveModel(effectiveModel);
+        meta.setFallback(
+                requestedModel != null
+                        && effectiveModel != null
+                        && !requestedModel.equals(effectiveModel));
+        List<String> imageDataList =
+                "chat".equals(action) ? request.resolveImageDataList() : java.util.List.of();
+        meta.setVisionInputCount(imageDataList.size());
+        if (!imageDataList.isEmpty()) {
+            meta.setVisionRoute(
+                    "minimax".equalsIgnoreCase(assistantProperties.getProvider())
+                            ? "minimax-vlm"
+                            : "openai-compatible-vision");
+        }
+        return meta;
+    }
+
+    private HttpHeaders runtimeHeaders(ChatResponse.RuntimeMeta meta) {
+        HttpHeaders headers = new HttpHeaders();
+        addHeader(headers, "X-AI-Requested-Model", meta.getRequestedModel());
+        addHeader(headers, "X-AI-Effective-Model", meta.getEffectiveModel());
+        addHeader(headers, "X-AI-Provider", meta.getProvider());
+        headers.add("X-AI-Fallback", String.valueOf(meta.isFallback()));
+        headers.add("X-AI-Vision-Input-Count", String.valueOf(meta.getVisionInputCount()));
+        addHeader(headers, "X-AI-Vision-Route", meta.getVisionRoute());
+        headers.add(
+                HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route");
+        return headers;
+    }
+
+    private static void addHeader(HttpHeaders headers, String name, String value) {
+        if (value != null && !value.isBlank()) {
+            headers.add(name, value);
+        }
     }
 
     private final AtomicLong lastDeepHealthMs = new AtomicLong();

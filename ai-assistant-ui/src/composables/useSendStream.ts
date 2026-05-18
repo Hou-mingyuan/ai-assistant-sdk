@@ -22,7 +22,7 @@
 import { type ComputedRef, type Ref, ref } from 'vue';
 
 import type { AiAssistantOptions } from '../index';
-import type { ChatPayload, UrlPreviewResult } from '../utils/api';
+import type { ChatPayload, ChatRuntimeMeta, UrlPreviewResult } from '../utils/api';
 import type { I18nMessages } from '../utils/i18n';
 import {
   type Message,
@@ -234,6 +234,7 @@ export interface UseSendStreamDeps {
     payload: ChatPayload,
     token?: string,
     signal?: AbortSignal,
+    onMeta?: (meta: ChatRuntimeMeta) => void,
   ) => AsyncIterable<string>;
   /** Optional page-link preview fetcher (used to side-attach images). */
   fetchUrlPreview: (baseUrl: string, pageUrl: string, token?: string) => Promise<UrlPreviewResult>;
@@ -605,6 +606,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       timestamp: requestStartedAt,
       meta: {
         model: requestModel,
+        requestedModel: requestModel,
       },
     };
     deps.messages.value.push(assistantMsg);
@@ -655,9 +657,13 @@ export function useSendStream(deps: UseSendStreamDeps) {
     const visibleContent = deps.messages.value[msgIndex]?.content ?? fullContent;
     if (!hasVisibleAssistantContent(visibleContent, tNow()) && !urlPreviewImgs.length) {
       const prevSlot = deps.messages.value[msgIndex];
+      const emptyResponse =
+        prevSlot?.meta?.visionInputCount && prevSlot.meta.visionInputCount > 0
+          ? tNow().visionEmptyResponse || 'The model returned an empty vision result'
+          : tNow().noResponse;
       deps.messages.value[msgIndex] = {
         role: 'assistant',
-        content: tNow().noResponse,
+        content: emptyResponse,
         thinking: prevSlot?.thinking,
         toolCalls: prevSlot?.toolCalls,
         agentSteps: prevSlot?.agentSteps,
@@ -677,6 +683,18 @@ export function useSendStream(deps: UseSendStreamDeps) {
       deps.updateActiveSessionTitle(deps.sessionTitle.value);
     }
     deps.emitResponse(fullContent);
+  }
+
+  function applyRuntimeMeta(msgIndex: number, meta: ChatRuntimeMeta) {
+    const current = deps.messages.value[msgIndex];
+    if (!current || current.role !== 'assistant') return;
+    deps.messages.value[msgIndex] = {
+      ...current,
+      meta: {
+        ...current.meta,
+        ...meta,
+      },
+    };
   }
 
   function handleStreamError(e: unknown, msgIndex: number, requestStartedAt: number): boolean {
@@ -757,6 +775,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
           payload,
           deps.options.accessToken,
           controller.signal,
+          (meta) => applyRuntimeMeta(msgIndex, meta),
         ),
       );
       streamDone = true;

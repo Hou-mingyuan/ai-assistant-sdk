@@ -72,6 +72,12 @@ export interface Message {
   /** Lightweight runtime metadata for assistant responses. */
   meta?: {
     model?: string;
+    requestedModel?: string;
+    effectiveModel?: string;
+    provider?: string;
+    fallback?: boolean;
+    visionInputCount?: number;
+    visionRoute?: string;
     elapsedMs?: number;
     ttftMs?: number;
     retried?: boolean;

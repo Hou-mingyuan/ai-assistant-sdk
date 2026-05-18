@@ -407,6 +407,15 @@
       </div>
       <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
       <div v-if="msg.meta" class="ai-msg-meta">
+        <span v-if="runtimeModelLabel(msg)" class="ai-msg-meta-pill">
+          {{ t.responseMetaEffectiveModel || 'Actual' }} {{ runtimeModelLabel(msg) }}
+        </span>
+        <span v-if="msg.meta.visionInputCount" class="ai-msg-meta-pill">
+          {{ t.responseMetaVision || 'Vision' }} {{ msg.meta.visionInputCount }}
+        </span>
+        <span v-if="msg.meta.fallback" class="ai-msg-meta-pill">
+          {{ t.responseMetaFallback || 'Model switched' }}
+        </span>
         <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
           {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
         </span>
@@ -467,6 +476,13 @@ const MessageReactionBar = defineAsyncComponent(() => import('./MessageReactionB
 function formatMs(value: number) {
   if (!Number.isFinite(value) || value < 0) return '0.0s';
   return `${(value / 1000).toFixed(1)}s`;
+}
+
+function runtimeModelLabel(msg: Message) {
+  const effective = msg.meta?.effectiveModel?.trim();
+  if (!effective) return '';
+  const selected = msg.meta?.model?.trim() || msg.meta?.requestedModel?.trim();
+  return selected && selected === effective ? '' : effective;
 }
 
 function streamStageText(globalIdx: number, msg: Message) {

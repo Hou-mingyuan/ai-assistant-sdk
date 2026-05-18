@@ -421,6 +421,41 @@ describe('streamChat', () => {
     expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('stream-token');
   });
 
+  it('reports stream runtime metadata from response headers', async () => {
+    const onMeta = vi.fn();
+    mockFetch.mockResolvedValueOnce(
+      streamResponse(['data: ok\n\n'], {
+        'X-AI-Requested-Model': 'MiniMax-M2.7',
+        'X-AI-Effective-Model': 'MiniMax-M2.7',
+        'X-AI-Provider': 'minimax',
+        'X-AI-Fallback': 'true',
+        'X-AI-Vision-Input-Count': '1',
+        'X-AI-Vision-Route': 'minimax-vlm',
+      }),
+    );
+
+    const chunks = [];
+    for await (const chunk of streamChat(
+      '/ai',
+      { action: 'chat', text: 'hi' },
+      undefined,
+      undefined,
+      onMeta,
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['ok']);
+    expect(onMeta).toHaveBeenCalledWith({
+      requestedModel: 'MiniMax-M2.7',
+      effectiveModel: 'MiniMax-M2.7',
+      provider: 'minimax',
+      fallback: true,
+      visionInputCount: 1,
+      visionRoute: 'minimax-vlm',
+    });
+  });
+
   it('throws on failed streaming response', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Unavailable' });
 
@@ -442,7 +477,7 @@ describe('streamChat', () => {
   });
 });
 
-function streamResponse(chunks: string[]) {
+function streamResponse(chunks: string[], headers: Record<string, string> = {}) {
   const encoder = new TextEncoder();
   let index = 0;
   const reader = {
@@ -456,6 +491,9 @@ function streamResponse(chunks: string[]) {
   };
   return {
     ok: true,
+    headers: {
+      get: (name: string) => headers[name] ?? headers[name.toLowerCase()] ?? null,
+    },
     body: {
       getReader: () => reader,
     },

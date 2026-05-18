@@ -58,6 +58,31 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void chat_returnsRuntimeMetadataForWhitelistedVisionModel() {
+        props.setProvider("minimax");
+        props.setModel("MiniMax-M2.5");
+        props.setAllowedModels(java.util.List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+        when(llmService.chat(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn("Hello!");
+        ChatRequest req = new ChatRequest();
+        req.setText("hi");
+        req.setAction("chat");
+        req.setModel("MiniMax-M2.7");
+        req.setImageDataList(java.util.List.of("data:image/png;base64,shot"));
+
+        var response = controller.chat(req);
+
+        assertEquals(200, response.getStatusCode().value());
+        var meta = response.getBody().getMeta();
+        assertEquals("MiniMax-M2.7", meta.getRequestedModel());
+        assertEquals("MiniMax-M2.7", meta.getEffectiveModel());
+        assertEquals("minimax", meta.getProvider());
+        assertFalse(meta.isFallback());
+        assertEquals(1, meta.getVisionInputCount());
+        assertEquals("minimax-vlm", meta.getVisionRoute());
+    }
+
+    @Test
     void chat_translate_delegatesToTranslate() {
         when(llmService.translate(anyString(), anyString())).thenReturn("你好");
         ChatRequest req = new ChatRequest();
@@ -111,6 +136,29 @@ class AiAssistantControllerTest {
         assertNotNull(chunks);
         assertEquals(2, chunks.size());
         assertEquals("chunk1", chunks.get(0));
+    }
+
+    @Test
+    void stream_returnsRuntimeMetadataHeaders() {
+        props.setProvider("minimax");
+        props.setModel("MiniMax-M2.5");
+        props.setAllowedModels(java.util.List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("chat");
+        req.setModel("MiniMax-M2.7");
+        req.setImageDataList(java.util.List.of("data:image/png;base64,shot"));
+
+        var response = controller.stream(req);
+
+        assertEquals("MiniMax-M2.7", response.getHeaders().getFirst("X-AI-Requested-Model"));
+        assertEquals("MiniMax-M2.7", response.getHeaders().getFirst("X-AI-Effective-Model"));
+        assertEquals("minimax", response.getHeaders().getFirst("X-AI-Provider"));
+        assertEquals("false", response.getHeaders().getFirst("X-AI-Fallback"));
+        assertEquals("1", response.getHeaders().getFirst("X-AI-Vision-Input-Count"));
+        assertEquals("minimax-vlm", response.getHeaders().getFirst("X-AI-Vision-Route"));
     }
 
     @Test

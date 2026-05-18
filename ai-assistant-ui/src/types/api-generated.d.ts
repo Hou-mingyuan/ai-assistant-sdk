@@ -63,6 +63,15 @@ export interface components {
       result?: string;
       error?: string;
       errorCode?: string;
+      meta?: components['schemas']['RuntimeMeta'];
+    };
+    RuntimeMeta: {
+      requestedModel?: string;
+      effectiveModel?: string;
+      provider?: string;
+      fallback?: boolean;
+      visionInputCount?: number;
+      visionRoute?: string;
     };
   };
 }

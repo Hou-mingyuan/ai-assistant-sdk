@@ -334,6 +334,10 @@ export interface I18nMessages {
   streamStageWaitingFirstToken?: string;
   streamStageGenerating?: string;
   /** Assistant response metadata labels. */
+  responseMetaEffectiveModel?: string;
+  responseMetaVision?: string;
+  responseMetaFallback?: string;
+  visionEmptyResponse?: string;
   responseMetaElapsed?: string;
   responseMetaTtft?: string;
   responseMetaRetried?: string;

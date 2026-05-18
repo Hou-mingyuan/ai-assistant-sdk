@@ -52,6 +52,27 @@ describe('MessageList assistant metadata', () => {
     expect(meta.text()).toContain('1.2s');
     expect(meta.text()).toContain('TTFT 0.3s');
   });
+
+  it('shows effective model only when runtime routing differs from selected model', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'hello',
+        timestamp: Date.now(),
+        meta: {
+          model: 'MiniMax-M2.7',
+          effectiveModel: 'MiniMax-M2.5',
+          fallback: true,
+          visionInputCount: 1,
+        },
+      },
+    ]);
+
+    const meta = wrapper.find('.ai-msg-meta');
+    expect(meta.text()).toContain('Actual model MiniMax-M2.5');
+    expect(meta.text()).toContain('Vision images 1');
+    expect(meta.text()).toContain('Model switched');
+  });
 });
 
 describe('MessageList streaming stages', () => {

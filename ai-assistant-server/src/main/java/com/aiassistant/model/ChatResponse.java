@@ -7,11 +7,17 @@ public class ChatResponse {
     private String result;
     private String error;
     private String errorCode;
+    private RuntimeMeta meta;
 
     public static ChatResponse ok(String result) {
+        return ok(result, null);
+    }
+
+    public static ChatResponse ok(String result, RuntimeMeta meta) {
         ChatResponse r = new ChatResponse();
         r.success = true;
         r.result = result;
+        r.meta = meta;
         return r;
     }
 
@@ -60,5 +66,70 @@ public class ChatResponse {
 
     public void setErrorCode(String errorCode) {
         this.errorCode = errorCode;
+    }
+
+    public RuntimeMeta getMeta() {
+        return meta;
+    }
+
+    public void setMeta(RuntimeMeta meta) {
+        this.meta = meta;
+    }
+
+    public static class RuntimeMeta {
+        private String requestedModel;
+        private String effectiveModel;
+        private String provider;
+        private boolean fallback;
+        private int visionInputCount;
+        private String visionRoute;
+
+        public String getRequestedModel() {
+            return requestedModel;
+        }
+
+        public void setRequestedModel(String requestedModel) {
+            this.requestedModel = requestedModel;
+        }
+
+        public String getEffectiveModel() {
+            return effectiveModel;
+        }
+
+        public void setEffectiveModel(String effectiveModel) {
+            this.effectiveModel = effectiveModel;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        public boolean isFallback() {
+            return fallback;
+        }
+
+        public void setFallback(boolean fallback) {
+            this.fallback = fallback;
+        }
+
+        public int getVisionInputCount() {
+            return visionInputCount;
+        }
+
+        public void setVisionInputCount(int visionInputCount) {
+            this.visionInputCount = visionInputCount;
+        }
+
+        public String getVisionRoute() {
+            return visionRoute;
+        }
+
+        public void setVisionRoute(String visionRoute) {
+            this.visionRoute = visionRoute;
+        }
     }
 }
