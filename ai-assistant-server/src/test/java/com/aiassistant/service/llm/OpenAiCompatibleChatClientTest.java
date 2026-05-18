@@ -138,6 +138,60 @@ class OpenAiCompatibleChatClientTest {
     }
 
     @Test
+    void completeRoutesMinimaxImageRequestsToDedicatedVlmEndpoint() throws Exception {
+        OpenAiCompatibleChatClient minimaxClient = minimaxClient();
+        server.enqueue(jsonResponse("{\"content\":\"screenshot says hello\"}"));
+
+        String result = minimaxClient.complete(imageRequestBody(), "test-key");
+
+        assertEquals("screenshot says hello", result);
+        RecordedRequest request = server.takeRequest();
+        assertEquals("/v1/coding_plan/vlm", request.getPath());
+        var body = mapper.readTree(request.getBody().readUtf8());
+        assertEquals("describe screenshot", body.path("prompt").asText());
+        assertEquals("data:image/png;base64,shot", body.path("image_url").asText());
+        minimaxClient.destroy();
+    }
+
+    @Test
+    void completeStreamRoutesMinimaxImageRequestsToDedicatedVlmEndpoint() throws Exception {
+        OpenAiCompatibleChatClient minimaxClient = minimaxClient();
+        server.enqueue(jsonResponse("{\"content\":\"visual stream result\"}"));
+
+        List<String> chunks =
+                minimaxClient.completeStream(imageRequestBody(), "test-key").collectList().block();
+
+        assertEquals(List.of("visual stream result"), chunks);
+        assertEquals("/v1/coding_plan/vlm", server.takeRequest().getPath());
+        minimaxClient.destroy();
+    }
+
+    @Test
+    void completeRoutesEachMinimaxImageToVlmInsteadOfDroppingExtraImages() throws Exception {
+        OpenAiCompatibleChatClient minimaxClient = minimaxClient();
+        server.enqueue(jsonResponse("{\"content\":\"first screenshot\"}"));
+        server.enqueue(jsonResponse("{\"content\":\"second screenshot\"}"));
+
+        String result = minimaxClient.complete(multiImageRequestBody(), "test-key");
+
+        assertTrue(result.contains("Image 1"));
+        assertTrue(result.contains("first screenshot"));
+        assertTrue(result.contains("Image 2"));
+        assertTrue(result.contains("second screenshot"));
+        assertEquals(
+                "data:image/png;base64,one",
+                mapper.readTree(server.takeRequest().getBody().readUtf8())
+                        .path("image_url")
+                        .asText());
+        assertEquals(
+                "data:image/jpeg;base64,two",
+                mapper.readTree(server.takeRequest().getBody().readUtf8())
+                        .path("image_url")
+                        .asText());
+        minimaxClient.destroy();
+    }
+
+    @Test
     void completeReturnsEmptyStringForBlankBody() {
         server.enqueue(jsonResponse(""));
 
@@ -150,6 +204,46 @@ class OpenAiCompatibleChatClientTest {
         body.put("stream", false);
         body.putArray("messages").addObject().put("role", "user").put("content", "hi");
         return body;
+    }
+
+    private ObjectNode imageRequestBody() {
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", "MiniMax-M2.7");
+        body.put("stream", false);
+        var content = body.putArray("messages").addObject().put("role", "user").putArray("content");
+        content.addObject().put("type", "text").put("text", "describe screenshot");
+        content.addObject()
+                .put("type", "image_url")
+                .putObject("image_url")
+                .put("url", "data:image/png;base64,shot");
+        return body;
+    }
+
+    private ObjectNode multiImageRequestBody() {
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", "MiniMax-M2.7");
+        body.put("stream", false);
+        var content = body.putArray("messages").addObject().put("role", "user").putArray("content");
+        content.addObject().put("type", "text").put("text", "compare screenshots");
+        content.addObject()
+                .put("type", "image_url")
+                .putObject("image_url")
+                .put("url", "data:image/png;base64,one");
+        content.addObject()
+                .put("type", "image_url")
+                .putObject("image_url")
+                .put("url", "data:image/jpeg;base64,two");
+        return body;
+    }
+
+    private OpenAiCompatibleChatClient minimaxClient() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setProvider("minimax");
+        properties.setBaseUrl(server.url("/v1").toString());
+        properties.setTimeoutSeconds(2);
+        properties.setLlmMaxRetries(0);
+        properties.setChatMaxTotalChars(16_000);
+        return new OpenAiCompatibleChatClient(properties);
     }
 
     private static MockResponse jsonResponse(String body) {

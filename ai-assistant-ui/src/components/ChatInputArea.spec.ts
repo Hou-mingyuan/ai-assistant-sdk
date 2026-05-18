@@ -30,6 +30,13 @@ const stubI18n = {
   modelCapabilityVision: 'Vision',
   modelCapabilityTools: 'Tools',
   modelCapabilityLongContext: 'Long context',
+  modelCapabilityReasoning: 'Reasoning',
+  modelCapabilityAudio: 'Audio',
+  modelCapabilityVideo: 'Video',
+  modelCapabilitySpeech: 'Speech',
+  modelCapabilityImageGeneration: 'Image gen',
+  modelCapabilityEmbedding: 'Embedding',
+  modelCapabilityRerank: 'Rerank',
   modelImageRiskWarning: 'This model may not support image understanding.',
   modelSwitchToVision: 'Switch to vision model',
   inputNearLimitWarning: 'Input is close to the configured limit.',
@@ -305,12 +312,31 @@ describe('ChatInputArea (K44)', () => {
     it('trusts server-provided model capability details for opaque router names', () => {
       const w = mountInput({
         selectedModel: 'company-router',
-        modelCapabilities: { 'company-router': ['text', 'vision', 'tools'] },
+        modelCapabilities: {
+          'company-router': ['text', 'vision', 'tools', 'reasoning', 'audio', 'video'],
+        },
         pendingImageThumbs: ['data:image/png;base64,thumb'],
       });
 
       expect(w.text()).toContain('Vision');
+      expect(w.text()).toContain('Reasoning');
+      expect(w.text()).toContain('Audio');
+      expect(w.text()).toContain('Video');
       expect(w.find('.ai-model-risk').exists()).toBe(false);
+      w.unmount();
+    });
+
+    it('uses server-provided capabilities when suggesting a vision model switch', async () => {
+      const w = mountInput({
+        selectedModel: 'deepseek-chat',
+        modelChoices: ['deepseek-chat', 'company-router'],
+        modelCapabilities: { 'company-router': ['text', 'vision'] },
+        pendingImageThumbs: ['data:image/png;base64,thumb'],
+      });
+
+      await w.find('.ai-model-risk-action').trigger('click');
+
+      expect(w.emitted('update:selectedModel')?.at(-1)?.[0]).toBe('company-router');
       w.unmount();
     });
   });

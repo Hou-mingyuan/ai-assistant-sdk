@@ -125,7 +125,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     modelListError.value = '';
     if (!options.baseUrl || !showModelPicker.value) return;
     try {
-      const r = await fetchModels(options.baseUrl, options.accessToken);
+      const r = await fetchModels(options.baseUrl, options.accessToken, { probe: true });
       if (!r.success) {
         modelListStatus.value = modelListStatusFromError(r.error);
         modelListError.value = r.error || t.value.modelsLoadFailed;

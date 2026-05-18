@@ -124,6 +124,17 @@ describe('fetchModels', () => {
     expect(res.modelDetails?.[0].capabilities).toContain('vision');
   });
 
+  it('can request server-side model capability probing', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, models: ['company-router'] }),
+    });
+
+    await fetchModels('/ai', undefined, { probe: true });
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/models?probe=true');
+  });
+
   it('returns error on failure', async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' });
     const res = await fetchModels('/ai');

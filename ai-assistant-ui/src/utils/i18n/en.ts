@@ -72,6 +72,13 @@ export const en: I18nMessages = {
   modelCapabilityVision: 'Vision',
   modelCapabilityTools: 'Tools',
   modelCapabilityLongContext: 'Long context',
+  modelCapabilityReasoning: 'Reasoning',
+  modelCapabilityAudio: 'Audio',
+  modelCapabilityVideo: 'Video',
+  modelCapabilitySpeech: 'Speech',
+  modelCapabilityImageGeneration: 'Image gen',
+  modelCapabilityEmbedding: 'Embedding',
+  modelCapabilityRerank: 'Rerank',
   modelImageRiskWarning:
     'The current model "{model}" may not support image understanding. Consider switching to a vision model before sending.',
   modelSwitchToVision: 'Switch to vision model',

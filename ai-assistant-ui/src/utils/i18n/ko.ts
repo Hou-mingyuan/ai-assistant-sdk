@@ -67,6 +67,13 @@ export const ko: I18nMessages = {
   modelCapabilityVision: '비전',
   modelCapabilityTools: '도구',
   modelCapabilityLongContext: '긴 컨텍스트',
+  modelCapabilityReasoning: '추론',
+  modelCapabilityAudio: '오디오',
+  modelCapabilityVideo: '비디오',
+  modelCapabilitySpeech: '음성',
+  modelCapabilityImageGeneration: '이미지 생성',
+  modelCapabilityEmbedding: '임베딩',
+  modelCapabilityRerank: '리랭크',
   modelImageRiskWarning:
     '현재 모델 "{model}"은 이미지 이해를 지원하지 않을 수 있습니다. 보내기 전에 비전 모델로 전환하는 것을 권장합니다.',
   modelSwitchToVision: '비전 모델로 전환',

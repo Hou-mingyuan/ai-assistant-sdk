@@ -83,6 +83,13 @@ export interface I18nMessages {
   modelCapabilityVision: string;
   modelCapabilityTools: string;
   modelCapabilityLongContext: string;
+  modelCapabilityReasoning: string;
+  modelCapabilityAudio: string;
+  modelCapabilityVideo: string;
+  modelCapabilitySpeech: string;
+  modelCapabilityImageGeneration: string;
+  modelCapabilityEmbedding: string;
+  modelCapabilityRerank: string;
   modelImageRiskWarning: string;
   modelSwitchToVision: string;
   inputNearLimitWarning: string;

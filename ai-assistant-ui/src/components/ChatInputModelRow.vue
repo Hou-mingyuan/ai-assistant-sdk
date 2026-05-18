@@ -186,24 +186,22 @@ const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowe
 const modelCapabilityTags = computed(() => {
   if (!props.selectedModel.trim()) return [];
   const tags = [props.t.modelCapabilityText];
-  if (
-    modelHasCapability(props.selectedModel, 'vision') ||
-    isLikelyVisionModel(selectedModelNormalized.value)
-  ) {
-    tags.push(props.t.modelCapabilityVision);
-  }
-  if (
-    modelHasCapability(props.selectedModel, 'tools') ||
-    isLikelyToolModel(selectedModelNormalized.value)
-  ) {
-    tags.push(props.t.modelCapabilityTools);
-  }
-  if (
-    modelHasCapability(props.selectedModel, 'longContext') ||
-    isLikelyLongContextModel(selectedModelNormalized.value)
-  ) {
-    tags.push(props.t.modelCapabilityLongContext);
-  }
+  const normalized = selectedModelNormalized.value;
+  pushCapabilityTag(tags, 'vision', props.t.modelCapabilityVision, isLikelyVisionModel(normalized));
+  pushCapabilityTag(tags, 'tools', props.t.modelCapabilityTools, isLikelyToolModel(normalized));
+  pushCapabilityTag(
+    tags,
+    'longContext',
+    props.t.modelCapabilityLongContext,
+    isLikelyLongContextModel(normalized),
+  );
+  pushCapabilityTag(tags, 'reasoning', props.t.modelCapabilityReasoning);
+  pushCapabilityTag(tags, 'audio', props.t.modelCapabilityAudio);
+  pushCapabilityTag(tags, 'video', props.t.modelCapabilityVideo);
+  pushCapabilityTag(tags, 'speech', props.t.modelCapabilitySpeech);
+  pushCapabilityTag(tags, 'imageGeneration', props.t.modelCapabilityImageGeneration);
+  pushCapabilityTag(tags, 'embedding', props.t.modelCapabilityEmbedding);
+  pushCapabilityTag(tags, 'rerank', props.t.modelCapabilityRerank);
   return tags;
 });
 
@@ -242,5 +240,16 @@ function isLikelyLongContextModel(model: string) {
 function modelHasCapability(model: string, capability: string) {
   const caps = props.modelCapabilities?.[model] ?? props.modelCapabilities?.[model.trim()];
   return caps?.some((cap) => cap.toLowerCase() === capability.toLowerCase()) ?? false;
+}
+
+function pushCapabilityTag(
+  tags: string[],
+  capability: string,
+  label: string,
+  heuristicMatch = false,
+) {
+  if (modelHasCapability(props.selectedModel, capability) || heuristicMatch) {
+    tags.push(label);
+  }
 }
 </script>

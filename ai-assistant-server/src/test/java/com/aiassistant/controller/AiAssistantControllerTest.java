@@ -142,11 +142,20 @@ class AiAssistantControllerTest {
     void models_returnsCapabilityDetailsForLatestKnownModels() {
         props.setProvider("minimax");
         props.setAllowedModels(
-                java.util.List.of("MiniMax-M2.7", "gpt-4o-mini", "deepseek-v4-flash"));
+                java.util.List.of(
+                        "MiniMax-M2.7",
+                        "gpt-5.4",
+                        "gemini-3.1-pro",
+                        "qwen3.5-omni",
+                        "kimi-k2.6",
+                        "deepseek-v4-flash",
+                        "gpt-realtime-2",
+                        "text-embedding-3-large",
+                        "bge-reranker-v2-m3"));
 
         var response = controller.listModels();
 
-        assertEquals(3, response.getModelDetails().size());
+        assertEquals(9, response.getModelDetails().size());
         var minimax =
                 response.getModelDetails().stream()
                         .filter(m -> m.getId().equals("MiniMax-M2.7"))
@@ -157,6 +166,48 @@ class AiAssistantControllerTest {
         assertTrue(minimax.getCapabilities().contains("longContext"));
         assertEquals("registry", minimax.getSource());
 
+        var gemini =
+                response.getModelDetails().stream()
+                        .filter(m -> m.getId().equals("gemini-3.1-pro"))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(gemini.getCapabilities().contains("vision"));
+        assertTrue(gemini.getCapabilities().contains("audio"));
+        assertTrue(gemini.getCapabilities().contains("video"));
+        assertTrue(gemini.getCapabilities().contains("reasoning"));
+
+        var omni =
+                response.getModelDetails().stream()
+                        .filter(m -> m.getId().equals("qwen3.5-omni"))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(omni.getCapabilities().contains("vision"));
+        assertTrue(omni.getCapabilities().contains("audio"));
+        assertTrue(omni.getCapabilities().contains("video"));
+        assertTrue(omni.getCapabilities().contains("speech"));
+
+        var realtime =
+                response.getModelDetails().stream()
+                        .filter(m -> m.getId().equals("gpt-realtime-2"))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(realtime.getCapabilities().contains("audio"));
+        assertTrue(realtime.getCapabilities().contains("speech"));
+
+        var embedding =
+                response.getModelDetails().stream()
+                        .filter(m -> m.getId().equals("text-embedding-3-large"))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(embedding.getCapabilities().contains("embedding"));
+
+        var reranker =
+                response.getModelDetails().stream()
+                        .filter(m -> m.getId().equals("bge-reranker-v2-m3"))
+                        .findFirst()
+                        .orElseThrow();
+        assertTrue(reranker.getCapabilities().contains("rerank"));
+
         var deepseek =
                 response.getModelDetails().stream()
                         .filter(m -> m.getId().equals("deepseek-v4-flash"))
@@ -164,5 +215,45 @@ class AiAssistantControllerTest {
                         .orElseThrow();
         assertFalse(deepseek.getCapabilities().contains("vision"));
         assertTrue(deepseek.getCapabilities().contains("tools"));
+    }
+
+    @Test
+    void models_probeRefreshesAndCachesVisionCapabilityForOpaqueModels() {
+        props.setAllowedModels(java.util.List.of("company-router"));
+        when(llmService.chat(
+                        anyString(),
+                        any(),
+                        any(),
+                        eq("company-router"),
+                        any(List.class),
+                        any(),
+                        any()))
+                .thenReturn("ok");
+
+        var first = controller.listModels(true);
+        var second = controller.listModels(true);
+
+        var detail = first.getModelDetails().get(0);
+        assertEquals("company-router", detail.getId());
+        assertTrue(detail.getCapabilities().contains("vision"));
+        assertEquals("probe", detail.getSource());
+        verify(llmService, times(1))
+                .chat(anyString(), any(), any(), eq("company-router"), any(List.class), any(), any());
+        assertEquals("probe", second.getModelDetails().get(0).getSource());
+    }
+
+    @Test
+    void models_probeDoesNotDowngradeRegistryVisionModelsWhenProbeWouldFail() {
+        props.setProvider("minimax");
+        props.setAllowedModels(java.util.List.of("MiniMax-M2.7"));
+
+        var response = controller.listModels(true);
+
+        var detail = response.getModelDetails().get(0);
+        assertEquals("MiniMax-M2.7", detail.getId());
+        assertTrue(detail.getCapabilities().contains("vision"));
+        assertEquals("registry", detail.getSource());
+        verify(llmService, never())
+                .chat(anyString(), any(), any(), anyString(), any(List.class), any(), any());
     }
 }

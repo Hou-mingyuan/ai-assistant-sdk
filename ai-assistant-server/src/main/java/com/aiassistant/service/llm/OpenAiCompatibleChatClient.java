@@ -38,6 +38,7 @@ public class OpenAiCompatibleChatClient
     private final Duration timeout;
     private final int maxRetries;
     private final ConnectionProvider connectionProvider;
+    private final boolean minimaxProvider;
 
     public OpenAiCompatibleChatClient(AiAssistantProperties properties) {
         String base = properties.resolveBaseUrl();
@@ -47,6 +48,7 @@ public class OpenAiCompatibleChatClient
         this.timeout =
                 Duration.ofSeconds(Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)));
         this.maxRetries = Math.max(0, Math.min(5, properties.getLlmMaxRetries()));
+        this.minimaxProvider = "minimax".equalsIgnoreCase(properties.getProvider());
         int codecBytes =
                 Math.min(
                         32 * 1024 * 1024,
@@ -121,6 +123,9 @@ public class OpenAiCompatibleChatClient
 
     @Override
     public String complete(ObjectNode requestBody, String apiKey) {
+        if (shouldUseMinimaxVision(requestBody)) {
+            return completeMinimaxVision(requestBody, apiKey);
+        }
         for (int attempt = 0; ; attempt++) {
             try {
                 String body =
@@ -201,6 +206,9 @@ public class OpenAiCompatibleChatClient
 
     @Override
     public Flux<String> completeStream(ObjectNode requestBody, String apiKey) {
+        if (shouldUseMinimaxVision(requestBody)) {
+            return Flux.defer(() -> Flux.just(completeMinimaxVision(requestBody, apiKey)));
+        }
         return Flux.defer(
                 () -> {
                     AtomicBoolean emittedChunk = new AtomicBoolean(false);
@@ -277,6 +285,119 @@ public class OpenAiCompatibleChatClient
             throw new IllegalStateException(err.get("message").asText("LLM error"));
         }
         throw new IllegalStateException("Unexpected LLM response shape");
+    }
+
+    private boolean shouldUseMinimaxVision(ObjectNode requestBody) {
+        return minimaxProvider && !firstImageUrl(requestBody).isBlank();
+    }
+
+    private String completeMinimaxVision(ObjectNode requestBody, String apiKey) {
+        List<String> imageUrls = imageUrls(requestBody);
+        if (imageUrls.size() <= 1) {
+            return completeMinimaxVisionImage(firstUserText(requestBody), imageUrls.get(0), apiKey);
+        }
+        String prompt = firstUserText(requestBody);
+        List<String> results = new ArrayList<>(imageUrls.size());
+        for (int i = 0; i < imageUrls.size(); i++) {
+            String imagePrompt = prompt + "\n\nImage " + (i + 1) + " of " + imageUrls.size() + ".";
+            String content = completeMinimaxVisionImage(imagePrompt, imageUrls.get(i), apiKey);
+            results.add("Image " + (i + 1) + ":\n" + content);
+        }
+        return String.join("\n\n", results);
+    }
+
+    private String completeMinimaxVisionImage(String prompt, String imageUrl, String apiKey) {
+        ObjectNode vlmBody = mapper.createObjectNode();
+        vlmBody.put("prompt", prompt);
+        vlmBody.put("image_url", imageUrl);
+        try {
+            String body =
+                    webClient
+                            .post()
+                            .uri("/coding_plan/vlm")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                            .bodyValue(vlmBody)
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .timeout(timeout)
+                            .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                            .block();
+            return parseMinimaxVisionContent(body);
+        } catch (WebClientResponseException e) {
+            throw new IllegalStateException("MiniMax VLM error: HTTP " + e.getStatusCode().value(), e);
+        } catch (Exception e) {
+            if (e instanceof IllegalStateException ise) {
+                throw ise;
+            }
+            throw new IllegalStateException("MiniMax VLM request failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String parseMinimaxVisionContent(String json) throws Exception {
+        if (json == null || json.isBlank()) return "";
+        JsonNode root = mapper.readTree(json);
+        JsonNode err = root.path("error");
+        if (err.isObject() && err.has("message")) {
+            throw new IllegalStateException(err.get("message").asText("MiniMax VLM error"));
+        }
+        JsonNode baseResp = root.path("base_resp");
+        if (baseResp.isObject()
+                && baseResp.has("status_code")
+                && baseResp.path("status_code").asInt(0) != 0) {
+            throw new IllegalStateException(
+                    baseResp.path("status_msg").asText("MiniMax VLM error"));
+        }
+        return firstText(root, "content", "output", "text", "result");
+    }
+
+    private String firstUserText(ObjectNode requestBody) {
+        JsonNode messages = requestBody.path("messages");
+        if (!messages.isArray()) return "";
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            JsonNode msg = messages.get(i);
+            if (!"user".equals(msg.path("role").asText())) continue;
+            JsonNode content = msg.path("content");
+            if (content.isTextual()) return content.asText("");
+            if (content.isArray()) {
+                for (JsonNode part : content) {
+                    if ("text".equals(part.path("type").asText()) && part.hasNonNull("text")) {
+                        return part.get("text").asText("");
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+    private String firstImageUrl(ObjectNode requestBody) {
+        JsonNode messages = requestBody.path("messages");
+        if (!messages.isArray()) return "";
+        for (JsonNode msg : messages) {
+            JsonNode content = msg.path("content");
+            if (!content.isArray()) continue;
+            for (JsonNode part : content) {
+                if (!"image_url".equals(part.path("type").asText())) continue;
+                String url = part.path("image_url").path("url").asText("");
+                if (!url.isBlank()) return url;
+            }
+        }
+        return "";
+    }
+
+    private List<String> imageUrls(ObjectNode requestBody) {
+        JsonNode messages = requestBody.path("messages");
+        if (!messages.isArray()) return List.of();
+        List<String> urls = new ArrayList<>();
+        for (JsonNode msg : messages) {
+            JsonNode content = msg.path("content");
+            if (!content.isArray()) continue;
+            for (JsonNode part : content) {
+                if (!"image_url".equals(part.path("type").asText())) continue;
+                String url = part.path("image_url").path("url").asText("");
+                if (!url.isBlank()) urls.add(url);
+            }
+        }
+        return List.copyOf(urls);
     }
 
     private List<String> parseStreamDeltas(String dataLine) {

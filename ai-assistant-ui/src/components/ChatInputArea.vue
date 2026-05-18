@@ -338,7 +338,9 @@ const imageRiskVisible = computed(
 const firstVisionModel = computed(
   () =>
     props.modelChoices.find(
-      (model) => model !== props.selectedModel && isLikelyVisionModel(model.toLowerCase()),
+      (model) =>
+        model !== props.selectedModel &&
+        (modelHasCapability(model, 'vision') || isLikelyVisionModel(model.toLowerCase())),
     ) || '',
 );
 

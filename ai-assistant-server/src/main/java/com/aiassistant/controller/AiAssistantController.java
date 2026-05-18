@@ -33,6 +33,8 @@ import reactor.core.publisher.Flux;
 public class AiAssistantController {
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantController.class);
+    private static final String VISION_PROBE_IMAGE =
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
     private final LlmService llmService;
     private final UsageStats usageStats;
@@ -209,12 +211,43 @@ public class AiAssistantController {
                     "Returns models allowed by `ai-assistant.allowed-models` config; "
                             + "falls back to the single default model when not configured.")
     @GetMapping("/models")
-    public ModelsListResponse listModels() {
+    public ModelsListResponse listModels(
+            @RequestParam(value = "probe", required = false, defaultValue = "false")
+                    boolean probe) {
         var models = assistantProperties.listModelsForClient();
+        if (probe) {
+            return ModelsListResponse.ok(
+                    models,
+                    assistantProperties.resolveModel(),
+                    modelCapabilityRegistry.describeAllWithVisionProbe(
+                            assistantProperties.getProvider(), models, this::probeVisionCapability));
+        }
         return ModelsListResponse.ok(
                 models,
                 assistantProperties.resolveModel(),
                 modelCapabilityRegistry.describeAll(assistantProperties.getProvider(), models));
+    }
+
+    public ModelsListResponse listModels() {
+        return listModels(false);
+    }
+
+    private boolean probeVisionCapability(String modelId) {
+        try {
+            String result =
+                    llmService.chat(
+                            "Capability probe: reply with OK if this image input request is accepted.",
+                            null,
+                            null,
+                            modelId,
+                            java.util.List.of(VISION_PROBE_IMAGE),
+                            null,
+                            null);
+            return result != null;
+        } catch (Exception e) {
+            log.debug("vision capability probe failed for model {}: {}", modelId, e.getMessage());
+            return false;
+        }
     }
 
     @io.swagger.v3.oas.annotations.Operation(

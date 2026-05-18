@@ -67,6 +67,13 @@ export const ja: I18nMessages = {
   modelCapabilityVision: 'ビジョン',
   modelCapabilityTools: 'ツール',
   modelCapabilityLongContext: '長文コンテキスト',
+  modelCapabilityReasoning: '推論',
+  modelCapabilityAudio: '音声',
+  modelCapabilityVideo: '動画',
+  modelCapabilitySpeech: 'スピーチ',
+  modelCapabilityImageGeneration: '画像生成',
+  modelCapabilityEmbedding: '埋め込み',
+  modelCapabilityRerank: '再ランク',
   modelImageRiskWarning:
     '現在のモデル「{model}」は画像理解に対応していない可能性があります。送信前にビジョンモデルへ切り替えることをおすすめします。',
   modelSwitchToVision: 'ビジョンモデルへ切り替え',

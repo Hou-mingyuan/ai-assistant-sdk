@@ -21,6 +21,10 @@ export interface ModelDetail {
   updatedAt?: string;
 }
 
+export interface FetchModelsOptions {
+  probe?: boolean;
+}
+
 export type ChatResult = ApiSchemas['ChatResponse'];
 
 export interface UrlPreviewResult {
@@ -209,9 +213,14 @@ export async function fetchPromptTemplates(
 }
 
 /** Fetch the list of available models from the server. */
-export async function fetchModels(baseUrl: string, token?: string): Promise<ModelsListResult> {
+export async function fetchModels(
+  baseUrl: string,
+  token?: string,
+  options: FetchModelsOptions = {},
+): Promise<ModelsListResult> {
   const normalizedToken = normalizeToken(token);
-  const cacheKey = `${baseUrl.replace(/\/+$/, '')}::${normalizedToken ?? ''}`;
+  const probe = options.probe === true;
+  const cacheKey = `${baseUrl.replace(/\/+$/, '')}::${normalizedToken ?? ''}::probe=${probe}`;
   const now = Date.now();
   const cached = modelsCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
@@ -223,7 +232,7 @@ export async function fetchModels(baseUrl: string, token?: string): Promise<Mode
   const headers: Record<string, string> = {};
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
   const request = (async () => {
-    const res = await fetch(apiUrl(baseUrl, '/models'), {
+    const res = await fetch(apiUrl(baseUrl, probe ? '/models?probe=true' : '/models'), {
       headers,
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
