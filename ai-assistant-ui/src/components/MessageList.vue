@@ -224,22 +224,9 @@
         "
       ></div>
       <!-- eslint-enable vue/no-v-html -->
-      <div v-if="msg.role === 'assistant' && msg.meta" class="ai-msg-meta">
-        <span v-if="msg.meta.model" class="ai-msg-meta-pill">
-          <span class="ai-msg-meta-dot" aria-hidden="true"></span>
-          {{ msg.meta.model }}
-        </span>
-        <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
-          {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
-        </span>
-        <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
-          {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
-        </span>
-        <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
-          {{ t.responseMetaRetried || 'Retried' }}
-        </span>
-      </div>
-      <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
+      <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
+        {{ formatRelativeTime(msg.timestamp) }}
+      </span>
     </template>
     <span
       v-if="
@@ -301,115 +288,135 @@
         </svg>
       </button>
     </div>
-    <div v-if="msg.role === 'assistant' && msg.content && !loading" class="ai-msg-actions">
-      <button
-        type="button"
-        class="ai-msg-copy"
-        :title="t.copyCode"
-        :aria-label="t.copyCode"
-        @click="
-          emit(
-            'copy-message',
-            msg.contentArchive ?? msg.content,
-            displayOffset + renderedStart + idx,
-          )
-        "
-      >
-        <span v-if="copiedIndex === displayOffset + renderedStart + idx" class="ai-msg-action-text">
-          {{ t.codeCopied }}
+    <div
+      v-if="msg.role === 'assistant' && !loading && (msg.content || msg.timestamp || msg.meta)"
+      class="ai-msg-footer"
+    >
+      <div v-if="msg.content" class="ai-msg-actions">
+        <button
+          type="button"
+          class="ai-msg-copy"
+          :title="t.copyCode"
+          :aria-label="t.copyCode"
+          @click="
+            emit(
+              'copy-message',
+              msg.contentArchive ?? msg.content,
+              displayOffset + renderedStart + idx,
+            )
+          "
+        >
+          <span
+            v-if="copiedIndex === displayOffset + renderedStart + idx"
+            class="ai-msg-action-text"
+          >
+            {{ t.codeCopied }}
+          </span>
+          <svg
+            v-else
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="ai-msg-regenerate"
+          :title="t.regenerate"
+          :aria-label="t.regenerate"
+          @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 0 1-15.1 6.64" />
+            <path d="M3 12A9 9 0 0 1 18.1 5.36" />
+            <path d="M21 3v6h-6" />
+            <path d="M3 21v-6h6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="ai-msg-feedback"
+          :class="{ active: msg.feedback === 'up' }"
+          :title="t.thumbsUp"
+          :aria-label="t.thumbsUp"
+          :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
+          @click="emit('set-feedback', displayOffset + renderedStart + idx, 'up')"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M7 10v12" />
+            <path
+              d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="ai-msg-feedback"
+          :class="{ active: msg.feedback === 'down' }"
+          :title="t.thumbsDown"
+          :aria-label="t.thumbsDown"
+          :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
+          @click="emit('set-feedback', displayOffset + renderedStart + idx, 'down')"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M17 14V2" />
+            <path
+              d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"
+            />
+          </svg>
+        </button>
+      </div>
+      <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
+      <div v-if="msg.meta" class="ai-msg-meta">
+        <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
+          {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
         </span>
-        <svg
-          v-else
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="9" y="9" width="13" height="13" rx="2" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="ai-msg-regenerate"
-        :title="t.regenerate"
-        :aria-label="t.regenerate"
-        @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 12a9 9 0 0 1-15.1 6.64" />
-          <path d="M3 12A9 9 0 0 1 18.1 5.36" />
-          <path d="M21 3v6h-6" />
-          <path d="M3 21v-6h6" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="ai-msg-feedback"
-        :class="{ active: msg.feedback === 'up' }"
-        :title="t.thumbsUp"
-        :aria-label="t.thumbsUp"
-        :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
-        @click="emit('set-feedback', displayOffset + renderedStart + idx, 'up')"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M7 10v12" />
-          <path
-            d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"
-          />
-        </svg>
-      </button>
-      <button
-        type="button"
-        class="ai-msg-feedback"
-        :class="{ active: msg.feedback === 'down' }"
-        :title="t.thumbsDown"
-        :aria-label="t.thumbsDown"
-        :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
-        @click="emit('set-feedback', displayOffset + renderedStart + idx, 'down')"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M17 14V2" />
-          <path
-            d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"
-          />
-        </svg>
-      </button>
+        <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
+          {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
+        </span>
+        <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
+          {{ t.responseMetaRetried || 'Retried' }}
+        </span>
+      </div>
     </div>
     <!-- K24: extended reactions row. Distinct from .ai-msg-actions above which
          holds the canonical thumbs-up/down (kept for backwards i18n + analytics

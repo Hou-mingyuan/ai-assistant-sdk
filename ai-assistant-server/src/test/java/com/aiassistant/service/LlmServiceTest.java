@@ -143,6 +143,26 @@ class LlmServiceTest {
     }
 
     @Test
+    void chatHonorsWhitelistedRequestModelWhenDefaultModelRouterExists() throws Exception {
+        AiAssistantProperties properties = baseProperties();
+        properties.setModel("MiniMax-M2.5");
+        properties.setAllowedModels(List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+
+        CapturingChatClient client = new CapturingChatClient();
+        client.enqueueRaw(chatResponse("I am MiniMax-M2.7"));
+        ModelRouter router = new ModelRouter("MiniMax-M2.5");
+        LlmService service = newService(properties, client, null, null, router, null, List.of());
+
+        assertEquals("I am MiniMax-M2.7", service.chat("你是什么模型", null, null, "MiniMax-M2.7"));
+
+        ObjectNode body = client.requests.get(0);
+        assertEquals("MiniMax-M2.7", body.path("model").asText());
+        String systemPrompt = body.path("messages").get(0).path("content").asText();
+        assertTrue(systemPrompt.contains("MiniMax-M2.7"));
+        assertFalse(systemPrompt.contains("MiniMax-M2.5`"));
+    }
+
+    @Test
     void chatFallsBackToNextModelAndNextApiKeyAfterClientFailure() throws Exception {
         AiAssistantProperties properties = baseProperties();
         ModelRouter router = new ModelRouter("primary-model");

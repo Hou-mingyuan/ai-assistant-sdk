@@ -715,6 +715,15 @@
 }
 
 /* Round 25 — assistant response metadata -------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(720px, calc(100% - 44px));
+  margin: 5px 0 0 42px;
+}
+
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-meta {
   display: flex;
   flex-wrap: wrap;
@@ -758,6 +767,15 @@
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-meta-pill {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.045);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-footer .ai-msg-meta,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-footer .ai-msg-time {
+  margin: 0 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-footer .ai-msg-meta {
+  max-width: none;
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-stream-progress-stage {
@@ -2707,6 +2725,10 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-msg-actions,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-msg-actions {
   margin: 5px 0 0 42px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-footer .ai-msg-actions {
+  margin: 0 !important;
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-msg-actions,

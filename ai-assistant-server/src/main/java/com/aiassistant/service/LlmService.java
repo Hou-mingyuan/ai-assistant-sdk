@@ -685,6 +685,11 @@ public class LlmService {
     private String resolveModelWithRouter(
             String requestModel, String operation, int estimatedTokens) {
         String baseModel = properties.resolveEffectiveModel(requestModel);
+        if (requestModel != null
+                && !requestModel.isBlank()
+                && requestModel.trim().equals(baseModel)) {
+            return baseModel;
+        }
         if (modelRouter == null) return baseModel;
         try {
             String tenantId = TenantContext.tenantId();

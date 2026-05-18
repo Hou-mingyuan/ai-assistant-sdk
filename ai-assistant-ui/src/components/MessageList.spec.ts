@@ -23,11 +23,12 @@ describe('MessageList image thumbnails', () => {
 });
 
 describe('MessageList assistant metadata', () => {
-  it('renders assistant model and latency metadata below the bubble', () => {
+  it('renders latency metadata without repeating the selected model below the bubble', () => {
     const wrapper = mountList([
       {
         role: 'assistant',
         content: 'hello',
+        timestamp: Date.now(),
         meta: {
           model: 'qwen-max',
           elapsedMs: 1234,
@@ -36,9 +37,18 @@ describe('MessageList assistant metadata', () => {
       },
     ]);
 
+    const footer = wrapper.find('.ai-msg-footer');
+    expect(footer.exists()).toBe(true);
+    expect(Array.from(footer.element.children).map((el) => el.className)).toEqual([
+      'ai-msg-actions',
+      'ai-msg-time',
+      'ai-msg-meta',
+    ]);
+
     const meta = wrapper.find('.ai-msg-meta');
     expect(meta.exists()).toBe(true);
-    expect(meta.text()).toContain('qwen-max');
+    expect(wrapper.find('.ai-msg-time').text()).toBe('now');
+    expect(meta.text()).not.toContain('qwen-max');
     expect(meta.text()).toContain('1.2s');
     expect(meta.text()).toContain('TTFT 0.3s');
   });
