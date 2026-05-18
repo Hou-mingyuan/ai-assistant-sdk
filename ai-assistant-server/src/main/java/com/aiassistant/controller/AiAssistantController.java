@@ -95,8 +95,10 @@ public class AiAssistantController {
                                         request.getText(),
                                         request.getTargetLang() != null
                                                 ? request.getTargetLang()
-                                                : "zh");
-                        case "summarize" -> llmService.summarize(request.getText());
+                                                : "zh",
+                                        request.getModel());
+                        case "summarize" ->
+                                llmService.summarize(request.getText(), request.getModel());
                         default ->
                                 llmService.chat(
                                         request.getText(),
@@ -157,8 +159,10 @@ public class AiAssistantController {
                                     request.getText(),
                                     request.getTargetLang() != null
                                             ? request.getTargetLang()
-                                            : "zh");
-                    case "summarize" -> llmService.summarizeStream(request.getText());
+                                            : "zh",
+                                    request.getModel());
+                    case "summarize" ->
+                            llmService.summarizeStream(request.getText(), request.getModel());
                     default ->
                             llmService.chatStream(
                                     request.getText(),
@@ -179,14 +183,11 @@ public class AiAssistantController {
         ChatResponse.RuntimeMeta meta = new ChatResponse.RuntimeMeta();
         meta.setProvider(assistantProperties.getProvider());
         String requestedModel =
-                "chat".equals(action) && request.getModel() != null && !request.getModel().isBlank()
+                request.getModel() != null && !request.getModel().isBlank()
                         ? request.getModel().trim()
                         : null;
         meta.setRequestedModel(requestedModel);
-        String effectiveModel =
-                "chat".equals(action)
-                        ? assistantProperties.resolveEffectiveModel(requestedModel)
-                        : assistantProperties.resolveModel();
+        String effectiveModel = assistantProperties.resolveEffectiveModel(requestedModel);
         meta.setEffectiveModel(effectiveModel);
         meta.setFallback(
                 requestedModel != null

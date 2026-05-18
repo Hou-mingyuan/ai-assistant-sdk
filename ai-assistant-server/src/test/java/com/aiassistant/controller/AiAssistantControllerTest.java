@@ -84,7 +84,7 @@ class AiAssistantControllerTest {
 
     @Test
     void chat_translate_delegatesToTranslate() {
-        when(llmService.translate(anyString(), anyString())).thenReturn("你好");
+        when(llmService.translate(anyString(), anyString(), any())).thenReturn("你好");
         ChatRequest req = new ChatRequest();
         req.setText("hello");
         req.setAction("translate");
@@ -93,12 +93,35 @@ class AiAssistantControllerTest {
         var response = controller.chat(req);
         assertEquals(200, response.getStatusCode().value());
         assertEquals("你好", response.getBody().getResult());
-        verify(llmService).translate("hello", "zh");
+        verify(llmService).translate("hello", "zh", null);
+    }
+
+    @Test
+    void chat_translatePassesRequestedModelAndReturnsRuntimeMetadata() {
+        props.setProvider("minimax");
+        props.setModel("MiniMax-M2.5");
+        props.setAllowedModels(java.util.List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+        when(llmService.translate(anyString(), anyString(), anyString())).thenReturn("你好");
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("translate");
+        req.setTargetLang("zh");
+        req.setModel("MiniMax-M2.7");
+
+        var response = controller.chat(req);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("你好", response.getBody().getResult());
+        verify(llmService).translate("hello", "zh", "MiniMax-M2.7");
+        var meta = response.getBody().getMeta();
+        assertEquals("MiniMax-M2.7", meta.getRequestedModel());
+        assertEquals("MiniMax-M2.7", meta.getEffectiveModel());
+        assertFalse(meta.isFallback());
     }
 
     @Test
     void chat_summarize_delegatesToSummarize() {
-        when(llmService.summarize(anyString())).thenReturn("Summary here");
+        when(llmService.summarize(anyString(), any())).thenReturn("Summary here");
         ChatRequest req = new ChatRequest();
         req.setText("long text...");
         req.setAction("summarize");
@@ -106,6 +129,7 @@ class AiAssistantControllerTest {
         var response = controller.chat(req);
         assertEquals(200, response.getStatusCode().value());
         assertEquals("Summary here", response.getBody().getResult());
+        verify(llmService).summarize("long text...", null);
     }
 
     @Test
@@ -159,6 +183,27 @@ class AiAssistantControllerTest {
         assertEquals("false", response.getHeaders().getFirst("X-AI-Fallback"));
         assertEquals("1", response.getHeaders().getFirst("X-AI-Vision-Input-Count"));
         assertEquals("minimax-vlm", response.getHeaders().getFirst("X-AI-Vision-Route"));
+    }
+
+    @Test
+    void stream_translatePassesRequestedModelAndReturnsRuntimeMetadataHeaders() {
+        props.setProvider("minimax");
+        props.setModel("MiniMax-M2.5");
+        props.setAllowedModels(java.util.List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+        when(llmService.translateStream(anyString(), anyString(), anyString()))
+                .thenReturn(Flux.just("你好"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("translate");
+        req.setTargetLang("zh");
+        req.setModel("MiniMax-M2.7");
+
+        var response = controller.stream(req);
+
+        verify(llmService).translateStream("hello", "zh", "MiniMax-M2.7");
+        assertEquals("MiniMax-M2.7", response.getHeaders().getFirst("X-AI-Requested-Model"));
+        assertEquals("MiniMax-M2.7", response.getHeaders().getFirst("X-AI-Effective-Model"));
+        assertEquals("false", response.getHeaders().getFirst("X-AI-Fallback"));
     }
 
     @Test

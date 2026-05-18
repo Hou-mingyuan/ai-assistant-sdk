@@ -455,12 +455,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
     userEntry.content = content;
   }
 
-  function applyChatModePayloadOptions(payload: ChatPayload, hasImageAttachment: boolean) {
-    if (deps.mode.value !== 'chat') return;
-    const memFrag = deps.memoryPromptFragment?.value ?? '';
-    const sp = deps.chatSystemPrompt.value.trim();
-    const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
-    if (combinedSp) payload.systemPrompt = combinedSp;
+  function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean) {
     const mid = deps.selectedChatModel.value.trim();
     if (mid && deps.modelChoices.value.includes(mid)) {
       payload.model = mid;
@@ -472,6 +467,15 @@ export function useSendStream(deps: UseSendStreamDeps) {
         deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
       }
     }
+  }
+
+  function applyChatModePayloadOptions(payload: ChatPayload, hasImageAttachment: boolean) {
+    applySelectedModel(payload, hasImageAttachment);
+    if (deps.mode.value !== 'chat') return;
+    const memFrag = deps.memoryPromptFragment?.value ?? '';
+    const sp = deps.chatSystemPrompt.value.trim();
+    const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
+    if (combinedSp) payload.systemPrompt = combinedSp;
     if (deps.messages.value.length > 1) {
       payload.history = deps.messages.value.slice(0, -1).map((m) => ({
         role: m.role,

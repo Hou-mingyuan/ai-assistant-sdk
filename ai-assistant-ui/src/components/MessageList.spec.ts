@@ -95,6 +95,8 @@ describe('MessageList streaming stages', () => {
     );
 
     expect(wrapper.find('.ai-thinking-text').text()).toContain('Waiting for first token');
+    expect(wrapper.findAll('.ai-bubble')).toHaveLength(0);
+    expect(wrapper.findAll('.ai-stream-progress')).toHaveLength(0);
   });
 });
 

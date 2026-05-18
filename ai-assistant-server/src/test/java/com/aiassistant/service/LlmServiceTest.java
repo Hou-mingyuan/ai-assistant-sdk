@@ -65,6 +65,21 @@ class LlmServiceTest {
     }
 
     @Test
+    void translateHonorsWhitelistedRequestModel() throws Exception {
+        AiAssistantProperties properties = baseProperties();
+        properties.setModel("MiniMax-M2.5");
+        properties.setAllowedModels(List.of("MiniMax-M2.5", "MiniMax-M2.7"));
+        CapturingChatClient client = new CapturingChatClient();
+        client.enqueueRaw(chatResponse("Bonjour"));
+        LlmService service = newService(properties, client);
+
+        assertEquals("Bonjour", service.translate("hello", "fr", "MiniMax-M2.7"));
+
+        ObjectNode body = client.requests.get(0);
+        assertEquals("MiniMax-M2.7", body.path("model").asText());
+    }
+
+    @Test
     void chatBuildsClientPromptHistoryImageAndWhitelistedModelRequest() throws Exception {
         AiAssistantProperties properties = baseProperties();
         properties.setAllowedModels(List.of("vision-model"));

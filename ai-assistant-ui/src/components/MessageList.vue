@@ -212,7 +212,12 @@
       </div>
       <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
       <div
-        v-else
+        v-else-if="
+          !(
+            isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+            !hasVisibleContent(msg.content)
+          )
+        "
         class="ai-bubble"
         @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
         v-html="
@@ -231,6 +236,7 @@
     <span
       v-if="
         isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+        hasVisibleContent(msg.content) &&
         streamStartedAt != null &&
         streamingNowMs > 0
       "

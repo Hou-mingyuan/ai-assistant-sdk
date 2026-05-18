@@ -195,14 +195,18 @@ public class LlmService {
     }
 
     public String translate(String text, String targetLang) {
+        return translate(text, targetLang, null);
+    }
+
+    public String translate(String text, String targetLang, String requestModel) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String cacheOp = "translate:" + targetLang;
+            String modelId = resolveModelWithRouter(requestModel, "translate");
+            String cacheOp = "translate:" + targetLang + ":" + modelId;
             String hit = llmCache.get(cacheOp, text);
             if (hit != null) return hit;
             String systemPrompt = requestBuilder.translatePrompt(targetLang);
-            String modelId = resolveModelWithRouter(null, "translate");
             String result =
                     callLlm(
                             systemPrompt,
@@ -219,12 +223,17 @@ public class LlmService {
     }
 
     public String summarize(String text) {
+        return summarize(text, null);
+    }
+
+    public String summarize(String text, String requestModel) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String hit = llmCache.get("summarize", text);
+            String modelId = resolveModelWithRouter(requestModel, "summarize");
+            String cacheOp = "summarize:" + modelId;
+            String hit = llmCache.get(cacheOp, text);
             if (hit != null) return hit;
-            String modelId = resolveModelWithRouter(null, "summarize");
             String result =
                     callLlm(
                             requestBuilder.summarizePrompt(),
@@ -233,7 +242,7 @@ public class LlmService {
                             "summarize",
                             modelId,
                             (String) null);
-            llmCache.put("summarize", text, result);
+            llmCache.put(cacheOp, text, result);
             return result;
         } finally {
             releaseQuota(tenantId, reserved);
@@ -373,11 +382,15 @@ public class LlmService {
     }
 
     public Flux<String> translateStream(String text, String targetLang) {
+        return translateStream(text, targetLang, null);
+    }
+
+    public Flux<String> translateStream(String text, String targetLang, String requestModel) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
             String systemPrompt = requestBuilder.translatePrompt(targetLang);
-            String modelId = resolveModelWithRouter(null, "translate");
+            String modelId = resolveModelWithRouter(requestModel, "translate");
             return callLlmStream(
                             systemPrompt,
                             requestEnricher.enrichUserText(text),
@@ -393,10 +406,14 @@ public class LlmService {
     }
 
     public Flux<String> summarizeStream(String text) {
+        return summarizeStream(text, null);
+    }
+
+    public Flux<String> summarizeStream(String text, String requestModel) {
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String modelId = resolveModelWithRouter(null, "summarize");
+            String modelId = resolveModelWithRouter(requestModel, "summarize");
             return callLlmStream(
                             requestBuilder.summarizePrompt(),
                             requestEnricher.enrichUserText(text),
