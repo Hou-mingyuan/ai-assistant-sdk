@@ -1094,6 +1094,7 @@ const {
   modelSourceText,
   modelHintText,
   diagnosticsRemedyKind,
+  refreshRuntimeModelConfig,
   refreshChatModels,
   runModelDiagnostics,
   toggleDiagnostics,
@@ -1474,7 +1475,10 @@ const audioPrefs = computed(() => ({
   })),
 }));
 watch(personalizeOpen, (open) => {
-  if (open) tts.refreshVoices();
+  if (open) {
+    tts.refreshVoices();
+    void refreshRuntimeModelConfig();
+  }
 });
 function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
   audioPreferences.update(patch);

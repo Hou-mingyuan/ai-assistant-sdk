@@ -383,6 +383,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     modelSourceText,
     modelHintText,
     diagnosticsRemedyKind,
+    refreshRuntimeModelConfig,
     refreshChatModels,
     runModelDiagnostics,
     toggleDiagnostics,

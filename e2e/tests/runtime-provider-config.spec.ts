@@ -60,6 +60,10 @@ test.describe('runtime provider configuration', () => {
     })
 
     await openPersonalizeDialog(page)
+    await expect(page.getByLabel(/^Provider$/)).toHaveValue('minimax')
+    await expect(page.getByLabel(/模型 API Base URL|Model API Base URL/)).toHaveValue(
+      'https://api.minimaxi.com/v1',
+    )
     await page.getByRole('button', { name: 'MiniMax' }).click()
     await page.getByLabel(/模型 API Key|Model API key/).fill('runtime-key')
     const detectModels = page.getByRole('button', { name: /检测模型|Detect models/ })
