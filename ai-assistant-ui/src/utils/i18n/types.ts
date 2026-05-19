@@ -191,6 +191,18 @@ export interface I18nMessages {
   personalizeAudioVoiceAuto?: string;
   personalizeAudioRate?: string;
   personalizeAudioAutoRead?: string;
+  providerConfigTitle?: string;
+  providerConfigPresetMinimax?: string;
+  providerConfigPresetOpenai?: string;
+  providerConfigPresetDeepseek?: string;
+  providerConfigDetectModels?: string;
+  providerConfigProvider?: string;
+  providerConfigBaseUrl?: string;
+  providerConfigApiKey?: string;
+  providerConfigApiKeyPlaceholder?: string;
+  providerConfigDefaultModel?: string;
+  providerConfigAllowedModels?: string;
+  providerConfigSaveAndRefresh?: string;
   /** K38: drag-and-drop file onto FAB to ingest into KB. */
   kbDropFabHint?: string;
   /** {count} = file count, {name} = KB name */

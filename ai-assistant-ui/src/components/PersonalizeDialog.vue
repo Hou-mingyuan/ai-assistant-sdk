@@ -124,18 +124,26 @@
           </div>
           <div class="ai-personalize-model-section">
             <div class="ai-personalize-audio-head">
-              <span class="ai-personalize-audio-label">模型供应商连接</span>
+              <span class="ai-personalize-audio-label">
+                {{ t.providerConfigTitle || 'Model provider connection' }}
+              </span>
             </div>
             <div class="ai-personalize-model-presets">
-              <button type="button" @click="applyProviderPreset('minimax')">MiniMax</button>
-              <button type="button" @click="applyProviderPreset('openai')">OpenAI</button>
-              <button type="button" @click="applyProviderPreset('deepseek')">DeepSeek</button>
+              <button type="button" @click="applyProviderPreset('minimax')">
+                {{ t.providerConfigPresetMinimax || 'MiniMax' }}
+              </button>
+              <button type="button" @click="applyProviderPreset('openai')">
+                {{ t.providerConfigPresetOpenai || 'OpenAI' }}
+              </button>
+              <button type="button" @click="applyProviderPreset('deepseek')">
+                {{ t.providerConfigPresetDeepseek || 'DeepSeek' }}
+              </button>
               <button type="button" :disabled="disabled" @click="$emit('discoverProviderModels')">
-                检测模型
+                {{ t.providerConfigDetectModels || 'Detect models' }}
               </button>
             </div>
             <label class="ai-personalize-model-field">
-              <span>Provider</span>
+              <span>{{ t.providerConfigProvider || 'Provider' }}</span>
               <input
                 :value="providerInput"
                 type="text"
@@ -145,7 +153,7 @@
               />
             </label>
             <label class="ai-personalize-model-field">
-              <span>模型 API Base URL</span>
+              <span>{{ t.providerConfigBaseUrl || 'Model API Base URL' }}</span>
               <input
                 :value="providerBaseUrlInput"
                 type="text"
@@ -157,11 +165,13 @@
               />
             </label>
             <label class="ai-personalize-model-field">
-              <span>模型 API Key</span>
+              <span>{{ t.providerConfigApiKey || 'Model API key' }}</span>
               <input
                 :value="providerApiKeyInput"
                 type="password"
-                placeholder="留空表示不改当前 key"
+                :placeholder="
+                  t.providerConfigApiKeyPlaceholder || 'Leave blank to keep current key'
+                "
                 autocomplete="off"
                 @input="
                   $emit('update:providerApiKeyInput', ($event.target as HTMLInputElement).value)
@@ -169,7 +179,7 @@
               />
             </label>
             <label class="ai-personalize-model-field">
-              <span>默认模型</span>
+              <span>{{ t.providerConfigDefaultModel || 'Default model' }}</span>
               <input
                 :value="providerModelInput"
                 type="text"
@@ -181,7 +191,7 @@
               />
             </label>
             <label class="ai-personalize-model-field">
-              <span>允许模型列表</span>
+              <span>{{ t.providerConfigAllowedModels || 'Allowed models' }}</span>
               <input
                 :value="providerAllowedModelsInput"
                 type="text"
@@ -201,7 +211,7 @@
               :disabled="disabled"
               @click="$emit('saveProviderConfig')"
             >
-              保存模型配置并刷新列表
+              {{ t.providerConfigSaveAndRefresh || 'Save model config and refresh list' }}
             </button>
           </div>
           <div class="ai-personalize-actions">
