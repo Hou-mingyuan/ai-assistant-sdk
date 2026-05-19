@@ -126,6 +126,11 @@
             <div class="ai-personalize-audio-head">
               <span class="ai-personalize-audio-label">模型供应商连接</span>
             </div>
+            <div class="ai-personalize-model-presets">
+              <button type="button" @click="applyProviderPreset('minimax')">MiniMax</button>
+              <button type="button" @click="applyProviderPreset('openai')">OpenAI</button>
+              <button type="button" @click="applyProviderPreset('deepseek')">DeepSeek</button>
+            </div>
             <label class="ai-personalize-model-field">
               <span>Provider</span>
               <input
@@ -272,6 +277,30 @@ function emitAudio(patch: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' |
   emit('update:audio', patch);
 }
 
+function applyProviderPreset(provider: 'minimax' | 'openai' | 'deepseek') {
+  const presets = {
+    minimax: {
+      baseUrl: 'https://api.minimaxi.com/v1',
+      model: 'MiniMax-M2.5',
+      models: 'MiniMax-M2.5, MiniMax-M2.7, MiniMax-M2',
+    },
+    openai: {
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-5.4-mini',
+      models: 'gpt-5.4-mini, gpt-5.4',
+    },
+    deepseek: {
+      baseUrl: 'https://api.deepseek.com/v1',
+      model: 'deepseek-v4-flash',
+      models: 'deepseek-v4-flash, deepseek-chat',
+    },
+  }[provider];
+  emit('update:providerInput', provider);
+  emit('update:providerBaseUrlInput', presets.baseUrl);
+  emit('update:providerModelInput', presets.model);
+  emit('update:providerAllowedModelsInput', presets.models);
+}
+
 const titleId = `ai-personalize-title-${Math.random().toString(36).slice(2, 8)}`;
 const voiceSelectId = `ai-personalize-voice-${Math.random().toString(36).slice(2, 8)}`;
 const rateSliderId = `ai-personalize-rate-${Math.random().toString(36).slice(2, 8)}`;
@@ -336,6 +365,29 @@ watch(
   margin-top: 8px;
   font-size: 12.5px;
   color: #475569;
+}
+
+.ai-personalize-model-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.ai-personalize-model-presets button {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ai-dark .ai-personalize-model-presets button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: rgba(71, 85, 105, 0.6);
 }
 
 .ai-personalize-model-field input {

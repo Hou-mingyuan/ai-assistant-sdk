@@ -36,6 +36,8 @@ interface UseEmptyStateContentOptions {
   mode: Ref<'translate' | 'summarize' | 'chat'>;
 }
 
+// The locale tables are intentionally colocated so labels, prompts, and tones stay in sync.
+// eslint-disable-next-line max-lines-per-function
 export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
   const { locale, mode } = opts;
 

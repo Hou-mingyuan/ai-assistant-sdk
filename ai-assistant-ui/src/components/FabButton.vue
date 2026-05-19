@@ -14,7 +14,7 @@
       'ai-fab-drop-active': fabDropActive,
     }"
     :style="fabLayoutStyle"
-    :aria-label="props['aria-label']"
+    :aria-label="ariaLabel"
     @pointerdown="(ev: PointerEvent) => emit('pointerdown', ev)"
     @contextmenu.prevent="(ev: MouseEvent) => emit('contextmenu', ev)"
     @dragenter.prevent="(ev: DragEvent) => emit('drag-enter', ev)"
@@ -37,14 +37,14 @@
 <script setup lang="ts">
 import { ref, type CSSProperties } from 'vue';
 
-const props = defineProps<{
+defineProps<{
   fabHidden: boolean;
   isOpen: boolean;
   showFabDuringPanelAnim: boolean;
   fabDragging: boolean;
   fabDropActive: boolean;
   fabLayoutStyle: CSSProperties;
-  'aria-label': string;
+  ariaLabel: string;
   dropHintText: string;
 }>();
 

@@ -24,7 +24,7 @@
       :fab-dragging="fabDragging"
       :fab-drop-active="fabDrop.dropActive.value"
       :fab-layout-style="fabLayoutStyle"
-      :aria-label="t.fabOpen"
+      :ariaLabel="t.fabOpen"
       :drop-hint-text="t.kbDropFabHint || 'Drop to add to KB'"
       @pointerdown="onFabPointerDown"
       @contextmenu="onFabContextMenu"
@@ -464,7 +464,7 @@
       :subtitle="
         (t.kbPickerSubtitle || '{count} file(s)').replace('{count}', String(kbPickerFiles.length))
       "
-      :aria-label="t.kbPickerTitle || 'Pick destination knowledge base'"
+      :ariaLabel="t.kbPickerTitle || 'Pick destination knowledge base'"
       :close-aria-label="t.closePanel"
       :docs-unit="t.kbPickerDocsUnit || 'docs'"
       :new-kb-label="t.kbPickerNewKb || 'New knowledge base'"

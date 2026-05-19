@@ -13,7 +13,7 @@
         role="dialog"
         aria-modal="false"
         tabindex="-1"
-        :aria-label="props['aria-label']"
+        :aria-label="ariaLabel"
         @keydown="(ev: KeyboardEvent) => emit('keydown', ev)"
       >
         <div class="ai-kb-picker-card" role="menu">
@@ -72,13 +72,13 @@ export interface KbPickerKb {
   docs: Array<{ id?: string } | unknown>;
 }
 
-const props = defineProps<{
+defineProps<{
   visible: boolean;
   isDark: boolean;
   knowledgeBases: KbPickerKb[];
   title: string;
   subtitle: string;
-  'aria-label': string;
+  ariaLabel: string;
   closeAriaLabel: string;
   docsUnit: string;
   newKbLabel: string;

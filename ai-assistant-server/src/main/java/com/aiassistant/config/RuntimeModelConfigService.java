@@ -1,9 +1,16 @@
 package com.aiassistant.config;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +27,16 @@ public class RuntimeModelConfigService {
     private static final Logger log = LoggerFactory.getLogger(RuntimeModelConfigService.class);
 
     private final AiAssistantProperties properties;
+    private final Path storagePath;
 
     public RuntimeModelConfigService(AiAssistantProperties properties) {
+        this(properties, defaultStoragePath());
+    }
+
+    RuntimeModelConfigService(AiAssistantProperties properties, Path storagePath) {
         this.properties = properties;
+        this.storagePath = storagePath;
+        loadPersistedConfig();
     }
 
     public synchronized Snapshot snapshot() {
@@ -55,6 +69,7 @@ public class RuntimeModelConfigService {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
         Snapshot next = snapshot();
+        persistNonSecretConfig(next);
         log.info(
                 "Runtime model config updated: provider={}, baseUrl={}, model={}, models={}",
                 next.getProvider(),
@@ -85,6 +100,70 @@ public class RuntimeModelConfigService {
             }
         }
         return result;
+    }
+
+    private void loadPersistedConfig() {
+        if (!Files.isRegularFile(storagePath)) {
+            return;
+        }
+        Properties persisted = new Properties();
+        try (InputStream in = Files.newInputStream(storagePath)) {
+            persisted.load(in);
+            UpdateRequest request = new UpdateRequest();
+            request.setProvider(persisted.getProperty("provider"));
+            request.setBaseUrl(persisted.getProperty("baseUrl"));
+            request.setModel(persisted.getProperty("model"));
+            request.setAllowedModelsText(persisted.getProperty("allowedModels"));
+            request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
+            applyWithoutPersisting(request);
+        } catch (IOException e) {
+            log.warn("Runtime model config load skipped: {}", e.getMessage());
+        }
+    }
+
+    private void applyWithoutPersisting(UpdateRequest request) {
+        if (hasText(request.getProvider())) {
+            properties.setProvider(request.getProvider().trim());
+        }
+        if (hasText(request.getBaseUrl())) {
+            properties.setBaseUrl(request.getBaseUrl().trim());
+        }
+        if (hasText(request.getModel())) {
+            properties.setModel(request.getModel().trim());
+        }
+        if (hasText(request.getAllowedModelsText())) {
+            properties.setAllowedModels(parseModels(request.getAllowedModelsText()));
+        }
+        if (hasText(request.getMinimaxVlmBaseUrl())) {
+            properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
+        }
+    }
+
+    private void persistNonSecretConfig(Snapshot snapshot) {
+        Properties persisted = new Properties();
+        put(persisted, "provider", snapshot.provider);
+        put(persisted, "baseUrl", snapshot.baseUrl);
+        put(persisted, "model", snapshot.model);
+        put(persisted, "allowedModels", String.join(",", snapshot.allowedModels));
+        put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
+        try {
+            Files.createDirectories(storagePath.getParent());
+            try (OutputStream out = Files.newOutputStream(storagePath)) {
+                persisted.store(out, "AI Assistant runtime model config (API key is not persisted)");
+            }
+        } catch (IOException e) {
+            log.warn("Runtime model config persist skipped: {}", e.getMessage());
+        }
+    }
+
+    private static void put(Properties properties, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            properties.setProperty(key, value);
+        }
+    }
+
+    private static Path defaultStoragePath() {
+        return Paths.get(System.getProperty("user.home"), ".ai-assistant", "runtime-model-config.properties");
     }
 
     public static class UpdateRequest {
