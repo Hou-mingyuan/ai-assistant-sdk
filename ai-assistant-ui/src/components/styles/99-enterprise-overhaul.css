@@ -1659,6 +1659,10 @@
     0 6px 14px -10px rgba(36, 44, 92, 0.44),
     0 0 0 1px rgba(79, 70, 229, 0.08);
 }
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-lang-select,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge {

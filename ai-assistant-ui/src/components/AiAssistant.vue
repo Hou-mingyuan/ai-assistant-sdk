@@ -15,40 +15,24 @@
     ]"
     :style="wrapperStyle"
   >
-    <!-- Floating Button：打开/关闭过渡期间保留在 DOM 中，便于从球心缩放面板 -->
-    <button
-      v-show="!fabHidden && (!isOpen || showFabDuringPanelAnim)"
-      ref="fabRef"
-      type="button"
-      class="ai-fab"
-      :class="{
-        'ai-fab-dragging': fabDragging,
-        'ai-fab-drop-active': fabDrop.dropActive.value,
-      }"
-      :style="fabLayoutStyle"
+    <!-- Refactor (T1)：FAB 抽到 FabButton.vue，通过 ref 暴露原生按钮供 useFabDrag 解算坐标 -->
+    <FabButton
+      ref="fabButtonRef"
+      :fab-hidden="fabHidden"
+      :is-open="isOpen"
+      :show-fab-during-panel-anim="showFabDuringPanelAnim"
+      :fab-dragging="fabDragging"
+      :fab-drop-active="fabDrop.dropActive.value"
+      :fab-layout-style="fabLayoutStyle"
       :aria-label="t.fabOpen"
+      :drop-hint-text="t.kbDropFabHint || 'Drop to add to KB'"
       @pointerdown="onFabPointerDown"
-      @contextmenu.prevent="onFabContextMenu"
-      @dragenter.prevent="fabDrop.onFabDragEnter"
-      @dragover.prevent="fabDrop.onFabDragOver"
-      @dragleave.prevent="fabDrop.onFabDragLeave"
-      @drop.prevent="fabDrop.onFabDrop"
-    >
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <!-- Sparkle / star with 4 rays — modern AI assistant icon -->
-        <path
-          d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z"
-        />
-      </svg>
-      <span
-        v-if="fabDrop.dropActive.value"
-        class="ai-fab-drop-hint"
-        role="status"
-        aria-live="polite"
-      >
-        {{ t.kbDropFabHint || 'Drop to add to KB' }}
-      </span>
-    </button>
+      @contextmenu="onFabContextMenu"
+      @drag-enter="fabDrop.onFabDragEnter"
+      @drag-over="fabDrop.onFabDragOver"
+      @drag-leave="fabDrop.onFabDragLeave"
+      @drop="fabDrop.onFabDrop"
+    />
 
     <!-- Chat Panel -->
     <Transition
@@ -126,120 +110,26 @@
           @delete="deleteSessionTab"
         />
 
-        <div
+        <!-- Refactor (T1)：搜索栏抽到 ChatSearchBar.vue -->
+        <ChatSearchBar
           v-if="messages.length > 0"
-          class="ai-chat-search"
-          :class="{
-            'ai-chat-search-active': !!debouncedSearchQuery.trim(),
-            'ai-chat-search-empty': !!debouncedSearchQuery.trim() && totalMatches === 0,
-          }"
-        >
-          <input
-            v-model="chatSearchInput"
-            type="search"
-            class="ai-chat-search-input"
-            :placeholder="t.searchMessages"
-            :aria-label="t.searchMessages"
-            autocomplete="off"
-            @keydown.enter.exact.prevent="goNextMatch"
-            @keydown.enter.shift.prevent="goPrevMatch"
-          />
-          <span
-            v-if="searchCountLabel"
-            class="ai-search-count"
-            :class="{ 'ai-search-count-empty': totalMatches === 0 }"
-          >
-            {{ searchCountLabel }}
-          </span>
-          <button
-            v-if="debouncedSearchQuery.trim()"
-            type="button"
-            class="ai-search-nav"
-            :disabled="totalMatches === 0"
-            :aria-label="t.searchPrev"
-            @click="goPrevMatch"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
-            </svg>
-          </button>
-          <button
-            v-if="debouncedSearchQuery.trim()"
-            type="button"
-            class="ai-search-nav"
-            :disabled="totalMatches === 0"
-            :aria-label="t.searchNext"
-            @click="goNextMatch"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
-            </svg>
-          </button>
-          <div v-if="debouncedSearchQuery.trim()" class="ai-search-options">
-            <button
-              type="button"
-              class="ai-search-options-toggle"
-              :class="{ active: searchCaseSensitive || searchWholeWord || searchRegex }"
-              :title="t.settingsLabel || 'Search options'"
-              :aria-label="t.settingsLabel || 'Search options'"
-              :aria-expanded="searchOptionsOpen ? 'true' : 'false'"
-              @click="searchOptionsOpen = !searchOptionsOpen"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                aria-hidden="true"
-              >
-                <path d="M4 7h16" />
-                <path d="M7 12h10" />
-                <path d="M10 17h4" />
-              </svg>
-            </button>
-            <div v-if="searchOptionsOpen" class="ai-search-options-menu" role="menu">
-              <button
-                type="button"
-                role="menuitemcheckbox"
-                class="ai-search-mode"
-                :class="{ active: searchCaseSensitive }"
-                :title="t.searchCaseSensitive || 'Case sensitive (Aa)'"
-                :aria-checked="searchCaseSensitive ? 'true' : 'false'"
-                @click="searchCaseSensitive = !searchCaseSensitive"
-              >
-                <span aria-hidden="true">Aa</span>
-                <span>{{ t.searchCaseSensitive || 'Case sensitive' }}</span>
-              </button>
-              <button
-                type="button"
-                role="menuitemcheckbox"
-                class="ai-search-mode"
-                :class="{ active: searchWholeWord }"
-                :title="t.searchWholeWord || 'Whole word (\\b)'"
-                :aria-checked="searchWholeWord ? 'true' : 'false'"
-                @click="searchWholeWord = !searchWholeWord"
-              >
-                <span aria-hidden="true">W</span>
-                <span>{{ t.searchWholeWord || 'Whole word' }}</span>
-              </button>
-              <button
-                type="button"
-                role="menuitemcheckbox"
-                class="ai-search-mode"
-                :class="{ active: searchRegex }"
-                :title="t.searchRegex || 'Regular expression (.*?)'"
-                :aria-checked="searchRegex ? 'true' : 'false'"
-                @click="searchRegex = !searchRegex"
-              >
-                <span aria-hidden="true">.*</span>
-                <span>{{ t.searchRegex || 'Regular expression' }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+          :input-value="chatSearchInput"
+          :debounced-query="debouncedSearchQuery"
+          :total-matches="totalMatches"
+          :count-label="searchCountLabel"
+          :options-open="searchOptionsOpen"
+          :case-sensitive="searchCaseSensitive"
+          :whole-word="searchWholeWord"
+          :regex="searchRegex"
+          :t="t"
+          @update:input="chatSearchInput = $event"
+          @update:options-open="searchOptionsOpen = $event"
+          @update:case-sensitive="searchCaseSensitive = $event"
+          @update:whole-word="searchWholeWord = $event"
+          @update:regex="searchRegex = $event"
+          @next="goNextMatch"
+          @prev="goPrevMatch"
+        />
 
         <!-- AI streaming progress bar -->
         <Transition name="ai-progress-fade">
@@ -290,59 +180,20 @@
           >
             <div class="ai-upload-progress-bar"></div>
           </div>
-          <div v-if="messages.length === 0" class="ai-empty">
-            <p>{{ t.greeting }}</p>
-            <div v-if="mode === 'chat'" class="ai-empty-skills" :aria-label="t.skillStripLabel">
-              <button
-                v-for="skill in defaultSkills"
-                :key="skill.label"
-                type="button"
-                class="ai-empty-skill"
-                :data-skill-tone="skill.tone"
-                @click="applyEmptySkill(skill)"
-              >
-                <span class="ai-empty-skill-icon" aria-hidden="true">{{ skill.icon }}</span>
-                <span>{{ skill.label }}</span>
-              </button>
-            </div>
-            <div class="ai-empty-starters">
-              <button
-                v-for="starter in emptyStarterCards"
-                :key="starter.title"
-                type="button"
-                class="ai-empty-starter"
-                :data-starter-tone="starter.tone"
-                @click="applyEmptyStarter(starter)"
-              >
-                <span class="ai-empty-starter-icon" aria-hidden="true">{{ starter.icon }}</span>
-                <span class="ai-empty-starter-body">
-                  <span class="ai-empty-starter-text">{{ starter.title }}</span>
-                  <span class="ai-empty-starter-desc">{{ starter.desc }}</span>
-                </span>
-              </button>
-            </div>
-            <div class="ai-empty-capabilities" aria-label="Assistant capabilities">
-              <span
-                v-for="hint in emptyCapabilityHints"
-                :key="hint.label"
-                class="ai-empty-capability"
-              >
-                <span class="ai-empty-capability-icon" aria-hidden="true">{{ hint.icon }}</span>
-                <span>{{ hint.label }}</span>
-              </span>
-            </div>
-            <div v-if="promptTemplateList.length > 0" class="ai-prompt-templates">
-              <button
-                v-for="(tpl, ti) in promptTemplateList"
-                :key="ti"
-                type="button"
-                class="ai-prompt-tpl-btn"
-                @click="applyPromptTemplate(tpl)"
-              >
-                {{ tpl.label }}
-              </button>
-            </div>
-          </div>
+          <!-- Refactor (T1)：空状态抽到 ChatEmptyState.vue + useEmptyStateContent composable -->
+          <ChatEmptyState
+            v-if="messages.length === 0"
+            :mode="mode"
+            :greeting="t.greeting"
+            :skill-strip-label="t.skillStripLabel || 'Assistant skills'"
+            :skills="defaultSkills"
+            :starters="emptyStarterCards"
+            :capability-hints="emptyCapabilityHints"
+            :prompt-templates="promptTemplateList"
+            @apply-skill="applyEmptySkill"
+            @apply-starter="applyEmptyStarter"
+            @apply-template="applyPromptTemplate"
+          />
           <MessageList
             :messages="displayedMessages"
             :display-offset="displayOffset"
@@ -604,78 +455,24 @@
       @clear-set="onCompareClearSet"
     />
 
-    <!-- K43: KB target picker. Teleported, fixed bottom-right, auto-dismiss
-         after 12s. K48: 1-9 picks the n-th KB, 0/N creates new, Esc closes. -->
-    <Teleport to="body">
-      <Transition name="ai-modal">
-        <div
-          v-if="kbPickerVisible"
-          class="ai-kb-picker-shell"
-          :class="{ 'ai-dark': isDark }"
-          role="dialog"
-          aria-modal="false"
-          tabindex="-1"
-          :aria-label="t.kbPickerTitle || 'Pick destination knowledge base'"
-          @keydown="onKbPickerKeydown"
-        >
-          <div class="ai-kb-picker-card" role="menu">
-            <div class="ai-kb-picker-head">
-              <span class="ai-kb-picker-title">
-                {{ t.kbPickerTitle || 'Ingest into…' }}
-              </span>
-              <span class="ai-kb-picker-meta">
-                {{
-                  (t.kbPickerSubtitle || '{count} file(s)').replace(
-                    '{count}',
-                    String(kbPickerFiles.length),
-                  )
-                }}
-              </span>
-              <button
-                type="button"
-                class="ai-kb-picker-close"
-                :aria-label="t.closePanel"
-                @click="closeKbPicker"
-              >
-                &times;
-              </button>
-            </div>
-            <ul class="ai-kb-picker-list">
-              <li v-for="(kb, idx) in knowledgeBase.bases.value" :key="kb.id">
-                <button
-                  type="button"
-                  class="ai-kb-picker-item"
-                  role="menuitem"
-                  @click="onKbPickerPick(kb.id)"
-                >
-                  <span v-if="idx < 9" class="ai-kb-picker-item-shortcut">
-                    {{ idx + 1 }}
-                  </span>
-                  <span class="ai-kb-picker-item-name">{{ kb.name }}</span>
-                  <span class="ai-kb-picker-item-meta">
-                    {{ kb.docs.length }}
-                    {{ t.kbPickerDocsUnit || 'docs' }}
-                  </span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  class="ai-kb-picker-item ai-kb-picker-item-create"
-                  role="menuitem"
-                  @click="onKbPickerCreateNew"
-                >
-                  <span class="ai-kb-picker-item-shortcut">N</span>
-                  <span class="ai-kb-picker-item-name">
-                    + {{ t.kbPickerNewKb || 'New knowledge base' }}
-                  </span>
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- Refactor (T1)：KB picker 抽到 KbPickerDialog.vue（Teleport 在子组件内部） -->
+    <KbPickerDialog
+      :visible="kbPickerVisible"
+      :is-dark="isDark"
+      :knowledge-bases="knowledgeBase.bases.value"
+      :title="t.kbPickerTitle || 'Ingest into…'"
+      :subtitle="
+        (t.kbPickerSubtitle || '{count} file(s)').replace('{count}', String(kbPickerFiles.length))
+      "
+      :aria-label="t.kbPickerTitle || 'Pick destination knowledge base'"
+      :close-aria-label="t.closePanel"
+      :docs-unit="t.kbPickerDocsUnit || 'docs'"
+      :new-kb-label="t.kbPickerNewKb || 'New knowledge base'"
+      @close="closeKbPicker"
+      @pick="onKbPickerPick"
+      @create-new="onKbPickerCreateNew"
+      @keydown="onKbPickerKeydown"
+    />
 
     <PersonalizeDialog
       v-model="chatSystemPrompt"
@@ -845,38 +642,18 @@
       @confirm="onFormAutoFillConfirm"
     />
 
-    <!-- L1: Post-fill toast with Undo. Teleports to body so it sits above the
-         page even when the assistant panel is closed. Auto-dismisses after 5s
-         inside the composable. -->
-    <Teleport v-if="formAutoFillEnabled" to="body">
-      <Transition name="ai-modal">
-        <div
-          v-if="formAutoFill.toastVisible.value && formAutoFill.toastSummary.value"
-          class="ai-form-fill-toast"
-          :class="{ 'ai-dark': isDark }"
-          role="status"
-          aria-live="polite"
-        >
-          <span class="ai-form-fill-toast-text">{{ formAutoFillToastText }}</span>
-          <button
-            v-if="formAutoFill.lastFillRecords.value.length > 0"
-            type="button"
-            class="ai-form-fill-toast-btn"
-            @click="onFormAutoFillUndo"
-          >
-            {{ t.formFillToastUndo || 'Undo' }}
-          </button>
-          <button
-            type="button"
-            class="ai-form-fill-toast-close"
-            :aria-label="t.closePanel"
-            @click="onFormAutoFillToastDismiss"
-          >
-            &times;
-          </button>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- Refactor (T1)：FormFillToast 抽出 -->
+    <FormFillToast
+      v-if="formAutoFillEnabled"
+      :visible="formAutoFill.toastVisible.value && !!formAutoFill.toastSummary.value"
+      :is-dark="isDark"
+      :text="formAutoFillToastText"
+      :undo-available="formAutoFill.lastFillRecords.value.length > 0"
+      :undo-label="t.formFillToastUndo || 'Undo'"
+      :close-aria-label="t.closePanel"
+      @undo="onFormAutoFillUndo"
+      @dismiss="onFormAutoFillToastDismiss"
+    />
 
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
     <CommandPalette
@@ -908,6 +685,12 @@ import MessageList from './MessageList.vue';
 import AssistantHeader from './AssistantHeader.vue';
 import ChatInputArea from './ChatInputArea.vue';
 import SessionTabs from './SessionTabs.vue';
+/* Refactor (T1)：从 AiAssistant.vue 抽出的 5 个子组件 */
+import FabButton from './FabButton.vue';
+import ChatSearchBar from './ChatSearchBar.vue';
+import ChatEmptyState from './ChatEmptyState.vue';
+import KbPickerDialog from './KbPickerDialog.vue';
+import FormFillToast from './FormFillToast.vue';
 import { useVoiceInput } from '../composables/useVoiceInput';
 import {
   appendVoiceTranscript,
@@ -926,9 +709,14 @@ import {
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
-import { useMessageVirtualScroll } from '../composables/useMessageVirtualScroll';
+/* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
+import {
+  useScrollAndVirtual,
+  resolveVirtualScrollOption,
+} from '../composables/useScrollAndVirtual';
 import { useCommandPalette } from '../composables/useCommandPalette';
-import type { CommandItem } from '../types/command-palette';
+/* Refactor (T1-Wave2)：内置命令清单已抽到 useBuiltInCommands */
+import { useBuiltInCommands } from '../composables/useBuiltInCommands';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
 const CompareRegionsDialog = defineAsyncComponent(() => import('./CompareRegionsDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
@@ -987,6 +775,10 @@ import { usePageSelection } from '../composables/usePageSelection';
 import { usePromptHistory } from '../composables/usePromptHistory';
 import { useFabDropIngest } from '../composables/useFabDropIngest';
 import { useFormAutoFill } from '../composables/useFormAutoFill';
+/* Refactor (T1)：从 AiAssistant.vue 抽出的 3 个 composable */
+import { useEmptyStateContent } from '../composables/useEmptyStateContent';
+import { useThemePreference } from '../composables/useThemePreference';
+import { useImageLightbox } from '../composables/useImageLightbox';
 const FormAutoFillDialog = defineAsyncComponent(() => import('./FormAutoFillDialog.vue'));
 import {
   extractHttpUrls,
@@ -1073,73 +865,13 @@ function formatRelativeTime(ts?: number): string {
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
 
 const wrapperRef = ref<HTMLElement>();
-const systemDarkRef = ref(window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false);
-const reducedMotionRef = ref(
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
-);
-const pageVisibleRef = ref(!document.hidden);
-let darkMediaCleanup: (() => void) | null = null;
-let reducedMotionCleanup: (() => void) | null = null;
-let pageVisibilityCleanup: (() => void) | null = null;
-onMounted(() => {
-  const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
-  if (mql) {
-    const handler = (e: MediaQueryListEvent) => {
-      systemDarkRef.value = e.matches;
-    };
-    mql.addEventListener('change', handler);
-    darkMediaCleanup = () => mql.removeEventListener('change', handler);
-  }
-  const reducedMql = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  if (reducedMql) {
-    const handler = (e: MediaQueryListEvent) => {
-      reducedMotionRef.value = e.matches;
-    };
-    reducedMql.addEventListener('change', handler);
-    reducedMotionCleanup = () => reducedMql.removeEventListener('change', handler);
-  }
-  const visibilityHandler = () => {
-    pageVisibleRef.value = !document.hidden;
-  };
-  document.addEventListener('visibilitychange', visibilityHandler);
-  pageVisibilityCleanup = () => document.removeEventListener('visibilitychange', visibilityHandler);
-});
-onUnmounted(() => {
-  darkMediaCleanup?.();
-  reducedMotionCleanup?.();
-  pageVisibilityCleanup?.();
-});
-/**
- * #27 用户在面板内一键切换的主题覆盖
- * - null = 跟随 options.theme（默认）
- * - 'light' / 'dark' = 用户显式覆盖（持久化到 localStorage）
- */
-const THEME_OVERRIDE_KEY = 'ai-assistant-user-theme-override';
-const userThemeOverride = ref<'light' | 'dark' | null>(
-  (() => {
-    try {
-      const v = localStorage.getItem(THEME_OVERRIDE_KEY);
-      return v === 'light' || v === 'dark' ? v : null;
-    } catch {
-      return null;
-    }
-  })(),
-);
-const isDark = computed(() => {
-  if (userThemeOverride.value) return userThemeOverride.value === 'dark';
-  if (options.theme === 'dark') return true;
-  if (options.theme === 'auto') return systemDarkRef.value;
-  return false;
-});
-function toggleManualTheme() {
-  const next = isDark.value ? 'light' : 'dark';
-  userThemeOverride.value = next;
-  try {
-    localStorage.setItem(THEME_OVERRIDE_KEY, next);
-  } catch (e) {
-    console.warn('[AiAssistant] persist theme override failed', e);
-  }
-}
+/* Refactor (T1)：systemDark / reducedMotion / pageVisible / userOverride / isDark / toggleManualTheme
+ * 全部抽到 useThemePreference composable，参见 #27 用户主题覆盖契约。 */
+const themePref = useThemePreference(computed(() => options.theme));
+const reducedMotionRef = themePref.reducedMotion;
+const pageVisibleRef = themePref.pageVisible;
+const isDark = themePref.isDark;
+const toggleManualTheme = themePref.toggleManualTheme;
 const isOpen = ref(false);
 /** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
 const fabHidden = ref(false);
@@ -1155,331 +887,31 @@ const input = ref('');
 const deepThinkEnabled = ref(false);
 const webSearchEnabled = ref(false);
 
-/**
- * Doubao-style skill chip strip data. Lives above the starter cards in the
- * empty state and offers single-tap shortcuts into common AI capabilities.
- * Each chip carries a tone token consumed by `99-enterprise-overhaul.css`
- * to vary background/foreground colour without per-chip overrides in the
- * template.
- *
- * Click contract: fills the input box with `prompt` (no auto-send), then
- * focuses the textarea so the user can finish the sentence.
- */
-interface EmptySkillChip {
-  icon: string;
-  label: string;
-  prompt: string;
-  tone: 'violet' | 'cyan' | 'amber' | 'emerald' | 'rose' | 'sky';
-}
-const defaultSkills = computed<EmptySkillChip[]>(() => {
-  const loc = options.locale ?? 'en';
-  const lib: Record<string, EmptySkillChip[]> = {
-    zh: [
-      { icon: '✏️', label: '写作', tone: 'violet', prompt: '帮我写一段关于 ' },
-      { icon: '🌐', label: '翻译', tone: 'cyan', prompt: '把这段翻译成中文：' },
-      { icon: '📊', label: '分析', tone: 'sky', prompt: '帮我分析这份数据：' },
-      { icon: '💡', label: '灵感', tone: 'amber', prompt: '给我一些关于 ' },
-      { icon: '💻', label: '编程', tone: 'emerald', prompt: '帮我写一段实现 ' },
-      { icon: '📝', label: '总结', tone: 'rose', prompt: '帮我总结一下：' },
-    ],
-    en: [
-      { icon: '✏️', label: 'Write', tone: 'violet', prompt: 'Help me write a draft about ' },
-      { icon: '🌐', label: 'Translate', tone: 'cyan', prompt: 'Translate this into English: ' },
-      { icon: '📊', label: 'Analyze', tone: 'sky', prompt: 'Help me analyze this data: ' },
-      { icon: '💡', label: 'Ideas', tone: 'amber', prompt: 'Give me some ideas about ' },
-      { icon: '💻', label: 'Code', tone: 'emerald', prompt: 'Write code to ' },
-      { icon: '📝', label: 'Summary', tone: 'rose', prompt: 'Summarize this for me: ' },
-    ],
-    ja: [
-      { icon: '✏️', label: '文章', tone: 'violet', prompt: '〜について書いてください：' },
-      { icon: '🌐', label: '翻訳', tone: 'cyan', prompt: 'この文を翻訳してください：' },
-      { icon: '📊', label: '分析', tone: 'sky', prompt: 'このデータを分析してください：' },
-      { icon: '💡', label: 'アイデア', tone: 'amber', prompt: '〜に関するアイデアを：' },
-      { icon: '💻', label: 'コード', tone: 'emerald', prompt: '〜を実装するコードを：' },
-      { icon: '📝', label: '要約', tone: 'rose', prompt: '要約してください：' },
-    ],
-    ko: [
-      { icon: '✏️', label: '글쓰기', tone: 'violet', prompt: '〜에 대해 써 주세요: ' },
-      { icon: '🌐', label: '번역', tone: 'cyan', prompt: '이 문장을 번역해 주세요: ' },
-      { icon: '📊', label: '분석', tone: 'sky', prompt: '이 데이터를 분석해 주세요: ' },
-      { icon: '💡', label: '아이디어', tone: 'amber', prompt: '〜에 대한 아이디어: ' },
-      { icon: '💻', label: '코드', tone: 'emerald', prompt: '〜를 구현하는 코드: ' },
-      { icon: '📝', label: '요약', tone: 'rose', prompt: '요약해 주세요: ' },
-    ],
-  };
-  return lib[loc] ?? lib.en;
+/* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
+ * 全部抽到 useEmptyStateContent composable（4 语言 i18n 静态数据 ~330 行）。
+ * 因为 `mode` 在文件后段才声明，这里先用一个早期 ref 提前持有 mode，
+ * 后面再覆盖到同名 ref（避免循环依赖）。 */
+const mode = ref<'translate' | 'summarize' | 'chat'>('chat');
+type EmptySkillChip = import('../composables/useEmptyStateContent').EmptySkillChip;
+type EmptyStarterCard = import('../composables/useEmptyStateContent').EmptyStarterCard;
+const {
+  defaultSkills,
+  defaultStartersRich,
+  modeStarterCards,
+  emptyStarterCards,
+  emptyCapabilityHints,
+} = useEmptyStateContent({
+  locale: computed(() => options.locale),
+  mode,
 });
-
-/**
- * Rich starter cards (Doubao-style: icon + title + 1-line description).
- * Replaces the legacy `defaultStarters` string-with-emoji-prefix format.
- * `prompt` is what lands in the textarea on click; `desc` is purely UI.
- */
-interface EmptyStarterCard {
-  icon: string;
-  title: string;
-  desc: string;
-  prompt: string;
-  tone: 'violet' | 'cyan' | 'amber' | 'emerald' | 'rose' | 'sky';
-}
-const defaultStartersRich = computed<EmptyStarterCard[]>(() => {
-  const loc = options.locale ?? 'en';
-  const lib: Record<string, EmptyStarterCard[]> = {
-    zh: [
-      {
-        icon: '💼',
-        title: '写一封商务邮件',
-        desc: '正式得体、要点清晰',
-        prompt: '帮我写一封商务邮件，主题是：',
-        tone: 'violet',
-      },
-      {
-        icon: '🧠',
-        title: '解释一个概念',
-        desc: '通俗易懂、举例说明',
-        prompt: '用通俗的话解释一下什么是 ',
-        tone: 'cyan',
-      },
-      {
-        icon: '🔤',
-        title: '翻译成英文',
-        desc: '保留语气，自然地道',
-        prompt: '把这段中文翻译成自然的英文：',
-        tone: 'amber',
-      },
-      {
-        icon: '🎬',
-        title: '推荐 3 本科幻小说',
-        desc: '附简短理由和难度',
-        prompt: '给我推荐 3 本好看的科幻小说，并简要说明每本的看点。',
-        tone: 'emerald',
-      },
-    ],
-    en: [
-      {
-        icon: '💼',
-        title: 'Write a business email',
-        desc: 'Polished tone, clear points',
-        prompt: 'Help me draft a business email about ',
-        tone: 'violet',
-      },
-      {
-        icon: '🧠',
-        title: 'Explain a concept',
-        desc: 'Plain language, with examples',
-        prompt: 'Explain in plain words what ',
-        tone: 'cyan',
-      },
-      {
-        icon: '🔤',
-        title: 'Translate to Chinese',
-        desc: 'Natural, tone-preserving',
-        prompt: 'Translate the following into natural Chinese: ',
-        tone: 'amber',
-      },
-      {
-        icon: '🎬',
-        title: 'Recommend 3 sci-fi novels',
-        desc: 'With short reasons',
-        prompt: 'Recommend 3 great sci-fi novels with a one-line reason for each.',
-        tone: 'emerald',
-      },
-    ],
-    ja: [
-      {
-        icon: '💼',
-        title: 'ビジネスメール作成',
-        desc: '丁寧で要点が明確',
-        prompt: '以下の件についてビジネスメールを書いてください：',
-        tone: 'violet',
-      },
-      {
-        icon: '🧠',
-        title: '概念を説明',
-        desc: 'わかりやすく、例つき',
-        prompt: '次の概念をわかりやすく説明してください：',
-        tone: 'cyan',
-      },
-      {
-        icon: '🔤',
-        title: '英語に翻訳',
-        desc: '自然でニュアンスを保持',
-        prompt: 'この文章を自然な英語に翻訳してください：',
-        tone: 'amber',
-      },
-      {
-        icon: '🎬',
-        title: 'SF小説を3冊',
-        desc: '短い理由つき',
-        prompt: 'おすすめのSF小説を3冊、短い理由とともに教えてください。',
-        tone: 'emerald',
-      },
-    ],
-    ko: [
-      {
-        icon: '💼',
-        title: '비즈니스 이메일',
-        desc: '정중하고 요점이 명확',
-        prompt: '다음 주제로 비즈니스 이메일을 작성해 주세요: ',
-        tone: 'violet',
-      },
-      {
-        icon: '🧠',
-        title: '개념 설명',
-        desc: '쉽게, 예시와 함께',
-        prompt: '다음 개념을 쉽게 설명해 주세요: ',
-        tone: 'cyan',
-      },
-      {
-        icon: '🔤',
-        title: '영어로 번역',
-        desc: '자연스럽고 어조 유지',
-        prompt: '다음 문장을 자연스러운 영어로 번역해 주세요: ',
-        tone: 'amber',
-      },
-      {
-        icon: '🎬',
-        title: 'SF 소설 3권',
-        desc: '간단한 이유와 함께',
-        prompt: '좋은 SF 소설 3권을 간단한 이유와 함께 추천해 주세요.',
-        tone: 'emerald',
-      },
-    ],
-  };
-  return lib[loc] ?? lib.en;
-});
-
-const modeStarterCards = computed<EmptyStarterCard[]>(() => {
-  const loc = options.locale ?? 'en';
-  if (mode.value === 'translate') {
-    return loc === 'zh'
-      ? [
-          {
-            icon: '中',
-            title: '翻译成中文',
-            desc: '保留语气和格式',
-            prompt: '把下面内容翻译成中文：',
-            tone: 'cyan',
-          },
-          {
-            icon: 'EN',
-            title: '翻译成英文',
-            desc: '自然地道表达',
-            prompt: '把下面内容翻译成自然英文：',
-            tone: 'violet',
-          },
-          {
-            icon: '术',
-            title: '术语对齐',
-            desc: '适合技术/业务文本',
-            prompt: '翻译下面内容，并保持专业术语一致：',
-            tone: 'emerald',
-          },
-        ]
-      : [
-          {
-            icon: 'EN',
-            title: 'Translate to English',
-            desc: 'Natural and concise',
-            prompt: 'Translate this into natural English: ',
-            tone: 'violet',
-          },
-          {
-            icon: 'ZH',
-            title: 'Translate to Chinese',
-            desc: 'Keep tone and formatting',
-            prompt: 'Translate this into Chinese: ',
-            tone: 'cyan',
-          },
-          {
-            icon: 'TM',
-            title: 'Keep terminology',
-            desc: 'For technical content',
-            prompt: 'Translate this and keep terminology consistent: ',
-            tone: 'emerald',
-          },
-        ];
-  }
-  if (mode.value === 'summarize') {
-    return loc === 'zh'
-      ? [
-          {
-            icon: '摘',
-            title: '总结长文',
-            desc: '提炼核心结论',
-            prompt: '请总结下面内容的核心要点：',
-            tone: 'rose',
-          },
-          {
-            icon: '点',
-            title: '提炼要点',
-            desc: '输出清晰条目',
-            prompt: '请把下面内容提炼成 5 条要点：',
-            tone: 'sky',
-          },
-          {
-            icon: '办',
-            title: '整理待办',
-            desc: '会议/记录转行动项',
-            prompt: '请从下面内容中整理待办事项和负责人：',
-            tone: 'amber',
-          },
-        ]
-      : [
-          {
-            icon: 'SUM',
-            title: 'Summarize long text',
-            desc: 'Extract the core points',
-            prompt: 'Summarize the key points of this content: ',
-            tone: 'rose',
-          },
-          {
-            icon: '5',
-            title: 'Five bullets',
-            desc: 'Make it skimmable',
-            prompt: 'Extract this into 5 concise bullet points: ',
-            tone: 'sky',
-          },
-          {
-            icon: 'TODO',
-            title: 'Action items',
-            desc: 'Meeting notes to tasks',
-            prompt: 'Extract action items, owners, and deadlines from this: ',
-            tone: 'amber',
-          },
-        ];
-  }
-  return defaultStartersRich.value;
-});
-
-const emptyStarterCards = computed(() => modeStarterCards.value);
-
-const emptyCapabilityHints = computed(() => {
-  const loc = options.locale ?? 'en';
-  const lib: Record<string, { icon: string; label: string }[]> = {
-    zh: [
-      { icon: '⌘', label: '页面上下文' },
-      { icon: '📎', label: '文件摘要' },
-      { icon: '🎙', label: '语音输入' },
-    ],
-    en: [
-      { icon: '⌘', label: 'Page context' },
-      { icon: '📎', label: 'File summaries' },
-      { icon: '🎙', label: 'Voice input' },
-    ],
-    ja: [
-      { icon: '⌘', label: 'ページ文脈' },
-      { icon: '📎', label: 'ファイル要約' },
-      { icon: '🎙', label: '音声入力' },
-    ],
-    ko: [
-      { icon: '⌘', label: '페이지 컨텍스트' },
-      { icon: '📎', label: '파일 요약' },
-      { icon: '🎙', label: '음성 입력' },
-    ],
-  };
-  return lib[loc] ?? lib.en;
-});
+void defaultStartersRich;
+void modeStarterCards;
+/* Refactor (T1)：原 ~310 行的 4 语言 skill/starter/mode/capability 数据 + 局部 interface
+ *（_legacyDefaultSkills / defaultStartersRich / modeStarterCards / emptyStarterCards /
+ *  emptyCapabilityHints / EmptyStarterCard interface）已迁移到
+ *  composables/useEmptyStateContent.ts，请去那里维护文案与 i18n 增量。 */
+/* ↑ 上面 5 个变量来自 useEmptyStateContent composable。原 ~258 行的 4 语言
+ * skill/starter/mode/capability 数据已迁移到 composables/useEmptyStateContent.ts。 */
 
 function focusInput() {
   void nextTick(() => {
@@ -1591,7 +1023,7 @@ const {
   exportAssistantMessageServer,
 } = exportActions;
 
-const mode = ref<'translate' | 'summarize' | 'chat'>('chat');
+/* Refactor (T1)：`mode` 已前移至 useEmptyStateContent 之前声明，避免循环依赖。 */
 const chatSystemPrompt = ref('');
 const personalizeOpen = ref(false);
 const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false);
@@ -1686,99 +1118,17 @@ const {
 } = msgCtxComposable;
 
 const bodyRef = ref<HTMLElement>();
-const showScrollToBottomBtn = ref(false);
 
-function onBodyScroll() {
-  const el = bodyRef.value;
-  if (!el) return;
-  showScrollToBottomBtn.value = el.scrollHeight - el.scrollTop - el.clientHeight > 300;
-}
-
-function scrollToBottomClick() {
-  const el = bodyRef.value;
-  if (el) {
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }
-}
-
-watch(
-  bodyRef,
-  (el, oldEl) => {
-    if (oldEl) oldEl.removeEventListener('scroll', onBodyScroll);
-    if (el) el.addEventListener('scroll', onBodyScroll, { passive: true });
-  },
-  { immediate: true },
-);
-
-onUnmounted(() => {
-  if (bodyRef.value) bodyRef.value.removeEventListener('scroll', onBodyScroll);
-});
+/* Refactor (T1-Wave3)：showScrollToBottomBtn / scrollToBottomClick / 滚动 listener
+ * 抽到 useScrollAndVirtual；与下面 C10 虚拟滚动接入合并。 */
 
 const panelRef = ref<HTMLElement>();
 
-/**
- * #18 图片附件点击放大 - lightbox
- * 监听 panel 内任何 img 的点击，符合条件（消息正文 / 待发送图片）时弹全屏预览。
- * 单一 overlay 实例复用，DOM 直接挂 document.body 以摆脱 panel 的层级限制。
- */
-let imageLightboxEl: HTMLDivElement | null = null;
-function closeImageLightbox() {
-  if (!imageLightboxEl) return;
-  (imageLightboxEl as unknown as { _aiTeardown?: () => void })._aiTeardown?.();
-  imageLightboxEl.remove();
-  imageLightboxEl = null;
-}
-function openImageLightbox(src: string) {
-  if (typeof document === 'undefined' || !src) return;
-  closeImageLightbox();
-  const overlay = document.createElement('div');
-  overlay.className = 'ai-image-lightbox-overlay';
-  const img = document.createElement('img');
-  img.src = src;
-  img.alt = '';
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'ai-image-lightbox-close';
-  closeBtn.setAttribute('aria-label', t.value.imageLightboxClose || 'Close');
-  closeBtn.textContent = '×';
-  overlay.appendChild(img);
-  overlay.appendChild(closeBtn);
-  const handleClick = (ev: Event) => {
-    if (ev.target === overlay || ev.target === closeBtn) closeImageLightbox();
-  };
-  const handleKey = (ev: KeyboardEvent) => {
-    if (ev.key === 'Escape') closeImageLightbox();
-  };
-  overlay.addEventListener('click', handleClick);
-  document.addEventListener('keydown', handleKey);
-  (overlay as unknown as { _aiTeardown?: () => void })._aiTeardown = () => {
-    overlay.removeEventListener('click', handleClick);
-    document.removeEventListener('keydown', handleKey);
-  };
-  document.body.appendChild(overlay);
-  imageLightboxEl = overlay;
-}
-function onPanelImageClick(ev: MouseEvent) {
-  const target = ev.target as HTMLElement;
-  if (!target || target.tagName !== 'IMG') return;
-  const img = target as HTMLImageElement;
-  if (!img.src) return;
-  if (img.closest('.ai-fab, .ai-assistant-avatar, .ai-image-lightbox-overlay')) return;
-  ev.preventDefault();
-  ev.stopPropagation();
-  openImageLightbox(img.src);
-}
-watch(
+/* Refactor (T1)：#18 图片点击放大 lightbox 逻辑抽到 useImageLightbox composable。
+ * 行为契约不变：单一 overlay 复用，挂到 document.body，Esc / 点击 overlay 关闭。 */
+useImageLightbox({
   panelRef,
-  (el, oldEl) => {
-    if (oldEl) oldEl.removeEventListener('click', onPanelImageClick);
-    if (el) el.addEventListener('click', onPanelImageClick);
-  },
-  { immediate: true },
-);
-onUnmounted(() => {
-  if (panelRef.value) panelRef.value.removeEventListener('click', onPanelImageClick);
-  closeImageLightbox();
+  closeAriaLabel: () => t.value.imageLightboxClose || 'Close',
 });
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileUploading = ref(false);
@@ -2309,48 +1659,27 @@ const promptTemplateLib = usePromptTemplateLibrary({
  *   `messageCount` 是 displayedMessages.length（不是 messages.length），
  *   保证虚拟窗口与折叠 banner 一致。
  */
-const virtualScrollOption = computed(() => {
-  const v = options.virtualScroll;
-  if (v === true) return { threshold: 60, estimatedItemHeight: 90 };
-  if (v && typeof v === 'object')
-    return { threshold: v.threshold ?? 60, estimatedItemHeight: v.estimatedItemHeight ?? 90 };
-  return null;
+/* Refactor (T1-Wave3)：C10 虚拟滚动 + 普通滚动 listener 统一到 useScrollAndVirtual。
+ *
+ * - virtualScrollOption 决定是否启用虚拟滚动；
+ * - showScrollToBottomBtn 与 scrollToBottomClick 直接被模板使用；
+ * - 父组件下面 win-resize 等场景仍可手动 sync viewport（通过 scrollAndVirtual.virtualScroll）。
+ */
+const virtualScrollOption = computed(() => resolveVirtualScrollOption(options.virtualScroll));
+const scrollAndVirtual = useScrollAndVirtual({
+  bodyRef,
+  displayedMessageCount: computed(() => displayedMessages.value.length),
+  virtualScrollOption,
 });
-const virtualScrollTop = ref(0);
-const virtualViewportHeight = ref(0);
-const virtualMessageCount = computed(() => displayedMessages.value.length);
-const virtualScroll = useMessageVirtualScroll({
-  messageCount: virtualMessageCount,
-  scrollTop: virtualScrollTop,
-  viewportHeight: virtualViewportHeight,
-  estimatedItemHeight: virtualScrollOption.value?.estimatedItemHeight ?? 90,
-  minActivationCount: virtualScrollOption.value?.threshold ?? 60,
-});
-const virtualSliceForList = computed(() =>
-  virtualScrollOption.value ? virtualScroll.window.value : null,
-);
-
-function onVirtualMeasureHeight(index: number, height: number) {
-  const delta = virtualScroll.updateMeasuredHeight(index, height);
-  const slice = virtualScroll.window.value;
-  const el = bodyRef.value;
-  if (!delta || !slice.enabled || !el || index >= slice.startIndex) return;
-  el.scrollTop += delta;
-  virtualScrollTop.value = el.scrollTop;
-}
-
-let virtualScrollRaf = 0;
-function onBodyScrollForVirtual() {
-  if (!virtualScrollOption.value) return;
-  if (virtualScrollRaf) return;
-  virtualScrollRaf = requestAnimationFrame(() => {
-    virtualScrollRaf = 0;
-    const el = bodyRef.value;
-    if (!el) return;
-    virtualScrollTop.value = el.scrollTop;
-    virtualViewportHeight.value = el.clientHeight;
-  });
-}
+const {
+  showScrollToBottomBtn,
+  scrollToBottomClick,
+  virtualScrollTop,
+  virtualViewportHeight,
+  virtualSliceForList,
+  onVirtualMeasureHeight,
+  onBodyScrollForVirtual,
+} = scrollAndVirtual;
 
 async function refreshServerPromptTemplates() {
   if (!options.baseUrl) return;
@@ -2788,7 +2117,10 @@ const DRAG_CLICK_PX = 8;
 const DOCK_BREAK_PX = 10;
 let winResizeRaf = 0;
 
-const fabRef = ref<HTMLButtonElement>();
+/* Refactor (T1)：fabRef 现在通过 FabButton 子组件的 expose 拿到原生按钮 ref。
+ * 保留同名 computed 以兼容下面 onFabContextMenu / useFabDrag 等所有调用点。 */
+const fabButtonRef = ref<InstanceType<typeof FabButton> | null>(null);
+const fabRef = computed<HTMLButtonElement | undefined>(() => fabButtonRef.value?.fabRef);
 const { selection: pageSel, dismissSelection: dismissPageSel } = usePageSelection(wrapperRef);
 const persistFabRef = computed(() => options.persistFabPosition !== false);
 const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
@@ -3087,9 +2419,6 @@ function setMode(m: 'translate' | 'summarize' | 'chat') {
 
 function onChangeMode(m: 'translate' | 'summarize' | 'chat') {
   if (m === mode.value) return;
-  if (messages.value.length > 0) {
-    startNewSession();
-  }
   setMode(m);
 }
 
@@ -3398,118 +2727,22 @@ function onPageSelAction(action: 'ask' | 'translate' | 'summarize') {
  */
 const cmdPalette = useCommandPalette();
 
-const builtInCommands = computed<CommandItem[]>(() => [
-  {
-    id: 'ai.toggle-panel',
-    label: isOpen.value ? t.value.closePanel || '关闭面板' : t.value.fabOpen || '打开 AI 助手',
-    group: '面板',
-    icon: isOpen.value ? '✕' : '✨',
-    shortcut: 'Esc / Ctrl+/',
-    action: () => {
-      isOpen.value = !isOpen.value;
-    },
-  },
-  {
-    id: 'ai.new-session',
-    label: '新建会话 / New session',
-    group: '会话',
-    icon: '➕',
-    keywords: ['new', 'session', '新建', '会话', '清空'],
-    action: () => {
-      startNewSession();
-    },
-  },
-  {
-    id: 'ai.clear',
-    label: '清空当前会话 / Clear current chat',
-    group: '会话',
-    icon: '🗑',
-    keywords: ['clear', '清空', 'reset'],
-    action: () => {
-      clearMessages();
-    },
-  },
-  {
-    id: 'ai.toggle-theme',
-    label: isDark.value ? '切换到浅色 / Light mode' : '切换到深色 / Dark mode',
-    group: '外观',
-    icon: isDark.value ? '☀️' : '🌙',
-    keywords: ['theme', 'dark', 'light', '主题', '暗黑', '浅色'],
-    action: () => {
-      toggleManualTheme();
-    },
-  },
-  {
-    id: 'ai.open-personalize',
-    label: '个性化 / Personalize',
-    group: '设置',
-    icon: '⚙️',
-    keywords: ['personalize', 'settings', '个性化', '系统提示词'],
-    action: () => {
-      openPersonalize();
-    },
-  },
-  {
-    id: 'ai.open-diagnostics',
-    label: '连接诊断 / Connection diagnostics',
-    group: '设置',
-    icon: '🔍',
-    keywords: ['diagnostics', 'health', '连接', '诊断'],
-    action: () => {
-      diagnosticsOpen.value = true;
-    },
-  },
-  {
-    id: 'ai.open-sessions',
-    label: '所有会话 / All sessions',
-    group: '会话',
-    icon: '📚',
-    keywords: ['sessions', '会话', '抽屉'],
-    action: () => {
-      sessionsDrawerOpen.value = true;
-    },
-  },
-  {
-    id: 'ai.open-memory',
-    label: t.value.memoryLabel || '记忆管理 / Memory',
-    group: '知识',
-    icon: '🧠',
-    keywords: ['memory', '记忆', '事实'],
-    action: () => {
-      memoryOpen.value = true;
-    },
-  },
-  {
-    id: 'ai.open-kb',
-    label: t.value.kbLabel || '知识库管理 / Knowledge base',
-    group: '知识',
-    icon: '📖',
-    keywords: ['kb', 'knowledge', '知识库', 'rag'],
-    action: () => {
-      kbPanelOpen.value = true;
-    },
-  },
-  {
-    id: 'ai.open-keyboard-help',
-    label: '键盘快捷键 / Keyboard shortcuts',
-    group: '帮助',
-    icon: '⌨️',
-    shortcut: 'Shift+?',
-    keywords: ['keyboard', 'shortcut', 'help', '快捷键', '帮助'],
-    action: () => {
-      keyboardHelpOpen.value = true;
-    },
-  },
-]);
-
-watch(
-  builtInCommands,
-  (cmds) => {
-    cmdPalette.clear();
-    cmdPalette.register(cmds);
-  },
-  { immediate: true },
-);
+/* Refactor (T1-Wave2)：原 ~110 行内置命令清单 + watch 注册逻辑抽到 useBuiltInCommands。 */
+useBuiltInCommands({
+  t,
+  isOpen,
+  isDark,
+  startNewSession,
+  clearMessages,
+  toggleManualTheme,
+  openPersonalize,
+  diagnosticsOpen,
+  sessionsDrawerOpen,
+  memoryOpen,
+  kbPanelOpen,
+  keyboardHelpOpen,
+  cmdPalette,
+});
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });
 

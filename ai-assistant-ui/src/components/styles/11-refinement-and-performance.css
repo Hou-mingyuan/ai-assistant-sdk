@@ -203,8 +203,10 @@
 /* 滚动容器加 overflow contain 优化滚动时重排 */
 .ai-body,
 .ai-messages {
-  overflow-anchor: auto;
-  scroll-behavior: smooth;
+  /* Browser scroll anchoring can pick a stale message while the footer repaints on hover,
+     which may snap long chats back to the top. Keep chat scroll state under JS control. */
+  overflow-anchor: none;
+  scroll-behavior: auto;
   overscroll-behavior: contain;
 }
 

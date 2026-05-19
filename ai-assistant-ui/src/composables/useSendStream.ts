@@ -549,13 +549,30 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
   function completeLocalPageSnapshot(text: string): boolean {
     if (!isDirectPageSnapshotRequest(text)) return false;
+    const requestStartedAt = Date.now();
     const snapshot = collectPageSnapshotMarkdown({
       maxChars: deps.options.pageContextMaxTotalChars ?? 12000,
     });
     if (!snapshot) return false;
 
-    deps.messages.value.push({ role: 'user', content: text, timestamp: Date.now() });
-    deps.messages.value.push({ role: 'assistant', content: snapshot, timestamp: Date.now() });
+    const requestModel =
+      deps.selectedChatModel.value.trim() &&
+      deps.modelChoices.value.includes(deps.selectedChatModel.value.trim())
+        ? deps.selectedChatModel.value.trim()
+        : undefined;
+    const completedAt = Date.now();
+    deps.messages.value.push({ role: 'user', content: text, timestamp: requestStartedAt });
+    deps.messages.value.push({
+      role: 'assistant',
+      content: snapshot,
+      timestamp: completedAt,
+      meta: {
+        model: requestModel,
+        requestedModel: requestModel,
+        elapsedMs: completedAt - requestStartedAt,
+        ttftMs: completedAt - requestStartedAt,
+      },
+    });
     deps.input.value = '';
     deps.emitSend({ action: 'chat', text });
     deps.emitResponse(snapshot);

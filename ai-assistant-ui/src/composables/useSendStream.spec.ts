@@ -268,6 +268,12 @@ describe('useSendStream local page snapshot', () => {
     expect(messages.value).toHaveLength(2);
     expect(messages.value[1].content).toContain('# 当前页面内容');
     expect(messages.value[1].content).toContain('- 客户姓名: 张三');
+    expect(messages.value[1].meta).toEqual(
+      expect.objectContaining({
+        elapsedMs: expect.any(Number),
+        ttftMs: expect.any(Number),
+      }),
+    );
     expect(emitResponse).toHaveBeenCalledWith(expect.stringContaining('客户档案'));
   });
 

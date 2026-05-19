@@ -6,6 +6,7 @@
         role="tab"
         class="ai-mode-segment"
         :class="{ active: mode === 'chat' }"
+        :disabled="loading"
         :aria-selected="mode === 'chat' ? 'true' : 'false'"
         @click="$emit('changeMode', 'chat')"
       >
@@ -16,6 +17,7 @@
         role="tab"
         class="ai-mode-segment"
         :class="{ active: mode === 'translate' }"
+        :disabled="loading"
         :aria-selected="mode === 'translate' ? 'true' : 'false'"
         @click="$emit('changeMode', 'translate')"
       >
@@ -26,6 +28,7 @@
         role="tab"
         class="ai-mode-segment"
         :class="{ active: mode === 'summarize' }"
+        :disabled="loading"
         :aria-selected="mode === 'summarize' ? 'true' : 'false'"
         @click="$emit('changeMode', 'summarize')"
       >

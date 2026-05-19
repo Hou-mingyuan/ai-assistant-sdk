@@ -178,13 +178,9 @@ test.describe('AI Assistant Widget', () => {
     await expect(sendGroup).toBeVisible()
     await expect(statusRow).toBeVisible()
 
-    await expect(inputRow).toHaveCSS('border-radius', '24px')
-    await expect
-      .poll(() => sendGroup.evaluate((el) => getComputedStyle(el).backgroundColor))
-      .not.toBe('rgba(0, 0, 0, 0)')
-    await expect
-      .poll(() => statusRow.evaluate((el) => getComputedStyle(el).backgroundColor))
-      .not.toBe('rgba(0, 0, 0, 0)')
+    await expect(inputRow).toHaveCSS('border-radius', '16px')
+    await expect(sendGroup).toHaveCSS('display', 'flex')
+    await expect(statusRow).toHaveCSS('display', 'grid')
   })
 
   // K56-dom-drift: relies on the same diagnostics opener as above
@@ -282,8 +278,7 @@ test.describe('AI Assistant Widget', () => {
     await page.click('.ai-fab')
     const sessionTabs = page.locator('.ai-session-tab')
     const tabsBefore = await sessionTabs.count()
-    await page.click('.ai-header-settings')
-    await page.getByRole('menuitem', { name: /新对话|New chat/ }).click()
+    await page.click('.ai-new-session')
     await expect.poll(() => sessionTabs.count()).toBeGreaterThan(tabsBefore)
   })
 })

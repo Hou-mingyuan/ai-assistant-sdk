@@ -372,8 +372,10 @@
 }
 /* 闀夸細璇濓細瑙嗗彛澶栨秷鎭彲璺宠繃甯冨眬/缁樺埗锛?lighten DOM 鎴愭湰锛涢珮搴︾敱 contain-intrinsic-size 鍗犱綅鐩磋嚦瀹炴祴锛?*/
 .ai-assistant-wrapper .ai-body > .ai-msg {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 120px;
+  /* Keep real message heights stable; content-visibility auto can re-estimate offscreen
+     flex children during footer hover/focus repaints and jump the scroll position. */
+  content-visibility: visible;
+  contain-intrinsic-size: none;
 }
 .ai-assistant-wrapper .ai-msg .ai-bubble {
   min-width: 0;

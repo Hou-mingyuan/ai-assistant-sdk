@@ -1,74 +1,66 @@
 # AiAssistant.vue 重构计划
 
-## 已完成
+本文档记录 `AiAssistant.vue` 的拆分现状和下一步边界。它不是一次性大重构清单；每一步都应保持小范围、可测试、可回滚。
 
-### usePanelGeometry.ts（已创建）
-从 AiAssistant.vue 抽取的面板几何逻辑 composable，包含：
-- 面板尺寸计算（effectivePanelWidthPx/HeightPx）
-- 面板缩放 8 向手柄（resize pointer handlers）
-- 标题栏拖拽（header drag with tentative mode）
-- 视口夹紧（ensurePanelInViewport）
-- 象限对齐（resolveFabScreenQuadrant, wrapperOffsetFromFab）
-- 面板展开/缩放状态（panelExpanded, panelUserSize）
-- 面板打开/关闭生命周期辅助（onPanelOpen, onPanelClose）
+## 当前状态
 
-## 下一步：集成到 AiAssistant.vue
+已经完成并集成的拆分：
 
-### 步骤 1：添加 import
-```ts
-import { usePanelGeometry, RESIZE_ZONES, type PanelResizeEdge } from '../composables/usePanelGeometry'
-```
+- `usePanelGeometry.ts`：面板尺寸、拖拽、缩放、视口夹紧、展开状态和生命周期清理。
+- `useSendStream.ts`：发送编排、SSE/WS 流处理、URL preview side channel、错误归一化、TTFT/耗时记录。
+- `useFormAutoFill.ts`：表单自动填充识别、选择、覆盖、确认填充和撤销。
+- `MessageList.vue`、`AssistantHeader.vue`、`ChatInputArea.vue`、`SessionTabs.vue` 等组件已从主 SFC 中分离。
 
-### 步骤 2：调用 composable
-在 `const fab = useFabDrag(...)` 之后添加：
-```ts
-const panelGeo = usePanelGeometry({
-  fabLeft, fabTop, fabSize: FAB_SIZE,
-  isOpen, saveFabPos, clampFabPos,
-  defaultPosition: options.position || 'bottom-right',
-})
-const {
-  panelExpanded, panelUserSize, panelMountedForLayout, panelDragging,
-  panelOpenFabAlignClass, panelTransformOrigin, resizeZoneDefs,
-  effectivePanelWidthPx, effectivePanelHeightPx, togglePanelExpand,
-  wrapperOffsetFromFab, ensurePanelInViewport, resolveFabScreenQuadrant,
-  syncFabPixelFromWrapperDom, clampPanelSize,
-  onPanelResizePointerDown, onPanelHeaderPointerDown,
-  onPanelOpen, onPanelClose, onWinResizePanel, cleanupGeometry,
-} = panelGeo
-```
+`AiAssistant.vue` 仍承担较多编排职责，短期风险不是“无法运行”，而是继续加功能时容易把状态、事件和副作用重新堆回主文件。
 
-### 步骤 3：删除被替代的代码块
-从 AiAssistant.vue 中删除以下区域（约 500 行）：
-- 行 822-840: PANEL_W/H 常量、PanelResizeEdge 类型、RESIZE_ZONES 数组
-- 行 842-958: getPanelScreenRect, syncFabToPanelRect, computeRectFromResizePointer, getViewportCssSize
-- 行 973-998: panelExpanded, panelUserSize, panelResizeDrag 等状态声明
-- 行 1002-1003: winResizeRaf（保留，但 onWinResize 中改用 onWinResizePanel）
-- 行 1042-1135: clampPanelSize, effectivePanelWidthPx/HeightPx, togglePanelExpand, resize pointer handlers
-- 行 1137-1199: resolveFabScreenQuadrant, wrapperOffsetFromFab, syncFabPixelFromWrapperDom
-- 行 1201-1310: 标题栏拖拽（tentative + header drag handlers）
-- 行 1325-1334: effectivePositionClass、panelOpenFabAlignClass（用 composable 版本）
-- 行 1542-1551: panelTransformOrigin（用 composable 版本）
+## 下一步建议
 
-### 步骤 4：更新 watch(isOpen)
-将 watch(isOpen) 中约 70 行面板打开/关闭逻辑替换为调用 `onPanelOpen`/`onPanelClose`。
+### 1. 抽取批量导出编排
 
-### 步骤 5：更新 onWinResize
-在 `onWinResize` 中将面板尺寸重算逻辑替换为 `onWinResizePanel()`。
+候选文件：`src/composables/useBatchExport.ts`
 
-### 步骤 6：更新 onUnmounted
-将面板相关的清理逻辑替换为 `cleanupGeometry()`。
+边界：
 
-### 步骤 7：更新 wrapperStyle
-引用 `effectivePanelWidthPx()` 和 `effectivePanelHeightPx()` 来自 composable。
+- 管理选择模式、批量导出菜单、导出格式分发。
+- 只接收消息、i18n、导出 API、toast 依赖。
+- 不直接读写面板 DOM。
 
-## 预期效果
-- AiAssistant.vue 从 ~2285 行减至 ~1785 行（-22%）
-- 面板几何逻辑独立可测试
-- 无模板更改，零 UI 回归风险
+验证：
 
-## 后续可继续抽取的 composable
-1. `useChatEngine` — send/stream/scroll/urlPreview（~250 行）
-2. `useFabInteraction` — FAB pointerdown/move/up/contextmenu（~120 行）
-3. `useSessionManager` — 多会话切换/分叉/清除（~80 行）
-4. `useFileHandler` — 文件上传/拖放/图片粘贴（~100 行）
+- 增加选择集合、导出 payload、错误提示的 Vitest 单测。
+
+### 2. 抽取知识库 / Compare 编排
+
+候选文件：
+
+- `src/composables/useKnowledgeDrop.ts`
+- `src/composables/useCompareRegions.ts`
+
+边界：
+
+- FAB drop 到 KB、KB picker、Compare regions 标记/取消/打开集合分离。
+- UI 组件只负责展示，状态变更集中到 composable。
+
+验证：
+
+- 覆盖多 KB picker、空集合、重复标记、删除消息后索引同步。
+
+### 3. 抽取连接诊断状态
+
+候选文件：`src/composables/useConnectionDiagnosticsState.ts`
+
+边界：
+
+- 模型列表加载、token/baseUrl 诊断、错误提示文案归一化。
+- 继续复用 `utils/api.ts`，不新增网络层。
+
+验证：
+
+- 覆盖 401、429、5xx、网络失败、无 baseUrl。
+
+## 执行规则
+
+- 每次只拆一个编排主题，不把 UI 视觉调整混入重构提交。
+- 先写单测或组件测试，再移动逻辑。
+- 保持 `AiAssistant.vue` 模板结构稳定，除非目标任务本身是 UI 行为变更。
+- 抽出的 composable 不应依赖全局单例；依赖通过参数注入，便于测试。

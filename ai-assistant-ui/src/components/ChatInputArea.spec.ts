@@ -211,6 +211,17 @@ describe('ChatInputArea (K44)', () => {
     });
   });
 
+  describe('Mode switching', () => {
+    it('disables mode tabs while a response is loading', () => {
+      const w = mountInput({ loading: true });
+      const tabs = w.findAll('.ai-mode-segment');
+
+      expect(tabs).toHaveLength(3);
+      expect(tabs.every((tab) => (tab.element as HTMLButtonElement).disabled)).toBe(true);
+      w.unmount();
+    });
+  });
+
   describe('Markdown shortcuts', () => {
     it('Ctrl+B emits update:modelValue wrapping the textarea content', async () => {
       const w = mountInput({ modelValue: 'foo' });
