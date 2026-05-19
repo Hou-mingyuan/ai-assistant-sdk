@@ -21,6 +21,8 @@ import {
   uploadFile,
   postServerExport,
   fetchPromptTemplates,
+  fetchRuntimeModelConfig,
+  saveRuntimeModelConfig,
   __clearApiCachesForTests,
 } from './api';
 
@@ -179,6 +181,72 @@ describe('fetchModels', () => {
     expect(first.models).toEqual(['gpt-5.4']);
     expect(second).toBe(first);
     expect(mockFetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe('runtime model config', () => {
+  it('fetches sanitized runtime provider config with token', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          success: true,
+          provider: 'minimax',
+          baseUrl: 'https://api.minimaxi.com/v1',
+          model: 'MiniMax-M2.7',
+          allowedModels: ['MiniMax-M2.7'],
+          apiKeyConfigured: true,
+        }),
+    });
+
+    const res = await fetchRuntimeModelConfig('/ai/', ' token ');
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config');
+    expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('token');
+    expect(res.provider).toBe('minimax');
+    expect(res).not.toHaveProperty('apiKey');
+  });
+
+  it('saves runtime provider config and keeps api key write-only', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          success: true,
+          provider: 'minimax',
+          model: 'MiniMax-M2.7',
+          apiKeyConfigured: true,
+        }),
+    });
+
+    const res = await saveRuntimeModelConfig(
+      '/ai',
+      {
+        provider: 'minimax',
+        baseUrl: 'https://api.minimaxi.com/v1',
+        apiKey: 'secret',
+        model: 'MiniMax-M2.7',
+        allowedModelsText: 'MiniMax-M2.7,MiniMax-M2',
+      },
+      'token',
+    );
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config');
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(
+      expect.objectContaining({ provider: 'minimax', apiKey: 'secret' }),
+    );
+    expect(res.apiKeyConfigured).toBe(true);
+    expect(res).not.toHaveProperty('apiKey');
+  });
+
+  it('returns a normalized error when runtime provider config save fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 403, statusText: 'Forbidden' });
+
+    const res = await saveRuntimeModelConfig('/ai', { provider: 'minimax' });
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe('HTTP 403: Forbidden');
   });
 });
 
