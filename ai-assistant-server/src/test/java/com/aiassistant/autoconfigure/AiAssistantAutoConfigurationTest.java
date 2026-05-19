@@ -3,6 +3,7 @@ package com.aiassistant.autoconfigure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aiassistant.config.AiAssistantProperties;
+import com.aiassistant.config.RateLimitFilter;
 import com.aiassistant.controller.AiAssistantController;
 import com.aiassistant.controller.AssistantExportController;
 import com.aiassistant.controller.CapabilityController;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 /**
  * Smoke-tests {@link AiAssistantAutoConfiguration} via {@link WebApplicationContextRunner}.
@@ -70,6 +72,12 @@ class AiAssistantAutoConfigurationTest {
                      * SimpleMeterRegistry on the bus; the AppContextRunner does not pull it
                      * in automatically, so register a no-op meter registry to satisfy the
                      * AiAssistantMetrics + LlmService bean wiring. */
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+
+    private final WebApplicationContextRunner redisClasspathContextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
+                    .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
                     .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
 
     @Test
@@ -180,6 +188,50 @@ class AiAssistantAutoConfigurationTest {
                             AiAssistantProperties properties =
                                     context.getBean(AiAssistantProperties.class);
                             assertThat(properties.getContextPath()).isEqualTo("/custom-ai");
+                        });
+    }
+
+    @Test
+    void apiVersionDoesNotMutateBaseContextPathAndFiltersCoverAliases() {
+        contextRunner
+                .withPropertyValues(
+                        "ai-assistant.api-key=sk-test-version",
+                        "ai-assistant.access-token=secret",
+                        "ai-assistant.api-version=v1")
+                .run(
+                        context -> {
+                            AiAssistantProperties properties =
+                                    context.getBean(AiAssistantProperties.class);
+                            assertThat(properties.getContextPath()).isEqualTo("/ai-assistant");
+
+                            @SuppressWarnings("unchecked")
+                            FilterRegistrationBean<?> authFilter =
+                                    (FilterRegistrationBean<?>)
+                                            context.getBean("aiAssistantAuthFilter");
+                            assertThat(authFilter.getUrlPatterns())
+                                    .containsExactlyInAnyOrder(
+                                            "/ai-assistant/*",
+                                            "/ai-assistant/v1/*",
+                                            "/api/v1/ai-assistant/*");
+                        });
+    }
+
+    @Test
+    void localRateLimitStillRegistersWhenRedisClassExistsButNoRedisBeanExists() {
+        redisClasspathContextRunner
+                .withPropertyValues(
+                        "ai-assistant.api-key=sk-test-rate-limit", "ai-assistant.rate-limit=60")
+                .run(
+                        context -> {
+                            assertThat(context)
+                                    .hasBean("aiAssistantRateLimitFilter")
+                                    .doesNotHaveBean("aiAssistantRedisRateLimitFilter");
+                            @SuppressWarnings("unchecked")
+                            FilterRegistrationBean<RateLimitFilter> rateLimitFilter =
+                                    (FilterRegistrationBean<RateLimitFilter>)
+                                            context.getBean("aiAssistantRateLimitFilter");
+                            assertThat(rateLimitFilter.getFilter())
+                                    .isInstanceOf(RateLimitFilter.class);
                         });
     }
 

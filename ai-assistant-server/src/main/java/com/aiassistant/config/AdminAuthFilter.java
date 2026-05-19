@@ -31,7 +31,7 @@ public class AdminAuthFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         String path = request.getRequestURI();
 
-        if (!path.startsWith(adminPathPrefix)) {
+        if (!RequestPathMatcher.matchesContextPath(path, adminPathPrefix)) {
             chain.doFilter(req, res);
             return;
         }

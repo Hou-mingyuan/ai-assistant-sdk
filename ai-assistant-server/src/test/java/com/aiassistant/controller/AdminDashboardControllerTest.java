@@ -83,6 +83,18 @@ class AdminDashboardControllerTest {
         assertEquals(1, overview.get("registeredTools"));
         assertTrue((int) overview.get("promptTemplates") > 0);
         assertEquals(0, overview.get("activeABTests"));
+        assertEquals(true, overview.get("ragEnabled"));
+    }
+
+    @Test
+    void overview_marksRagDisabledWhenServiceAbsent() {
+        AdminDashboardController disabled =
+                new AdminDashboardController(
+                        usageStats, tokenTracker, toolRegistry, promptRegistry, null, modelRouter);
+
+        Map<String, Object> overview = disabled.overview();
+
+        assertEquals(false, overview.get("ragEnabled"));
     }
 
     @Test
@@ -209,9 +221,39 @@ class AdminDashboardControllerTest {
 
     @Test
     void ragStats_returnsCount() {
-        Map<String, Object> stats = controller.ragStats("default");
+        var response = controller.ragStats("default");
+        assertEquals(200, response.getStatusCode().value());
+        Map<String, Object> stats = response.getBody();
+        assertEquals(true, stats.get("enabled"));
         assertEquals("default", stats.get("namespace"));
         assertEquals(0L, stats.get("documentCount"));
+    }
+
+    @Test
+    void ingestDocument_whenRagDisabled_returnsServiceUnavailable() {
+        AdminDashboardController disabled =
+                new AdminDashboardController(
+                        usageStats, tokenTracker, toolRegistry, promptRegistry, null, modelRouter);
+
+        ResponseEntity<Map<String, Object>> resp =
+                disabled.ingestDocument(Map.of("content", "knowledge text"));
+
+        assertEquals(503, resp.getStatusCode().value());
+        assertFalse((boolean) resp.getBody().get("success"));
+        assertTrue(resp.getBody().get("error").toString().contains("RAG"));
+    }
+
+    @Test
+    void ragStats_whenRagDisabled_returnsServiceUnavailable() {
+        AdminDashboardController disabled =
+                new AdminDashboardController(
+                        usageStats, tokenTracker, toolRegistry, promptRegistry, null, modelRouter);
+
+        var response = disabled.ragStats("default");
+
+        assertEquals(503, response.getStatusCode().value());
+        assertFalse((boolean) response.getBody().get("success"));
+        assertEquals(false, response.getBody().get("enabled"));
     }
 
     @Test

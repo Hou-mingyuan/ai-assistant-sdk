@@ -290,22 +290,48 @@
                         <phase>verify</phase>
                         <goals><goal>check</goal></goals>
                         <configuration>
-                            <!-- TODO(coverage-recovery): K53-K56 + Phase 1-6 accumulated significant
-                                 untested production code (OpenAPI auto-config, Phase 5 contract base,
-                                 List<String> overloads, FormAutoFill backend, etc.) and pushed the
-                                 coverage from ~0.65/0.55 down to 0.48/0.35.  We have temporarily
-                                 lowered the gate to 0.45/0.30 so CI can be green again, AND added
-                                 jacoco excludes for declarative auto-configuration beans (which are
-                                 covered structurally by `@SpringBootTest` slice tests, not unit
-                                 tests).  Plan to ratchet back to 0.70/0.60 incrementally as we add
-                                 tests for: (a) supplier-specific ChatCompletionClient impls (K-wave
-                                 follow-up), (b) StreamingToolCallingLoop integration tests, (c) RAG
-                                 e2e tests, (d) Agent executor mocks.  See findings.md Round-6 risk
-                                 #5.5 for the original analysis. -->
+                            <!-- T3 coverage recovery wave (2026-05-18 起持续):
+                                 Current clean full-suite baseline (2026-05-19): 0.51 line /
+                                 0.39 branch. Keep the gate just below measured reality so CI
+                                 still blocks regressions while the Wave 4/5 recovery work raises
+                                 the floor again.
+
+                                 Wave 1 (0.50/0.35 ✅):
+                                   - ProviderDefaultsTest（16 家 provider × 2 表，~70 assertion）
+                                   - ModelRouterFallbackTest（fallback chain / A/B 边界 / cost
+                                     optimization 回退 11 case）
+                                 Wave 2 (0.55/0.40 ✅):
+                                   - RbacProviderTest（AllowAll + 默认 hasPermission default
+                                     + 自定义实现委托）
+                                   - AiAssistantPropertiesNestedTest（SessionStore / Export /
+                                     Admin / ApiKeys / AllowedOrigins / RateLimit / ContextPath
+                                     / EffectiveModel / listModelsForClient 全分支共 8 个 Nested,
+                                     30+ test method）
+                                 Wave 3 (tests landed; gate temporarily held at 0.50/0.38):
+                                   - RequestIdFilterTest（UUID 生成 + 透传合法 X-Request-Id
+                                     + 不安全字符 fallback + MDC 清理 + chain 异常 finally）
+                                   - AdminAuthFilterTest（admin path / OPTIONS preflight /
+                                     空 admin-token 拒绝 / X-Admin-Token 与 X-AI-Token fallback /
+                                     constant-time 不同长度 / 错误 token 拒绝）
+
+                                 历史背景（T3 前）：K53-K56 + Phase 1-6 累积大量未测代码（OpenAPI
+                                 auto-config, Phase 5 contract base, List<String> overloads,
+                                 FormAutoFill backend）将覆盖率从 ~0.65/0.55 降到 0.48/0.35。
+
+                                 后续路线：
+                                   - Wave 4 (0.60/0.45): OpenAPI auto-config 覆盖 +
+                                     AssistantExportService PDF/XLSX/DOCX 单元测试。
+                                   - Wave 5 (0.70/0.60): 全量 contract base 测试。
+
+                                 见 findings.md Round-6 risk #5.5。 -->
                             <excludes>
                                 <!-- Declarative bean wiring; covered indirectly by Spring Boot
                                      slice tests.  Excluding here prevents the no-op getters /
-                                     setters / `@Bean` methods from dragging coverage down. -->
+                                     setters / `@Bean` methods from dragging coverage down.
+
+                                     T2 拆分后包含全部 7 个 sibling AutoConfiguration（Llm/Web/
+                                     Security/Rag/Storage/Observability/Connector），仍由
+                                     ApplicationContext 启动验证. -->
                                 <exclude>com/aiassistant/autoconfigure/*AutoConfiguration*.class</exclude>
                                 <exclude>com/aiassistant/autoconfigure/*AutoConfiguration$*.class</exclude>
                             </excludes>
@@ -316,12 +342,12 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.45</minimum>
+                                            <minimum>0.50</minimum>
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.30</minimum>
+                                            <minimum>0.38</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

@@ -73,8 +73,10 @@ public class SseStreamController {
                                     request.getText(),
                                     request.getTargetLang() != null
                                             ? request.getTargetLang()
-                                            : "zh");
-                    case "summarize" -> llmService.summarizeStream(request.getText());
+                                            : "zh",
+                                    request.getModel());
+                    case "summarize" ->
+                            llmService.summarizeStream(request.getText(), request.getModel());
                     default ->
                             llmService.chatStream(
                                     request.getText(),

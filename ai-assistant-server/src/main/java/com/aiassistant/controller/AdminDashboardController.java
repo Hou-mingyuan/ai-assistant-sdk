@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 public class AdminDashboardController {
 
     private static final Pattern SAFE_ID = Pattern.compile("[A-Za-z0-9_.:-]{1,80}");
+    private static final String RAG_DISABLED_MESSAGE =
+            "RAG is not enabled. Set ai-assistant.rag-enabled=true to use admin RAG endpoints.";
 
     private final UsageStats usageStats;
     private final TokenUsageTracker tokenTracker;
@@ -69,6 +72,7 @@ public class AdminDashboardController {
         result.put("registeredTools", toolRegistry.all().size());
         result.put("promptTemplates", promptRegistry.all().size());
         result.put("activeABTests", modelRouter.getActiveABTests().size());
+        result.put("ragEnabled", ragService != null);
         return result;
     }
 
@@ -142,6 +146,9 @@ public class AdminDashboardController {
     @PostMapping("/rag/ingest")
     public ResponseEntity<Map<String, Object>> ingestDocument(
             @RequestBody Map<String, String> body) {
+        if (ragService == null) {
+            return ragDisabledResponse();
+        }
         String namespace = body.getOrDefault("namespace", "default");
         String content = body.get("content");
         String docId = body.get("docId");
@@ -159,8 +166,21 @@ public class AdminDashboardController {
     }
 
     @GetMapping("/rag/stats")
-    public Map<String, Object> ragStats(@RequestParam(defaultValue = "default") String namespace) {
-        return Map.of("namespace", namespace, "documentCount", ragService.documentCount(namespace));
+    public ResponseEntity<Map<String, Object>> ragStats(
+            @RequestParam(defaultValue = "default") String namespace) {
+        if (ragService == null) {
+            return ragDisabledResponse();
+        }
+        return ResponseEntity.ok(
+                Map.of(
+                        "success",
+                        true,
+                        "enabled",
+                        true,
+                        "namespace",
+                        namespace,
+                        "documentCount",
+                        ragService.documentCount(namespace)));
     }
 
     @PostMapping("/ab-test")
@@ -264,5 +284,10 @@ public class AdminDashboardController {
 
     private boolean isSafeId(String value) {
         return value != null && SAFE_ID.matcher(value).matches();
+    }
+
+    private static ResponseEntity<Map<String, Object>> ragDisabledResponse() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("success", false, "enabled", false, "error", RAG_DISABLED_MESSAGE));
     }
 }

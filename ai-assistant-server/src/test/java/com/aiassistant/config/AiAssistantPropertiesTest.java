@@ -126,6 +126,15 @@ class AiAssistantPropertiesTest {
     }
 
     @Test
+    void apiVersionDoesNotMutateBaseContextPath() {
+        AiAssistantProperties p = new AiAssistantProperties();
+        p.setContextPath("/ai-assistant");
+        p.setApiVersion("v1");
+
+        assertEquals("/ai-assistant", p.getContextPath());
+    }
+
+    @Test
     void blankContextPathIsRejected() {
         AiAssistantProperties p = new AiAssistantProperties();
 

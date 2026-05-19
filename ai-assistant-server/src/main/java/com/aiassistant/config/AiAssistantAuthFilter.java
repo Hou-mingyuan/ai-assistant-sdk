@@ -39,6 +39,11 @@ public class AiAssistantAuthFilter implements Filter {
             return;
         }
 
+        if (RequestPathMatcher.matchesContextPath(path, contextPath + "/admin")) {
+            chain.doFilter(req, res);
+            return;
+        }
+
         if (path.equals(contextPath + "/health") && !"true".equals(request.getParameter("deep"))) {
             chain.doFilter(req, res);
             return;

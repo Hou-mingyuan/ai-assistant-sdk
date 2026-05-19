@@ -26,6 +26,20 @@ class AiAssistantAuthFilterTest {
     }
 
     @Test
+    void skipsAdminPathsSoDedicatedAdminTokenCanBeCheckedByAdminFilter() throws Exception {
+        AiAssistantAuthFilter filter = filter();
+        MockHttpServletRequest request =
+                new MockHttpServletRequest("GET", "/ai-assistant/admin/overview");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean(false);
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> called.set(true));
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void rejectsQueryTokenForRestRequestsByDefault() throws Exception {
         AiAssistantAuthFilter filter = filter();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");

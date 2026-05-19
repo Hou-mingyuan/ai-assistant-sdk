@@ -1,6 +1,5 @@
 package com.aiassistant.config;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -100,19 +99,6 @@ public class AiAssistantProperties {
 
     public void setContextPath(String contextPath) {
         this.contextPath = normalizeContextPath(contextPath);
-    }
-
-    /**
-     * Merges apiVersion into contextPath after all properties are bound, so the SpEL {@code
-     * ${ai-assistant.context-path}} in @RequestMapping includes the version.
-     */
-    @PostConstruct
-    void mergeApiVersionIntoContextPath() {
-        if (apiVersion != null && !apiVersion.isBlank()) {
-            String v = apiVersion.trim();
-            if (!v.startsWith("/")) v = "/" + v;
-            this.contextPath = this.contextPath + v;
-        }
     }
 
     public void setLlmMaxRetries(int llmMaxRetries) {
@@ -588,79 +574,33 @@ public class AiAssistantProperties {
         return result;
     }
 
-    /** Resolve the actual API base URL based on provider if not explicitly set. */
+    /**
+     * Resolve the actual API base URL based on provider if not explicitly set.
+     *
+     * <p>Refactor (T2)：内置 16 家 Provider 的 base-url 常量表已抽至 {@link ProviderDefaults#resolveBaseUrl}，
+     * 新增 Provider 请在那里维护。
+     */
     public String resolveBaseUrl() {
-        if (baseUrl != null && !baseUrl.isBlank()) return baseUrl;
-        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
-            case "openai" -> "https://api.openai.com/v1";
-            case "deepseek" -> "https://api.deepseek.com/v1";
-            case "tongyi", "qwen" -> "https://dashscope.aliyuncs.com/compatible-mode/v1";
-            case "zhipu", "glm" -> "https://api.z.ai/api/paas/v4";
-            case "volcengine", "doubao" -> "https://ark.cn-beijing.volces.com/api/v3";
-            case "minimax" -> "https://api.minimax.chat/v1";
-            case "kimi", "moonshot" -> "https://api.moonshot.cn/v1";
-            case "gemini", "google" -> "https://generativelanguage.googleapis.com/v1beta/openai/";
-            case "siliconflow" -> "https://api.siliconflow.cn/v1";
-            case "groq" -> "https://api.groq.com/openai/v1";
-            case "yi", "lingyiwanwu" -> "https://api.lingyiwanwu.com/v1";
-            case "spark", "xunfei" -> "https://spark-api-open.xf-yun.com/v1";
-            case "baichuan" -> "https://api.baichuan-ai.com/v1";
-            case "stepfun" -> "https://api.stepfun.com/v1";
-            case "hunyuan", "tencent" -> "https://api.hunyuan.cloud.tencent.com/v1";
-            case "ollama" -> "http://localhost:11434/v1";
-            default ->
-                    throw new IllegalArgumentException(
-                            "Unknown provider: "
-                                    + provider
-                                    + ". Please set ai-assistant.base-url explicitly.");
-        };
+        return ProviderDefaults.resolveBaseUrl(provider, baseUrl);
     }
 
-    /** Resolve MiniMax's dedicated Coding Plan VLM API base URL for image understanding. */
+    /**
+     * Resolve MiniMax's dedicated Coding Plan VLM API base URL for image understanding.
+     *
+     * <p>Refactor (T2)：地区推断逻辑见 {@link ProviderDefaults#resolveMinimaxVlmBaseUrl}。
+     */
     public String resolveMinimaxVlmBaseUrl() {
-        if (minimaxVlmBaseUrl != null && !minimaxVlmBaseUrl.isBlank()) {
-            return trimTrailingSlash(minimaxVlmBaseUrl);
-        }
-        String base = baseUrl == null ? "" : baseUrl.trim();
-        if (base.contains("api.minimaxi.com")) return "https://api.minimaxi.com/v1";
-        if (base.contains("api.minimax.io")) return "https://api.minimax.io/v1";
-        return "https://api.minimax.io/v1";
+        return ProviderDefaults.resolveMinimaxVlmBaseUrl(minimaxVlmBaseUrl, baseUrl);
     }
 
-    private static String trimTrailingSlash(String value) {
-        String normalized = value.trim();
-        while (normalized.endsWith("/")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        return normalized;
-    }
-
-    /** Resolve the default model name based on provider if not explicitly set. */
+    /**
+     * Resolve the default model name based on provider if not explicitly set.
+     *
+     * <p>Refactor (T2)：内置 16 家 Provider 的默认 model 常量表已抽至 {@link
+     * ProviderDefaults#resolveDefaultModel}，新增 Provider 请在那里维护。
+     */
     public String resolveModel() {
-        if (model != null && !model.isBlank()) return model;
-        return switch (provider.toLowerCase(java.util.Locale.ROOT)) {
-            case "openai" -> "gpt-5.4-mini";
-            case "deepseek" -> "deepseek-v4-flash";
-            case "tongyi", "qwen" -> "qwen3.5-plus";
-            case "zhipu", "glm" -> "glm-5.1";
-            case "volcengine", "doubao" -> "doubao-seed-2-0-pro-260215";
-            case "minimax" -> "MiniMax-M2.7";
-            case "kimi", "moonshot" -> "kimi-k2.6";
-            case "gemini", "google" -> "gemini-3.1-pro-preview";
-            case "siliconflow" -> "deepseek-ai/DeepSeek-V3";
-            case "groq" -> "llama-3.3-70b-versatile";
-            case "yi", "lingyiwanwu" -> "yi-lightning";
-            case "spark", "xunfei" -> "generalv3.5";
-            case "baichuan" -> "Baichuan4";
-            case "stepfun" -> "step-2-16k";
-            case "hunyuan", "tencent" -> "hunyuan-pro";
-            case "ollama" -> "llama3";
-            default ->
-                    throw new IllegalArgumentException(
-                            "Unknown provider: "
-                                    + provider
-                                    + ". Please set ai-assistant.model explicitly.");
-        };
+        return ProviderDefaults.resolveDefaultModel(provider, model);
     }
 
     private static String normalizeContextPath(String contextPath) {
