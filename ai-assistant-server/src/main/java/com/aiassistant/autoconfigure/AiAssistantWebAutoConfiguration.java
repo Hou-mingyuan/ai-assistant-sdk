@@ -99,7 +99,8 @@ public class AiAssistantWebAutoConfiguration {
     @ConditionalOnMissingBean
     public com.aiassistant.controller.RuntimeModelConfigController runtimeModelConfigController(
             com.aiassistant.config.RuntimeModelConfigService runtimeModelConfigService) {
-        return new com.aiassistant.controller.RuntimeModelConfigController(runtimeModelConfigService);
+        return new com.aiassistant.controller.RuntimeModelConfigController(
+                runtimeModelConfigService);
     }
 
     @Bean
