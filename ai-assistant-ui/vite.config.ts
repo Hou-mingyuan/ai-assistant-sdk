@@ -64,9 +64,10 @@ export default defineConfig({
         emptyOutDir: !preserveDist,
         minify: 'terser',
         rollupOptions: {
+          external: ['html2canvas'],
           output: {
             exports: 'named',
-            globals: {},
+            globals: { html2canvas: 'html2canvas' },
           },
         },
       }

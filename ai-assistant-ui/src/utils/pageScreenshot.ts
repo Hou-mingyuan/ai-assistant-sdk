@@ -45,7 +45,7 @@ async function loadHtml2Canvas(): Promise<Html2CanvasFn | null> {
   if (cachedH2c === false) return null;
   if (cachedH2c) return cachedH2c;
   try {
-    const mod = await import('html2canvas');
+    const mod = await import(/* @vite-ignore */ 'html2canvas');
     const fn = (mod.default || mod) as Html2CanvasFn;
     if (typeof fn === 'function') {
       cachedH2c = fn;
