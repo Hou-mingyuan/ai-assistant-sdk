@@ -325,7 +325,7 @@ const taRef = ref<HTMLTextAreaElement>();
 watch(
   () => props.open,
   (v) => {
-    if (v) nextTick(() => taRef.value?.focus());
+    if (v) nextTick(() => taRef.value?.focus({ preventScroll: true }));
   },
 );
 </script>

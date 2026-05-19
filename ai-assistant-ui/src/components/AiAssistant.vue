@@ -2792,7 +2792,9 @@ watch(isOpen, (open) => {
       ensurePanelInViewport();
       saveFabPos(panelSnapshot.value?.edge);
       startCodeWall();
-      panelRef.value?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+      panelRef.value
+        ?.querySelector<HTMLTextAreaElement>('textarea')
+        ?.focus({ preventScroll: true });
     });
   } else {
     stopCodeWall();
