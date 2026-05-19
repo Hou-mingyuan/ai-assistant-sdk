@@ -122,6 +122,80 @@
               </label>
             </div>
           </div>
+          <div class="ai-personalize-model-section">
+            <div class="ai-personalize-audio-head">
+              <span class="ai-personalize-audio-label">模型供应商连接</span>
+            </div>
+            <label class="ai-personalize-model-field">
+              <span>Provider</span>
+              <input
+                :value="providerInput"
+                type="text"
+                placeholder="minimax / openai / deepseek"
+                autocomplete="off"
+                @input="$emit('update:providerInput', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>模型 API Base URL</span>
+              <input
+                :value="providerBaseUrlInput"
+                type="text"
+                placeholder="https://api.minimaxi.com/v1"
+                autocomplete="off"
+                @input="
+                  $emit('update:providerBaseUrlInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>模型 API Key</span>
+              <input
+                :value="providerApiKeyInput"
+                type="password"
+                placeholder="留空表示不改当前 key"
+                autocomplete="off"
+                @input="
+                  $emit('update:providerApiKeyInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>默认模型</span>
+              <input
+                :value="providerModelInput"
+                type="text"
+                placeholder="MiniMax-M2.5"
+                autocomplete="off"
+                @input="
+                  $emit('update:providerModelInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>允许模型列表</span>
+              <input
+                :value="providerAllowedModelsInput"
+                type="text"
+                placeholder="MiniMax-M2.5, MiniMax-M2.7"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:providerAllowedModelsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <button
+              type="button"
+              class="ai-personalize-done"
+              :disabled="disabled"
+              @click="$emit('saveProviderConfig')"
+            >
+              保存模型配置并刷新列表
+            </button>
+          </div>
           <div class="ai-personalize-actions">
             <button type="button" class="ai-personalize-done" @click="$emit('close')">
               {{ t.personalizeDone }}
@@ -169,6 +243,11 @@ const props = defineProps<{
   theme?: string;
   /** K37: optional audio preferences; section hidden if undefined or unsupported. */
   audio?: PersonalizeAudioPrefs;
+  providerInput?: string;
+  providerBaseUrlInput?: string;
+  providerApiKeyInput?: string;
+  providerModelInput?: string;
+  providerAllowedModelsInput?: string;
 }>();
 
 const emit = defineEmits<{
@@ -181,6 +260,12 @@ const emit = defineEmits<{
     e: 'update:audio',
     value: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>,
   ): void;
+  (e: 'saveProviderConfig'): void;
+  (e: 'update:providerInput', value: string): void;
+  (e: 'update:providerBaseUrlInput', value: string): void;
+  (e: 'update:providerApiKeyInput', value: string): void;
+  (e: 'update:providerModelInput', value: string): void;
+  (e: 'update:providerAllowedModelsInput', value: string): void;
 }>();
 
 function emitAudio(patch: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>) {
@@ -228,6 +313,48 @@ watch(
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 10px;
   background: rgba(241, 245, 249, 0.45);
+}
+
+.ai-personalize-model-section {
+  margin-top: 14px;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: rgba(241, 245, 249, 0.45);
+}
+
+.ai-dark .ai-personalize-model-section {
+  border-color: rgba(71, 85, 105, 0.55);
+  background: rgba(30, 41, 59, 0.45);
+}
+
+.ai-personalize-model-field {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.ai-personalize-model-field input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 6px;
+  color: #1e293b;
+  background: white;
+}
+
+.ai-dark .ai-personalize-model-field {
+  color: #cbd5e1;
+}
+
+.ai-dark .ai-personalize-model-field input {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: rgba(71, 85, 105, 0.6);
 }
 
 .ai-dark .ai-personalize-audio-section {
