@@ -3,15 +3,22 @@ package com.aiassistant.config;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -28,9 +35,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class RuntimeModelConfigService {
 
     private static final Logger log = LoggerFactory.getLogger(RuntimeModelConfigService.class);
+    private static final String API_KEY_ENCRYPTED_PROPERTY = "apiKeyEncrypted";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final AiAssistantProperties properties;
     private final Path storagePath;
+    private final ProviderModelDiscovery modelDiscovery = new ProviderModelDiscovery();
 
     public RuntimeModelConfigService(AiAssistantProperties properties) {
         this(properties, defaultStoragePath());
@@ -95,11 +105,11 @@ public class RuntimeModelConfigService {
                             .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + keys.get(0))
                             .build()
                             .get()
-                            .uri("/models")
+                            .uri(modelDiscovery.modelsPath(properties.getProvider()))
                             .retrieve()
                             .bodyToMono(String.class)
                             .block();
-            List<String> models = parseOpenAiCompatibleModels(body);
+            List<String> models = modelDiscovery.parseModels(properties.getProvider(), body);
             return Map.of("success", true, "models", models);
         } catch (Exception e) {
             return Map.of(
@@ -147,6 +157,7 @@ public class RuntimeModelConfigService {
             request.setAllowedModelsText(persisted.getProperty("allowedModels"));
             request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
             applyWithoutPersisting(request);
+            restorePersistedApiKey(persisted.getProperty(API_KEY_ENCRYPTED_PROPERTY));
         } catch (IOException e) {
             log.warn("Runtime model config load skipped: {}", e.getMessage());
         }
@@ -177,11 +188,14 @@ public class RuntimeModelConfigService {
         put(persisted, "model", snapshot.model);
         put(persisted, "allowedModels", String.join(",", snapshot.allowedModels));
         put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
+        String encryptedApiKey = encryptRuntimeApiKey();
+        put(persisted, API_KEY_ENCRYPTED_PROPERTY, encryptedApiKey);
         try {
             Files.createDirectories(storagePath.getParent());
             try (OutputStream out = Files.newOutputStream(storagePath)) {
                 persisted.store(
-                        out, "AI Assistant runtime model config (API key is not persisted)");
+                        out,
+                        "AI Assistant runtime model config (API key encrypted only when a runtime secret is configured)");
             }
         } catch (IOException e) {
             log.warn("Runtime model config persist skipped: {}", e.getMessage());
@@ -201,32 +215,77 @@ public class RuntimeModelConfigService {
                 "runtime-model-config.properties");
     }
 
-    private List<String> parseOpenAiCompatibleModels(String json) throws IOException {
-        if (json == null || json.isBlank()) {
-            return List.of();
-        }
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        var root = mapper.readTree(json);
-        var data = root.path("data");
-        if (!data.isArray()) {
-            return List.of();
-        }
-        List<String> models = new ArrayList<>();
-        for (var item : data) {
-            String id = item.path("id").asText("");
-            if (!id.isBlank()) {
-                models.add(id);
-            }
-        }
-        return models.stream().distinct().collect(Collectors.toList());
-    }
-
     private static String trimTrailingSlash(String value) {
         String normalized = value == null ? "" : value.trim();
         while (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
+    }
+
+    private void restorePersistedApiKey(String encrypted) {
+        if (!hasText(encrypted)) {
+            return;
+        }
+        String secret = runtimeConfigSecret();
+        if (!hasText(secret)) {
+            log.info("Encrypted runtime API key ignored because no runtime config secret is set");
+            return;
+        }
+        try {
+            properties.setApiKey(decrypt(encrypted, secret));
+            properties.setApiKeys(null);
+        } catch (GeneralSecurityException | IllegalArgumentException e) {
+            log.warn("Runtime API key decrypt skipped: {}", e.getMessage());
+        }
+    }
+
+    private String encryptRuntimeApiKey() {
+        String secret = runtimeConfigSecret();
+        List<String> keys = properties.resolveApiKeys();
+        if (!hasText(secret) || keys.isEmpty()) {
+            return null;
+        }
+        try {
+            return encrypt(keys.get(0), secret);
+        } catch (GeneralSecurityException e) {
+            log.warn("Runtime API key encrypt skipped: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String runtimeConfigSecret() {
+        return properties.getAdmin().getRuntimeConfigSecretKey();
+    }
+
+    private static String encrypt(String plaintext, String secret) throws GeneralSecurityException {
+        byte[] iv = new byte[12];
+        SECURE_RANDOM.nextBytes(iv);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, key(secret), new GCMParameterSpec(128, iv));
+        byte[] ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(iv)
+                + "."
+                + Base64.getEncoder().encodeToString(ciphertext);
+    }
+
+    private static String decrypt(String encrypted, String secret) throws GeneralSecurityException {
+        String[] parts = encrypted.split("\\.", 2);
+        if (parts.length != 2) {
+            throw new GeneralSecurityException("invalid encrypted key payload");
+        }
+        byte[] iv = Base64.getDecoder().decode(parts[0]);
+        byte[] ciphertext = Base64.getDecoder().decode(parts[1]);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, key(secret), new GCMParameterSpec(128, iv));
+        return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+    }
+
+    private static SecretKeySpec key(String secret) throws GeneralSecurityException {
+        byte[] digest =
+                MessageDigest.getInstance("SHA-256")
+                        .digest(secret.getBytes(StandardCharsets.UTF_8));
+        return new SecretKeySpec(digest, "AES");
     }
 
     public static class UpdateRequest {

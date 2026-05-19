@@ -32,10 +32,15 @@ AI_ASSISTANT_ACCESS_TOKEN=change-me
 | `POST` | `/admin/rag/ingest` | 录入 RAG 文档。 |
 | `GET` | `/admin/rag/stats` | 查询 RAG 统计。 |
 | `POST` | `/admin/ab-test` | 配置 A/B 测试。 |
+| `GET` | `/admin/runtime/model-config` | 查看运行时模型供应商配置（不返回 API key）。 |
+| `POST` | `/admin/runtime/model-config` | 更新运行时模型供应商配置。 |
+| `POST` | `/admin/runtime/model-config/discover-models` | 使用当前运行时配置检测上游模型列表。 |
 
 ## 安全建议
 
 - 生产环境必须设置 `access-token`。
+- 如果需要独立管理权限，设置 `admin-token` 或环境变量 `AI_ASSISTANT_ADMIN_TOKEN`，前端通过 `adminToken` / Web Component `admin-token` 传入。
+- `runtime-config-secret-key` 为空时，运行时更新的模型 API key 只保存在内存；配置该 secret 后才会以 AES-GCM 加密形式持久化。
 - Admin API 建议只在内网、网关或管理后台后方暴露。
 - 涉及配额、Prompt、RAG 文档写入的接口应记录审计日志。
 - 不要把 Admin API 暴露给普通终端用户。

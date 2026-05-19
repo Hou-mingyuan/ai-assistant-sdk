@@ -197,11 +197,15 @@ export interface I18nMessages {
   providerConfigPresetDeepseek?: string;
   providerConfigDetectModels?: string;
   providerConfigProvider?: string;
+  providerConfigProviderPlaceholder?: string;
   providerConfigBaseUrl?: string;
+  providerConfigBaseUrlPlaceholder?: string;
   providerConfigApiKey?: string;
   providerConfigApiKeyPlaceholder?: string;
   providerConfigDefaultModel?: string;
+  providerConfigDefaultModelPlaceholder?: string;
   providerConfigAllowedModels?: string;
+  providerConfigAllowedModelsPlaceholder?: string;
   providerConfigSaveAndRefresh?: string;
   /** K38: drag-and-drop file onto FAB to ingest into KB. */
   kbDropFabHint?: string;

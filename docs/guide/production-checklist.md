@@ -27,6 +27,8 @@
 - [ ] `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false`。
 - [ ] `AI_ASSISTANT_ALLOWED_ORIGINS` 使用明确域名，不使用 `*`。
 - [ ] 如果生产环境需要统一助手角色，`AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT=false`，前端同步关闭 `showSystemPromptEditor`。
+- [ ] 如果允许前端运行时修改模型供应商配置，已设置独立 `AI_ASSISTANT_ADMIN_TOKEN`，并只在可信管理入口传入前端 `adminToken`。
+- [ ] 如果要求运行时模型 API key 重启后仍保留，已设置高强度 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY`；否则确认 key 只保存在内存。
 - [ ] 管理端、连接器管理和 MCP Server 未暴露，除非已有额外鉴权保护。
 - [ ] 代理、网关和应用日志都不会记录 `X-AI-Token`、模型 API Key 或上游 Authorization 头。
 - [ ] 公开前端包里没有写死长期高权限 Token；如需前端直接传 Token，优先使用短期令牌。

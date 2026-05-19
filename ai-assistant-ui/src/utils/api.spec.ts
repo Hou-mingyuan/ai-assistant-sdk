@@ -200,10 +200,11 @@ describe('runtime model config', () => {
         }),
     });
 
-    const res = await fetchRuntimeModelConfig('/ai/', ' token ');
+    const res = await fetchRuntimeModelConfig('/ai/', ' token ', ' admin-token ');
 
-    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config');
-    expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('token');
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/admin/runtime/model-config');
+    expect(mockFetch.mock.calls[0][1].headers['X-Admin-Token']).toBe('admin-token');
+    expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBeUndefined();
     expect(res.provider).toBe('minimax');
     expect(res).not.toHaveProperty('apiKey');
   });
@@ -230,10 +231,12 @@ describe('runtime model config', () => {
         allowedModelsText: 'MiniMax-M2.7,MiniMax-M2',
       },
       'token',
+      'admin-token',
     );
 
-    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config');
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/admin/runtime/model-config');
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    expect(mockFetch.mock.calls[0][1].headers['X-Admin-Token']).toBe('admin-token');
     expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(
       expect.objectContaining({ provider: 'minimax', apiKey: 'secret' }),
     );
@@ -258,7 +261,7 @@ describe('runtime model config', () => {
 
     const res = await discoverRuntimeProviderModels('/ai', 'token');
 
-    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config/discover-models');
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/admin/runtime/model-config/discover-models');
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
     expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('token');
     expect(res.models).toEqual(['MiniMax-M2.5', 'MiniMax-M2.7']);

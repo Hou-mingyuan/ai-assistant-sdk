@@ -64,6 +64,18 @@ function buildHeaders(token?: string): Record<string, string> {
   return headers;
 }
 
+function buildRuntimeConfigHeaders(token?: string, adminToken?: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const normalizedAdminToken = normalizeToken(adminToken);
+  const normalizedToken = normalizeToken(token);
+  if (normalizedAdminToken) {
+    headers['X-Admin-Token'] = normalizedAdminToken;
+  } else if (normalizedToken) {
+    headers['X-AI-Token'] = normalizedToken;
+  }
+  return headers;
+}
+
 function normalizeToken(token?: string): string | undefined {
   const trimmed = token?.trim();
   return trimmed ? trimmed : undefined;
@@ -294,12 +306,10 @@ export async function fetchModels(
 export async function fetchRuntimeModelConfig(
   baseUrl: string,
   token?: string,
+  adminToken?: string,
 ): Promise<RuntimeModelConfigResult> {
-  const headers: Record<string, string> = {};
-  const normalizedToken = normalizeToken(token);
-  if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
-  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config'), {
-    headers,
+  const res = await fetch(apiUrl(baseUrl, '/admin/runtime/model-config'), {
+    headers: buildRuntimeConfigHeaders(token, adminToken),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   });
   if (!res.ok) {
@@ -312,10 +322,11 @@ export async function saveRuntimeModelConfig(
   baseUrl: string,
   payload: RuntimeModelConfigPayload,
   token?: string,
+  adminToken?: string,
 ): Promise<RuntimeModelConfigResult> {
-  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config'), {
+  const res = await fetch(apiUrl(baseUrl, '/admin/runtime/model-config'), {
     method: 'POST',
-    headers: buildHeaders(token),
+    headers: buildRuntimeConfigHeaders(token, adminToken),
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   });
@@ -328,10 +339,11 @@ export async function saveRuntimeModelConfig(
 export async function discoverRuntimeProviderModels(
   baseUrl: string,
   token?: string,
+  adminToken?: string,
 ): Promise<{ success: boolean; models?: string[]; error?: string }> {
-  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config/discover-models'), {
+  const res = await fetch(apiUrl(baseUrl, '/admin/runtime/model-config/discover-models'), {
     method: 'POST',
-    headers: buildHeaders(token),
+    headers: buildRuntimeConfigHeaders(token, adminToken),
     body: JSON.stringify({}),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   });

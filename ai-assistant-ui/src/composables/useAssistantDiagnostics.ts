@@ -171,7 +171,11 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
 
   async function refreshRuntimeModelConfig() {
     if (!options.baseUrl) return;
-    const cfg = await fetchRuntimeModelConfig(options.baseUrl, options.accessToken);
+    const cfg = await fetchRuntimeModelConfig(
+      options.baseUrl,
+      options.accessToken,
+      options.adminToken,
+    );
     if (!cfg.success) {
       modelListStatus.value = modelListStatusFromError(cfg.error);
       modelListError.value = cfg.error || t.value.modelsLoadFailed;
@@ -275,6 +279,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
           allowedModelsText: providerAllowedModelsInput.value,
         },
         options.accessToken,
+        options.adminToken,
       );
       if (!result.success) {
         modelListStatus.value = modelListStatusFromError(result.error);
@@ -295,7 +300,11 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     if (!options.baseUrl) return;
     diagnosticsBusy.value = true;
     try {
-      const result = await discoverRuntimeProviderModels(options.baseUrl, options.accessToken);
+      const result = await discoverRuntimeProviderModels(
+        options.baseUrl,
+        options.accessToken,
+        options.adminToken,
+      );
       if (!result.success || !result.models?.length) {
         modelListStatus.value = modelListStatusFromError(result.error);
         modelListError.value = result.error || t.value.modelsListEmpty;

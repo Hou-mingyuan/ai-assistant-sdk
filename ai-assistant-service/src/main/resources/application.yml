@@ -73,6 +73,8 @@ ai-assistant:
 
   # ── 高风险 / 高暴露面开关（默认全部 false）────────────────
   admin-enabled: ${AI_ASSISTANT_ADMIN_ENABLED:false}                                  # default: false
+  admin-token: ${AI_ASSISTANT_ADMIN_TOKEN:}                                           # default: empty；为空时 Admin 接口回退 access-token
+  runtime-config-secret-key: ${AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY:}                # default: empty；为空时运行时模型 API key 不落盘
   connector-management-enabled: ${AI_ASSISTANT_CONNECTOR_MANAGEMENT_ENABLED:false}    # default: false
   mcp-server-enabled: ${AI_ASSISTANT_MCP_SERVER_ENABLED:false}                        # default: false
   websocket-enabled: ${AI_ASSISTANT_WEBSOCKET_ENABLED:false}                          # default: false

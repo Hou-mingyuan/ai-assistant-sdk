@@ -1,0 +1,75 @@
+import { test, expect, type Page } from '@playwright/test'
+
+async function openPersonalizeDialog(page: Page) {
+  await page.goto('/')
+  await page.waitForSelector('.ai-fab')
+  await page.click('.ai-fab')
+  await page.click('.ai-header-settings')
+  await page.getByRole('menuitem', { name: /个性化|Personalize/ }).click()
+  await expect(page.getByRole('dialog', { name: /个性化|Personalize/ })).toBeVisible()
+}
+
+test.describe('runtime provider configuration', () => {
+  test('detects provider models and refreshes model picker from personalization', async ({ page }) => {
+    await page.route('**/ai-assistant/admin/runtime/model-config', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            provider: 'minimax',
+            baseUrl: 'https://api.minimaxi.com/v1',
+            model: '',
+            allowedModels: [],
+            apiKeyConfigured: false,
+          }),
+        })
+        return
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          provider: 'minimax',
+          baseUrl: 'https://api.minimaxi.com/v1',
+          model: 'MiniMax-M2.5',
+          allowedModels: ['MiniMax-M2.5', 'MiniMax-M2.7'],
+          apiKeyConfigured: true,
+        }),
+      })
+    })
+    await page.route('**/ai-assistant/admin/runtime/model-config/discover-models', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, models: ['MiniMax-M2.5', 'MiniMax-M2.7'] }),
+      })
+    })
+    await page.route('**/ai-assistant/models?probe=true', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          models: ['MiniMax-M2.5', 'MiniMax-M2.7'],
+          defaultModel: 'MiniMax-M2.5',
+        }),
+      })
+    })
+
+    await openPersonalizeDialog(page)
+    await page.getByRole('button', { name: 'MiniMax' }).click()
+    await page.getByLabel(/模型 API Key|Model API key/).fill('runtime-key')
+    const detectModels = page.getByRole('button', { name: /检测模型|Detect models/ })
+    await expect(detectModels).toBeEnabled()
+    await detectModels.click()
+    await expect(page.getByLabel(/允许模型列表|Allowed models/)).toHaveValue(
+      'MiniMax-M2.5, MiniMax-M2.7',
+    )
+
+    await page.getByRole('button', { name: /保存模型配置并刷新列表|Save model config/ }).click()
+    await expect(page.locator('.ai-model-select')).toContainText('MiniMax-M2.5')
+  })
+})

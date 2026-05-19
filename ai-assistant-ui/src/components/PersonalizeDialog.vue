@@ -147,7 +147,7 @@
               <input
                 :value="providerInput"
                 type="text"
-                placeholder="minimax / openai / deepseek"
+                :placeholder="t.providerConfigProviderPlaceholder || 'minimax / openai / deepseek'"
                 autocomplete="off"
                 @input="$emit('update:providerInput', ($event.target as HTMLInputElement).value)"
               />
@@ -157,7 +157,7 @@
               <input
                 :value="providerBaseUrlInput"
                 type="text"
-                placeholder="https://api.minimaxi.com/v1"
+                :placeholder="t.providerConfigBaseUrlPlaceholder || 'https://api.minimaxi.com/v1'"
                 autocomplete="off"
                 @input="
                   $emit('update:providerBaseUrlInput', ($event.target as HTMLInputElement).value)
@@ -183,7 +183,7 @@
               <input
                 :value="providerModelInput"
                 type="text"
-                placeholder="MiniMax-M2.5"
+                :placeholder="t.providerConfigDefaultModelPlaceholder || 'MiniMax-M2.5'"
                 autocomplete="off"
                 @input="
                   $emit('update:providerModelInput', ($event.target as HTMLInputElement).value)
@@ -195,7 +195,9 @@
               <input
                 :value="providerAllowedModelsInput"
                 type="text"
-                placeholder="MiniMax-M2.5, MiniMax-M2.7"
+                :placeholder="
+                  t.providerConfigAllowedModelsPlaceholder || 'MiniMax-M2.5, MiniMax-M2.7'
+                "
                 autocomplete="off"
                 @input="
                   $emit(

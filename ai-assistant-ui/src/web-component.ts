@@ -15,6 +15,7 @@ const ATTR_MAP: Record<string, keyof AiAssistantOptions> = {
   'base-url': 'baseUrl',
   token: 'accessToken',
   'access-token': 'accessToken',
+  'admin-token': 'adminToken',
   'primary-color': 'primaryColor',
   position: 'position',
   theme: 'theme',

@@ -7,6 +7,7 @@ const app = createApp(App)
 app.use(AiAssistant, {
   baseUrl: import.meta.env.VITE_AI_ASSISTANT_BASE_URL || '/ai-assistant',
   accessToken: import.meta.env.VITE_AI_ASSISTANT_ACCESS_TOKEN || undefined,
+  adminToken: import.meta.env.VITE_AI_ASSISTANT_ADMIN_TOKEN || undefined,
   primaryColor: '#4f46e5',
   position: 'bottom-right',
   locale: 'zh',

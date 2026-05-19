@@ -249,6 +249,12 @@ public class AiAssistantProperties {
          */
         private String adminToken;
 
+        /**
+         * Optional secret used to encrypt runtime model API keys at rest. When blank, runtime API
+         * keys stay in memory only and are never persisted.
+         */
+        private String runtimeConfigSecretKey;
+
         public String resolveAdminToken(String fallbackAccessToken) {
             return (adminToken != null && !adminToken.isBlank()) ? adminToken : fallbackAccessToken;
         }
@@ -534,6 +540,22 @@ public class AiAssistantProperties {
 
     public void setMcpServerEnabled(boolean v) {
         admin.setMcpServerEnabled(v);
+    }
+
+    public String getAdminToken() {
+        return admin.getAdminToken();
+    }
+
+    public void setAdminToken(String v) {
+        admin.setAdminToken(v);
+    }
+
+    public String getRuntimeConfigSecretKey() {
+        return admin.getRuntimeConfigSecretKey();
+    }
+
+    public void setRuntimeConfigSecretKey(String v) {
+        admin.setRuntimeConfigSecretKey(v);
     }
 
     /** 客户端请求的模型经白名单校验后的实际使用 id。 */

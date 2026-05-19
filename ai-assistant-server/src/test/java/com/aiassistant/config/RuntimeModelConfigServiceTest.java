@@ -64,6 +64,31 @@ class RuntimeModelConfigServiceTest {
     }
 
     @Test
+    void persistsApiKeyEncryptedWhenRuntimeSecretIsConfigured(@TempDir Path tempDir)
+            throws Exception {
+        Path file = tempDir.resolve("runtime-model.properties");
+        AiAssistantProperties first = new AiAssistantProperties();
+        first.getAdmin().setRuntimeConfigSecretKey("local-test-secret");
+        RuntimeModelConfigService service = new RuntimeModelConfigService(first, file);
+
+        RuntimeModelConfigService.UpdateRequest request =
+                new RuntimeModelConfigService.UpdateRequest();
+        request.setProvider("minimax");
+        request.setApiKey("runtime-secret");
+        service.update(request);
+
+        String persisted = java.nio.file.Files.readString(file);
+        assertFalse(persisted.contains("runtime-secret"));
+        assertTrue(persisted.contains("apiKeyEncrypted="));
+
+        AiAssistantProperties second = new AiAssistantProperties();
+        second.getAdmin().setRuntimeConfigSecretKey("local-test-secret");
+        new RuntimeModelConfigService(second, file);
+
+        assertEquals(List.of("runtime-secret"), second.resolveApiKeys());
+    }
+
+    @Test
     void discoverProviderModelsReadsOpenAiCompatibleModels(@TempDir Path tempDir) throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.enqueue(

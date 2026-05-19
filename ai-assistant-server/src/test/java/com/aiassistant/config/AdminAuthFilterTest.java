@@ -115,6 +115,22 @@ class AdminAuthFilterTest {
     }
 
     @Test
+    @DisplayName("runtime model config under /admin is guarded by admin token")
+    void runtimeModelConfigUsesAdminGuard() throws Exception {
+        AdminAuthFilter filter = new AdminAuthFilter(CTX_PATH, ADMIN_TOKEN);
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+        when(req.getRequestURI()).thenReturn(CTX_PATH + "/admin/runtime/model-config");
+        when(req.getMethod()).thenReturn("POST");
+        when(req.getHeader("X-Admin-Token")).thenReturn(ADMIN_TOKEN);
+
+        filter.doFilter(req, res, chain);
+
+        verify(chain).doFilter(req, res);
+    }
+
+    @Test
     @DisplayName("X-Admin-Token 缺失但 X-AI-Token 匹配 admin-token 时放行（fallback）")
     void xaiTokenFallbackAllowed() throws Exception {
         AdminAuthFilter filter = new AdminAuthFilter(CTX_PATH, ADMIN_TOKEN);

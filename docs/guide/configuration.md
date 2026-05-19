@@ -87,6 +87,8 @@ app.use(AiAssistant, {
 | `url-fetch-enabled` | `true` | 是否允许后端抓取用户消息里的链接正文。 | 需要链接摘要时开启；不需要外链抓取时关闭。 |
 | `url-fetch-ssrf-protection` | `true` | 是否启用 SSRF 防护。 | 保持开启，不要为绕过内网访问限制而关闭。 |
 | `admin-enabled` | `false` | 是否注册 `/admin/*` 管理接口。 | 只在受保护的内网、网关或鉴权环境中开启。 |
+| `admin-token` | 空 | 独立 Admin Token；为空时回退 `access-token`。 | 生产建议独立设置，避免普通用户令牌可修改模型供应商配置。 |
+| `runtime-config-secret-key` | 空 | 运行时模型 API key 持久化加密密钥。 | 为空时 key 只保存在内存；需要重启后保留 key 时设置为高强度随机值。 |
 | `connector-management-enabled` | `false` | 是否允许运行时注册或卸载连接器。 | 只给可信管理端开启。 |
 | `mcp-server-enabled` | `false` | 是否启用 MCP Server 端点。 | 只在确认调用方身份和权限后开启。 |
 
@@ -155,6 +157,8 @@ AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=10MB
 | `AI_ASSISTANT_ALLOWED_ORIGINS` | `ai-assistant.allowed-origins` |
 | `AI_ASSISTANT_RATE_LIMIT` | `ai-assistant.rate-limit` |
 | `AI_ASSISTANT_ADMIN_ENABLED` | `ai-assistant.admin-enabled` |
+| `AI_ASSISTANT_ADMIN_TOKEN` | `ai-assistant.admin-token` |
+| `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` | `ai-assistant.runtime-config-secret-key` |
 | `AI_ASSISTANT_RAG_ENABLED` | `ai-assistant.rag-enabled` |
 | `AI_ASSISTANT_URL_FETCH_ENABLED` | `ai-assistant.url-fetch-enabled` |
 | `AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION` | `ai-assistant.url-fetch-ssrf-protection` |
@@ -167,6 +171,7 @@ AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=10MB
 | --- | --- | --- | --- |
 | `baseUrl` | `/ai-assistant` | 后端接口地址。 | 与后端 `context-path` 保持一致；跨域访问独立服务时使用完整 URL。 |
 | `accessToken` | 空 | 后端访问令牌。 | 与后端 `access-token` 或 `AI_ASSISTANT_ACCESS_TOKEN` 一致。 |
+| `adminToken` | 空 | 调用 `/admin/runtime/model-config` 的管理令牌。 | 只在可信管理入口传入；为空时运行时模型配置请求回退 `accessToken`。 |
 | `theme` | `light` | 主题，可选 `light`、`dark`、`auto`。 | 跟随宿主系统时使用 `auto`。 |
 | `locale` | `en` | UI 语言。 | 中文项目通常设为 `zh`。 |
 | `persistHistory` | `false` | 是否在浏览器保存对话历史。 | 涉及敏感信息时谨慎开启。 |

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Runtime model-provider configuration for local/admin connection diagnostics. */
 @RestController
-@RequestMapping("${ai-assistant.context-path:/ai-assistant}/runtime/model-config")
+@RequestMapping("${ai-assistant.context-path:/ai-assistant}/admin/runtime/model-config")
 public class RuntimeModelConfigController {
 
     private final RuntimeModelConfigService runtimeModelConfigService;

@@ -14,6 +14,8 @@ export interface AiAssistantOptions {
   persistFabPosition?: boolean;
   locale?: 'en' | 'zh' | 'ja' | 'ko';
   accessToken?: string;
+  /** Admin-only token for runtime provider configuration; falls back to accessToken when omitted. */
+  adminToken?: string;
   /** 与 @error 事件并行，便于接入监控/日志 */
   onAssistantError?: (payload: { source: string; message: string }) => void;
   /**
@@ -141,6 +143,7 @@ const defaultOptions: AiAssistantOptions = {
   persistHistory: false,
   locale: 'en',
   accessToken: undefined,
+  adminToken: undefined,
   enableSessionExport: false,
   maxMessagesInMemory: 200,
   maxTotalCharsInMemory: 4_000_000,
