@@ -6,7 +6,7 @@
 
 | 规则 ID | 触发条件 | 严重度 | 建议 |
 |---------|----------|--------|------|
-| `in-process-rate-limit` | `AI_ASSISTANT_RATE_LIMIT > 0` 且未配 Redis，且 replicas > 1 | **high** | 改在 API 网关或 `RedisRateLimitFilter` 上做配额 |
+| `in-process-rate-limit` | `AI_ASSISTANT_RATE_LIMIT > 0` 且未配 Redis，且 replicas > 1 | **high** | 改在 API 网关限流，或在 Starter 宿主中提供 `StringRedisTemplate` 让 `RedisRateLimitFilter` 接管 |
 | `in-memory-session-store` | 未声明 `AI_ASSISTANT_SESSION_STORE` 且 replicas > 1 | **high** | 切到 `AI_ASSISTANT_SESSION_STORE=redis` |
 | `in-memory-rag-store` | `AI_ASSISTANT_RAG_ENABLED=true` 且 vector store 为内存，replicas > 1 | **high** | 换 Milvus / Pinecone / Qdrant |
 | `detected-multi-replica` | YAML 中 `replicas: N` (N>1) | info | 提醒检查 .env 状态 |
@@ -50,7 +50,7 @@ node scripts/project-health-check.mjs --all                    # 跑所有 lane
 
 `.env`：
 
-```env
+```text
 AI_ASSISTANT_RATE_LIMIT=60
 AI_ASSISTANT_RAG_ENABLED=true
 ```
@@ -79,14 +79,17 @@ replicaCount: 3
 Found 3 finding(s); high-severity: 3
 ```
 
-修复后 `.env`：
+修复后 `.env`（示例，用于表达多副本必须接入共享状态；实际连接参数以宿主 Spring Boot / 平台配置为准）：
 
-```env
+```text
 AI_ASSISTANT_SESSION_STORE=redis
-AI_ASSISTANT_SESSION_REDIS_URL=redis://redis:6379/0
-AI_ASSISTANT_RATE_LIMIT_BACKEND=redis
+SPRING_DATA_REDIS_HOST=redis
+SPRING_DATA_REDIS_PORT=6379
+AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED=true
 AI_ASSISTANT_RAG_VECTOR_STORE=milvus
 ```
+
+对于独立服务镜像，如果没有把 Redis 客户端依赖和连接配置一起纳入运行环境，优先把限流前移到 API 网关；不要仅靠写一个 `AI_ASSISTANT_*` 环境变量假设进程内限流已经变成分布式限流。
 
 再跑：
 

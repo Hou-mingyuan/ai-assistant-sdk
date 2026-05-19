@@ -181,4 +181,12 @@ docker image inspect ai-assistant-service:local
 AI_ASSISTANT_ACCESS_TOKEN=change-me
 AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 AI_ASSISTANT_RATE_LIMIT=60
+AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT=false
+AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
+```
+
+如果部署成多副本，不要只依赖默认进程内状态。限流应前移到 API 网关，或在宿主 Spring Boot 应用中提供 `StringRedisTemplate` 让 `RedisRateLimitFilter` 自动接管；会话、RAG 向量库、对话记忆和 Token 配额也需要 Redis、数据库或外部向量库等共享存储。发布前建议运行：
+
+```bash
+node scripts/multi-replica-config-lint.mjs --replicas 2 --strict
 ```

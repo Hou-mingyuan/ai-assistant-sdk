@@ -3,7 +3,7 @@
 > 由 `scripts/generate-changelog.mjs` 从 git log 自动生成。
 > 采用 [Conventional Commits](https://www.conventionalcommits.org/) 类型分组。
 
-## [v1.0.2] 2026-05-14
+## [Unreleased]
 
 _K-wave: K36 集成 prompt history · K37 TTS · K38 RAG drop · K39 cross-session search · K40 CompareRegionsView · K41 a11y · K42 N-way · K43 KB picker · K44 ChatInputArea spec + K36 bug fix · K45 selection-grain · K46 code-block hover · K47 all-columns · K48 keyboard shortcuts_
 

@@ -112,7 +112,7 @@ public class AiAssistantClient {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("data:")) {
-                    String data = line.substring(5).trim();
+                    String data = parseSseDataLine(line);
                     if ("[DONE]".equals(data)) break;
                     onChunk.accept(data);
                 }
@@ -172,6 +172,11 @@ public class AiAssistantClient {
             return fallback;
         }
         return body;
+    }
+
+    private static String parseSseDataLine(String line) {
+        String data = line.substring(5);
+        return data.startsWith(" ") ? data.substring(1) : data;
     }
 
     private static String normalizeBaseUrl(String baseUrl) {

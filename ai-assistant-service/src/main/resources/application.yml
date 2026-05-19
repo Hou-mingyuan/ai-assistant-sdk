@@ -59,8 +59,8 @@ ai-assistant:
   allowed-models: ${AI_ASSISTANT_ALLOWED_MODELS:}         # default: empty；为空时忽略前端 model 字段
 
   # ── 鉴权与跨域 ───────────────────────────────────────────
-  access-token: ${AI_ASSISTANT_ACCESS_TOKEN:}             # default: empty；强烈建议生产配置
-  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS:*}      # default: *（生产请收紧）
+  access-token: ${AI_ASSISTANT_ACCESS_TOKEN:}             # default: empty；生产必须配置，且不要使用示例值
+  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS:*}      # default: *；生产必须收紧为明确域名
   allow-query-token-auth: ${AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH:false}   # default: false（仅向后兼容用）
 
   # ── 限流 ─────────────────────────────────────────────────
@@ -68,7 +68,7 @@ ai-assistant:
 
   # ── system prompt ────────────────────────────────────────
   system-prompt: ${AI_ASSISTANT_SYSTEM_PROMPT:}                                       # default: empty
-  allow-client-system-prompt: ${AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT:true}         # default: true
+  allow-client-system-prompt: ${AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT:true}         # default: true；生产统一助手角色时建议设为 false
   client-system-prompt-max-chars: ${AI_ASSISTANT_CLIENT_SYSTEM_PROMPT_MAX_CHARS:4000} # default: 4000
 
   # ── 高风险 / 高暴露面开关（默认全部 false）────────────────

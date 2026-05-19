@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -136,6 +138,23 @@ class AiAssistantClientTest {
         assertTrue(ex.getMessage().contains("onChunk"));
     }
 
+    @Test
+    void chatStreamPreservesSseLeadingSpaceAfterSingleSpecSeparator() throws Exception {
+        startServer("/ai-assistant/stream", exchange -> {
+            assertEquals("text/event-stream", exchange.getRequestHeaders().getFirst("Accept"));
+            respond(exchange, 200, "data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n",
+                    "text/event-stream;charset=UTF-8");
+        });
+
+        AiAssistantClient client = client();
+        List<String> chunks = new ArrayList<>();
+
+        client.chatStream("hi", chunks::add);
+
+        assertEquals(List.of("Hello", " world"), chunks);
+        assertEquals("Hello world", String.join("", chunks));
+    }
+
     private AiAssistantClient client() {
         return AiAssistantClient.builder()
                 .baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/ai-assistant")
@@ -145,8 +164,12 @@ class AiAssistantClientTest {
     }
 
     private void startServer(Handler handler) throws IOException {
+        startServer("/ai-assistant/chat", handler);
+    }
+
+    private void startServer(String path, Handler handler) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/ai-assistant/chat", exchange -> {
+        server.createContext(path, exchange -> {
             try {
                 handler.handle(exchange);
             } finally {
@@ -157,8 +180,13 @@ class AiAssistantClientTest {
     }
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {
+        respond(exchange, status, body, "application/json;charset=UTF-8");
+    }
+
+    private static void respond(HttpExchange exchange, int status, String body, String contentType)
+            throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "application/json;charset=UTF-8");
+        exchange.getResponseHeaders().add("Content-Type", contentType);
         exchange.sendResponseHeaders(status, bytes.length);
         exchange.getResponseBody().write(bytes);
     }

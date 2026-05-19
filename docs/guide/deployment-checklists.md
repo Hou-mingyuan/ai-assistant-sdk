@@ -24,6 +24,7 @@ AI Assistant SDK 有两种主要部署路径。开始前先选一种，再按对
 - [ ] 如需前端跨域访问，`ai-assistant.allowed-origins` 包含真实前端域名。
 - [ ] 生产环境已配置 `ai-assistant.access-token`，前端通过 `accessToken` 传入同一个值。
 - [ ] `ai-assistant.allow-query-token-auth=false`。
+- [ ] 生产如需统一助手角色，已设置 `ai-assistant.allow-client-system-prompt=false`，并在前端关闭 `showSystemPromptEditor`。
 - [ ] 如果启用链接抓取，保持 `ai-assistant.url-fetch-ssrf-protection=true`。
 - [ ] 如果启用 Admin、MCP Server、连接器管理或 RAG，已确认对应接口只对可信调用方开放。
 - [ ] 宿主系统已有统一限流时，确认与 `ai-assistant.rate-limit` 不会重复导致误伤；多实例限流优先放到网关或 Redis。
@@ -62,6 +63,7 @@ app.use(AiAssistant, {
 - [ ] `AI_ASSISTANT_ACCESS_TOKEN` 已配置，且不是示例值。
 - [ ] `AI_ASSISTANT_ALLOWED_ORIGINS` 使用明确前端域名，生产环境不使用 `*`。
 - [ ] `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false`。
+- [ ] 如需统一助手角色，`AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT=false`，前端设置 `showSystemPromptEditor: false`。
 - [ ] `AI_ASSISTANT_RATE_LIMIT` 已按业务流量设置。
 - [ ] Compose、Kubernetes 或平台层已设置 CPU、内存和日志滚动限制。
 - [ ] 反向代理已为 SSE 流式接口关闭缓冲。
@@ -139,3 +141,11 @@ kubectl get pods -l app=ai-assistant-service --no-headers | wc -l
 ```
 
 如果只能用单副本运行（小流量、内部工具），把 `ai-assistant.rate-limit` 调整到与单副本容量匹配的水平；启用 `RedisRateLimitFilter` 后再恢复到面向集群的配额。
+
+多副本上线前建议把 lint 作为强制步骤：
+
+```bash
+node scripts/multi-replica-config-lint.mjs --replicas 2 --strict
+```
+
+如果使用 Starter 集成并希望 SDK 自动切到 Redis 限流与 Redis Session，需要宿主应用提供 `StringRedisTemplate`，并保持 `ai-assistant.rate-limit-distributed=true`（默认）。独立服务镜像若未接入 Redis 或网关限流，不建议把副本数提升到 2 以上。

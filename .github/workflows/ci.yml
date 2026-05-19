@@ -307,7 +307,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           java-version: 21
@@ -320,11 +320,10 @@ jobs:
             -f ai-assistant-server/pom.xml \
             -DfailBuildOnCVSS=9 \
             -DsuppressionFiles=.github/owasp-suppressions.xml \
-            -DnvdApiKey=${{ secrets.NVD_API_KEY || '' }} \
-            || true
+            -DnvdApiKey=${{ secrets.NVD_API_KEY || '' }}
 
       - name: npm audit (frontend)
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=critical
         working-directory: ai-assistant-ui
 
       - name: Trivy filesystem scan
@@ -333,7 +332,7 @@ jobs:
           scan-type: fs
           scan-ref: .
           severity: CRITICAL,HIGH
-          exit-code: 0
+          exit-code: 1
           format: table
 
       - name: Upload security reports
