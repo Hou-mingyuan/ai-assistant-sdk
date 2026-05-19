@@ -78,7 +78,8 @@ class RuntimeModelConfigServiceTest {
             properties.setApiKey("runtime-key");
             properties.setBaseUrl(server.url("/v1").toString());
             RuntimeModelConfigService service =
-                    new RuntimeModelConfigService(properties, tempDir.resolve("runtime.properties"));
+                    new RuntimeModelConfigService(
+                            properties, tempDir.resolve("runtime.properties"));
 
             var response = service.discoverProviderModels();
 
