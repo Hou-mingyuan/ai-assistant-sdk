@@ -149,7 +149,8 @@ public class RuntimeModelConfigService {
         try {
             Files.createDirectories(storagePath.getParent());
             try (OutputStream out = Files.newOutputStream(storagePath)) {
-                persisted.store(out, "AI Assistant runtime model config (API key is not persisted)");
+                persisted.store(
+                        out, "AI Assistant runtime model config (API key is not persisted)");
             }
         } catch (IOException e) {
             log.warn("Runtime model config persist skipped: {}", e.getMessage());
@@ -163,7 +164,10 @@ public class RuntimeModelConfigService {
     }
 
     private static Path defaultStoragePath() {
-        return Paths.get(System.getProperty("user.home"), ".ai-assistant", "runtime-model-config.properties");
+        return Paths.get(
+                System.getProperty("user.home"),
+                ".ai-assistant",
+                "runtime-model-config.properties");
     }
 
     public static class UpdateRequest {
