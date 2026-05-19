@@ -1,7 +1,7 @@
 import { computed, ref, type ComputedRef } from 'vue';
 import type { AiAssistantOptions } from '../index';
 import type { I18nMessages } from '../utils/i18n';
-import { fetchModels } from '../utils/api';
+import { fetchModels, fetchRuntimeModelConfig, saveRuntimeModelConfig } from '../utils/api';
 
 type ModelListStatus =
   | ''
@@ -39,6 +39,11 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const connectionPersistEnabled = ref(true);
   const connectionConfigMessage = ref('');
   const modelListStatus = ref<ModelListStatus>('');
+  const providerInput = ref('');
+  const providerBaseUrlInput = ref('');
+  const providerApiKeyInput = ref('');
+  const providerModelInput = ref('');
+  const providerAllowedModelsInput = ref('');
 
   const connectionBaseUrlStorageKey = 'ai-assistant-connection-base-url';
   const connectionTokenStorageKey = 'ai-assistant-connection-token';
@@ -159,9 +164,25 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     }
   }
 
+  async function refreshRuntimeModelConfig() {
+    if (!options.baseUrl) return;
+    const cfg = await fetchRuntimeModelConfig(options.baseUrl, options.accessToken);
+    if (!cfg.success) {
+      modelListStatus.value = modelListStatusFromError(cfg.error);
+      modelListError.value = cfg.error || t.value.modelsLoadFailed;
+      return;
+    }
+    providerInput.value = cfg.provider || '';
+    providerBaseUrlInput.value = cfg.baseUrl || '';
+    providerModelInput.value = cfg.model || '';
+    providerAllowedModelsInput.value = (cfg.allowedModels ?? []).join(', ');
+    providerApiKeyInput.value = '';
+  }
+
   async function runModelDiagnostics() {
     diagnosticsBusy.value = true;
     try {
+      await refreshRuntimeModelConfig();
       await refreshChatModels();
     } finally {
       diagnosticsLastChecked.value = new Date().toLocaleString();
@@ -235,6 +256,36 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     connectionConfigMessage.value = t.value.connectionConfigSaved;
   }
 
+  async function saveProviderConfig() {
+    if (!options.baseUrl) return;
+    diagnosticsBusy.value = true;
+    try {
+      const result = await saveRuntimeModelConfig(
+        options.baseUrl,
+        {
+          provider: providerInput.value,
+          baseUrl: providerBaseUrlInput.value,
+          apiKey: providerApiKeyInput.value,
+          model: providerModelInput.value,
+          allowedModelsText: providerAllowedModelsInput.value,
+        },
+        options.accessToken,
+      );
+      if (!result.success) {
+        modelListStatus.value = modelListStatusFromError(result.error);
+        modelListError.value = result.error || t.value.modelsLoadFailed;
+        connectionConfigMessage.value = t.value.connectionConfigFailed;
+        return;
+      }
+      providerApiKeyInput.value = '';
+      await refreshChatModels();
+      connectionConfigMessage.value = t.value.connectionConfigSaved;
+    } finally {
+      diagnosticsBusy.value = false;
+      diagnosticsLastChecked.value = new Date().toLocaleString();
+    }
+  }
+
   async function copyDiagnostics() {
     const lines = [
       'AI Assistant Diagnostics',
@@ -281,6 +332,11 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     connectionTokenInput,
     connectionPersistEnabled,
     connectionConfigMessage,
+    providerInput,
+    providerBaseUrlInput,
+    providerApiKeyInput,
+    providerModelInput,
+    providerAllowedModelsInput,
     modelListStatus,
     modelListMessage,
     diagnosticsModelEndpoint,
@@ -299,6 +355,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     handleSendBlockedAction,
     testConnectionConfig,
     saveConnectionConfig,
+    saveProviderConfig,
     copyDiagnostics,
     connectionBaseUrlStorageKey,
     connectionTokenStorageKey,

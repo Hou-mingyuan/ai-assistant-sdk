@@ -159,6 +159,73 @@
             {{ configMessage }}
           </p>
         </div>
+        <div class="ai-connection-config">
+          <strong>模型供应商连接</strong>
+          <label>
+            <span>Provider</span>
+            <input
+              :value="providerInput"
+              type="text"
+              placeholder="minimax / openai / deepseek"
+              autocomplete="off"
+              @input="$emit('update:providerInput', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label>
+            <span>模型 API Base URL</span>
+            <input
+              :value="providerBaseUrlInput"
+              type="text"
+              placeholder="https://api.minimaxi.com/v1"
+              autocomplete="off"
+              @input="
+                $emit('update:providerBaseUrlInput', ($event.target as HTMLInputElement).value)
+              "
+            />
+          </label>
+          <label>
+            <span>模型 API Key</span>
+            <input
+              :value="providerApiKeyInput"
+              type="password"
+              placeholder="留空表示不改当前 key"
+              autocomplete="off"
+              @input="
+                $emit('update:providerApiKeyInput', ($event.target as HTMLInputElement).value)
+              "
+            />
+          </label>
+          <label>
+            <span>默认模型</span>
+            <input
+              :value="providerModelInput"
+              type="text"
+              placeholder="MiniMax-M2.5"
+              autocomplete="off"
+              @input="$emit('update:providerModelInput', ($event.target as HTMLInputElement).value)"
+            />
+          </label>
+          <label>
+            <span>允许模型列表</span>
+            <input
+              :value="providerAllowedModelsInput"
+              type="text"
+              placeholder="MiniMax-M2.5, MiniMax-M2.7"
+              autocomplete="off"
+              @input="
+                $emit(
+                  'update:providerAllowedModelsInput',
+                  ($event.target as HTMLInputElement).value,
+                )
+              "
+            />
+          </label>
+          <div class="ai-connection-config-actions">
+            <button type="button" :disabled="busy" @click="$emit('saveProviderConfig')">
+              保存模型配置并刷新列表
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -178,31 +245,45 @@ type RemedyKind =
   | 'failed'
   | 'empty';
 
-const props = defineProps<{
-  uid: string;
-  busy: boolean;
-  copied: boolean;
-  copyMessage: string;
-  statusMessage: string;
-  lastError: string;
-  baseUrl: string | undefined;
-  modelEndpoint: string;
-  tokenText: string;
-  selectedModel: string;
-  modelStatusText: string;
-  modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
-  modelSourceText: string;
-  modelHintText: string;
-  remedyKind: RemedyKind;
-  modelCount: number;
-  lastChecked: string;
-  baseUrlInput: string;
-  tokenInput: string;
-  persistEnabled: boolean;
-  configMessage: string;
-  isDark: boolean;
-  t: I18nMessages;
-}>();
+const props = withDefaults(
+  defineProps<{
+    uid: string;
+    busy: boolean;
+    copied: boolean;
+    copyMessage: string;
+    statusMessage: string;
+    lastError: string;
+    baseUrl: string | undefined;
+    modelEndpoint: string;
+    tokenText: string;
+    selectedModel: string;
+    modelStatusText: string;
+    modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
+    modelSourceText: string;
+    modelHintText: string;
+    remedyKind: RemedyKind;
+    modelCount: number;
+    lastChecked: string;
+    baseUrlInput: string;
+    tokenInput: string;
+    persistEnabled: boolean;
+    providerInput?: string;
+    providerBaseUrlInput?: string;
+    providerApiKeyInput?: string;
+    providerModelInput?: string;
+    providerAllowedModelsInput?: string;
+    configMessage: string;
+    isDark: boolean;
+    t: I18nMessages;
+  }>(),
+  {
+    providerInput: '',
+    providerBaseUrlInput: '',
+    providerApiKeyInput: '',
+    providerModelInput: '',
+    providerAllowedModelsInput: '',
+  },
+);
 
 const emit = defineEmits<{
   refresh: [];
@@ -210,10 +291,16 @@ const emit = defineEmits<{
   close: [];
   testConfig: [];
   saveConfig: [];
+  saveProviderConfig: [];
   useDefaultBaseUrl: [];
   'update:baseUrlInput': [value: string];
   'update:tokenInput': [value: string];
   'update:persistEnabled': [value: boolean];
+  'update:providerInput': [value: string];
+  'update:providerBaseUrlInput': [value: string];
+  'update:providerApiKeyInput': [value: string];
+  'update:providerModelInput': [value: string];
+  'update:providerAllowedModelsInput': [value: string];
 }>();
 
 const tokenInputRef = ref<HTMLInputElement>();

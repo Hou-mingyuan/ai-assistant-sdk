@@ -33,28 +33,24 @@ public class OpenAiCompatibleChatClient
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleChatClient.class);
 
+    private final AiAssistantProperties properties;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final WebClient webClient;
-    private final WebClient minimaxVisionWebClient;
     private final Duration timeout;
     private final int maxRetries;
     private final ConnectionProvider connectionProvider;
-    private final boolean minimaxProvider;
+    private final ReactorClientHttpConnector clientConnector;
+    private final ExchangeStrategies exchangeStrategies;
 
     public OpenAiCompatibleChatClient(AiAssistantProperties properties) {
-        String base = properties.resolveBaseUrl();
-        if (base.endsWith("/")) {
-            base = base.substring(0, base.length() - 1);
-        }
+        this.properties = properties;
         this.timeout =
                 Duration.ofSeconds(Math.max(1, Math.min(properties.getTimeoutSeconds(), 600)));
         this.maxRetries = Math.max(0, Math.min(5, properties.getLlmMaxRetries()));
-        this.minimaxProvider = "minimax".equalsIgnoreCase(properties.getProvider());
         int codecBytes =
                 Math.min(
                         32 * 1024 * 1024,
                         Math.max(4 * 1024 * 1024, properties.getChatMaxTotalChars() * 4));
-        ExchangeStrategies strategies =
+        this.exchangeStrategies =
                 ExchangeStrategies.builder()
                         .codecs(c -> c.defaultCodecs().maxInMemorySize(codecBytes))
                         .build();
@@ -67,23 +63,7 @@ public class OpenAiCompatibleChatClient
         HttpClient reactorHttpClient =
                 HttpClient.create(connectionProvider)
                         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectMs);
-        this.webClient =
-                WebClient.builder()
-                        .baseUrl(base)
-                        .clientConnector(new ReactorClientHttpConnector(reactorHttpClient))
-                        .exchangeStrategies(strategies)
-                        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .build();
-        this.minimaxVisionWebClient =
-                minimaxProvider
-                        ? WebClient.builder()
-                                .baseUrl(properties.resolveMinimaxVlmBaseUrl())
-                                .clientConnector(new ReactorClientHttpConnector(reactorHttpClient))
-                                .exchangeStrategies(strategies)
-                                .defaultHeader(
-                                        HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                                .build()
-                        : this.webClient;
+        this.clientConnector = new ReactorClientHttpConnector(reactorHttpClient);
     }
 
     @Override
@@ -92,12 +72,33 @@ public class OpenAiCompatibleChatClient
         log.debug("LLM ConnectionProvider disposed");
     }
 
+    private WebClient webClient() {
+        return webClient(properties.resolveBaseUrl());
+    }
+
+    private WebClient minimaxVisionWebClient() {
+        return webClient(properties.resolveMinimaxVlmBaseUrl());
+    }
+
+    private WebClient webClient(String baseUrl) {
+        String base = baseUrl;
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return WebClient.builder()
+                .baseUrl(base)
+                .clientConnector(clientConnector)
+                .exchangeStrategies(exchangeStrategies)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
     @Override
     public String completeRaw(ObjectNode requestBody, String apiKey) {
         for (int attempt = 0; ; attempt++) {
             try {
                 String body =
-                        webClient
+                        webClient()
                                 .post()
                                 .uri("/chat/completions")
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
@@ -140,7 +141,7 @@ public class OpenAiCompatibleChatClient
         for (int attempt = 0; ; attempt++) {
             try {
                 String body =
-                        webClient
+                        webClient()
                                 .post()
                                 .uri("/chat/completions")
                                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
@@ -253,7 +254,7 @@ public class OpenAiCompatibleChatClient
     }
 
     private Flux<String> streamEventLines(ObjectNode requestBody, String apiKey) {
-        return webClient
+        return webClient()
                 .post()
                 .uri("/chat/completions")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
@@ -299,7 +300,8 @@ public class OpenAiCompatibleChatClient
     }
 
     private boolean shouldUseMinimaxVision(ObjectNode requestBody) {
-        return minimaxProvider && !firstImageUrl(requestBody).isBlank();
+        return "minimax".equalsIgnoreCase(properties.getProvider())
+                && !firstImageUrl(requestBody).isBlank();
     }
 
     private String completeMinimaxVision(ObjectNode requestBody, String apiKey) {
@@ -323,7 +325,7 @@ public class OpenAiCompatibleChatClient
         vlmBody.put("image_url", imageUrl);
         try {
             String body =
-                    minimaxVisionWebClient
+                    minimaxVisionWebClient()
                             .post()
                             .uri("/coding_plan/vlm")
                             .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)

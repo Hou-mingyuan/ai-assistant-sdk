@@ -583,6 +583,11 @@
       :base-url-input="connectionBaseUrlInput"
       :token-input="connectionTokenInput"
       :persist-enabled="connectionPersistEnabled"
+      :provider-input="providerInput"
+      :provider-base-url-input="providerBaseUrlInput"
+      :provider-api-key-input="providerApiKeyInput"
+      :provider-model-input="providerModelInput"
+      :provider-allowed-models-input="providerAllowedModelsInput"
       :config-message="connectionConfigMessage"
       :is-dark="isDark"
       :t="t"
@@ -591,10 +596,16 @@
       @close="diagnosticsOpen = false"
       @test-config="testConnectionConfig"
       @save-config="saveConnectionConfig"
+      @save-provider-config="saveProviderConfig"
       @use-default-base-url="useDefaultBaseUrlForDiagnostics"
       @update:base-url-input="connectionBaseUrlInput = $event"
       @update:token-input="connectionTokenInput = $event"
       @update:persist-enabled="connectionPersistEnabled = $event"
+      @update:provider-input="providerInput = $event"
+      @update:provider-base-url-input="providerBaseUrlInput = $event"
+      @update:provider-api-key-input="providerApiKeyInput = $event"
+      @update:provider-model-input="providerModelInput = $event"
+      @update:provider-allowed-models-input="providerAllowedModelsInput = $event"
     />
 
     <!-- K34 (K21 Phase 2): 3 transient bottom-of-viewport popovers grouped
@@ -1068,6 +1079,11 @@ const {
   connectionTokenInput,
   connectionPersistEnabled,
   connectionConfigMessage,
+  providerInput,
+  providerBaseUrlInput,
+  providerApiKeyInput,
+  providerModelInput,
+  providerAllowedModelsInput,
   modelListMessage,
   diagnosticsModelEndpoint,
   diagnosticsTokenText,
@@ -1085,6 +1101,7 @@ const {
   handleSendBlockedAction,
   testConnectionConfig,
   saveConnectionConfig,
+  saveProviderConfig,
   copyDiagnostics,
   connectionBaseUrlStorageKey,
   connectionTokenStorageKey,

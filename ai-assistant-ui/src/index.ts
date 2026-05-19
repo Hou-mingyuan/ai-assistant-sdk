@@ -214,10 +214,13 @@ export {
   uploadFile,
   fetchUrlPreview,
   fetchModels,
+  fetchRuntimeModelConfig,
   fetchPromptTemplates,
   postServerExport,
+  saveRuntimeModelConfig,
 } from './utils/api';
 export type { ModelsListResult, PromptTemplateEntry, PromptTemplatesListResult } from './utils/api';
+export type { RuntimeModelConfigPayload, RuntimeModelConfigResult } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
 /* D3: Admin SDK — host-side admin dashboard helpers around /admin/* endpoints */

@@ -3,6 +3,7 @@ package com.aiassistant.service;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ public class ApiKeyRotator {
     private static final long INITIAL_COOLDOWN_MS = 1_000;
     private static final long MAX_COOLDOWN_MS = 30_000;
 
-    private final List<String> apiKeys;
+    private final Supplier<List<String>> apiKeySupplier;
     private final AtomicInteger keyIndex = new AtomicInteger(0);
     private final ConcurrentHashMap<String, KeyState> keyStates = new ConcurrentHashMap<>();
 
@@ -29,7 +30,19 @@ public class ApiKeyRotator {
         if (apiKeys == null || apiKeys.isEmpty()) {
             throw new IllegalArgumentException("At least one API key is required");
         }
-        this.apiKeys = List.copyOf(apiKeys);
+        List<String> copy = List.copyOf(apiKeys);
+        this.apiKeySupplier = () -> copy;
+    }
+
+    public ApiKeyRotator(Supplier<List<String>> apiKeySupplier) {
+        if (apiKeySupplier == null) {
+            throw new IllegalArgumentException("apiKeySupplier is required");
+        }
+        List<String> initial = sanitize(apiKeySupplier.get());
+        if (initial.isEmpty()) {
+            throw new IllegalArgumentException("At least one API key is required");
+        }
+        this.apiKeySupplier = () -> sanitize(apiKeySupplier.get());
     }
 
     /**
@@ -37,6 +50,7 @@ public class ApiKeyRotator {
      * cooldown, returns the one whose cooldown expires soonest.
      */
     public String nextKey() {
+        List<String> apiKeys = currentKeys();
         long now = System.currentTimeMillis();
         keyStates.entrySet().removeIf(e -> now >= e.getValue().cooldownUntil);
         int size = apiKeys.size();
@@ -78,14 +92,15 @@ public class ApiKeyRotator {
                 key.length() > 8
                         ? key.substring(0, 4) + "****" + key.substring(key.length() - 4)
                         : "****";
-        int active = apiKeys.size() - keyStates.size();
+        int keyCount = currentKeys().size();
+        int active = keyCount - keyStates.size();
         log.warn(
                 "api.key.cooldown key={} cooldown={}ms nextCooldown={}ms activeKeys={}/{}",
                 masked,
                 cooldownMs,
                 nextCooldownMs,
                 Math.max(0, active),
-                apiKeys.size());
+                keyCount);
     }
 
     /** Marks a key as succeeded, resetting its backoff state. */
@@ -94,6 +109,21 @@ public class ApiKeyRotator {
     }
 
     public int keyCount() {
-        return apiKeys.size();
+        return currentKeys().size();
+    }
+
+    private List<String> currentKeys() {
+        List<String> keys = apiKeySupplier.get();
+        if (keys.isEmpty()) {
+            throw new IllegalStateException("No API keys configured");
+        }
+        return keys;
+    }
+
+    private static List<String> sanitize(List<String> keys) {
+        if (keys == null) {
+            return List.of();
+        }
+        return keys.stream().filter(k -> k != null && !k.isBlank()).map(String::trim).toList();
     }
 }

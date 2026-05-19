@@ -104,7 +104,7 @@ public class LlmService {
             ConversationMemoryProvider memoryProvider,
             List<ChatInterceptor> interceptors,
             AuditEventStore auditEventStore) {
-        this.keyRotator = new ApiKeyRotator(properties.resolveApiKeys());
+        this.keyRotator = new ApiKeyRotator(properties::resolveApiKeys);
         this.llmCache = new LlmResponseCache();
         this.requestBuilder = new LlmRequestBuilder(properties, objectMapper, toolRegistry);
         this.responseParser = new OpenAiResponseParser(objectMapper);

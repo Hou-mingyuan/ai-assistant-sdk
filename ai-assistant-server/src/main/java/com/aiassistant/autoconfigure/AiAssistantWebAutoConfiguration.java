@@ -90,6 +90,20 @@ public class AiAssistantWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public com.aiassistant.config.RuntimeModelConfigService runtimeModelConfigService(
+            AiAssistantProperties properties) {
+        return new com.aiassistant.config.RuntimeModelConfigService(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.controller.RuntimeModelConfigController runtimeModelConfigController(
+            com.aiassistant.config.RuntimeModelConfigService runtimeModelConfigService) {
+        return new com.aiassistant.controller.RuntimeModelConfigController(runtimeModelConfigService);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public com.aiassistant.controller.PromptTemplateController promptTemplateController(
             com.aiassistant.prompt.PromptTemplateRegistry registry) {
         return new com.aiassistant.controller.PromptTemplateController(registry);

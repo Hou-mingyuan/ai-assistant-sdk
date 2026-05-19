@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class ApiKeyRotatorTest {
@@ -52,13 +53,27 @@ class ApiKeyRotatorTest {
     }
 
     @Test
+    void supplierBackedRotatorUsesLatestKeysWithoutRestart() {
+        AtomicReference<List<String>> keys = new AtomicReference<>(List.of("old-key"));
+        var rotator = new ApiKeyRotator(keys::get);
+
+        assertEquals("old-key", rotator.nextKey());
+
+        keys.set(List.of("new-key-a", "new-key-b"));
+
+        assertEquals(2, rotator.keyCount());
+        assertEquals("new-key-a", rotator.nextKey());
+        assertEquals("new-key-b", rotator.nextKey());
+    }
+
+    @Test
     void emptyKeysThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new ApiKeyRotator(List.of()));
     }
 
     @Test
     void nullKeysThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new ApiKeyRotator(null));
+        assertThrows(IllegalArgumentException.class, () -> new ApiKeyRotator((List<String>) null));
     }
 
     @Test

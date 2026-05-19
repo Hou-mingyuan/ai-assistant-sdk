@@ -28,6 +28,26 @@ export interface FetchModelsOptions {
 export type ChatResult = ApiSchemas['ChatResponse'];
 export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'];
 
+export interface RuntimeModelConfigResult {
+  success: boolean;
+  provider?: string;
+  baseUrl?: string;
+  model?: string;
+  allowedModels?: string[];
+  apiKeyConfigured?: boolean;
+  minimaxVlmBaseUrl?: string;
+  error?: string;
+}
+
+export interface RuntimeModelConfigPayload {
+  provider?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+  allowedModelsText?: string;
+  minimaxVlmBaseUrl?: string;
+}
+
 export interface UrlPreviewResult {
   success: boolean;
   imageUrl?: string;
@@ -269,6 +289,40 @@ export async function fetchModels(
   } finally {
     modelsInFlight.delete(cacheKey);
   }
+}
+
+export async function fetchRuntimeModelConfig(
+  baseUrl: string,
+  token?: string,
+): Promise<RuntimeModelConfigResult> {
+  const headers: Record<string, string> = {};
+  const normalizedToken = normalizeToken(token);
+  if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
+  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config'), {
+    headers,
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+  }
+  return res.json();
+}
+
+export async function saveRuntimeModelConfig(
+  baseUrl: string,
+  payload: RuntimeModelConfigPayload,
+  token?: string,
+): Promise<RuntimeModelConfigResult> {
+  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config'), {
+    method: 'POST',
+    headers: buildHeaders(token),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+  }
+  return res.json();
 }
 
 /** Fetch URL preview (title, summary, images) from the server. */
