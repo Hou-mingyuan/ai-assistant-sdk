@@ -130,6 +130,9 @@
               <button type="button" @click="applyProviderPreset('minimax')">MiniMax</button>
               <button type="button" @click="applyProviderPreset('openai')">OpenAI</button>
               <button type="button" @click="applyProviderPreset('deepseek')">DeepSeek</button>
+              <button type="button" :disabled="disabled" @click="$emit('discoverProviderModels')">
+                检测模型
+              </button>
             </div>
             <label class="ai-personalize-model-field">
               <span>Provider</span>
@@ -266,6 +269,7 @@ const emit = defineEmits<{
     value: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>,
   ): void;
   (e: 'saveProviderConfig'): void;
+  (e: 'discoverProviderModels'): void;
   (e: 'update:providerInput', value: string): void;
   (e: 'update:providerBaseUrlInput', value: string): void;
   (e: 'update:providerApiKeyInput', value: string): void;

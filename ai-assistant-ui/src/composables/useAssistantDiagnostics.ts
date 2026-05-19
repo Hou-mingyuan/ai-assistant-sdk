@@ -1,7 +1,12 @@
 import { computed, ref, type ComputedRef } from 'vue';
 import type { AiAssistantOptions } from '../index';
 import type { I18nMessages } from '../utils/i18n';
-import { fetchModels, fetchRuntimeModelConfig, saveRuntimeModelConfig } from '../utils/api';
+import {
+  discoverRuntimeProviderModels,
+  fetchModels,
+  fetchRuntimeModelConfig,
+  saveRuntimeModelConfig,
+} from '../utils/api';
 
 type ModelListStatus =
   | ''
@@ -286,6 +291,28 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     }
   }
 
+  async function discoverProviderModels() {
+    if (!options.baseUrl) return;
+    diagnosticsBusy.value = true;
+    try {
+      const result = await discoverRuntimeProviderModels(options.baseUrl, options.accessToken);
+      if (!result.success || !result.models?.length) {
+        modelListStatus.value = modelListStatusFromError(result.error);
+        modelListError.value = result.error || t.value.modelsListEmpty;
+        connectionConfigMessage.value = t.value.connectionConfigFailed;
+        return;
+      }
+      providerAllowedModelsInput.value = result.models.join(', ');
+      if (!providerModelInput.value && result.models[0]) {
+        providerModelInput.value = result.models[0];
+      }
+      connectionConfigMessage.value = t.value.connectionConfigTested;
+    } finally {
+      diagnosticsBusy.value = false;
+      diagnosticsLastChecked.value = new Date().toLocaleString();
+    }
+  }
+
   async function copyDiagnostics() {
     const lines = [
       'AI Assistant Diagnostics',
@@ -356,6 +383,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     testConnectionConfig,
     saveConnectionConfig,
     saveProviderConfig,
+    discoverProviderModels,
     copyDiagnostics,
     connectionBaseUrlStorageKey,
     connectionTokenStorageKey,

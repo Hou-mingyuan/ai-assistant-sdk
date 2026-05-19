@@ -325,6 +325,22 @@ export async function saveRuntimeModelConfig(
   return res.json();
 }
 
+export async function discoverRuntimeProviderModels(
+  baseUrl: string,
+  token?: string,
+): Promise<{ success: boolean; models?: string[]; error?: string }> {
+  const res = await fetch(apiUrl(baseUrl, '/runtime/model-config/discover-models'), {
+    method: 'POST',
+    headers: buildHeaders(token),
+    body: JSON.stringify({}),
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+  }
+  return res.json();
+}
+
 /** Fetch URL preview (title, summary, images) from the server. */
 export async function fetchUrlPreview(
   baseUrl: string,

@@ -29,4 +29,9 @@ public class RuntimeModelConfigController {
             @RequestBody RuntimeModelConfigService.UpdateRequest request) {
         return runtimeModelConfigService.update(request).toResponse();
     }
+
+    @PostMapping("/discover-models")
+    public Map<String, Object> discoverRuntimeProviderModels() {
+        return runtimeModelConfigService.discoverProviderModels();
+    }
 }

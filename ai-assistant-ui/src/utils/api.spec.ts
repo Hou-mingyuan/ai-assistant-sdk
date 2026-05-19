@@ -23,6 +23,7 @@ import {
   fetchPromptTemplates,
   fetchRuntimeModelConfig,
   saveRuntimeModelConfig,
+  discoverRuntimeProviderModels,
   __clearApiCachesForTests,
 } from './api';
 
@@ -247,6 +248,20 @@ describe('runtime model config', () => {
 
     expect(res.success).toBe(false);
     expect(res.error).toBe('HTTP 403: Forbidden');
+  });
+
+  it('discovers provider models through the backend runtime config endpoint', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, models: ['MiniMax-M2.5', 'MiniMax-M2.7'] }),
+    });
+
+    const res = await discoverRuntimeProviderModels('/ai', 'token');
+
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/runtime/model-config/discover-models');
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('token');
+    expect(res.models).toEqual(['MiniMax-M2.5', 'MiniMax-M2.7']);
   });
 });
 

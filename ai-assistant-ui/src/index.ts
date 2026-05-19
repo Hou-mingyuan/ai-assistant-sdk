@@ -214,6 +214,7 @@ export {
   uploadFile,
   fetchUrlPreview,
   fetchModels,
+  discoverRuntimeProviderModels,
   fetchRuntimeModelConfig,
   fetchPromptTemplates,
   postServerExport,

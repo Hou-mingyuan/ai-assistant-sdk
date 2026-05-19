@@ -11,8 +11,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Runtime-editable model provider configuration.
@@ -77,6 +80,34 @@ public class RuntimeModelConfigService {
                 next.getModel(),
                 next.getAllowedModels().size());
         return next;
+    }
+
+    public synchronized Map<String, Object> discoverProviderModels() {
+        List<String> keys = properties.resolveApiKeys();
+        if (keys.isEmpty()) {
+            return Map.of("success", false, "error", "No provider API key configured");
+        }
+        try {
+            String baseUrl = trimTrailingSlash(properties.resolveBaseUrl());
+            String body =
+                    WebClient.builder()
+                            .baseUrl(baseUrl)
+                            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + keys.get(0))
+                            .build()
+                            .get()
+                            .uri("/models")
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .block();
+            List<String> models = parseOpenAiCompatibleModels(body);
+            return Map.of("success", true, "models", models);
+        } catch (Exception e) {
+            return Map.of(
+                    "success",
+                    false,
+                    "error",
+                    e.getMessage() != null ? e.getMessage() : "Provider model discovery failed");
+        }
     }
 
     private static boolean hasText(String value) {
@@ -149,8 +180,7 @@ public class RuntimeModelConfigService {
         try {
             Files.createDirectories(storagePath.getParent());
             try (OutputStream out = Files.newOutputStream(storagePath)) {
-                persisted.store(
-                        out, "AI Assistant runtime model config (API key is not persisted)");
+                persisted.store(out, "AI Assistant runtime model config (API key is not persisted)");
             }
         } catch (IOException e) {
             log.warn("Runtime model config persist skipped: {}", e.getMessage());
@@ -164,10 +194,35 @@ public class RuntimeModelConfigService {
     }
 
     private static Path defaultStoragePath() {
-        return Paths.get(
-                System.getProperty("user.home"),
-                ".ai-assistant",
-                "runtime-model-config.properties");
+        return Paths.get(System.getProperty("user.home"), ".ai-assistant", "runtime-model-config.properties");
+    }
+
+    private List<String> parseOpenAiCompatibleModels(String json) throws IOException {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var root = mapper.readTree(json);
+        var data = root.path("data");
+        if (!data.isArray()) {
+            return List.of();
+        }
+        List<String> models = new ArrayList<>();
+        for (var item : data) {
+            String id = item.path("id").asText("");
+            if (!id.isBlank()) {
+                models.add(id);
+            }
+        }
+        return models.stream().distinct().collect(Collectors.toList());
+    }
+
+    private static String trimTrailingSlash(String value) {
+        String normalized = value == null ? "" : value.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 
     public static class UpdateRequest {

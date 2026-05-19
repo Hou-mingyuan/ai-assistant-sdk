@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Path;
 import java.util.List;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -59,5 +61,30 @@ class RuntimeModelConfigServiceTest {
         assertEquals("MiniMax-M2.7", second.resolveModel());
         assertEquals(List.of("MiniMax-M2.7", "MiniMax-M2"), second.listModelsForClient());
         assertEquals(List.of("env-key"), second.resolveApiKeys());
+    }
+
+    @Test
+    void discoverProviderModelsReadsOpenAiCompatibleModels(@TempDir Path tempDir) throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(
+                    new MockResponse()
+                            .setHeader("Content-Type", "application/json")
+                            .setBody(
+                                    """
+                                    {"data":[{"id":"MiniMax-M2.5"},{"id":"MiniMax-M2.7"}]}
+                                    """));
+            server.start();
+            AiAssistantProperties properties = new AiAssistantProperties();
+            properties.setApiKey("runtime-key");
+            properties.setBaseUrl(server.url("/v1").toString());
+            RuntimeModelConfigService service =
+                    new RuntimeModelConfigService(properties, tempDir.resolve("runtime.properties"));
+
+            var response = service.discoverProviderModels();
+
+            assertEquals(true, response.get("success"));
+            assertEquals(List.of("MiniMax-M2.5", "MiniMax-M2.7"), response.get("models"));
+            assertEquals("Bearer runtime-key", server.takeRequest().getHeader("Authorization"));
+        }
     }
 }

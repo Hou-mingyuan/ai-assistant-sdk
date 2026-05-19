@@ -491,6 +491,7 @@
       @update:theme="(v) => (themePalette = v as ThemePresetId)"
       @update:audio="onAudioPrefsUpdate"
       @save-provider-config="saveProviderConfig"
+      @discover-provider-models="discoverProviderModels"
       @update:provider-input="providerInput = $event"
       @update:provider-base-url-input="providerBaseUrlInput = $event"
       @update:provider-api-key-input="providerApiKeyInput = $event"
@@ -1102,6 +1103,7 @@ const {
   testConnectionConfig,
   saveConnectionConfig,
   saveProviderConfig,
+  discoverProviderModels,
   copyDiagnostics,
   connectionBaseUrlStorageKey,
   connectionTokenStorageKey,
