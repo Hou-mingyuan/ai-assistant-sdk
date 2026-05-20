@@ -360,6 +360,10 @@ export interface I18nMessages {
   responseMetaRetried?: string;
   /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
   settingsLabel: string;
+  /** Header settings menu common actions group label. */
+  headerSectionCommon: string;
+  /** Header settings menu management actions group label. */
+  headerSectionManage: string;
   /** E1: Keyboard shortcuts dialog title */
   kbdTitle: string;
   /** E1: Group headings */

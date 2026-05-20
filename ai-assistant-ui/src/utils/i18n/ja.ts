@@ -268,6 +268,8 @@ export const ja: I18nMessages = {
   responseMetaTtft: '初字',
   responseMetaRetried: '再試行済み',
   settingsLabel: '設定',
+  headerSectionCommon: 'よく使う',
+  headerSectionManage: '管理',
   kbdTitle: 'キーボードショートカット',
   kbdGroupGlobal: 'グローバル',
   kbdGroupInput: '入力欄',

@@ -65,7 +65,47 @@
           role="menu"
           @keydown="onSettingsMenuKeydown"
         >
-          <div class="ai-header-settings-section" role="group" :aria-label="t.settingsLabel">
+          <div class="ai-header-settings-section" role="group" :aria-label="commonSectionLabel">
+            <div class="ai-header-settings-section-title">{{ commonSectionLabel }}</div>
+            <button
+              type="button"
+              role="menuitem"
+              class="ai-header-settings-item ai-header-panel-toggle"
+              :aria-pressed="panelExpanded ? 'true' : 'false'"
+              @click="
+                settingsMenuOpen = false;
+                emit('toggle-panel-expand');
+              "
+            >
+              <svg
+                v-if="!panelExpanded"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="5" y="5" width="14" height="14" rx="2.5" />
+              </svg>
+              <svg
+                v-else
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="9" width="11" height="11" rx="2.25" />
+                <rect x="9" y="4" width="11" height="11" rx="2.25" />
+              </svg>
+              <span>{{ panelExpanded ? t.shrinkPanel : t.expandPanel }}</span>
+            </button>
             <button
               v-if="mode === 'chat' && showSystemPromptUi"
               type="button"
@@ -204,7 +244,8 @@
                 </button>
               </div>
             </div>
-            <div class="ai-header-settings-section" role="group" :aria-label="t.selectModeToggle">
+            <div class="ai-header-settings-section" role="group" :aria-label="manageSectionLabel">
+              <div class="ai-header-settings-section-title">{{ manageSectionLabel }}</div>
               <button
                 v-if="!loading"
                 type="button"
@@ -251,42 +292,6 @@
           </div>
         </div>
       </div>
-      <button
-        type="button"
-        class="ai-expand"
-        :title="panelExpanded ? t.shrinkPanel : t.expandPanel"
-        :aria-label="panelExpanded ? t.shrinkPanel : t.expandPanel"
-        :aria-pressed="panelExpanded ? 'true' : 'false'"
-        @click.stop="emit('toggle-panel-expand')"
-      >
-        <svg
-          v-if="!panelExpanded"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="5" y="5" width="14" height="14" rx="2.5" />
-        </svg>
-        <svg
-          v-else
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="4" y="9" width="11" height="11" rx="2.25" />
-          <rect x="9" y="4" width="11" height="11" rx="2.25" />
-        </svg>
-      </button>
       <button
         type="button"
         class="ai-close"
@@ -390,6 +395,8 @@ const themeToggleLabel = computed(() =>
     ? props.t.themeToggleToLight || 'Light mode'
     : props.t.themeToggleToDark || 'Dark mode',
 );
+const commonSectionLabel = computed(() => props.t.headerSectionCommon || 'Common');
+const manageSectionLabel = computed(() => props.t.headerSectionManage || 'Manage');
 
 /* D2: Settings menu (聚合 personalize + diagnostics 入口) */
 const settingsMenuOpen = ref(false);

@@ -265,6 +265,8 @@ export const ko: I18nMessages = {
   responseMetaTtft: '첫자',
   responseMetaRetried: '재시도됨',
   settingsLabel: '설정',
+  headerSectionCommon: '자주 사용',
+  headerSectionManage: '관리',
   kbdTitle: '키보드 단축키',
   kbdGroupGlobal: '전역',
   kbdGroupInput: '입력창',

@@ -256,6 +256,8 @@ export const zh: I18nMessages = {
   responseMetaTtft: '首字',
   responseMetaRetried: '已重试',
   settingsLabel: '设置',
+  headerSectionCommon: '常用',
+  headerSectionManage: '管理',
   kbdTitle: '键盘快捷键',
   kbdGroupGlobal: '全局',
   kbdGroupInput: '输入框',

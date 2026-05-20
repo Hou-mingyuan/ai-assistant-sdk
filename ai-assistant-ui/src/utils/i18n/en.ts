@@ -273,6 +273,8 @@ export const en: I18nMessages = {
   responseMetaTtft: 'TTFT',
   responseMetaRetried: 'Retried',
   settingsLabel: 'Settings',
+  headerSectionCommon: 'Common',
+  headerSectionManage: 'Manage',
   kbdTitle: 'Keyboard shortcuts',
   kbdGroupGlobal: 'Global',
   kbdGroupInput: 'Composer',
