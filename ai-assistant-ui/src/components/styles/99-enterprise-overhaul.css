@@ -5999,3 +5999,97 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Empty state task launcher ---------------------------------------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-task-toggle {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border: 1px solid var(--ai-color-border);
+  border-radius: var(--ai-radius-pill);
+  background: var(--ai-color-bg-elevated);
+  color: var(--ai-color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--ai-dur-fast) var(--ai-ease-out),
+    border-color var(--ai-dur-fast) var(--ai-ease-out),
+    transform var(--ai-dur-fast) var(--ai-ease-out);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-task-toggle:hover {
+  transform: translateY(-1px);
+  background: var(--ai-color-bg-hover);
+  border-color: var(--ai-color-border-strong);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-task-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 420px);
+  margin: 12px auto 0;
+  padding: 10px;
+  border: 1px solid var(--ai-color-border);
+  border-radius: var(--ai-radius-lg);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-task-panel {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-section
+  + .ai-empty-task-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ai-color-divider);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-section-title {
+  margin-bottom: 6px;
+  color: var(--ai-color-text-tertiary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: var(--ai-tracking-wide);
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-empty-skills,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-empty-starters,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-prompt-templates {
+  display: flex !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-empty-skills {
+  flex-wrap: wrap;
+  margin: 0 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-empty-starters {
+  flex-wrap: nowrap !important;
+  margin: 0 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-empty-task-panel
+  .ai-empty-capabilities {
+  margin-top: 0 !important;
+}

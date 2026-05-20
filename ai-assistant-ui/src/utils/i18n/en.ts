@@ -392,6 +392,11 @@ export const en: I18nMessages = {
   formFillTableTruncated:
     '{n} pasted row(s) skipped — form has no slot (configure onAddRow to grow)',
   skillStripLabel: 'Quick skills',
+  emptyTaskLauncher: 'Browse starter tasks',
+  emptyTaskLauncherClose: 'Hide starter tasks',
+  emptyStarterSection: 'Recommended tasks',
+  emptyCapabilitySection: 'Capabilities',
+  emptyTemplateSection: 'Templates',
   deepThinkLabel: 'Deep think',
   deepThinkOn: 'Deep think is ON — model will reason longer before replying',
   deepThinkOff: 'Turn on Deep think — let the model reason longer (off by default)',

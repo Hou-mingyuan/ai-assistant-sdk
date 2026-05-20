@@ -459,6 +459,12 @@ export interface I18nMessages {
    * inline fallback in template ("快捷技能" / "Quick skills").
    */
   skillStripLabel?: string;
+  /** Empty-state collapsed starter task launcher labels. */
+  emptyTaskLauncher?: string;
+  emptyTaskLauncherClose?: string;
+  emptyStarterSection?: string;
+  emptyCapabilitySection?: string;
+  emptyTemplateSection?: string;
   /**
    * Doubao-style quick-toggle row above input. The host can opt into
    * deep-think / web-search by listening to `toggleDeepThink` and
