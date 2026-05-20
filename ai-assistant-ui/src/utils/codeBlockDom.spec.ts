@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { findCodeElementForCodeActionTarget, getCodeLanguage } from './codeBlockDom';
+import {
+  findCodeElementForCodeActionTarget,
+  getCodeLanguage,
+  updateCodeFoldToggleState,
+} from './codeBlockDom';
 
 describe('codeBlockDom', () => {
   it('finds code for toolbar buttons rendered beside the pre element', () => {
@@ -37,5 +41,22 @@ describe('codeBlockDom', () => {
     const code = findCodeElementForCodeActionTarget(target as HTMLElement);
     expect(code?.textContent).toContain('console.log');
     expect(getCodeLanguage(code)).toBe('js');
+  });
+
+  it('syncs folded button text and accessible state', () => {
+    const button = document.createElement('button');
+    button.textContent = 'Fold';
+    button.setAttribute('aria-label', 'Fold');
+    button.setAttribute('aria-expanded', 'true');
+
+    updateCodeFoldToggleState(button, true, 'Fold', 'Unfold');
+    expect(button.textContent).toBe('Unfold');
+    expect(button.getAttribute('aria-label')).toBe('Unfold');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+
+    updateCodeFoldToggleState(button, false, 'Fold', 'Unfold');
+    expect(button.textContent).toBe('Fold');
+    expect(button.getAttribute('aria-label')).toBe('Fold');
+    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 });

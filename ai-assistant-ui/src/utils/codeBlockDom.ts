@@ -8,3 +8,15 @@ export function getCodeLanguage(codeEl: Element | null | undefined): string | un
   const cls = codeEl?.className || '';
   return cls.match(/language-([\w+-]+)/)?.[1];
 }
+
+export function updateCodeFoldToggleState(
+  button: HTMLElement,
+  isFolded: boolean,
+  foldLabel: string,
+  unfoldLabel: string,
+) {
+  const label = isFolded ? unfoldLabel : foldLabel;
+  button.setAttribute('aria-expanded', isFolded ? 'false' : 'true');
+  button.setAttribute('aria-label', label);
+  button.textContent = label;
+}

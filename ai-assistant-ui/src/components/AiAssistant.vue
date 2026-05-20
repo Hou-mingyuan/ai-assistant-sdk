@@ -804,7 +804,11 @@ import {
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed';
-import { findCodeElementForCodeActionTarget, getCodeLanguage } from '../utils/codeBlockDom';
+import {
+  findCodeElementForCodeActionTarget,
+  getCodeLanguage,
+  updateCodeFoldToggleState,
+} from '../utils/codeBlockDom';
 
 import { extractThinking, type Message } from '../types/message';
 
@@ -2657,8 +2661,12 @@ function handleBodyClick(e: MouseEvent) {
     const wrap = target.closest('.ai-code-wrap');
     if (wrap) {
       const isFolded = wrap.classList.toggle('ai-code-folded');
-      target.setAttribute('aria-expanded', isFolded ? 'false' : 'true');
-      target.textContent = isFolded ? t.value.codeUnfold || 'Unfold' : t.value.codeFold || 'Fold';
+      updateCodeFoldToggleState(
+        target,
+        isFolded,
+        t.value.codeFold || 'Fold',
+        t.value.codeUnfold || 'Unfold',
+      );
     }
     return;
   }
