@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findCodeElementForCodeActionTarget,
   getCodeLanguage,
+  updateCodeActionButtonLabel,
   updateCodeFoldToggleState,
 } from './codeBlockDom';
 
@@ -58,5 +59,15 @@ describe('codeBlockDom', () => {
     expect(button.textContent).toBe('Fold');
     expect(button.getAttribute('aria-label')).toBe('Fold');
     expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('syncs code action button text and accessible label', () => {
+    const button = document.createElement('button');
+    button.textContent = 'Copy';
+    button.setAttribute('aria-label', 'Copy');
+
+    updateCodeActionButtonLabel(button, 'Copied');
+    expect(button.textContent).toBe('Copied');
+    expect(button.getAttribute('aria-label')).toBe('Copied');
   });
 });

@@ -20,3 +20,8 @@ export function updateCodeFoldToggleState(
   button.setAttribute('aria-label', label);
   button.textContent = label;
 }
+
+export function updateCodeActionButtonLabel(button: HTMLElement, label: string) {
+  button.setAttribute('aria-label', label);
+  button.textContent = label;
+}

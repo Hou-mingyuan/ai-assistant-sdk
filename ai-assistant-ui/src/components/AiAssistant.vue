@@ -807,6 +807,7 @@ import {
 import {
   findCodeElementForCodeActionTarget,
   getCodeLanguage,
+  updateCodeActionButtonLabel,
   updateCodeFoldToggleState,
 } from '../utils/codeBlockDom';
 
@@ -2675,10 +2676,10 @@ function handleBodyClick(e: MouseEvent) {
     navigator.clipboard
       .writeText(code)
       .then(() => {
-        target.textContent = t.value.codeCopied;
+        updateCodeActionButtonLabel(target, t.value.codeCopied);
         pendingTimers.push(
           window.setTimeout(() => {
-            target.textContent = t.value.copyCode;
+            updateCodeActionButtonLabel(target, t.value.copyCode);
           }, 1500),
         );
       })
