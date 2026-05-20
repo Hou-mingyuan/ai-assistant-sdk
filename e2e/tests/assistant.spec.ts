@@ -267,10 +267,12 @@ test.describe('AI Assistant Widget', () => {
 
   test('expand button toggles fullscreen', async ({ page }) => {
     await page.click('.ai-fab')
-    await page.click('.ai-expand')
+    await page.click('.ai-header-settings')
+    await page.click('.ai-header-panel-toggle')
     const wrapper = page.locator('.ai-assistant-wrapper')
     await expect(wrapper).toHaveClass(/panel-expanded/)
-    await page.click('.ai-expand')
+    await page.click('.ai-header-settings')
+    await page.click('.ai-header-panel-toggle')
     await expect(wrapper).not.toHaveClass(/panel-expanded/)
   })
 
