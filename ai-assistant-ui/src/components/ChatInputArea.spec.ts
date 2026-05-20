@@ -222,6 +222,26 @@ describe('ChatInputArea (K44)', () => {
     });
   });
 
+  describe('Quick tool hierarchy', () => {
+    it('keeps reasoning and search toggles visible while markdown tools stay collapsed', async () => {
+      const w = mountInput({
+        mode: 'chat',
+        quickTogglesEnabled: true,
+        advancedToolsOpen: false,
+      });
+
+      expect(w.find('.ai-footer-quick-toggles').exists()).toBe(true);
+      expect(w.find('.ai-md-toolbar').exists()).toBe(false);
+
+      await w.find('.ai-quick-toggle-deepthink').trigger('click');
+      await w.find('.ai-quick-toggle-websearch').trigger('click');
+
+      expect(w.emitted('toggleDeepThink')?.at(-1)?.[0]).toBe(true);
+      expect(w.emitted('toggleWebSearch')?.at(-1)?.[0]).toBe(true);
+      w.unmount();
+    });
+  });
+
   describe('Markdown shortcuts', () => {
     it('Ctrl+B emits update:modelValue wrapping the textarea content', async () => {
       const w = mountInput({ modelValue: 'foo' });

@@ -57,7 +57,7 @@
     </button>
   </div>
   <div
-    v-if="advancedToolsOpen && quickTogglesEnabled && mode === 'chat'"
+    v-if="quickTogglesEnabled && mode === 'chat'"
     class="ai-footer-quick-toggles"
     role="group"
     :aria-label="t.skillStripLabel || '快捷工具'"
