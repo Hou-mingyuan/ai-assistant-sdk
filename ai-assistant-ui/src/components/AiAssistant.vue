@@ -808,6 +808,7 @@ import {
   findCodeElementForCodeActionTarget,
   getCodeLanguage,
   updateCodeActionButtonLabel,
+  updateCodeCopyFailureState,
   updateCodeFoldToggleState,
 } from '../utils/codeBlockDom';
 
@@ -2684,10 +2685,10 @@ function handleBodyClick(e: MouseEvent) {
         );
       })
       .catch(() => {
-        target.textContent = '⚠';
+        updateCodeCopyFailureState(target, t.value.diagnosticsCopyFailed || 'Copy failed');
         pendingTimers.push(
           window.setTimeout(() => {
-            target.textContent = t.value.copyCode;
+            updateCodeActionButtonLabel(target, t.value.copyCode);
           }, 1500),
         );
       });

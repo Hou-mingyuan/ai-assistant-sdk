@@ -25,3 +25,8 @@ export function updateCodeActionButtonLabel(button: HTMLElement, label: string) 
   button.setAttribute('aria-label', label);
   button.textContent = label;
 }
+
+export function updateCodeCopyFailureState(button: HTMLElement, failureLabel: string) {
+  button.setAttribute('aria-label', failureLabel);
+  button.textContent = '⚠';
+}
