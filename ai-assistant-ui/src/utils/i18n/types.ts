@@ -430,6 +430,8 @@ export interface I18nMessages {
   formFillLlmHint?: string;
   /** Master checkbox label in the dialog toolbar */
   formFillSelectAll?: string;
+  /** Row checkbox aria-label in the auto-fill preview — `{n}` = 1-based row number */
+  formFillSelectRowTemplate?: string;
   /** Table column headers */
   formFillColField?: string;
   formFillColCurrent?: string;

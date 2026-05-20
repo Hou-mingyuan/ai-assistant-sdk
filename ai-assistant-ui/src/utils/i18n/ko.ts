@@ -368,6 +368,7 @@ export const ko: I18nMessages = {
   formFillSummaryTemplate: '총 {total}개 중 {matched}개 필드 일치',
   formFillLlmHint: '일치하지 않는 항목이 있습니다. LLM 폴백을 켜면 더 똑똑하게 추론합니다.',
   formFillSelectAll: '일치 항목 모두 선택',
+  formFillSelectRowTemplate: '{n}번째 행 선택',
   formFillColField: '키 → 페이지 필드',
   formFillColCurrent: '현재 값',
   formFillColNew: '새 값',

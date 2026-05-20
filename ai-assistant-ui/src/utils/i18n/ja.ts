@@ -371,6 +371,7 @@ export const ja: I18nMessages = {
   formFillSummaryTemplate: '{total} 件中 {matched} 件のフィールドが一致しました',
   formFillLlmHint: '未マッチがあります。LLM フォールバックを有効にするとより賢く推測します。',
   formFillSelectAll: 'マッチ済みを全選択',
+  formFillSelectRowTemplate: '{n} 行目を選択',
   formFillColField: 'キー → ページのフィールド',
   formFillColCurrent: '現在の値',
   formFillColNew: '新しい値',

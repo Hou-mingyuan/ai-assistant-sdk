@@ -376,6 +376,7 @@ export const en: I18nMessages = {
   formFillSummaryTemplate: '{matched} of {total} pairs matched',
   formFillLlmHint: 'Some fields unmatched — enable LLM fallback for smarter guesses.',
   formFillSelectAll: 'Select all matched',
+  formFillSelectRowTemplate: 'Select row {n}',
   formFillColField: 'Pair key → page field',
   formFillColCurrent: 'Current value',
   formFillColNew: 'New value',

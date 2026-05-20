@@ -359,6 +359,7 @@ export const zh: I18nMessages = {
   formFillSummaryTemplate: '共 {total} 条键值对，已匹配 {matched} 条字段',
   formFillLlmHint: '存在未匹配项，可启用 LLM 兜底进行更智能的猜测。',
   formFillSelectAll: '全选已匹配项',
+  formFillSelectRowTemplate: '选择第 {n} 行',
   formFillColField: '字段（粘贴键 → 页面字段）',
   formFillColCurrent: '当前值',
   formFillColNew: '新值',

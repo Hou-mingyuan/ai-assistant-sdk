@@ -82,7 +82,7 @@
                       type="checkbox"
                       :checked="selectedIndices.has(idx)"
                       :disabled="!m.field"
-                      :aria-label="`select row ${idx + 1}`"
+                      :aria-label="rowCheckboxLabel(idx)"
                       @change="$emit('toggle', idx)"
                     />
                   </td>
@@ -245,6 +245,11 @@ function onToggleAll(e: Event) {
 
 function onPickField(pairIdx: number, fieldId: string) {
   emit('override', { pairIdx, fieldId: fieldId === '' ? null : fieldId });
+}
+
+function rowCheckboxLabel(idx: number): string {
+  const tpl = props.t.formFillSelectRowTemplate || 'Select row {n}';
+  return tpl.replace('{n}', String(idx + 1));
 }
 
 function isFieldUsedElsewhere(fieldId: string, currentPairIdx: number): boolean {
