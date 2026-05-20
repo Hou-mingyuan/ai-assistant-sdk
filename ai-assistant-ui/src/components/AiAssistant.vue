@@ -271,7 +271,7 @@
             v-if="showScrollToBottomBtn && !loading"
             type="button"
             class="ai-scroll-bottom-btn"
-            :aria-label="'↓'"
+            :aria-label="t.scrollToBottom"
             @click="scrollToBottomClick"
           >
             <svg

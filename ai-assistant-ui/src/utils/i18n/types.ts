@@ -40,6 +40,8 @@ export interface I18nMessages {
   shrinkPanel: string;
   /** 右下角：拖拽调整面板大小 */
   resizePanel: string;
+  /** 消息区：滚动到底部按钮 */
+  scrollToBottom: string;
   /** 助手气泡：链接预览自动插图前的说明 */
   urlPreviewImagesNote: string;
   /** 悬浮球 aria-label */

@@ -33,6 +33,7 @@ export const zh: I18nMessages = {
   expandPanel: '全屏',
   shrinkPanel: '退出全屏',
   resizePanel: '拖动右下角调整大小',
+  scrollToBottom: '滚动到底部',
   urlPreviewImagesNote: '以下图片来自链接页面的自动提取，仅作对照参考，未经模型排序或验证。',
   fabOpen: '打开 AI 助手',
   export: '导出',

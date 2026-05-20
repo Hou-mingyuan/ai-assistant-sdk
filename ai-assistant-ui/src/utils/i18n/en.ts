@@ -36,6 +36,7 @@ export const en: I18nMessages = {
   expandPanel: 'Fullscreen',
   shrinkPanel: 'Exit fullscreen',
   resizePanel: 'Drag to resize',
+  scrollToBottom: 'Scroll to bottom',
   urlPreviewImagesNote:
     'The images below were automatically extracted from the linked page for visual reference only; they are not ranked or verified by the model.',
   fabOpen: 'Open AI Assistant',

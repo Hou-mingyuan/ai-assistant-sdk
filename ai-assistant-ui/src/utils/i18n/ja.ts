@@ -31,6 +31,7 @@ export const ja: I18nMessages = {
   expandPanel: '全画面',
   shrinkPanel: '全画面解除',
   resizePanel: 'ドラッグしてリサイズ',
+  scrollToBottom: '一番下へスクロール',
   urlPreviewImagesNote:
     '以下の画像はリンクページから自動抽出されたもので、参考用です。モデルによる検証はされていません。',
   fabOpen: 'AIアシスタントを開く',

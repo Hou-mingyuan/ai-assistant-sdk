@@ -31,6 +31,7 @@ export const ko: I18nMessages = {
   expandPanel: '전체화면',
   shrinkPanel: '전체화면 해제',
   resizePanel: '드래그하여 크기 조절',
+  scrollToBottom: '맨 아래로 스크롤',
   urlPreviewImagesNote:
     '아래 이미지는 링크된 페이지에서 자동 추출된 것으로 참고용입니다. 모델의 검증을 거치지 않았습니다.',
   fabOpen: 'AI 어시스턴트 열기',
