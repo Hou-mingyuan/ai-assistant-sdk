@@ -264,6 +264,8 @@ export const ko: I18nMessages = {
   responseMetaElapsed: '소요',
   responseMetaTtft: '첫자',
   responseMetaRetried: '재시도됨',
+  responseMetaMoreLabel: '자세히 보기',
+  responseMetaHideLabel: '자세히 접기',
   settingsLabel: '설정',
   headerSectionCommon: '자주 사용',
   headerSectionManage: '관리',

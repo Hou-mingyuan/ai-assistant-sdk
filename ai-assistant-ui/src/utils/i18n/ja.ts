@@ -267,6 +267,8 @@ export const ja: I18nMessages = {
   responseMetaElapsed: '所要時間',
   responseMetaTtft: '初字',
   responseMetaRetried: '再試行済み',
+  responseMetaMoreLabel: '詳細を表示',
+  responseMetaHideLabel: '詳細を閉じる',
   settingsLabel: '設定',
   headerSectionCommon: 'よく使う',
   headerSectionManage: '管理',

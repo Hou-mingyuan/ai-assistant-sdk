@@ -358,6 +358,9 @@ export interface I18nMessages {
   responseMetaElapsed?: string;
   responseMetaTtft?: string;
   responseMetaRetried?: string;
+  /** Labels for the collapsible "more details" toggle that hides secondary meta pills by default. */
+  responseMetaMoreLabel?: string;
+  responseMetaHideLabel?: string;
   /** D2: 设置齿轮按钮 tooltip，例如 "设置" / "Settings" */
   settingsLabel: string;
   /** Header settings menu common actions group label. */

@@ -416,24 +416,52 @@
         <span v-if="runtimeModelLabel(msg)" class="ai-msg-meta-pill">
           {{ t.responseMetaEffectiveModel || 'Actual' }} {{ runtimeModelLabel(msg) }}
         </span>
-        <span v-if="msg.meta.visionInputCount" class="ai-msg-meta-pill">
-          {{ t.responseMetaVision || 'Vision' }} {{ msg.meta.visionInputCount }}
-        </span>
-        <span v-if="msg.meta.visionRoute" class="ai-msg-meta-pill">
-          {{ t.responseMetaVisionRoute || 'Vision route' }} {{ msg.meta.visionRoute }}
-        </span>
         <span v-if="msg.meta.fallback" class="ai-msg-meta-pill">
           {{ t.responseMetaFallback || 'Model switched' }}
         </span>
         <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
           {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
         </span>
-        <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
-          {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
-        </span>
-        <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
-          {{ t.responseMetaRetried || 'Retried' }}
-        </span>
+        <button
+          v-if="hasSecondaryMeta(msg.meta)"
+          type="button"
+          class="ai-msg-meta-toggle"
+          :aria-expanded="
+            isMetaDetailsExpanded(displayOffset + renderedStart + idx) ? 'true' : 'false'
+          "
+          :aria-label="
+            isMetaDetailsExpanded(displayOffset + renderedStart + idx)
+              ? t.responseMetaHideLabel || 'Hide details'
+              : t.responseMetaMoreLabel || 'More details'
+          "
+          :title="
+            isMetaDetailsExpanded(displayOffset + renderedStart + idx)
+              ? t.responseMetaHideLabel || 'Hide details'
+              : t.responseMetaMoreLabel || 'More details'
+          "
+          @click="toggleMetaDetails(displayOffset + renderedStart + idx)"
+        >
+          ⋯
+        </button>
+        <div
+          v-if="
+            hasSecondaryMeta(msg.meta) && isMetaDetailsExpanded(displayOffset + renderedStart + idx)
+          "
+          class="ai-msg-meta-secondary"
+        >
+          <span v-if="msg.meta.visionInputCount" class="ai-msg-meta-pill">
+            {{ t.responseMetaVision || 'Vision' }} {{ msg.meta.visionInputCount }}
+          </span>
+          <span v-if="msg.meta.visionRoute" class="ai-msg-meta-pill">
+            {{ t.responseMetaVisionRoute || 'Vision route' }} {{ msg.meta.visionRoute }}
+          </span>
+          <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
+            {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
+          </span>
+          <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
+            {{ t.responseMetaRetried || 'Retried' }}
+          </span>
+        </div>
       </div>
     </div>
     <!-- K24: extended reactions row. Distinct from .ai-msg-actions above which
@@ -492,6 +520,32 @@ function runtimeModelLabel(msg: Message) {
   if (!effective) return '';
   const selected = msg.meta?.model?.trim() || msg.meta?.requestedModel?.trim();
   return selected && selected === effective ? '' : effective;
+}
+
+function hasSecondaryMeta(meta: Message['meta']): boolean {
+  if (!meta) return false;
+  return (
+    (typeof meta.visionInputCount === 'number' && meta.visionInputCount > 0) ||
+    Boolean(meta.visionRoute) ||
+    typeof meta.ttftMs === 'number' ||
+    Boolean(meta.retried)
+  );
+}
+
+const expandedMetaDetails = ref<Set<number>>(new Set());
+
+function isMetaDetailsExpanded(globalIdx: number): boolean {
+  return expandedMetaDetails.value.has(globalIdx);
+}
+
+function toggleMetaDetails(globalIdx: number) {
+  const next = new Set(expandedMetaDetails.value);
+  if (next.has(globalIdx)) {
+    next.delete(globalIdx);
+  } else {
+    next.add(globalIdx);
+  }
+  expandedMetaDetails.value = next;
 }
 
 function streamStageText(globalIdx: number, msg: Message) {

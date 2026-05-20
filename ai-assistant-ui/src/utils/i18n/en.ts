@@ -272,6 +272,8 @@ export const en: I18nMessages = {
   responseMetaElapsed: 'Elapsed',
   responseMetaTtft: 'TTFT',
   responseMetaRetried: 'Retried',
+  responseMetaMoreLabel: 'More details',
+  responseMetaHideLabel: 'Hide details',
   settingsLabel: 'Settings',
   headerSectionCommon: 'Common',
   headerSectionManage: 'Manage',

@@ -255,6 +255,8 @@ export const zh: I18nMessages = {
   responseMetaElapsed: '耗时',
   responseMetaTtft: '首字',
   responseMetaRetried: '已重试',
+  responseMetaMoreLabel: '更多详情',
+  responseMetaHideLabel: '收起详情',
   settingsLabel: '设置',
   headerSectionCommon: '常用',
   headerSectionManage: '管理',

@@ -23,7 +23,7 @@ describe('MessageList image thumbnails', () => {
 });
 
 describe('MessageList assistant metadata', () => {
-  it('renders latency metadata without repeating the selected model below the bubble', () => {
+  it('renders primary latency pill but defers TTFT behind a details toggle', async () => {
     const wrapper = mountList([
       {
         role: 'assistant',
@@ -49,11 +49,19 @@ describe('MessageList assistant metadata', () => {
     expect(meta.exists()).toBe(true);
     expect(wrapper.find('.ai-msg-time').text()).toBe('now');
     expect(meta.text()).not.toContain('qwen-max');
-    expect(meta.text()).toContain('1.2s');
+    expect(meta.text()).toContain('Elapsed 1.2s');
+    expect(meta.text()).not.toContain('TTFT');
+
+    const toggle = wrapper.find('.ai-msg-meta-toggle');
+    expect(toggle.exists()).toBe(true);
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+
+    await toggle.trigger('click');
+    expect(toggle.attributes('aria-expanded')).toBe('true');
     expect(meta.text()).toContain('TTFT 0.3s');
   });
 
-  it('shows effective model only when runtime routing differs from selected model', () => {
+  it('keeps Actual model and Model switched primary while hiding vision details by default', async () => {
     const wrapper = mountList([
       {
         role: 'assistant',
@@ -71,9 +79,30 @@ describe('MessageList assistant metadata', () => {
 
     const meta = wrapper.find('.ai-msg-meta');
     expect(meta.text()).toContain('Actual model MiniMax-M2.5');
+    expect(meta.text()).toContain('Model switched');
+    expect(meta.text()).not.toContain('Vision images');
+    expect(meta.text()).not.toContain('Vision route');
+
+    await wrapper.find('.ai-msg-meta-toggle').trigger('click');
     expect(meta.text()).toContain('Vision images 1');
     expect(meta.text()).toContain('Vision route minimax-vlm');
-    expect(meta.text()).toContain('Model switched');
+  });
+
+  it('omits the details toggle when no secondary meta is present', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'hello',
+        timestamp: Date.now(),
+        meta: {
+          model: 'qwen-max',
+          elapsedMs: 1234,
+        },
+      },
+    ]);
+
+    expect(wrapper.find('.ai-msg-meta').exists()).toBe(true);
+    expect(wrapper.find('.ai-msg-meta-toggle').exists()).toBe(false);
   });
 });
 
