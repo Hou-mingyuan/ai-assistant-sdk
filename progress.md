@@ -459,3 +459,125 @@ release）真正闭环、落地，并补 a11y 兜底。
 ### 累计 24 commit（D + E + F + G + H 簇）
 
 完整时间线见 git log；CHANGELOG.md 已由 E3 generate-changelog.mjs 自动维护。
+
+---
+
+## 2026-05-20 第六轮：深度分析后的按序整改
+
+### 本轮启动
+
+用户要求对 `D:\project-hub\ai-assistant-sdk` 深度分析后“按顺序全部”开始整改。
+
+已确认顺序：
+1. 继续拆分 `AiAssistant.vue`，先抽批量导出编排。
+2. 统一 `/stream` 与 `/sse` 的协议定位。
+3. 增加生产安全基线检查或启动告警。
+4. 梳理 `@ai-assistant/vue` 公共 API 分层。
+
+### 当前阶段 13.1
+
+状态：已完成。
+
+目标：
+- 检查后发现批量导出主体已经由 `useExportActions.ts` 承接。
+- 当前阶段调整为：在不改变用户行为的前提下，把 `AiAssistant.vue` 中剩余的批量选择/删除状态与方法迁移到 `useMessageSelection.ts`。
+- 补充聚焦单测，验证选择模式切换、索引选择、降序删除和无效索引处理。
+
+约束：
+- 本轮不自动执行 npm build/test、Maven 构建或 git commit。
+- 如需执行静态检查命令，会先征得用户确认。
+
+### 阶段 13.1 结果
+
+新增：
+- `ai-assistant-ui/src/composables/useMessageSelection.ts`
+- `ai-assistant-ui/src/composables/useMessageSelection.spec.ts`
+
+修改：
+- `ai-assistant-ui/src/components/AiAssistant.vue`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+验证：
+- `ReadLints` 对新增 composable、spec、`AiAssistant.vue` 和规划文件无诊断。
+- 经用户允许运行 `npm test -- useMessageSelection.spec.ts`。
+- 结果：1 个测试文件通过，4 个测试通过。
+
+### 当前阶段 13.2
+
+状态：已完成。
+
+目标：
+- 梳理 `/stream` 与 `/sse` 的真实使用关系。
+- 明确兼容主通道和标准 SSE 通道边界。
+- 优先通过文档或小范围代码复用减少后续分叉风险。
+
+### 阶段 13.2 结果
+
+修改：
+- `ai-assistant-server/src/main/java/com/aiassistant/controller/AiAssistantController.java`
+- `ai-assistant-server/src/main/java/com/aiassistant/controller/SseStreamController.java`
+- `docs/api/chat.md`
+- `docs/api/reference.md`
+- `docs/guide/architecture.md`
+- `docs/guide/sequence-diagrams.md`
+- `README.md`
+- `ai-assistant-service/README.md`
+
+结论：
+- `/stream` 定位为兼容流式端点，是官方 UI、Java Client 和 E2E 当前默认入口。
+- `/sse` 定位为标准化 SSE 端点，提供 `event: message` / `event: done` / `event: error`。
+- 本阶段不改运行逻辑，降低回归风险。
+
+验证：
+- `ReadLints` 对相关 Java/Markdown 文件无诊断。
+
+### 当前阶段 13.3
+
+状态：已完成。
+
+目标：
+- 增加生产安全基线检查脚本或等价护栏。
+- 优先覆盖空 token、宽 CORS、query token、SSRF 关闭、高风险能力开启等危险配置。
+
+### 阶段 13.3 结果
+
+新增：
+- `scripts/production-config-lint.mjs`
+- `scripts/production-config-lint.test.mjs`
+
+修改：
+- `scripts/project-health-check.mjs`
+- `docs/guide/production-checklist.md`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `ReadLints` 对相关文件无诊断。
+- `node --test scripts/production-config-lint.test.mjs`：5 个测试全部通过。
+- `node scripts/production-config-lint.mjs --strict --file docker-compose.prod.yml`：无问题。
+
+### 当前阶段 13.4
+
+状态：已完成。
+
+目标：
+- 梳理 `@ai-assistant/vue` 公共导出面。
+- 先通过文档和注释分层稳定 API / 可选高级能力 / 实验性工具，不删除现有导出。
+
+### 阶段 13.4 结果
+
+修改：
+- `docs/guide/frontend-recipes.md`
+- `ai-assistant-ui/src/index.ts`
+- `task_plan.md`
+- `progress.md`
+
+结论：
+- 将公共导出分为主接入层、后端 API helper、管理与扩展层、UI 工具层、低层算法/实验层。
+- 在 `index.ts` 导出区增加维护提示，约束后续内部 refactor 不默认 re-export。
+- 未删除任何现有导出，保持下游兼容。
+
+验证：
+- `ReadLints` 对相关文件无诊断。

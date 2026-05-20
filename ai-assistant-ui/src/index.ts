@@ -206,6 +206,13 @@ export default {
 };
 
 export { AiAssistant };
+/* Public API surface policy:
+ * - Core integration exports (AiAssistant, useAiAssistant, API helpers, WC entry)
+ *   are the stable surface used by most host apps.
+ * - Admin/MCP/plugin/composable utilities below are intentionally exported for
+ *   advanced hosts, but new internal refactors should NOT be re-exported by
+ *   default. Promote a helper here only when a host can use it independently
+ *   without depending on AiAssistant.vue internals. */
 export { useAiAssistant } from './composables/useAiAssistant';
 export { useSessionSearch, highlightSearchInHtml } from './composables/useSessionSearch';
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer';

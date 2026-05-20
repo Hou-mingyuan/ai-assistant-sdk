@@ -131,10 +131,10 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as 浏览器<br/>(EventSource)
+    actor User as 浏览器<br/>(fetch + ReadableStream)
     participant SseFilter as SseCompressionFilter
     participant Filter as Filter 链<br/>(其它)
-    participant Ctrl as SseStreamController
+    participant Ctrl as AiAssistantController
     participant Llm as LlmService
     participant Stream as StreamingLlmCallExecutor
     participant Loop as StreamingToolCallingLoop
@@ -168,7 +168,7 @@ sequenceDiagram
 
         Llm-->>Ctrl: SSE event
         Ctrl->>Compress: 写入 gzip 包装的 EventStreamWriter
-        Compress-->>User: data: {"content":"片段"}\n\n
+        Compress-->>User: data: 片段\n\n
         Note over User: useSendStream.ts 收到 chunk:<br/>① 解析 SSE event<br/>② 累积 assistant.content<br/>③ markdown 流式无高亮渲染<br/>④ 更新 streamingNowMs（1Hz tick）
     end
 
@@ -183,10 +183,11 @@ sequenceDiagram
 ```
 
 **关键设计**：
+- **端点定位**：官方 UI 和 Java Client 使用 `/stream` 兼容端点；需要 `event: message/done/error` 的自定义客户端可改用 `/sse`
 - **Gzip 压缩**：`SseCompressionFilter` 把 `text/event-stream` 包装成 `Content-Encoding: gzip`，单条对话节省 50%+ 带宽
 - **Tool calling loop**：流式过程中若 LLM 返回 `tool_calls`，自动执行工具并再次发起 LLM 请求；与同步 `/chat` 共用 `ToolCallingLoop` 抽象
 - **心跳**：默认每 30s 发 `: keepalive\n\n` 注释帧，防止反代/Cloudflare 超时关闭
-- **取消**：浏览器关闭 EventSource 时，`useSendStream.ts` 在 useEffect 清理中调用 `abortController.abort()`；服务端 `Flux.takeUntilOther` 感知 cancel 并停止上游 LLM 请求
+- **取消**：前端持有 `AbortController`，用户停止生成或组件卸载时中止 `fetch()` 读取；服务端 `Flux` 取消后停止继续向客户端写入
 
 **前端处理**（`composables/useSendStream.ts`）：
 - TTFT 测量：从 `streamStartedAt` 到首 chunk 的间隔显示在 progress chip

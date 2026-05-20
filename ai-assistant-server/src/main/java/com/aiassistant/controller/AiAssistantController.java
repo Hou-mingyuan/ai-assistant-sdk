@@ -129,8 +129,10 @@ public class AiAssistantController {
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Streaming chat / translate / summarize (SSE)",
             description =
-                    "Same logic as `/chat` but returns an SSE text/event-stream. "
-                            + "Each event carries a partial LLM token.")
+                    "`/stream` is the compatibility streaming endpoint used by the official UI "
+                            + "and Java client. It returns unnamed SSE data frames where each "
+                            + "`data:` value is a partial LLM token. Use `/sse` when consumers "
+                            + "need typed `message` / `done` / `error` events.")
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "200",

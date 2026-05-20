@@ -217,6 +217,20 @@ Web Component 适合 React、Vue 2、Angular、原生 HTML 或低代码平台：
 
 常用属性和 Vue 配置基本一一对应，只是命名从 camelCase 变成 kebab-case，例如 `baseUrl` 对应 `base-url`，`accessToken` 对应 `access-token`。
 
+## 公共 API 分层
+
+`@ai-assistant/vue` 的主入口导出较多。为避免下游误把所有工具都当成同等稳定的核心 API，建议按下面的层级使用：
+
+| 层级 | 适合使用者 | 典型导出 | 稳定性建议 |
+| --- | --- | --- | --- |
+| 主接入层 | 绝大多数业务前端 | 默认插件、`AiAssistant`、`useAiAssistant`、`@ai-assistant/vue/dist/style.css`、`@ai-assistant/vue/wc` | 最稳定，文档和 README 示例优先使用这一层。 |
+| 后端 API helper | 需要自定义 UI，但复用官方后端协议的宿主 | `postServerExport`、`fetchModels`、`fetchUrlPreview`、`fetchRuntimeModelConfig`、`ChatPayload`、`ChatResult` | 稳定，但应跟后端版本一起升级。 |
+| 管理与扩展层 | 自建管理台、插件系统、MCP 集成 | `adminApi` 相关方法、`usePluginRegistry`、`useMcpClient`、`useMcpAutoPlugin`、`useMcpStream` | 面向高级集成，生产环境必须配合 admin token、网关和权限边界。 |
+| UI 工具层 | 需要复用局部交互能力的高级宿主 | `useMultiSession`、`useTextToSpeech`、`usePromptTemplateLibrary`、`useMessageVirtualScroll`、`useCommandPalette` | 尽量保持兼容，但更容易随组件内部演进调整。 |
+| 低层算法 / 实验层 | 想复用具体算法或自行组装能力的宿主 | `diffLines`、`useIdleScheduler`、`useRafBatch`、`useMarkdownWorker`、`formAutoFill` parser / matcher / filler | 可以使用，但建议锁定版本并先写宿主侧适配测试。 |
+
+新增对外导出时，优先判断它属于哪一层：如果只是 `AiAssistant.vue` 内部拆分出来的实现细节，不要默认从主入口 re-export；只有宿主项目确实需要独立复用时再公开。
+
 ## 常见踩坑
 
 - 出现两个悬浮球：同时开启了 `autoMountToBody`，又在模板中写了 `<AiAssistant />`。

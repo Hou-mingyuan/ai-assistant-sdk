@@ -138,6 +138,7 @@ GET  http://localhost:8080/actuator/health
 GET  http://localhost:8080/ai-assistant/health
 POST http://localhost:8080/ai-assistant/chat
 POST http://localhost:8080/ai-assistant/stream
+POST http://localhost:8080/ai-assistant/sse
 POST http://localhost:8080/ai-assistant/export
 ```
 

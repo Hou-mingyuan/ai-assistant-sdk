@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 /**
- * Standardized SSE streaming endpoint with proper event types.
+ * Standardized {@code /sse} streaming endpoint with proper event types.
  *
  * <pre>
  * Event types:

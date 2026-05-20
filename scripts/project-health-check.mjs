@@ -17,6 +17,8 @@ const runBundleSize = args.has('--bundle') || args.has('--all')
 const runCoverage = args.has('--coverage') || args.has('--all')
 /* K1: 多实例配置 lint：扫 .env / compose / helm 检查 in-process state 与 replicas>1 冲突 */
 const runMultiReplica = args.has('--multi-replica') || args.has('--all')
+/* K58: 生产安全基线 lint：检查 token/CORS/SSRF/Admin/MCP 等高风险配置 */
+const runProdConfig = args.has('--prod-config') || args.has('--all')
 /* K2: SSRF allowlist policy 单元测试（轻量，复用 ai-assistant-server JUnit） */
 const runSsrfTest = args.has('--ssrf') || args.has('--all')
 
@@ -122,6 +124,16 @@ if (runMultiReplica) {
   })
 }
 
+if (runProdConfig) {
+  const strictFlag = args.has('--strict') ? ['--strict'] : []
+  checks.push({
+    name: 'production config lint',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/production-config-lint.mjs'), ...strictFlag],
+    cwd: root,
+  })
+}
+
 if (runSsrfTest) {
   /* K2: 仅跑 SSRF 相关单测，避免完整 mvn test 几分钟级耗时 */
   checks.push({
@@ -169,10 +181,11 @@ if (
   !runBundleSize &&
   !runCoverage &&
   !runMultiReplica &&
+  !runProdConfig &&
   !runSsrfTest
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --ssrf, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, or --all to run more checks.',
   )
 }
 

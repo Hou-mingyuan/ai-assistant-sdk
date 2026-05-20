@@ -262,3 +262,30 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 没有破坏现有 6 个预先存在的 vue-tsc 类型错误（pre-existing，与本轮无关）。
 - 没有动后端代码（仅 audit 后端 controller 端点结构）。
 - 没有 commit / push，保持工作区干净待审阅。
+
+---
+
+## 2026-05-20 第六轮启动发现
+
+### 深度分析结论
+
+`ai-assistant-sdk` 已经是完整的多模块 SDK：Spring Boot Starter、独立服务、Java Client、Vue 组件库、Web Component、文档站、E2E、Docker/Helm 和 CI 均已具备。当前主要风险不在功能缺失，而在能力面扩大后的维护复杂度。
+
+### 按序整改判断
+
+1. `AiAssistant.vue` 仍是前端复杂度最高的聚合点，且已有 `ai-assistant-ui/REFACTORING_PLAN.md` 指向继续拆分，适合作为第一阶段。
+2. `/stream` 与 `/sse` 并存，当前前端与 Java client 主要依赖 `/stream`，后续应明确兼容层与标准 SSE 层边界。
+3. 生产安全依赖使用方正确配置：空 `access-token`、`allowed-origins=*`、URL fetch、Admin/MCP/Connector 等应形成可执行检查或启动强告警。
+4. `@ai-assistant/vue` 公共导出面较大，后续应区分稳定 API 与实验性工具。
+
+### 阶段 13.1 细化发现
+
+- 批量导出主体已经抽到 `ai-assistant-ui/src/composables/useExportActions.ts`，包括菜单开关、JSON/Markdown 全量导出、server export 和单条 assistant 消息导出。
+- `AiAssistant.vue` 中仍保留批量选择/删除状态：`selectMode`、`selectedMsgIndices`、`toggleSelectMode`、`toggleMsgSelection`、`deleteSelectedMessages`。
+- 因此第一阶段实际拆分目标调整为 `useMessageSelection.ts`，避免重复创建 `useBatchExport.ts`。
+
+### 阶段 13.4 公共 API 分层发现
+
+- `@ai-assistant/vue` 主入口同时导出了主组件、API helper、Admin SDK、MCP、插件、虚拟滚动、TTS、Prompt 模板、表单自动填充和多个低层算法工具。
+- 这些导出的稳定性不应等同看待；主接入层最稳定，低层算法 / 实验工具适合高级宿主锁版本使用。
+- 本轮选择只补文档和导出区维护提示，不移除导出，避免破坏已集成用户。

@@ -100,6 +100,18 @@
 ## 上线前验证
 
 - [ ] `docker compose -f docker-compose.prod.yml config` 通过。
+- [ ] 生产配置安全基线检查通过：
+
+```bash
+node scripts/production-config-lint.mjs --strict --file .env
+```
+
+- [ ] 如需把该检查串入统一健康检查，已运行：
+
+```bash
+node scripts/project-health-check.mjs --prod-config --strict
+```
+
 - [ ] 容器启动后执行烟测：
 
 ```bash

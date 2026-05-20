@@ -763,6 +763,7 @@ import type { Locale, I18nMessages } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
+import { useMessageSelection } from '../composables/useMessageSelection';
 import { useSendStream } from '../composables/useSendStream';
 import {
   isAbortCancellationMessage,
@@ -1152,8 +1153,16 @@ useImageLightbox({
 });
 const codeWallCanvasRef = ref<HTMLCanvasElement>();
 const fileUploading = ref(false);
-const selectMode = ref(false);
-const selectedMsgIndices = ref<Set<number>>(new Set());
+const {
+  selectMode,
+  selectedMsgIndices,
+  toggleSelectMode,
+  toggleMsgSelection,
+  deleteSelectedMessages,
+} = useMessageSelection({
+  messages,
+  clearRenderCache,
+});
 const {
   dragActive,
   pendingImageDataList,
@@ -2517,31 +2526,6 @@ function forkFromHere(index: number) {
 function saveCurrentSessionToMulti() {
   multiSessions.updateActiveMessages(JSON.parse(JSON.stringify(messages.value)));
   if (sessionTitle.value) multiSessions.updateActiveTitle(sessionTitle.value);
-}
-
-function toggleSelectMode() {
-  selectMode.value = !selectMode.value;
-  if (!selectMode.value) selectedMsgIndices.value.clear();
-}
-
-function toggleMsgSelection(globalIdx: number) {
-  const s = new Set(selectedMsgIndices.value);
-  if (s.has(globalIdx)) s.delete(globalIdx);
-  else s.add(globalIdx);
-  selectedMsgIndices.value = s;
-}
-
-function deleteSelectedMessages() {
-  if (selectedMsgIndices.value.size === 0) return;
-  const sorted = [...selectedMsgIndices.value].sort((a, b) => b - a);
-  for (const idx of sorted) {
-    if (idx >= 0 && idx < messages.value.length) {
-      messages.value.splice(idx, 1);
-    }
-  }
-  selectedMsgIndices.value.clear();
-  selectMode.value = false;
-  clearRenderCache();
 }
 
 function clearMessages() {

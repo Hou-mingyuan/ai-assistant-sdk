@@ -205,6 +205,103 @@
 - `ReadLints`：✅ 新增文件 0 lint 错误
 - 工作区无 commit / push，等待用户审阅
 
+---
+
+## 第六轮：深度分析后的按序整改（2026-05-20 启动）
+
+### 起因
+
+用户要求对 `D:\project-hub\ai-assistant-sdk` 深度分析后“按顺序全部”开始整改。当前轮按低风险、高收益、依赖关系清晰的顺序推进。
+
+### 总体顺序
+
+| 阶段 | 任务 | 状态 | 验证策略 |
+| --- | --- | --- | --- |
+| 13.1 | 继续拆分 `AiAssistant.vue`，抽离剩余批量选择/删除编排 | 已完成 | `ReadLints` 通过；`npm test -- useMessageSelection.spec.ts` 4/4 通过 |
+| 13.2 | 统一 `/stream` 与 `/sse` 的协议定位，减少行为分叉 | 已完成 | 文档/注释更新；`ReadLints` 无诊断 |
+| 13.3 | 增加生产安全基线检查或启动告警 | 已完成 | `node --test scripts/production-config-lint.test.mjs` 5/5 通过；prod compose 严格检查通过 |
+| 13.4 | 梳理 `@ai-assistant/vue` 公共 API 分层 | 已完成 | 文档和导出区注释更新；`ReadLints` 无诊断 |
+
+### 阶段 13.1 设计
+
+检查后发现批量导出主体已经由 `ai-assistant-ui/src/composables/useExportActions.ts` 承接；当前阶段改为在不改变用户行为的前提下，把 `AiAssistant.vue` 中剩余的批量选择/删除状态与方法迁移到 `ai-assistant-ui/src/composables/useMessageSelection.ts`。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useMessageSelection.ts`
+- 新增 `ai-assistant-ui/src/composables/useMessageSelection.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+
+约束：
+- 不自动执行 `npm run build`、`npm test`、`npm install`。
+- 不执行 git commit / push。
+- 每阶段完成后更新 `progress.md` 与本计划状态。
+
+结果：
+- 已新增 `ai-assistant-ui/src/composables/useMessageSelection.ts`。
+- 已新增 `ai-assistant-ui/src/composables/useMessageSelection.spec.ts`。
+- 已修改 `ai-assistant-ui/src/components/AiAssistant.vue`，移除内联批量选择/删除方法。
+- `ReadLints` 对相关文件无诊断。
+- 经用户允许运行 `npm test -- useMessageSelection.spec.ts`，结果 1 个测试文件、4 个测试全部通过。
+
+### 阶段 13.2 设计
+
+目标是梳理并统一后端流式接口 `/stream` 与 `/sse` 的协议定位，避免两条路径长期行为分叉。
+
+预期先做只读审计：
+- `ai-assistant-server/src/main/java/com/aiassistant/controller/AiAssistantController.java`
+- `ai-assistant-server/src/main/java/com/aiassistant/controller/SseStreamController.java`
+- `ai-assistant-ui/src/utils/api.ts`
+- `ai-assistant-client/src/main/java/com/aiassistant/client/AiAssistantClient.java`
+- `docs/api` 与 `docs/guide` 中流式接口文档
+
+候选输出：
+- 若代码已经足够清晰，优先补文档说明兼容关系。
+- 若存在重复逻辑风险，抽小型共享方法或补测试；执行命令前先征得用户确认。
+
+结果：
+- 明确 `/stream` 是官方 UI / Java Client 默认使用的兼容流式端点。
+- 明确 `/sse` 是带 `message` / `done` / `error` 事件类型的标准化 SSE 端点。
+- 更新 `AiAssistantController` 与 `SseStreamController` 注释。
+- 更新 `README.md`、`ai-assistant-service/README.md`、`docs/api/chat.md`、`docs/api/reference.md`、`docs/guide/architecture.md`、`docs/guide/sequence-diagrams.md`。
+- `ReadLints` 对相关 Java/Markdown 文件无诊断。
+
+### 阶段 13.3 设计
+
+目标是增加生产安全基线检查，优先选择不会影响运行时行为的脚本方式，覆盖常见危险配置：
+- `AI_ASSISTANT_ACCESS_TOKEN` 为空
+- `AI_ASSISTANT_ALLOWED_ORIGINS=*`
+- `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=true`
+- 高风险能力开启但缺少 token 或明确说明：Admin、MCP、Connector management、Headless fetch
+- URL fetch SSRF 防护关闭
+
+预期修改：
+- 新增或扩展 `scripts` 下的检查脚本。
+- 更新 README / 生产清单中的使用说明。
+- 仅运行脚本自身的轻量测试或 Node 语法检查；执行前先征得用户确认。
+
+结果：
+- 新增 `scripts/production-config-lint.mjs`，检查 access token、CORS、query token、SSRF、高风险管理面和敏感 Actuator 暴露。
+- 新增 `scripts/production-config-lint.test.mjs`。
+- `scripts/project-health-check.mjs` 新增 `--prod-config` lane。
+- `docs/guide/production-checklist.md` 增加上线前运行方式。
+- `node --test scripts/production-config-lint.test.mjs`：5/5 通过。
+- `node scripts/production-config-lint.mjs --strict --file docker-compose.prod.yml`：无问题。
+
+### 阶段 13.4 设计
+
+目标是为 `@ai-assistant/vue` 过宽的公共导出面补充分层说明，先不删除任何导出，避免破坏下游。
+
+预期修改：
+- 审阅 `ai-assistant-ui/src/index.ts` 的导出类型。
+- 在前端集成文档或专门 API 文档中标注稳定入口、可选能力、实验性/高级工具。
+- 必要时在 `index.ts` 注释中增加维护边界提示。
+
+结果：
+- `docs/guide/frontend-recipes.md` 新增“公共 API 分层”，区分主接入层、后端 API helper、管理与扩展层、UI 工具层、低层算法/实验层。
+- `ai-assistant-ui/src/index.ts` 在导出区新增公共 API surface policy 注释，提醒内部重构默认不要 re-export。
+- 本阶段没有删除或重命名任何导出，保持兼容。
+- `ReadLints` 对相关文件无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

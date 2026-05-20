@@ -42,7 +42,21 @@ X-AI-Token: your-access-token
 
 ### `POST /ai-assistant/stream`
 
-SSE 流式输出，参数与 `/chat` 基本一致。响应类型为 `text/event-stream`，适合浏览器打字机效果。
+兼容流式输出端点，参数与 `/chat` 基本一致。响应类型为 `text/event-stream`，每个未命名 SSE `data:` 帧是一段文本增量。官方 Vue 组件和 Java Client 默认使用此端点。
+
+### `POST /ai-assistant/sse`
+
+标准化 SSE 端点，参数与 `/stream` 一致，但返回带事件类型的 SSE：
+
+```text
+event: message
+data: delta
+
+event: done
+data: [DONE]
+```
+
+自定义客户端若需要区分 `message`、`done`、`error` 事件，可使用此端点；普通 SDK 集成优先使用 `/stream`。
 
 ### `GET /ai-assistant/models`
 

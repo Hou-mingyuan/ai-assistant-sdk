@@ -205,7 +205,8 @@ ai-assistant:
 | API | 说明 |
 | --- | --- |
 | `POST /ai-assistant/chat` | 同步对话、翻译、摘要 |
-| `POST /ai-assistant/stream` | SSE 流式输出 |
+| `POST /ai-assistant/stream` | 兼容 SSE 流式输出，官方 UI / Java Client 默认使用 |
+| `POST /ai-assistant/sse` | 标准化 SSE，带 `message` / `done` / `error` 事件类型 |
 | `POST /ai-assistant/file/summarize` | 上传文件并摘要 |
 | `POST /ai-assistant/file/translate` | 上传文件并翻译 |
 | `GET /ai-assistant/url-preview?url=...` | 抓取链接标题、摘要和图片 |

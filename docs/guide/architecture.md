@@ -150,8 +150,8 @@ flowchart TB
     end
 
     subgraph controllers ["Controllers"]
-        c_ai["AiAssistantController<br/>/chat /translate /summarize"]
-        c_stream["SseStreamController<br/>/stream (SSE)"]
+        c_ai["AiAssistantController<br/>/chat /stream /models"]
+        c_stream["SseStreamController<br/>/sse (typed SSE)"]
         c_ws["AiAssistantWebSocketHandler<br/>WebSocket (可选)"]
         c_file["FileUploadController<br/>/file/summarize /file/translate"]
         c_export["AssistantExportController<br/>/export (xlsx/docx/pdf)"]
