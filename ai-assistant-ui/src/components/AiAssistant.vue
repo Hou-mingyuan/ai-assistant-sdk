@@ -804,6 +804,7 @@ import {
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed';
+import { findCodeElementForCodeActionTarget, getCodeLanguage } from '../utils/codeBlockDom';
 
 import { extractThinking, type Message } from '../types/message';
 
@@ -2626,8 +2627,7 @@ function handleBodyClick(e: MouseEvent) {
     e.stopPropagation();
     const msgIdxRaw = cmpBtn.getAttribute('data-ai-cmp-msg');
     const msgIdx = msgIdxRaw != null ? parseInt(msgIdxRaw, 10) : -1;
-    const pre = cmpBtn.closest('pre');
-    const codeText = pre?.querySelector('code')?.textContent ?? '';
+    const codeText = findCodeElementForCodeActionTarget(cmpBtn)?.textContent ?? '';
     const m = msgIdx >= 0 ? messages.value[msgIdx] : undefined;
     if (m && codeText.trim()) {
       if (compareSet.value.length >= MAX_COMPARE_SIDES) {
@@ -2647,12 +2647,9 @@ function handleBodyClick(e: MouseEvent) {
     return;
   }
   if (target.dataset.ide === 'true') {
-    const pre = target.closest('pre');
-    const codeEl = pre?.querySelector('code');
+    const codeEl = findCodeElementForCodeActionTarget(target);
     const code = codeEl?.textContent || '';
-    const cls = codeEl?.className || '';
-    const lm = cls.match(/language-(\w+)/);
-    options.openCodeInIde?.({ code, language: lm ? lm[1] : undefined });
+    options.openCodeInIde?.({ code, language: getCodeLanguage(codeEl) });
     return;
   }
   /* F4: fold toggle - 折叠 / 展开长代码块 */
@@ -2666,8 +2663,7 @@ function handleBodyClick(e: MouseEvent) {
     return;
   }
   if (target.dataset.copy === 'true') {
-    const pre = target.closest('pre');
-    const code = pre?.querySelector('code')?.textContent || '';
+    const code = findCodeElementForCodeActionTarget(target)?.textContent || '';
     navigator.clipboard
       .writeText(code)
       .then(() => {
