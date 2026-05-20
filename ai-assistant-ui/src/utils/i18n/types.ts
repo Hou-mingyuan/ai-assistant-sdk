@@ -466,6 +466,13 @@ export interface I18nMessages {
    * inline fallback in template ("快捷技能" / "Quick skills").
    */
   skillStripLabel?: string;
+  /** Markdown toolbar action labels. */
+  markdownBold?: string;
+  markdownItalic?: string;
+  markdownCode?: string;
+  markdownCodeBlock?: string;
+  markdownLink?: string;
+  markdownList?: string;
   /** Empty-state collapsed starter task launcher labels. */
   emptyTaskLauncher?: string;
   emptyTaskLauncherClose?: string;

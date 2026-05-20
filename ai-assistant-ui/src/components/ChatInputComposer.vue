@@ -3,10 +3,11 @@
     <button
       type="button"
       class="ai-md-btn"
-      title="Bold (Ctrl+B)"
+      :title="t.markdownBold || 'Bold (Ctrl+B)'"
+      :aria-label="t.markdownBold || 'Bold (Ctrl+B)'"
       @click="wrapSelection('**', '**')"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
           d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
         />
@@ -15,15 +16,22 @@
     <button
       type="button"
       class="ai-md-btn"
-      title="Italic (Ctrl+I)"
+      :title="t.markdownItalic || 'Italic (Ctrl+I)'"
+      :aria-label="t.markdownItalic || 'Italic (Ctrl+I)'"
       @click="wrapSelection('*', '*')"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z" />
       </svg>
     </button>
-    <button type="button" class="ai-md-btn" title="Code" @click="wrapSelection('`', '`')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <button
+      type="button"
+      class="ai-md-btn"
+      :title="t.markdownCode || 'Code'"
+      :aria-label="t.markdownCode || 'Code'"
+      @click="wrapSelection('`', '`')"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
           d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
         />
@@ -32,24 +40,37 @@
     <button
       type="button"
       class="ai-md-btn"
-      title="Code block"
+      :title="t.markdownCodeBlock || 'Code block'"
+      :aria-label="t.markdownCodeBlock || 'Code block'"
       @click="wrapSelection('\n```\n', '\n```\n')"
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
           d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-8-8l-4 4h3v2h2v-2h3l-4-4z"
         />
       </svg>
     </button>
-    <button type="button" class="ai-md-btn" title="Link" @click="insertLink">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <button
+      type="button"
+      class="ai-md-btn"
+      :title="t.markdownLink || 'Link'"
+      :aria-label="t.markdownLink || 'Link'"
+      @click="insertLink"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
           d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
         />
       </svg>
     </button>
-    <button type="button" class="ai-md-btn" title="List" @click="insertPrefix('- ')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <button
+      type="button"
+      class="ai-md-btn"
+      :title="t.markdownList || 'List'"
+      :aria-label="t.markdownList || 'List'"
+      @click="insertPrefix('- ')"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path
           d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
         />

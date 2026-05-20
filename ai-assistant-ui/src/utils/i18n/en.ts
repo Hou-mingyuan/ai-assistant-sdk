@@ -396,6 +396,12 @@ export const en: I18nMessages = {
   formFillTableTruncated:
     '{n} pasted row(s) skipped — form has no slot (configure onAddRow to grow)',
   skillStripLabel: 'Quick skills',
+  markdownBold: 'Bold (Ctrl+B)',
+  markdownItalic: 'Italic (Ctrl+I)',
+  markdownCode: 'Inline code',
+  markdownCodeBlock: 'Code block',
+  markdownLink: 'Link',
+  markdownList: 'List',
   emptyTaskLauncher: 'Browse starter tasks',
   emptyTaskLauncherClose: 'Hide starter tasks',
   emptyStarterSection: 'Recommended tasks',

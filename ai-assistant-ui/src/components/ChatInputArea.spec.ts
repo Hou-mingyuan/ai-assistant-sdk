@@ -127,6 +127,41 @@ describe('ChatInputArea (K44)', () => {
     });
   });
 
+  describe('advanced markdown toolbar accessibility', () => {
+    it('uses localized labels for markdown action buttons', async () => {
+      const w = mountInput({
+        t: {
+          ...stubI18n,
+          skillStripLabel: '工具',
+          markdownBold: '加粗（Ctrl+B）',
+          markdownItalic: '斜体（Ctrl+I）',
+          markdownCode: '行内代码',
+          markdownCodeBlock: '代码块',
+          markdownLink: '链接',
+          markdownList: '列表',
+        } as unknown as I18nMessages,
+      });
+
+      await w.find('.ai-tools-toggle').trigger('click');
+      await nextTick();
+
+      const labels = w.findAll('.ai-md-btn').map((btn) => btn.attributes('aria-label'));
+      const titles = w.findAll('.ai-md-btn').map((btn) => btn.attributes('title'));
+
+      expect(labels).toEqual([
+        '加粗（Ctrl+B）',
+        '斜体（Ctrl+I）',
+        '行内代码',
+        '代码块',
+        '链接',
+        '列表',
+      ]);
+      expect(titles).toEqual(labels);
+
+      w.unmount();
+    });
+  });
+
   describe('K36 prompt-history recall', () => {
     it('ArrowUp on empty input emits historyOlder', async () => {
       const w = mountInput({ modelValue: '' });
