@@ -487,3 +487,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - Connector/provider health 的 status 值在实现中已经是固定集合，收紧 enum 不会改变运行时行为，却能让 generated types 更有用。
 - Prompt template 的弹窗交互可以继续独立于模板数据来源拆分，后续再接 command palette 触发时不必回到主 SFC。
 - Observability artifact 真拆前需要先把候选范围写清楚，尤其要排除 PDF/Office、RAG、Connector、Headless 这些不同风险面的能力。
+
+### 阶段 13.39 Module skeleton 与 release-check 发现
+
+- 新增空 module skeleton 可以先验证 reactor 与发布坐标，不急于迁移 production auto-configuration，降低 v2 拆包第一步风险。
+- `project-health-check --release-check` 适合承接 refresh dry-run；这样 release lane 同时验证 snapshot 格式与 generated types。
+- quick prompt 过滤逻辑是另一个低风险 SFC 瘦身切口，和 prompt template interaction 不共享状态，可独立抽离。
+- bundle baseline 更新确认当前构建输出已被记录；后续体积回归判断会基于最新 chunk/hash 结构。

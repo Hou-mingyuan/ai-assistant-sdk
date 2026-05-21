@@ -48,8 +48,8 @@ export function normalizeSpecText(specText) {
 }
 
 export async function assertSnapshotMatches(outPath, specText) {
-  const current = await readFile(outPath, 'utf8')
-  if (current.replace(/\r\n/g, '\n') !== specText.replace(/\r\n/g, '\n')) {
+  const current = normalizeSpecText(await readFile(outPath, 'utf8'))
+  if (current !== specText) {
     throw new Error(`${outPath} is stale. Re-run refresh-openapi-snapshot without --check.`)
   }
 }

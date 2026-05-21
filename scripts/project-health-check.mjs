@@ -32,6 +32,7 @@ const runBundleComposition = args.has('--bundle-composition') || runReleaseCheck
 /* K62: 仓库脚本单测 + 静态 OpenAPI 类型检查，作为 release-check 的轻量核心 */
 const runScriptTests = args.has('--script-test') || runReleaseCheck || args.has('--all')
 const runOpenApiTypes = args.has('--openapi-types') || runReleaseCheck || args.has('--all')
+const runOpenApiRefresh = args.has('--openapi-refresh') || runReleaseCheck || args.has('--all')
 
 const checks = [
   {
@@ -69,6 +70,21 @@ if (runOpenApiTypes) {
       '--spec-file',
       path.join(root, 'docs/api/openapi.json'),
       '--check',
+    ],
+    cwd: root,
+  })
+}
+
+if (runOpenApiRefresh) {
+  checks.push({
+    name: 'static OpenAPI snapshot refresh dry-run',
+    command: process.execPath,
+    args: [
+      path.join(root, 'scripts/refresh-openapi-snapshot.mjs'),
+      '--spec-file',
+      path.join(root, 'docs/api/openapi.json'),
+      '--check',
+      '--skip-types',
     ],
     cwd: root,
   })
@@ -252,7 +268,7 @@ if (
   !runOpenApiTypes
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, --script-test, --openapi-types, --release-check, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check, or --all to run more checks.',
   )
 }
 

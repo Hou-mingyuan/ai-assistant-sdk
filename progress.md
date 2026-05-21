@@ -1117,6 +1117,28 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `npm run build`（`docs`）：通过。
+
+### 当前阶段 13.39
+
+状态：已完成。
+
+目标：
+- 完成 observability module skeleton、quick prompt 小切口、release-check dry-run 和 bundle baseline 刷新。
+
+修改：
+- 修改 root `pom.xml`
+- 新增 `ai-assistant-observability-support/pom.xml`
+- 新增 `ai-assistant-ui/src/composables/useQuickPromptOptions.ts`
+- 新增 `ai-assistant-ui/src/composables/useQuickPromptOptions.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline。
 - `ReadLints` 对新增文档和 VitePress 配置无诊断。
 
 ### 当前阶段 13.32

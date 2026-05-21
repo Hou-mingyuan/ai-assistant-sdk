@@ -871,6 +871,19 @@
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 
+### 阶段 13.39 设计
+
+目标是按最新 1-4 继续推进：observability module skeleton、命令区小切口、OpenAPI refresh dry-run 接入 release-check、bundle baseline 评估。
+
+结果：
+- 新增 `ai-assistant-observability-support` Maven module skeleton，并接入 root reactor，为后续真实 support artifact 拆分提供构建落点。
+- 新增 `useQuickPromptOptions.ts` 与测试，从 `AiAssistant.vue` 抽出 quick prompt 过滤逻辑。
+- `project-health-check --release-check` 增加 `refresh-openapi-snapshot --check --skip-types` dry-run，明确验证静态 snapshot refresh 路径。
+- 刷新 `scripts/.bundle-size-baseline.json`，记录当前构建输出。
+
+验证：
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

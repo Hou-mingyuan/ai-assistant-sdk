@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-05-21T11:34:14.313Z",
+  "updatedAt": "2026-05-21T13:24:30.413Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 746526,
-      "gzip": 238411
+      "size": 746833,
+      "gzip": 238426
     },
-    "AiAssistant-Bref4meG.js": {
-      "size": 829498,
-      "gzip": 186527
+    "AiAssistant-CxKlBpgn.js": {
+      "size": 830053,
+      "gzip": 186614
     },
-    "useAiAssistant-BB_emMKb.js": {
-      "size": 783434,
-      "gzip": 173518
+    "useAiAssistant-D6QhSVYN.js": {
+      "size": 783989,
+      "gzip": 173602
     },
-    "useAiAssistant-Dg1-oUjx.cjs": {
-      "size": 438213,
-      "gzip": 131801
+    "useAiAssistant-D5r5tZ3j.cjs": {
+      "size": 438516,
+      "gzip": 131891
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
@@ -39,11 +39,11 @@
     },
     "ai-assistant.mjs": {
       "size": 22103,
-      "gzip": 7056
+      "gzip": 7058
     },
     "ai-assistant.umd.cjs": {
       "size": 15102,
-      "gzip": 5740
+      "gzip": 5741
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -101,13 +101,13 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-D9Z4KqMF.js": {
+    "PromptTemplateDialog-ClEAUAWb.js": {
       "size": 15408,
       "gzip": 3049
     },
-    "PromptTemplateDialog-CNMUxA08.js": {
+    "PromptTemplateDialog-DNzopdMY.js": {
       "size": 15448,
-      "gzip": 3021
+      "gzip": 3023
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
@@ -185,9 +185,9 @@
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-Bvgp0s-i.cjs": {
+    "PromptTemplateDialog-BOa-sQZ2.cjs": {
       "size": 8258,
-      "gzip": 2333
+      "gzip": 2334
     },
     "AssistantInlineOverlays-BFciw9O2.cjs": {
       "size": 7775,
@@ -278,12 +278,12 @@
       "gzip": 1454
     },
     "admin.mjs": {
-      "size": 5962,
-      "gzip": 1395
+      "size": 6025,
+      "gzip": 1397
     },
     "ai-assistant-wc.mjs": {
       "size": 3413,
-      "gzip": 1270
+      "gzip": 1271
     },
     "java-2tSfCXoV.cjs": {
       "size": 2675,
@@ -298,8 +298,8 @@
       "gzip": 1183
     },
     "admin.umd.cjs": {
-      "size": 3021,
-      "gzip": 1077
+      "size": 3051,
+      "gzip": 1082
     },
     "ColorThemeSwitcher-Ca5KSb5V.js": {
       "size": 2485,
@@ -323,7 +323,7 @@
     },
     "core.mjs": {
       "size": 2417,
-      "gzip": 995
+      "gzip": 999
     },
     "PageSelectionBar-D3WtfEiM.js": {
       "size": 2789,
@@ -351,7 +351,7 @@
     },
     "core.umd.cjs": {
       "size": 1631,
-      "gzip": 870
+      "gzip": 872
     },
     "yaml-zRfk8pDS.cjs": {
       "size": 1901,
@@ -449,19 +449,19 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 518528
+      "gzip": 518631
     },
     "chunks": {
       "files": 94,
-      "gzip": 533143
+      "gzip": 533326
     },
     "main": {
       "files": 3,
-      "gzip": 68982
+      "gzip": 68985
     },
     "secondary": {
       "files": 10,
-      "gzip": 6682
+      "gzip": 6689
     }
   }
 }

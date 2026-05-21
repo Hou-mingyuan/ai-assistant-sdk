@@ -723,6 +723,7 @@ import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateInteraction } from '../composables/usePromptTemplateInteraction';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
+import { useQuickPromptOptions } from '../composables/useQuickPromptOptions';
 import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
@@ -1750,13 +1751,7 @@ function togglePageContext() {
   pageContextDisabledOverride.value = !pageContextDisabledOverride.value;
 }
 
-const quickPrompts = computed(() => {
-  const q = options.quickPrompts;
-  if (!Array.isArray(q)) return [];
-  return q.filter(
-    (x) => x && typeof x.label === 'string' && typeof x.text === 'string' && x.label && x.text,
-  );
-});
+const { quickPrompts } = useQuickPromptOptions(options);
 
 type PromptTemplate = NonNullable<AiAssistantOptions['promptTemplates']>[number];
 const promptTemplateList = computed<PromptTemplate[]>(() => {
