@@ -717,6 +717,19 @@
 - `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
 - `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
 
+### 阶段 13.29 设计
+
+目标是补 core-only starter 自动装配验证路径，为后续 feature artifact 拆分提供测试护栏。
+
+结果：
+- `AiAssistantAutoConfigurationTest` 新增 `coreOnlyClasspathStillStartsBasicChatWiring`。
+- 测试过滤 Redis、JDBC、Playwright、Springdoc、OpenTelemetry、Logstash 等低频依赖。
+- 验证基础 `AiAssistantController`、`SseStreamController`、`LlmService`、`ChatCompletionClient`、`SessionStore` 仍能装配。
+- 验证 Headless 和 Redis rate limit 没有意外注册。
+
+验证：
+- `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：10 个测试通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

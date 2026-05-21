@@ -438,3 +438,8 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - Admin SDK 的类型面主要是简单响应 DTO，适合先迁移到静态 OpenAPI components，不必一次补全所有 Admin paths。
 - `AdminAbTestConfig` 保留 `additionalProperties: true`，兼容后端可扩展配置 map。
 - `adminApi.ts` 迁移为 generated schema alias 后，仍保留 `AdminResult<T>` 包装类型作为前端 SDK 自己的错误归一化协议。
+
+### 阶段 13.29 Core-only starter 验证发现
+
+- 当前 starter 在缺少 Redis/JDBC/Playwright/OpenAPI/Tracing/Logstash 等低频依赖时，基础聊天自动装配仍可启动。
+- 这说明后续拆 feature artifact 时可以先围绕这些 optional 能力推进；PDF/POI 仍是更晚阶段的高风险拆分点。

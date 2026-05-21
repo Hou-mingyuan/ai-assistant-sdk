@@ -80,6 +80,19 @@ class AiAssistantAutoConfigurationTest {
                     .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
                     .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
 
+    private final WebApplicationContextRunner coreOnlyContextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
+                    .withClassLoader(
+                            new FilteredClassLoader(
+                                    "org.springframework.data.redis.core.StringRedisTemplate",
+                                    "org.springframework.jdbc.core.JdbcTemplate",
+                                    "com.microsoft.playwright.Playwright",
+                                    "org.springdoc.core.models.GroupedOpenApi",
+                                    "io.opentelemetry.api.trace.Tracer",
+                                    "net.logstash.logback.encoder.LogstashEncoder"))
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+
     @Test
     void autoConfigurationDoesNotActivateWhenNoApiKeyConfigured() {
         contextRunner.run(
@@ -232,6 +245,22 @@ class AiAssistantAutoConfigurationTest {
                                             context.getBean("aiAssistantRateLimitFilter");
                             assertThat(rateLimitFilter.getFilter())
                                     .isInstanceOf(RateLimitFilter.class);
+                        });
+    }
+
+    @Test
+    void coreOnlyClasspathStillStartsBasicChatWiring() {
+        coreOnlyContextRunner
+                .withPropertyValues("ai-assistant.api-key=sk-test-core-only")
+                .run(
+                        context -> {
+                            assertThat(context).hasSingleBean(AiAssistantController.class);
+                            assertThat(context).hasSingleBean(SseStreamController.class);
+                            assertThat(context).hasSingleBean(LlmService.class);
+                            assertThat(context).hasSingleBean(ChatCompletionClient.class);
+                            assertThat(context).hasSingleBean(SessionStore.class);
+                            assertThat(context).doesNotHaveBean("headlessFetchService");
+                            assertThat(context).doesNotHaveBean("aiAssistantRedisRateLimitFilter");
                         });
     }
 

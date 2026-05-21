@@ -1070,3 +1070,18 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
 - `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
 - `ReadLints` 对相关 OpenAPI、generated types 和 Admin SDK 文件无诊断。
+
+### 当前阶段 13.29
+
+状态：已完成。
+
+目标：
+- 补 core-only starter 自动装配验证路径。
+
+修改：
+- `ai-assistant-server/src/test/java/com/aiassistant/autoconfigure/AiAssistantAutoConfigurationTest.java`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：10 个测试通过，0 失败。
