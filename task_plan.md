@@ -691,6 +691,19 @@
 - `npm test -- packageExports.spec.ts`：通过。
 - `npm run build`：产出 `core.mjs` / `core.umd.cjs`，Package export check OK（27 paths）。
 
+### 阶段 13.27 设计
+
+目标是在大版本模式下推进 `@ai-assistant/vue/core` 真瘦身，让 core entry 不再经过 `src/index.ts` 的高级导出面。
+
+结果：
+- 新增 `ai-assistant-ui/src/core-plugin.ts`，承接核心插件安装逻辑、`AiAssistantOptions`、默认配置和 `AiAssistant` 导出。
+- `ai-assistant-ui/src/entries/core.ts` 改为从 `core-plugin` 导入默认插件和类型，不再依赖主入口 `index.ts`。
+- 主入口历史导出暂时保留，避免立即破坏下游；core entry 已具备独立入口基础。
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `npm run build`：通过；`core.mjs` / `core.umd.cjs` 产出，主 `ai-assistant.mjs` 降到约 22 KB gzip 约 7 KB，重型实现下沉到共享 chunk。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

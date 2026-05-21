@@ -1032,3 +1032,21 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `npm test -- packageExports.spec.ts`：通过。
 - `npm run build`：产出 `core.mjs` / `core.umd.cjs`，Package export check OK（27 paths）。
+
+### 当前阶段 13.27
+
+状态：已完成。
+
+目标：
+- 让 `@ai-assistant/vue/core` 真正绕开主入口高级导出面。
+
+修改：
+- 新增 `ai-assistant-ui/src/core-plugin.ts`
+- 修改 `ai-assistant-ui/src/entries/core.ts`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `npm run build`：通过；`core.mjs` / `core.umd.cjs` 正常产出，Package export check OK（27 paths）。

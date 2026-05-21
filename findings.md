@@ -426,3 +426,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 直接从主入口移除高级导出会破坏历史用户，不适合作为小版本改动。
 - 新增 `@ai-assistant/vue/core` 可以先提供更窄的接入入口，后续文档示例可逐步引导新用户使用 core 或专门子入口。
 - `core.mjs` 本身非常小，但它仍会指向核心插件；真正降低宿主最终体积还需要后续继续拆主组件内部静态依赖。
+
+### 阶段 13.27 Core plugin 隔离发现
+
+- 将 core entry 改为直接依赖 `core-plugin.ts` 后，`core` 不再经过 `index.ts` 的高级 re-export 面。
+- Vite library build 会把核心实现放到共享 chunk，`ai-assistant.mjs` 主入口本身显著变小；这为后续逐步移除主入口高级导出提供了可验证路径。
+- 当前仍保留主入口历史导出，真正 breaking removal 可以放到后续 v2 changelog / migration guide 中处理。
