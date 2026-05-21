@@ -33,7 +33,7 @@
 
 候选文件：
 
-- `src/composables/useKnowledgeDrop.ts`
+- `src/composables/useKnowledgeDrop.ts`（已完成）
 - `src/composables/useCompareRegions.ts`（已完成）
 
 边界：
@@ -48,7 +48,7 @@
 当前进展：
 
 - Compare regions 状态已抽到 `useCompareRegions.ts`，覆盖整条消息 mark/unmark、selection 多槽位、compare-with 打开 dialog、4 侧上限、swap/clear。
-- KB drop / KB picker 编排仍在 `AiAssistant.vue`，可作为下一步继续拆分。
+- KB drop / KB picker 编排已抽到 `useKnowledgeDrop.ts`，覆盖 Quick Ingest、picker 文件缓存、自动关闭 timer、键盘选择、新建 KB 和 toast。
 
 ### 3. 抽取连接诊断状态
 

@@ -638,3 +638,26 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`npm test -- useCompareRegions.spec.ts` 通过，5/5。
 - `ReadLints` 对 `useCompareRegions.ts`、spec 和 `AiAssistant.vue` 无诊断。
 - `npm run build:types`：通过。
+
+### 当前阶段 13.7
+
+状态：已完成。
+
+目标：
+- 继续拆分 `AiAssistant.vue`。
+- 将 KB drop / KB picker 编排迁移到独立 composable。
+- 保持 `useFabDropIngest` 的拖拽事件边界不变。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useKnowledgeDrop.ts`
+- 新增 `ai-assistant-ui/src/composables/useKnowledgeDrop.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `ai-assistant-ui/REFACTORING_PLAN.md`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`npm test -- useKnowledgeDrop.spec.ts` 首次失败，原因是缺少 `useKnowledgeDrop` 模块。
+- GREEN：`npm test -- useKnowledgeDrop.spec.ts` 通过，6/6。
+- `ReadLints` 对 `useKnowledgeDrop.ts`、spec 和 `AiAssistant.vue` 无诊断。
+- `npm run build:types`：通过。

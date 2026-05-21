@@ -303,3 +303,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `AiAssistant.vue` 中 Compare regions 仍直接维护 `compareSet`、label、mark/unmark、compare-with、swap 和 clear，适合先抽为纯状态 composable。
 - 多模型并行对比由 `useMultiModelChat` 管理，和消息区域 Compare regions 是两套能力，本阶段只迁移消息区域比较集合。
 - KB drop / KB picker 仍留在主 SFC，后续可按 `useKnowledgeDrop.ts` 单独拆分。
+
+### 阶段 13.7 KB drop 拆分发现
+
+- `useFabDropIngest` 边界清晰，只负责 HTML5 drag/drop 事件和文件过滤，不应直接知道知识库。
+- `AiAssistant.vue` 中残留的 KB drop 编排包含 Quick Ingest、picker 可见性、pending files、auto-dismiss timer、键盘快捷键和 toast，适合集中到 `useKnowledgeDrop`。
+- 新 composable 保持纯状态和依赖注入：知识库 store、i18n、toast、focus picker 由父组件传入，避免直接依赖 DOM。
+- `AiAssistant.vue` 仍保留一个很小的 DOM focus 回调，用于 Teleport 后聚焦 picker shell。

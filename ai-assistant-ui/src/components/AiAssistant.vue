@@ -692,7 +692,6 @@ import {
   watch,
   onMounted,
   onUnmounted,
-  onBeforeUnmount,
   defineAsyncComponent,
   type Ref,
 } from 'vue';
@@ -793,6 +792,7 @@ import {
 import { usePageSelection } from '../composables/usePageSelection';
 import { usePromptHistory } from '../composables/usePromptHistory';
 import { useFabDropIngest } from '../composables/useFabDropIngest';
+import { useKnowledgeDrop } from '../composables/useKnowledgeDrop';
 import { useFormAutoFill } from '../composables/useFormAutoFill';
 /* Refactor (T1)：从 AiAssistant.vue 抽出的 3 个 composable */
 import { useEmptyStateContent } from '../composables/useEmptyStateContent';
@@ -1297,118 +1297,28 @@ const kbPanelOpen = ref(false);
  * - K43: ≥ 2 个 KB 时弹出 picker popover 让用户选择目标 KB。
  * - 文件名带可视化 toast 反馈，用现有 setExportToast 通道（3.2s 自动消失）。
  */
-const QUICK_INGEST_KB_NAME = 'Quick Ingest';
-function findOrCreateQuickIngestKb() {
-  const existing = knowledgeBase.bases.value.find((b) => b.name === QUICK_INGEST_KB_NAME);
-  if (existing) return existing;
-  return knowledgeBase.createBase(QUICK_INGEST_KB_NAME);
-}
-function ingestIntoKb(kbId: string, files: File[]) {
-  const kb = knowledgeBase.bases.value.find((b) => b.id === kbId);
-  if (!kb) return;
-  for (const f of files) {
-    knowledgeBase.addDoc(kb.id, f);
-  }
-  const label = t.value.kbDropIngested
-    ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
-    : `Added ${files.length} file(s) to ${kb.name}`;
-  setExportToast(label, 3200);
-}
-
-/* K43: target picker state. When dropped while multiple KBs exist, show
- * a small floating panel near the FAB so the user picks the destination
- * instead of defaulting silently. */
-const kbPickerVisible = ref(false);
-const kbPickerFiles = ref<File[]>([]);
-const KB_PICKER_AUTO_DISMISS_MS = 12000;
-let kbPickerDismissTimer: ReturnType<typeof setTimeout> | null = null;
-function openKbPicker(files: File[]) {
-  kbPickerFiles.value = files;
-  kbPickerVisible.value = true;
-  if (kbPickerDismissTimer != null) clearTimeout(kbPickerDismissTimer);
-  kbPickerDismissTimer = setTimeout(() => {
-    kbPickerVisible.value = false;
-    kbPickerFiles.value = [];
-    kbPickerDismissTimer = null;
-  }, KB_PICKER_AUTO_DISMISS_MS);
-  /* K48: focus the shell so keydown shortcuts (1-9 / N / Esc) bind. */
-  void nextTick(() => {
+const knowledgeDrop = useKnowledgeDrop({
+  knowledgeBase,
+  t,
+  setToast: setExportToast,
+  focusPicker: () => {
     const shell = document.querySelector('.ai-kb-picker-shell') as HTMLElement | null;
     shell?.focus();
-  });
-}
-function closeKbPicker() {
-  kbPickerVisible.value = false;
-  kbPickerFiles.value = [];
-  if (kbPickerDismissTimer != null) {
-    clearTimeout(kbPickerDismissTimer);
-    kbPickerDismissTimer = null;
-  }
-}
-function onKbPickerPick(kbId: string) {
-  const files = kbPickerFiles.value;
-  closeKbPicker();
-  if (files.length === 0) return;
-  ingestIntoKb(kbId, files);
-}
-function onKbPickerCreateNew() {
-  const files = kbPickerFiles.value;
-  closeKbPicker();
-  if (files.length === 0) return;
-  const name = (t.value.kbDropNewKbName || 'New KB').toString();
-  const kb = knowledgeBase.createBase(name);
-  for (const f of files) knowledgeBase.addDoc(kb.id, f);
-  const label = t.value.kbDropIngested
-    ? t.value.kbDropIngested.replace('{count}', String(files.length)).replace('{name}', kb.name)
-    : `Added ${files.length} file(s) to ${kb.name}`;
-  setExportToast(label, 3200);
-}
-/**
- * K48: KB picker keyboard shortcuts.
- *   1-9 — pick the n-th KB row (0-indexed)
- *   N / n / 0 — trigger "+ New knowledge base"
- *   Escape — close without picking
- */
-function onKbPickerKeydown(e: KeyboardEvent) {
-  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    closeKbPicker();
-    return;
-  }
-  if (e.key === 'n' || e.key === 'N' || e.key === '0') {
-    e.preventDefault();
-    onKbPickerCreateNew();
-    return;
-  }
-  const n = Number(e.key);
-  if (Number.isInteger(n) && n >= 1 && n <= 9) {
-    const kb = knowledgeBase.bases.value[n - 1];
-    if (kb) {
-      e.preventDefault();
-      onKbPickerPick(kb.id);
-    }
-  }
-}
-onBeforeUnmount(() => {
-  if (kbPickerDismissTimer != null) {
-    clearTimeout(kbPickerDismissTimer);
-    kbPickerDismissTimer = null;
-  }
+  },
 });
+const {
+  kbPickerVisible,
+  kbPickerFiles,
+  closeKbPicker,
+  onKbPickerPick,
+  onKbPickerCreateNew,
+  onKbPickerKeydown,
+  ingestFilesIntoKb,
+} = knowledgeDrop;
 
-function ingestFilesIntoKb(files: File[]) {
-  if (!files.length) return;
-  const bases = knowledgeBase.bases.value;
-  /* 0 KBs or only Quick Ingest -> auto-ingest (K38 behaviour). */
-  if (bases.length === 0 || (bases.length === 1 && bases[0]?.name === QUICK_INGEST_KB_NAME)) {
-    const kb = findOrCreateQuickIngestKb();
-    ingestIntoKb(kb.id, files);
-    return;
-  }
-  /* 2+ KBs -> let the user choose (K43). */
-  openKbPicker(files);
-}
+/* K48: picker keyboard shortcuts and auto-dismiss timer are owned by useKnowledgeDrop. */
+onUnmounted(() => knowledgeDrop.dispose());
+
 const fabDrop = useFabDropIngest({
   enabled: computed(() => !isOpen.value),
   rejectMimePrefix: ['image/'],

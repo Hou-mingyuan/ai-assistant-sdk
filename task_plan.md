@@ -353,6 +353,26 @@
 - `npm test -- useCompareRegions.spec.ts`：5 个测试通过。
 - `npm run build:types`：通过。
 
+### 阶段 13.7 设计
+
+目标是继续拆分 `AiAssistant.vue`，抽离 KB drop / KB picker 编排，保持 FAB drop 到知识库的现有行为。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useKnowledgeDrop.ts`
+- 新增 `ai-assistant-ui/src/composables/useKnowledgeDrop.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 更新 `ai-assistant-ui/REFACTORING_PLAN.md`
+
+结果：
+- Quick Ingest、目标 KB picker、picker 文件缓存、自动关闭 timer、键盘选择、新建 KB 和 toast 迁移到 `useKnowledgeDrop`。
+- `useFabDropIngest` 继续只负责 FAB 拖拽事件，`AiAssistant.vue` 只负责注入 focus picker 和把文件交给新 composable。
+
+验证：
+- 已先写 `useKnowledgeDrop.spec.ts` 并观察到 RED：缺少 `useKnowledgeDrop` 导致 import 失败。
+- `npm test -- useKnowledgeDrop.spec.ts`：6 个测试通过。
+- `ReadLints` 对 `useKnowledgeDrop.ts`、spec 和 `AiAssistant.vue` 无诊断。
+- `npm run build:types`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
