@@ -94,6 +94,27 @@ A：默认**不会**。需要 clone 后手动跑一次 `node scripts/install-git
 本仓库 monorepo 结构（`ai-assistant-ui/package.json` 与 `.git` 不在同一级）不满足条件，
 强行写会在 npm publish 时被打包上去导致干扰下游。
 
+## 配套：行尾噪音检查
+
+仓库通过 `.gitattributes`、`.editorconfig` 和前端 `.prettierrc` 统一要求 LF。Windows 本地如果出现大量 `modified`，但业务内容并没有改动，可以先跑：
+
+```bash
+node scripts/line-ending-noise-check.mjs
+```
+
+这个脚本是只读的：它不会执行格式化，不会改工作区，也不会更新 index。它只把 tracked diff 分成两类：
+
+- `content diffs`：忽略行尾后仍存在的真实内容差异。
+- `line-ending-only diffs`：只剩 CRLF/LF 差异的噪音。
+
+也可以通过健康检查入口运行：
+
+```bash
+node scripts/project-health-check.mjs --line-endings
+```
+
+如果输出只有 `line-ending-only diffs`，建议把行尾归一化单独处理，不要和功能改动混在同一次 review 里。
+
 ## 配套：覆盖率回归门槛
 
 `coverage-check.mjs` 与本 hook 互补 —— hook 在 commit 前快速兜底，

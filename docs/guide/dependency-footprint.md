@@ -46,3 +46,31 @@ Mermaid 不是默认 dependency。代码块 Mermaid 渲染通过动态 `import('
 - 已有公开 API 和部署文档如何迁移。
 - Starter 用户缺少 feature artifact 时是否能得到明确启动提示，而不是运行期 500。
 - 独立服务镜像是否仍保留开箱即用体验。
+
+## Feature artifact 拆分路线
+
+拆包目标不是让默认接入变复杂，而是让“只要聊天能力”的宿主可以更容易控制依赖、安全扫描面和镜像体积。建议按风险从低到高推进，每一步都保持现有 Starter 兼容。
+
+### 候选 artifact
+
+| 候选包 | 承接能力 | 主要依赖 | 拆分难度 | 兼容策略 |
+| --- | --- | --- | --- | --- |
+| `ai-assistant-export-support` | `/export`、PDF / DOCX / XLSX 导出、导出图片嵌入 | PDFBox、Apache POI | 中 | Starter 先继续默认引入；新增条件 Bean 和缺依赖时的清晰错误。 |
+| `ai-assistant-file-support` | 文件上传摘要 / 翻译、Office/PDF 文本抽取 | PDFBox、Apache POI | 中 | 与导出可先共包，等 API 边界稳定后再拆。 |
+| `ai-assistant-headless-support` | Playwright Headless 抓取 | Playwright | 低 | 当前已 optional，优先只抽自动装配和文档。 |
+| `ai-assistant-rag-support` | RAG ingest / retrieve、Embedding、VectorStore 默认实现 | 向量库适配、embedding client | 中高 | 保留 `VectorStore` SPI；默认 InMemory 仅限开发。 |
+| `ai-assistant-connector-support` | JDBC / REST / Informat connector、connector tool registrar | JDBC、外部平台 SDK | 中高 | 保留 `DataConnector` SPI；管理端点继续默认关闭。 |
+| `ai-assistant-observability-support` | OpenAPI UI、OTLP tracing、结构化日志扩展 | springdoc、OTLP、logstash encoder | 低 | 大部分已 optional，优先整理为文档和 starter 条件入口。 |
+
+### 推荐迁移顺序
+
+1. **先拆 Headless / Observability 文档边界**：这些能力已经接近 optional，先把自动装配条件、依赖入口和错误提示写清楚，回归风险最低。
+2. **再拆 Export + File support**：PDFBox/POI 是当前最大默认依赖足迹，但 `/export` 和文件解析已有公开 API。拆分前必须补齐缺依赖时的启动提示或 4xx/501 响应，避免运行期 500。
+3. **最后拆 RAG / Connector**：这两类能力涉及后台管理、工具注册、租户、安全和存储一致性，适合在 SPI 和生产配置检查进一步稳定后再拆。
+
+### 兼容性原则
+
+- `ai-assistant-spring-boot-starter` 在一个小版本内不突然移除现有能力；先提供 feature artifact 和迁移提示，再考虑把重型依赖从默认 starter 中移出。
+- `ai-assistant-service` 独立镜像继续保持开箱即用；即使内部拆包，镜像仍应显式引入需要的 feature artifact。
+- 每个拆出的 artifact 都需要一页文档说明：适用场景、依赖、启用配置、默认关闭项、安全注意事项和最小测试命令。
+- CI 需要分别覆盖“只引入 core starter”和“引入完整 feature set”两条路径，避免 core 用户被重型依赖重新污染。

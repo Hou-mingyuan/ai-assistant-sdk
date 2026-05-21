@@ -14,6 +14,7 @@ import {
 } from './useConnectionDiagnosticsState';
 import { useConnectionConfigState } from './useConnectionConfigState';
 import { useRuntimeProviderConfigState } from './useRuntimeProviderConfigState';
+import { useDiagnosticsClipboard } from './useDiagnosticsClipboard';
 
 export interface UseAssistantDiagnosticsOptions {
   options: AiAssistantOptions;
@@ -33,8 +34,6 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const defaultChatModel = ref('');
   const diagnosticsOpen = ref(false);
   const diagnosticsBusy = ref(false);
-  const diagnosticsCopied = ref(false);
-  const diagnosticsCopyMessage = ref('');
   const diagnosticsLastChecked = ref('');
   const modelListError = ref('');
   const modelListStatus = ref<ModelListStatus>('');
@@ -95,6 +94,22 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     modelHintText,
     diagnosticsRemedyKind,
   } = diagnosticsState;
+  const { diagnosticsCopied, diagnosticsCopyMessage, copyDiagnostics } = useDiagnosticsClipboard({
+    t,
+    pendingTimers,
+    getSnapshot: () => ({
+      baseUrl: options.baseUrl,
+      modelEndpoint: diagnosticsModelEndpoint.value,
+      accessToken: options.accessToken,
+      statusMessage: diagnosticsStatusMessage.value,
+      lastError: modelListError.value,
+      selectedModel: selectedChatModel.value,
+      modelSourceText: modelSourceText.value,
+      modelStatusText: modelStatusText.value,
+      modelCount: modelChoices.value.length,
+      lastChecked: diagnosticsLastChecked.value,
+    }),
+  });
 
   async function refreshChatModels() {
     modelChoices.value = [];
@@ -244,37 +259,6 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     }
   }
 
-  async function copyDiagnostics() {
-    const lines = [
-      'AI Assistant Diagnostics',
-      `Base URL: ${options.baseUrl || '(not configured)'}`,
-      `Models endpoint: ${diagnosticsModelEndpoint.value}`,
-      `Access token: ${options.accessToken?.trim() ? 'configured' : 'missing'}`,
-      `Status: ${diagnosticsStatusMessage.value}`,
-      `Last error: ${modelListError.value || '(none)'}`,
-      `Selected model: ${selectedChatModel.value || '(not selected)'}`,
-      `Model source: ${modelSourceText.value}`,
-      `Model status: ${modelStatusText.value}`,
-      `Available models: ${modelChoices.value.length}`,
-      `Last checked: ${diagnosticsLastChecked.value || '(never)'}`,
-    ];
-    const text = lines.join('\n');
-    try {
-      await writeClipboardText(text);
-      diagnosticsCopied.value = true;
-      diagnosticsCopyMessage.value = t.value.diagnosticsCopied;
-      pendingTimers.push(
-        window.setTimeout(() => {
-          diagnosticsCopied.value = false;
-          diagnosticsCopyMessage.value = '';
-        }, 1500),
-      );
-    } catch {
-      diagnosticsCopied.value = false;
-      diagnosticsCopyMessage.value = t.value.diagnosticsCopyFailed;
-    }
-  }
-
   return {
     modelChoices,
     modelCapabilities,
@@ -320,25 +304,4 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     connectionBaseUrlStorageKey,
     connectionTokenStorageKey,
   };
-}
-
-export async function writeClipboardText(text: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.left = '-9999px';
-  textarea.style.top = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    const copied = document.execCommand('copy');
-    if (!copied) throw new Error('copy command failed');
-  } finally {
-    document.body.removeChild(textarea);
-  }
 }

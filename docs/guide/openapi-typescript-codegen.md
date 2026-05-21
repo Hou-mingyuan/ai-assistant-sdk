@@ -129,7 +129,22 @@ The generator script supports the following flags:
 
 ## CI integration
 
-The cheapest guard is a drift check in CI:
+CI 先使用一个不启动后端的轻量 guard：
+
+```bash
+node scripts/openapi-type-sync-guard.mjs --base origin/main --head HEAD
+```
+
+它检查当前已经纳入 `api-generated.d.ts` 的聊天契约文件：
+
+- `AiAssistantController.java`
+- `SseStreamController.java`
+- `ChatRequest.java`
+- `ChatResponse.java`
+
+如果这些文件发生变化，但 `ai-assistant-ui/src/types/api-generated.d.ts` 没有同步变化，PR 会失败。这个 guard 不会运行 codegen，只负责防止最常见的“后端契约改了但前端类型快照没跟”。
+
+更完整的 live-spec drift check 可以作为后续增强：
 
 ```yaml
 # .github/workflows/ci.yml (snippet — add after backend test job)

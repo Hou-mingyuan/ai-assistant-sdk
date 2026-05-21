@@ -810,3 +810,110 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - 第一次命令 `mvn -pl ai-assistant-server -Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest test` 被 PowerShell 逗号解析拦截，未进入 Maven。
 - 重跑 `mvn -pl ai-assistant-server "-Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest" test`：5 个测试通过，0 失败。
+
+### 当前阶段 13.16
+
+状态：已完成。
+
+目标：
+- 按深度分析建议的第 1 项，处理工作区大量行尾噪音。
+- 不做全仓 CRLF/LF 重写，只提供只读检测工具和使用说明。
+
+修改：
+- 新增 `scripts/line-ending-noise-check.mjs`
+- 新增 `scripts/line-ending-noise-check.test.mjs`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `docs/guide/git-hooks.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/line-ending-noise-check.test.mjs`：5/5 通过。
+- `node scripts/line-ending-noise-check.mjs`：识别 2 个真实内容 diff 和 88 个 line-ending-only diff。
+- `node scripts/project-health-check.mjs --line-endings`：通过。
+- `ReadLints` 对相关脚本和文档无诊断。
+
+### 当前阶段 13.17
+
+状态：已完成。
+
+目标：
+- 按深度分析建议的第 2 项，把 OpenAPI 前端类型同步检查纳入 CI。
+- 先做轻量 guard，不启动后端服务、不运行 live codegen。
+
+修改：
+- 新增 `scripts/openapi-type-sync-guard.mjs`
+- 新增 `scripts/openapi-type-sync-guard.test.mjs`
+- 修改 `.github/workflows/ci.yml`
+- 修改 `docs/guide/openapi-typescript-codegen.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/openapi-type-sync-guard.test.mjs`：4/4 通过。
+- `node scripts/openapi-type-sync-guard.mjs --file ai-assistant-server/src/main/java/com/aiassistant/model/ChatRequest.java`：按预期失败，提示需要同步 `api-generated.d.ts`。
+- `node scripts/openapi-type-sync-guard.mjs --file ai-assistant-server/src/main/java/com/aiassistant/model/ChatRequest.java --file ai-assistant-ui/src/types/api-generated.d.ts`：通过。
+- `node --test scripts/*.test.mjs`：18/18 通过。
+- `ReadLints` 对相关脚本、CI 和文档无诊断。
+
+### 当前阶段 13.18
+
+状态：已完成。
+
+目标：
+- 继续拆分诊断相关前端逻辑。
+- 把诊断复制文本和剪贴板状态迁移到独立 composable。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsClipboard.ts`
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsClipboard.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `ai-assistant-ui/REFACTORING_PLAN.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`npm test -- useDiagnosticsClipboard.spec.ts` 首次失败，原因是缺少 `useDiagnosticsClipboard` 模块。
+- GREEN：`npm test -- useDiagnosticsClipboard.spec.ts`：3 个测试通过。
+- `npm test -- useDiagnosticsClipboard.spec.ts ConnectionDiagnostics.spec.ts`：2 个测试文件、5 个测试通过。
+- `ReadLints` 对相关新文件和修改文件无诊断。
+
+### 当前阶段 13.19
+
+状态：已完成。
+
+目标：
+- 规划 Starter feature artifact 拆分路线。
+- 本阶段只写文档，不移动依赖或模块。
+
+修改：
+- `docs/guide/dependency-footprint.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+验证：
+- `ReadLints` 对 `docs/guide/dependency-footprint.md` 和规划记录无诊断。
+
+### 当前阶段 13.20
+
+状态：已完成。
+
+目标：
+- 收窄 `@ai-assistant/vue` 主入口公共 API 面。
+- 不删除现有导出，只补推荐导入路径和后续导出规则。
+
+修改：
+- `docs/guide/frontend-recipes.md`
+- `ai-assistant-ui/src/index.ts`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+验证：
+- `npm test -- packageExports.spec.ts`：1/1 通过。
+- `ReadLints` 对相关文档和 `index.ts` 无诊断。

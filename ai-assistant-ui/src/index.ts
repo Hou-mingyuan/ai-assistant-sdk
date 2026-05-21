@@ -212,7 +212,10 @@ export { AiAssistant };
  * - Admin/MCP/plugin/composable utilities below are intentionally exported for
  *   advanced hosts, but new internal refactors should NOT be re-exported by
  *   default. Promote a helper here only when a host can use it independently
- *   without depending on AiAssistant.vue internals. */
+ *   without depending on AiAssistant.vue internals.
+ * - Prefer secondary entries (`./admin`, `./mcp`, `./form-fill`, `./screenshot`)
+ *   for new advanced helpers so the main entry can remain focused on the core
+ *   Vue plugin and stable integration API. */
 export { useAiAssistant } from './composables/useAiAssistant';
 export { useSessionSearch, highlightSearchInHtml } from './composables/useSessionSearch';
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer';

@@ -231,6 +231,28 @@ Web Component 适合 React、Vue 2、Angular、原生 HTML 或低代码平台：
 
 新增对外导出时，优先判断它属于哪一层：如果只是 `AiAssistant.vue` 内部拆分出来的实现细节，不要默认从主入口 re-export；只有宿主项目确实需要独立复用时再公开。
 
+### 推荐导入路径
+
+主入口继续保留历史导出以兼容已接入项目，但新项目建议按能力选择更窄的二级入口：
+
+| 能力 | 推荐导入 | 说明 |
+| --- | --- | --- |
+| 主组件 / Vue 插件 | `@ai-assistant/vue` | 默认插件、`AiAssistant`、`useAiAssistant` 和样式仍从主入口接入。 |
+| Admin SDK | `@ai-assistant/vue/admin` | 避免把管理面 helper 混进普通业务组件依赖。 |
+| MCP client / auto plugin | `@ai-assistant/vue/mcp` | 面向高级工具集成，生产需配合后端 MCP 开关和权限边界。 |
+| 表单自动填充工具 | `@ai-assistant/vue/form-fill` | 适合只复用 parser / matcher / filler 的宿主。 |
+| 截图能力 | `@ai-assistant/vue/screenshot` | 适合独立页面截图或屏幕捕获集成。 |
+| Web Component | `@ai-assistant/vue/wc` | React / Angular / 原生 HTML 集成时使用。 |
+
+### 收窄主入口路线
+
+后续版本应遵循“先迁移、再标注、最后移除”的顺序：
+
+1. **迁移文档示例**：新增示例优先使用二级入口，README 只展示主组件和最常见 API。
+2. **保持主入口兼容**：现有主入口导出不在小版本中删除，只通过注释和文档标注稳定性层级。
+3. **新增导出默认走子路径**：Admin、MCP、Form Fill、Screenshot 等能力的新 helper 优先加入对应 entry，不再默认加入 `src/index.ts`。
+4. **大版本再清理**：如果要从主入口移除高级工具，必须在 changelog 中列出替代导入路径，并提供至少一个版本的迁移窗口。
+
 ## 常见踩坑
 
 - 出现两个悬浮球：同时开启了 `autoMountToBody`，又在模板中写了 `<AiAssistant />`。

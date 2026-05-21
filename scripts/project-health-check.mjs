@@ -21,6 +21,8 @@ const runMultiReplica = args.has('--multi-replica') || args.has('--all')
 const runProdConfig = args.has('--prod-config') || args.has('--all')
 /* K2: SSRF allowlist policy 单元测试（轻量，复用 ai-assistant-server JUnit） */
 const runSsrfTest = args.has('--ssrf') || args.has('--all')
+/* K59: 行尾噪音检查：只读地区分真实内容差异与 CRLF/LF-only diff */
+const runLineEndings = args.has('--line-endings') || args.has('--all')
 
 const checks = [
   {
@@ -150,6 +152,15 @@ if (runSsrfTest) {
   })
 }
 
+if (runLineEndings) {
+  checks.push({
+    name: 'line-ending noise check',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/line-ending-noise-check.mjs')],
+    cwd: root,
+  })
+}
+
 console.log('AI Assistant SDK health check')
 console.log(`Project root: ${root}`)
 console.log('')
@@ -182,10 +193,11 @@ if (
   !runCoverage &&
   !runMultiReplica &&
   !runProdConfig &&
-  !runSsrfTest
+  !runSsrfTest &&
+  !runLineEndings
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, or --all to run more checks.',
   )
 }
 

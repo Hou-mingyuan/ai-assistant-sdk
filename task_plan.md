@@ -509,6 +509,98 @@
 - 首次 PowerShell 命令未进入 Maven：`-Dtest=A,B` 逗号需要加引号。
 - 重跑 `mvn -pl ai-assistant-server "-Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest" test`：5 个测试通过，0 失败。
 
+### 阶段 13.16 设计
+
+目标是处理当前工作区大量 `modified` 但无业务内容差异的行尾噪音，避免后续功能改动和 CRLF/LF 归一化混在同一次 review。
+
+约束：
+- 不执行全仓行尾重写。
+- 不自动 commit / push。
+- 只新增只读检测工具和文档说明。
+
+结果：
+- 新增 `scripts/line-ending-noise-check.mjs`，区分真实 content diff 和 line-ending/status-only diff。
+- 新增 `scripts/line-ending-noise-check.test.mjs`，覆盖内容差异、行尾差异、status-only 变更和 rename porcelain 解析。
+- `scripts/project-health-check.mjs` 新增 `--line-endings` lane。
+- `docs/guide/git-hooks.md` 增加“行尾噪音检查”说明。
+
+验证：
+- `node --test scripts/line-ending-noise-check.test.mjs`：5 个测试通过。
+- `node scripts/line-ending-noise-check.mjs`：识别 2 个真实内容 diff 和 88 个 line-ending-only diff。
+- `node scripts/project-health-check.mjs --line-endings`：版本一致性检查通过，行尾噪音检查通过。
+- `ReadLints` 对新增脚本、测试、健康检查和文档无诊断。
+
+### 阶段 13.17 设计
+
+目标是按深度分析建议的第 2 项，把 OpenAPI 前端类型同步检查纳入 CI，优先选择不启动后端、不下载 codegen 的轻量 guard。
+
+约束：
+- 不启动 Spring Boot 服务。
+- 不运行 Maven build/package。
+- 不直接重新生成 `api-generated.d.ts`。
+- 先覆盖当前已经写入 `api-generated.d.ts` 的聊天契约范围。
+
+结果：
+- 新增 `scripts/openapi-type-sync-guard.mjs`。
+- 新增 `scripts/openapi-type-sync-guard.test.mjs`。
+- `.github/workflows/ci.yml` 的 repository job 改为 `fetch-depth: 0`，并在 PR 上运行 `openapi-type-sync-guard`。
+- `docs/guide/openapi-typescript-codegen.md` 更新 CI 集成说明，明确轻量 guard 与 live-spec drift check 的区别。
+
+验证：
+- `node --test scripts/openapi-type-sync-guard.test.mjs`：4 个测试通过。
+- `node scripts/openapi-type-sync-guard.mjs --file ai-assistant-server/src/main/java/com/aiassistant/model/ChatRequest.java`：按预期失败，提示缺少 `api-generated.d.ts` 同步。
+- `node scripts/openapi-type-sync-guard.mjs --file ai-assistant-server/src/main/java/com/aiassistant/model/ChatRequest.java --file ai-assistant-ui/src/types/api-generated.d.ts`：通过。
+- `node --test scripts/*.test.mjs`：18 个脚本测试全部通过。
+- `ReadLints` 对新增脚本、测试、CI 和文档无诊断。
+
+### 阶段 13.18 设计
+
+目标是按深度分析建议的第 3 项继续拆分诊断相关前端逻辑，先抽出低风险的 diagnostics clipboard 编排。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsClipboard.ts`
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsClipboard.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 更新 `ai-assistant-ui/REFACTORING_PLAN.md`
+
+结果：
+- `buildDiagnosticsText`、`copyDiagnostics`、`diagnosticsCopied`、`diagnosticsCopyMessage` 和 `writeClipboardText` fallback 从 `useAssistantDiagnostics.ts` 迁移到 `useDiagnosticsClipboard.ts`。
+- `useAssistantDiagnostics.ts` 保留模型刷新、runtime config、连接配置保存和 provider discovery 编排。
+- `AiAssistant.vue` 继续复用 `writeClipboardText`，但导入路径改为新 composable。
+
+验证：
+- RED：`npm test -- useDiagnosticsClipboard.spec.ts` 首次失败，原因是缺少 `useDiagnosticsClipboard` 模块。
+- GREEN：`npm test -- useDiagnosticsClipboard.spec.ts` 通过，3/3。
+- `npm test -- useDiagnosticsClipboard.spec.ts ConnectionDiagnostics.spec.ts` 通过，5/5。
+- `ReadLints` 对新 composable、spec、`useAssistantDiagnostics.ts` 和 `AiAssistant.vue` 无诊断。
+
+### 阶段 13.19 设计
+
+目标是按深度分析建议的第 4 项规划 Starter feature artifact 拆分路线，但本阶段不移动 POM 依赖，避免破坏现有用户。
+
+结果：
+- `docs/guide/dependency-footprint.md` 新增“Feature artifact 拆分路线”。
+- 明确候选 artifact：export/file/headless/rag/connector/observability support。
+- 明确迁移顺序：先 Headless / Observability，再 Export + File，最后 RAG / Connector。
+- 明确兼容原则：Starter 不在小版本内突然移除能力，独立服务保持开箱即用，CI 后续需要覆盖 core-only 和 full feature set 两条路径。
+
+验证：
+- `ReadLints` 对 `docs/guide/dependency-footprint.md` 无诊断。
+
+### 阶段 13.20 设计
+
+目标是按深度分析建议的第 5 项继续收窄 `@ai-assistant/vue` 主入口公共 API 面，但不删除任何现有导出。
+
+结果：
+- `docs/guide/frontend-recipes.md` 的“公共 API 分层”新增推荐导入路径和主入口收窄路线。
+- `ai-assistant-ui/src/index.ts` 的 public API surface policy 注释补充：新高级 helper 优先进入 `./admin`、`./mcp`、`./form-fill`、`./screenshot` 等二级入口。
+- 保持所有现有主入口导出不变，避免破坏下游。
+
+验证：
+- `npm test -- packageExports.spec.ts`：1 个测试通过。
+- `ReadLints` 对 `frontend-recipes.md` 和 `index.ts` 无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

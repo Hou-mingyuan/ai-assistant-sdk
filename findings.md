@@ -360,3 +360,36 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `RuntimeConfigControllerTest` 已覆盖只读 `/runtime/config` 的安全摘要、密钥不泄露、feature flags 和 limits。
 - `RuntimeModelConfigController` 原本没有 controller 层测试；service 层已有更新、持久化、discover models 覆盖。
 - 本阶段补 controller 层契约，确保 Admin runtime model config 的响应仍保持 sanitized / write-only API key 语义。
+
+### 阶段 13.16 行尾噪音发现
+
+- 仓库已有 `.gitattributes`、`.editorconfig` 和前端 `.prettierrc`，三者均要求 LF。
+- 当前 `git status` 显示大量 modified，但这些文件大多没有可展示的 text patch；属于 CRLF/LF 或 status-only 噪音，不能混入功能提交。
+- 新增的 `scripts/line-ending-noise-check.mjs` 能把真实内容 diff 与 line-ending/status-only diff 分开展示。
+- 本阶段不做全仓行尾重写，避免制造 80+ 文件的纯行尾 review 噪音。
+
+### 阶段 13.17 OpenAPI 类型同步发现
+
+- `scripts/generate-frontend-types.mjs --check` 已存在，但需要运行中的 `/v3/api-docs` 和 `openapi-typescript` npx codegen，不适合作为本阶段最小 CI 改动。
+- 当前 `ai-assistant-ui/src/types/api-generated.d.ts` 只覆盖聊天相关 wire contract：`ChatRequest`、`ChatResponse` 以及 `/chat`、`/stream`、`/sse` 请求体。
+- 轻量 guard 先覆盖 `AiAssistantController`、`SseStreamController`、`ChatRequest`、`ChatResponse` 这 4 个文件；如果它们变更但 `api-generated.d.ts` 未变更，PR 失败。
+- 这不是完整 live OpenAPI drift check。后续要扩大到所有 REST DTO 时，应先扩大 generated snapshot 或引入静态 `docs/api/openapi.json`。
+
+### 阶段 13.18 Diagnostics clipboard 拆分发现
+
+- `useAssistantDiagnostics.ts` 中复制诊断文本逻辑是纯 UI side effect：构造文本、写剪贴板、设置 copied 状态和 timer 清理，不依赖网络请求。
+- 这部分适合独立成 `useDiagnosticsClipboard.ts`，既能被单测覆盖，也让 `useAssistantDiagnostics.ts` 更专注于模型/连接诊断编排。
+- `writeClipboardText` 仍被 `AiAssistant.vue` 的消息复制功能复用，因此迁移到新文件后需要同步调整导入路径。
+
+### 阶段 13.19 Feature artifact 拆分路线发现
+
+- 当前默认 Starter 仍承担基础聊天、导出、文件解析、RAG、连接器、Headless、观测扩展等多类能力，依赖足迹对“只要聊天”的宿主偏重。
+- 最适合优先拆的是已经接近 optional 的 Headless / Observability；风险最低。
+- PDFBox/POI 是依赖足迹重点，但 `/export` 和文件解析已有公开 API，拆分前必须提供缺依赖时的明确提示，不能让用户遇到运行期 500。
+- RAG / Connector 涉及管理面、工具注册、安全和存储一致性，适合最后拆。
+
+### 阶段 13.20 前端公共 API 收窄发现
+
+- `package.json` 已有 `./admin`、`./mcp`、`./form-fill`、`./screenshot`、`./wc` 等二级入口，适合承接高级能力。
+- 主入口 `src/index.ts` 仍保留大量高级导出以兼容历史用户；本阶段不删除导出，只强化文档和注释约束。
+- 新项目应优先按能力从二级入口导入，后续新增高级 helper 默认不再加入主入口。

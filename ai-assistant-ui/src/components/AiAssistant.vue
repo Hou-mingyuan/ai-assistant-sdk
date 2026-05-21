@@ -718,10 +718,8 @@ import { useKnowledgeBase } from '../composables/useKnowledgeBase';
 import { useMultiModelChat } from '../composables/useMultiModelChat';
 import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { useAudioPreferences } from '../composables/useAudioPreferences';
-import {
-  useAssistantDiagnostics,
-  writeClipboardText,
-} from '../composables/useAssistantDiagnostics';
+import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics';
+import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';

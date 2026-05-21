@@ -44,6 +44,10 @@ function color(text, c) {
   return `\x1b[${codes[c] ?? 0}m${text}\x1b[0m`;
 }
 
+function quoteShellArg(value) {
+  return `"${value.replace(/(["\\$`])/g, '\\$1')}"`;
+}
+
 const staged = sh('git diff --cached --name-only --diff-filter=ACMR')
   .split('\n')
   .map((s) => s.trim())
@@ -56,6 +60,9 @@ if (staged.length === 0) {
 
 const frontendFiles = staged.filter(
   (f) => f.startsWith('ai-assistant-ui/src/') && /\.(ts|vue|css|json)$/.test(f),
+);
+const frontendFilesForTooling = frontendFiles.map((f) =>
+  quoteShellArg(f.replace(/^ai-assistant-ui\//, '')),
 );
 const serverJavaFiles = staged.filter(
   (f) => f.startsWith('ai-assistant-server/') && f.endsWith('.java'),
@@ -92,14 +99,18 @@ if (scriptFiles.length > 0) {
 if (frontendFiles.length > 0) {
   console.log(color('  ✓ frontend lint (eslint)…', 'gray'));
   try {
-    shInherit('npm run -s lint --prefix ai-assistant-ui');
+    shInherit(`npx eslint ${frontendFilesForTooling.join(' ')}`, {
+      cwd: path.join(root, 'ai-assistant-ui'),
+    });
   } catch {
     failures++;
   }
 
   console.log(color('  ✓ frontend format (prettier --check)…', 'gray'));
   try {
-    shInherit('npm run -s format:check --prefix ai-assistant-ui');
+    shInherit(`npx prettier --check ${frontendFilesForTooling.join(' ')}`, {
+      cwd: path.join(root, 'ai-assistant-ui'),
+    });
   } catch {
     console.error(
       color(

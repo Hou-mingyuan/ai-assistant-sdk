@@ -31,6 +31,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Needed by openapi-type-sync-guard for PR base...HEAD diffs.
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -54,6 +57,10 @@ jobs:
 
       - name: Run repo script tests
         run: node --test scripts/*.test.mjs
+
+      - name: Check OpenAPI frontend type sync
+        if: github.event_name == 'pull_request'
+        run: node scripts/openapi-type-sync-guard.mjs --base "origin/${{ github.base_ref }}" --head HEAD
 
       - name: Multi-replica config lint
         # K1: warn-only on push to main, strict on PRs targeting main so that
