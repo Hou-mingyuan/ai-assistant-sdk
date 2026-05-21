@@ -211,7 +211,9 @@ class AiAssistantControllerTest {
         var chunks = response.getBody().collectList().block();
 
         assertEquals(400, response.getStatusCode().value());
-        assertEquals(org.springframework.http.MediaType.TEXT_EVENT_STREAM, response.getHeaders().getContentType());
+        assertEquals(
+                org.springframework.http.MediaType.TEXT_EVENT_STREAM,
+                response.getHeaders().getContentType());
         assertNotNull(chunks);
         assertEquals(1, chunks.size());
         assertTrue(chunks.get(0).startsWith("[VALIDATION_ERROR] "));
