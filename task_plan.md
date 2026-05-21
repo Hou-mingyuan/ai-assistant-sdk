@@ -447,6 +447,26 @@
 - `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
 
+### 阶段 13.12 设计
+
+目标是继续拆分 `useAssistantDiagnostics.ts`，将 runtime provider 表单状态迁移到独立 composable。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useRuntimeProviderConfigState.ts`
+- 新增 `ai-assistant-ui/src/composables/useRuntimeProviderConfigState.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+
+结果：
+- `providerInput`、`providerBaseUrlInput`、`providerApiKeyInput`、`providerModelInput`、`providerAllowedModelsInput` 迁移到 `useRuntimeProviderConfigState`。
+- runtime config 回填、写入 payload 构造、discover models 回填逻辑迁移到独立 composable。
+- `useAssistantDiagnostics.ts` 保留网络请求、诊断执行和 UI message 编排。
+
+验证：
+- 已先写 `useRuntimeProviderConfigState.spec.ts` 并观察到 RED：缺少 `useRuntimeProviderConfigState` 导致 import 失败。
+- `npm test -- useRuntimeProviderConfigState.spec.ts`：5 个测试通过。
+- `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
+- `npm run build:types`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

@@ -337,3 +337,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `useAssistantDiagnostics.ts` 中连接配置输入、localStorage 持久化和默认 baseUrl 提示是纯状态逻辑，不依赖网络请求。
 - 将这部分拆到 `useConnectionConfigState` 后，`useAssistantDiagnostics.ts` 中剩余的主要职责是运行模型诊断、保存 runtime provider 配置、发现模型和复制诊断文本。
 - localStorage 写入仍做 try/catch，保持原有“不可用或满容量时不影响 UI”的行为。
+
+### 阶段 13.12 Runtime provider 表单状态拆分发现
+
+- runtime provider 表单输入、从 sanitized config 回填、保存 payload 构造和 discover models 回填都是纯状态转换。
+- 拆出 `useRuntimeProviderConfigState` 后，`useAssistantDiagnostics.ts` 的 provider 相关代码只保留 API 调用成功/失败和状态消息处理。
+- API key 仍保持 write-only：读取 runtime config 后会清空 `providerApiKeyInput`，避免把已配置密钥回显到 UI。

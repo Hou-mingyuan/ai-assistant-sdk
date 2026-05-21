@@ -13,6 +13,7 @@ import {
   type ModelListStatus,
 } from './useConnectionDiagnosticsState';
 import { useConnectionConfigState } from './useConnectionConfigState';
+import { useRuntimeProviderConfigState } from './useRuntimeProviderConfigState';
 
 export interface UseAssistantDiagnosticsOptions {
   options: AiAssistantOptions;
@@ -37,11 +38,17 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const diagnosticsLastChecked = ref('');
   const modelListError = ref('');
   const modelListStatus = ref<ModelListStatus>('');
-  const providerInput = ref('');
-  const providerBaseUrlInput = ref('');
-  const providerApiKeyInput = ref('');
-  const providerModelInput = ref('');
-  const providerAllowedModelsInput = ref('');
+  const providerConfig = useRuntimeProviderConfigState();
+  const {
+    providerInput,
+    providerBaseUrlInput,
+    providerApiKeyInput,
+    providerModelInput,
+    providerAllowedModelsInput,
+    applyRuntimeModelConfig,
+    buildRuntimeModelConfigPayload,
+    applyDiscoveredModels,
+  } = providerConfig;
   const diagnosticsBaseUrl = computed({
     get: () => options.baseUrl,
     set: (value: string | undefined) => {
@@ -144,11 +151,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
       modelListError.value = cfg.error || t.value.modelsLoadFailed;
       return;
     }
-    providerInput.value = cfg.provider || '';
-    providerBaseUrlInput.value = cfg.baseUrl || '';
-    providerModelInput.value = cfg.model || '';
-    providerAllowedModelsInput.value = (cfg.allowedModels ?? []).join(', ');
-    providerApiKeyInput.value = '';
+    applyRuntimeModelConfig(cfg);
   }
 
   async function runModelDiagnostics() {
@@ -199,13 +202,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     try {
       const result = await saveRuntimeModelConfig(
         options.baseUrl,
-        {
-          provider: providerInput.value,
-          baseUrl: providerBaseUrlInput.value,
-          apiKey: providerApiKeyInput.value,
-          model: providerModelInput.value,
-          allowedModelsText: providerAllowedModelsInput.value,
-        },
+        buildRuntimeModelConfigPayload(),
         options.accessToken,
         options.adminToken,
       );
@@ -239,10 +236,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
         connectionConfigMessage.value = t.value.connectionConfigFailed;
         return;
       }
-      providerAllowedModelsInput.value = result.models.join(', ');
-      if (!providerModelInput.value && result.models[0]) {
-        providerModelInput.value = result.models[0];
-      }
+      applyDiscoveredModels(result.models);
       connectionConfigMessage.value = t.value.connectionConfigTested;
     } finally {
       diagnosticsBusy.value = false;

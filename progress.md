@@ -743,3 +743,24 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`npm test -- useConnectionConfigState.spec.ts` 通过，6/6。
 - `ReadLints` 对 `useConnectionConfigState.ts`、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
+
+### 当前阶段 13.12
+
+状态：已完成。
+
+目标：
+- 继续拆分 `useAssistantDiagnostics.ts`。
+- 将 runtime provider 表单状态迁移到独立 composable。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useRuntimeProviderConfigState.ts`
+- 新增 `ai-assistant-ui/src/composables/useRuntimeProviderConfigState.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`npm test -- useRuntimeProviderConfigState.spec.ts` 首次失败，原因是缺少 `useRuntimeProviderConfigState` 模块。
+- GREEN：`npm test -- useRuntimeProviderConfigState.spec.ts` 通过，5/5。
+- `ReadLints` 对 `useRuntimeProviderConfigState.ts`、spec 和 `useAssistantDiagnostics.ts` 无诊断。
+- `npm run build:types`：通过。
