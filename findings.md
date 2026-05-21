@@ -449,3 +449,15 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `adminApi.ts` 的公开函数已经稳定对应一组 `/admin/*` routes，适合先补 path-level OpenAPI snapshot，而不是一次扩全仓 REST paths。
 - Admin SDK 仍需要保留 `AdminResult<T>`，因为它是前端调用层的错误归一化协议；OpenAPI 只描述后端 200 JSON payload。
 - request body schema 适合从 paths 派生，能减少 `adminApi.ts` 中 `{ success: ... }` 等手写 inline 类型继续扩散。
+
+### 阶段 13.33 Public path-level OpenAPI 发现
+
+- 非 Admin endpoints 中不少 Controller 返回 `Map<String,Object>` 或 JSON 字符串，静态快照适合先用“稳定字段 + additionalProperties”的方式描述，不宜为了 OpenAPI 过度收紧服务端实现。
+- 文件上传和导出需要分别用 `multipart/form-data` 与 `application/octet-stream` 表达，否则 generated paths 会误导前端把它们当普通 JSON API。
+- Runtime model discovery 是 Admin runtime config 的子路径，但没有 request body；测试应只要求 responses 覆盖，不能强行要求 JSON body。
+
+### 阶段 13.34 Frontend API path-level 类型发现
+
+- `api.ts` 里仍有通用 helper 需要保留前端自己的归一化结果类型，例如 `PromptTemplatesListResult` 和 server export 的 `{ ok }` 下载结果；OpenAPI 类型只适合作为 wire payload 的来源。
+- 用临时 TypeScript probe 做脚本测试，比把类型断言塞进 `*.spec.ts` 更可靠，因为前端 `tsconfig.json` 明确排除了 spec 文件。
+- `RuntimeDiscoverModelsResult` 需要显式 schema，否则从 `additionalProperties` 生成的类型太宽，不能给调用层提供实际约束。

@@ -1142,3 +1142,49 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
 - `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
 - `npx vue-tsc --noEmit`：通过。
+
+### 当前阶段 13.33
+
+状态：已完成。
+
+目标：
+- 继续补齐非 Admin REST endpoints 的 OpenAPI path-level snapshot。
+- 让静态快照覆盖主要公开能力面，减少后续新增 generated types 的阻力。
+
+修改：
+- 新增 `scripts/openapi-public-paths.test.mjs`
+- 修改 `docs/api/openapi.json`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/openapi-public-paths.test.mjs scripts/openapi-admin-paths.test.mjs`：4 个测试通过。
+- `node --test scripts/*.test.mjs`：29 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npx vue-tsc --noEmit`：通过。
+
+### 当前阶段 13.34
+
+状态：已完成。
+
+目标：
+- 让 `ai-assistant-ui/src/utils/api.ts` 的关键 helper 类型从 generated paths 派生。
+- 给 path-level 类型迁移增加脚本级类型契约测试。
+
+修改：
+- 新增 `scripts/frontend-api-path-types.test.mjs`
+- 修改 `docs/api/openapi.json`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 修改 `ai-assistant-ui/src/utils/api.ts`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/frontend-api-path-types.test.mjs`：通过。
+- `node --test scripts/*.test.mjs`：30 个测试通过。
+- `npm test -- api.spec.ts`：2 个测试文件、53 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npx vue-tsc --noEmit`：通过。

@@ -772,6 +772,37 @@
 - `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
 - `npx vue-tsc --noEmit`：通过。
 
+### 阶段 13.33 设计
+
+目标是继续补齐非 Admin REST endpoints 的静态 OpenAPI paths，让静态快照覆盖服务端当前主要公开能力面。
+
+结果：
+- 新增 `scripts/openapi-public-paths.test.mjs`，覆盖 health、stats、templates、sessions、file、batch、capabilities、async、export、connector health、MCP 和 runtime model discovery paths。
+- `docs/api/openapi.json` 补齐上述 paths、请求体、path/query 参数和主要响应 schema；multipart 文件上传和二进制 export 响应也纳入快照。
+- 重新生成 `ai-assistant-ui/src/types/api-generated.d.ts`。
+
+验证：
+- `node --test scripts/openapi-public-paths.test.mjs scripts/openapi-admin-paths.test.mjs`：4 个测试通过。
+- `node --test scripts/*.test.mjs`：29 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npx vue-tsc --noEmit`：通过。
+
+### 阶段 13.34 设计
+
+目标是让前端通用 API helper 的公开类型继续从 generated paths 派生，而不是继续依赖手写或 schema-only aliases。
+
+结果：
+- 新增 `scripts/frontend-api-path-types.test.mjs`，用临时 TypeScript probe 校验 `api.ts` 导出的关键 helper 类型与 `paths[...]` 完全一致。
+- `api.ts` 新增 path-level helper types，导出 `ExportRequestPayload`、`FileUploadResponse`、`PromptTemplatesResponse`、`RuntimeDiscoverModelsResult`。
+- `/admin/runtime/model-config/discover-models` 响应改为显式 `RuntimeDiscoverModelsResult` schema，并重新生成 `api-generated.d.ts`。
+
+验证：
+- `node --test scripts/frontend-api-path-types.test.mjs`：通过。
+- `node --test scripts/*.test.mjs`：30 个测试通过。
+- `npm test -- api.spec.ts`：2 个测试文件、53 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npx vue-tsc --noEmit`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

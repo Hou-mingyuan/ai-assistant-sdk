@@ -178,6 +178,30 @@
             }
           }
         }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptTemplateCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registered prompt template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptTemplateCreateResult"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/url-preview": {
@@ -199,6 +223,582 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UrlPreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "parameters": [
+          {
+            "name": "deep",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service health summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Usage statistics snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageStatsSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates/{name}/render": {
+      "post": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptTemplateRenderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rendered prompt template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptTemplateRenderResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "User session list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionData"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionData"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionData"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionData"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted session"
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      }
+    },
+    "/file/summarize": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File summary response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/translate": {
+      "post": {
+        "parameters": [
+          {
+            "name": "targetLang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "zh"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File translation response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processing response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capabilities": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Assistant capability registry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CapabilityEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capabilities/{name}/invoke": {
+      "post": {
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapabilityInvokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Capability invocation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilityInvokeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/async/chat": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsyncChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted async chat task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncSubmitResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/async/{taskId}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Async task status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/export": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated export file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/connectors": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Connector health summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/provider": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "AI provider health summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/provider/recheck": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Fresh AI provider health summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/register": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorProperties"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connector registration result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorRegisterResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{connectorId}": {
+      "delete": {
+        "parameters": [
+          {
+            "name": "connectorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connector unregister result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectorUnregisterResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpJsonRpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MCP JSON-RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpJsonRpcResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/runtime/model-config/discover-models": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Runtime provider model discovery result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeDiscoverModelsResult"
                 }
               }
             }
@@ -727,6 +1327,24 @@
           }
         }
       },
+      "RuntimeDiscoverModelsResult": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
       "PromptTemplateEntry": {
         "type": "object",
         "required": ["name", "template"],
@@ -739,6 +1357,490 @@
           },
           "hasFewShot": {
             "type": "boolean"
+          }
+        }
+      },
+      "PromptTemplateCreateRequest": {
+        "type": "object",
+        "required": ["name", "template"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "fewShotExamples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromptTemplateFewShotExample"
+            }
+          }
+        }
+      },
+      "PromptTemplateFewShotExample": {
+        "type": "object",
+        "properties": {
+          "userInput": {
+            "type": "string"
+          },
+          "assistantOutput": {
+            "type": "string"
+          }
+        }
+      },
+      "PromptTemplateCreateResult": {
+        "type": "object",
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "PromptTemplateRenderRequest": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "PromptTemplateRenderResult": {
+        "type": "object",
+        "required": ["name", "rendered"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rendered": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["success", "status", "provider", "model"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "llmReachable": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      "UsageStatsSnapshot": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "SessionData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionMessageItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SessionMessageItem": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "feedback": {
+            "type": "string"
+          }
+        }
+      },
+      "FileUploadRequest": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary"
+          }
+        }
+      },
+      "BatchRequest": {
+        "type": "object",
+        "required": ["requests"],
+        "properties": {
+          "requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchItemRequest"
+            }
+          }
+        }
+      },
+      "BatchItemRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["chat", "translate", "summarize"]
+          },
+          "text": {
+            "type": "string"
+          },
+          "targetLang": {
+            "type": "string"
+          }
+        }
+      },
+      "BatchResponse": {
+        "type": "object",
+        "required": ["results", "count"],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "CapabilityEntry": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CapabilityInvokeRequest": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "CapabilityInvokeResponse": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "AsyncChatRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AsyncSubmitResponse": {
+        "type": "object",
+        "required": ["taskId", "status"],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "AsyncStatusResponse": {
+        "type": "object",
+        "required": ["taskId", "status"],
+        "properties": {
+          "taskId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ExportRequest": {
+        "type": "object",
+        "required": ["format", "messages"],
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["xlsx", "docx", "pdf"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportMessageRow"
+            }
+          },
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark"]
+          }
+        }
+      },
+      "ExportMessageRow": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorHealthResponse": {
+        "type": "object",
+        "required": ["status", "connectors"],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorHealthEntry"
+            }
+          }
+        }
+      },
+      "ConnectorHealthEntry": {
+        "type": "object",
+        "required": ["id", "displayName", "status", "latencyMs"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "modules": {
+            "type": "integer"
+          },
+          "latencyMs": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ProviderHealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "maskedKey": {
+            "type": "string"
+          },
+          "latencyMs": {
+            "type": "integer"
+          },
+          "httpStatus": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "appId": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "timeoutSeconds": {
+            "type": "integer"
+          },
+          "tables": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "string"
+          },
+          "maskedFields": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorRegisterResult": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "connectorId": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectorUnregisterResult": {
+        "type": "object",
+        "required": ["success", "connectorId", "toolsRemoved"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "connectorId": {
+            "type": "string"
+          },
+          "toolsRemoved": {
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "McpJsonRpcRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "method"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string"
+          },
+          "id": {},
+          "method": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "McpJsonRpcResponse": {
+        "type": "object",
+        "required": ["jsonrpc"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string"
+          },
+          "id": {},
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": true
           }
         }
       },

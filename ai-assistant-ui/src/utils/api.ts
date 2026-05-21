@@ -1,6 +1,21 @@
-import type { components } from '../types/api-generated';
+import type { components, paths } from '../types/api-generated';
 
 type ApiSchemas = components['schemas'];
+type ApiPaths = paths;
+
+type JsonResponse<Path extends keyof ApiPaths, Method extends keyof ApiPaths[Path]> =
+  NonNullable<ApiPaths[Path][Method]> extends {
+    responses: { 200: { content: { 'application/json': infer Response } } };
+  }
+    ? Response
+    : never;
+
+type JsonRequestBody<Path extends keyof ApiPaths, Method extends keyof ApiPaths[Path]> =
+  NonNullable<ApiPaths[Path][Method]> extends {
+    requestBody: { content: { 'application/json': infer Request } };
+  }
+    ? Request
+    : never;
 
 export type HistoryMessage = ApiSchemas['MessageItem'];
 
@@ -22,6 +37,17 @@ export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'];
 export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'];
 
 export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
+
+export type ExportRequestPayload = JsonRequestBody<'/export', 'post'>;
+
+export type FileUploadResponse = JsonResponse<'/file/summarize', 'post'>;
+
+export type PromptTemplatesResponse = JsonResponse<'/templates', 'get'>;
+
+export type RuntimeDiscoverModelsResult = JsonResponse<
+  '/admin/runtime/model-config/discover-models',
+  'post'
+>;
 
 function buildHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -126,7 +152,7 @@ export async function postServerExport(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const normalizedToken = normalizeToken(token);
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
-  const body: Record<string, unknown> = { format, title, messages };
+  const body: ExportRequestPayload = { format, title, messages };
   if (theme) body.theme = theme;
   const res = await fetch(apiUrl(baseUrl, '/export'), {
     method: 'POST',
@@ -173,7 +199,7 @@ export async function postServerExport(
   return { ok: true };
 }
 
-export type PromptTemplateEntry = ApiSchemas['PromptTemplateEntry'];
+export type PromptTemplateEntry = PromptTemplatesResponse[number];
 
 export interface PromptTemplatesListResult {
   success: boolean;
@@ -302,7 +328,7 @@ export async function discoverRuntimeProviderModels(
   baseUrl: string,
   token?: string,
   adminToken?: string,
-): Promise<{ success: boolean; models?: string[]; error?: string }> {
+): Promise<RuntimeDiscoverModelsResult> {
   const res = await fetch(apiUrl(baseUrl, '/admin/runtime/model-config/discover-models'), {
     method: 'POST',
     headers: buildRuntimeConfigHeaders(token, adminToken),
@@ -360,7 +386,7 @@ export async function uploadFile(
   action: 'summarize' | 'translate' = 'summarize',
   targetLang = 'zh',
   token?: string,
-): Promise<ChatResult> {
+): Promise<FileUploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
   if (action === 'translate') {
