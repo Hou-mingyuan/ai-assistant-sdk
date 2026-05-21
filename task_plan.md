@@ -816,6 +816,19 @@
 验证：
 - `node --test scripts/openapi-type-sync-guard.test.mjs`：5 个测试通过。
 
+### 阶段 13.36 设计
+
+目标是同步更新 OpenAPI codegen 文档，避免文档仍描述早期 chat-only guard。
+
+结果：
+- `docs/guide/openapi-typescript-codegen.md` 改为描述当前静态 snapshot 为 reviewed API contract。
+- 文档补充 schema alias 与 path-level alias 的前端使用方式。
+- CI integration 章节更新为当前 guard 行为：后端契约变更要求同步 `docs/api/openapi.json` 和 `api-generated.d.ts`，snapshot 单独变更也要求 generated types 同步。
+- Roadmap 改为 release-time snapshot refresh、收紧 broad schema、v2 REST contract review。
+
+验证：
+- `npm run build`（`docs`）：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

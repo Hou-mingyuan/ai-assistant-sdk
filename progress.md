@@ -1206,3 +1206,19 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `node --test scripts/openapi-type-sync-guard.test.mjs`：5 个测试通过。
+
+### 当前阶段 13.36
+
+状态：已完成。
+
+目标：
+- 更新 OpenAPI codegen 文档到当前实现状态。
+
+修改：
+- 修改 `docs/guide/openapi-typescript-codegen.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `npm run build`（`docs`）：通过。

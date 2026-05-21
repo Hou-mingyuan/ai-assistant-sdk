@@ -13,8 +13,9 @@ risk: every time `ChatRequest.java` grows a field (e.g. `pageContext`,
 check, so a server-only change can ship to `main` without the front-end
 client catching up.
 
-The setup described here closes that gap by making **the Java code the
-source of truth** and the TypeScript types regenerated from it.
+The setup described here closes that gap by making the committed
+`docs/api/openapi.json` snapshot the reviewed API contract, with the
+TypeScript types regenerated from that snapshot and checked in CI.
 
 ## Quick start
 
@@ -95,11 +96,17 @@ export type ChatEndpointResponse =
   paths['/chat']['post']['responses']['200']['content']['application/json'];
 ```
 
-The current front-end client already follows this pattern for the chat
-wire contract: `ChatPayload` and `ChatResult` in `utils/api.ts` are aliases
-of generated `ChatRequest` / `ChatResponse` schemas. From that moment on,
-any `ChatRequest.java` or `ChatResponse.java` change that hits the
-front-end without a regenerated `api-generated.d.ts` fails the type checker.
+The current front-end client follows this pattern in two layers:
+
+* Schema aliases for stable payloads such as `ChatPayload`, `ChatResult`,
+  `ModelsListResult`, `RuntimeModelConfigResult`, and `UrlPreviewResult`.
+* Path-level aliases for operation-specific wire contracts such as
+  `ExportRequestPayload`, `FileUploadResponse`, `PromptTemplatesResponse`,
+  `RuntimeDiscoverModelsResult`, and Admin SDK request/response payloads.
+
+When a covered backend contract changes, CI requires both
+`docs/api/openapi.json` and `ai-assistant-ui/src/types/api-generated.d.ts`
+to move with it.
 
 ## Tuning knobs
 
@@ -117,10 +124,10 @@ The generator script supports the following flags:
 
 ## Recommended PR rules
 
-* Any server PR that touches `ChatRequest`, `MessageItem`, `ChatResponse`,
-  `ChatRequest.MessageItem`, `PageContext`, or any other request/response
-  DTO **must** include a regenerated `api-generated.d.ts`. The reviewer
-  should see the spec diff and the TS diff in the same PR.
+* Any server PR that touches a covered REST controller, request/response DTO,
+  connector config, MCP endpoint, or runtime model config contract **must**
+  include both `docs/api/openapi.json` and a regenerated
+  `ai-assistant-ui/src/types/api-generated.d.ts`.
 * If the codegen output is too noisy, narrow the spec with springdoc
   filters (`springdoc.group-configs[*]`) and re-pin the script's `--pin`.
 * For breaking changes (field removed, type changed), the front-end PR
@@ -136,14 +143,18 @@ CI 先使用一个不启动后端的轻量 guard：
 node scripts/openapi-type-sync-guard.mjs --base origin/main --head HEAD
 ```
 
-它检查当前已经纳入 `api-generated.d.ts` 的聊天契约文件：
+它检查当前已经纳入静态 OpenAPI snapshot 的主要契约文件，包括：
 
-- `AiAssistantController.java`
-- `SseStreamController.java`
-- `ChatRequest.java`
-- `ChatResponse.java`
+- REST controllers：chat、SSE、Admin、runtime config、templates、sessions、
+  file upload、batch、capabilities、async、export、connector health、stats。
+- DTO / config：`ChatRequest`、`ChatResponse`、`ModelsListResponse`、
+  `UrlPreviewResponse`、`ExportRequest`、`SessionData`、`ConnectorProperties`。
+- MCP endpoint 与 runtime model config service。
 
-如果这些文件发生变化，但 `ai-assistant-ui/src/types/api-generated.d.ts` 没有同步变化，PR 会失败。这个 guard 不会运行 codegen，只负责防止最常见的“后端契约改了但前端类型快照没跟”。
+如果这些文件发生变化，但 `docs/api/openapi.json` 或
+`ai-assistant-ui/src/types/api-generated.d.ts` 没有同步变化，PR 会失败。
+如果 OpenAPI snapshot 自身发生变化但 generated types 未同步，PR 也会失败。
+这个 guard 不会运行 codegen，只负责在更早阶段拦截“契约改了但快照/类型没跟”的问题。
 
 `generate-frontend-types.mjs` 也支持静态 spec 输入：
 
@@ -153,7 +164,7 @@ node scripts/generate-frontend-types.mjs \
   --check
 ```
 
-这为后续“提交 `docs/api/openapi.json` 快照 → CI 从快照生成并比对 `api-generated.d.ts`”铺好入口，不需要每次 CI 都启动后端服务。
+这条检查从已提交的静态 snapshot 生成临时 `.d.ts` 并比对，不需要每次 CI 都启动后端服务。
 
 当前 CI 的 repository job 已在 PR 上同时运行轻量变更 guard 和静态 spec 类型比对：
 
@@ -207,14 +218,13 @@ the `.d.ts` diff, and commit it with the server contract change.
 
 ## Roadmap
 
-* **Now**: scaffolding is in place — the auto-config bean, the generator
-  script, this doc, and the initial `ChatRequest` / `ChatResponse`
-  front-end type aliases.
-* **Next**: migrate the remaining hand-written response types in
-  `utils/api.ts` one DTO at a time (`ModelsListResult`,
-  `UrlPreviewResult`, prompt templates, export responses).
-* **Later**: migrate the remaining REST helper types to `api-generated.d.ts`
-  schemas as their server DTOs are added to the static snapshot.
-* **Eventually**: regenerate the static snapshot at release time, so codegen
-  stays aligned with the live backend without requiring a running service in
-  pull-request CI.
+* **Now**: static snapshot coverage includes core chat, Admin, runtime config,
+  templates, sessions, file upload, batch, capabilities, async tasks, export,
+  connector health, MCP, and stats.
+* **Next**: add a release-time snapshot refresh flow so `docs/api/openapi.json`
+  can be regenerated from a live backend in a controlled lane.
+* **Later**: replace broad `Map<String,Object>` / `additionalProperties`
+  schemas with concrete server DTOs where callers benefit from stronger
+  generated types.
+* **Eventually**: use the OpenAPI snapshot as the primary public REST contract
+  for v2 compatibility review.

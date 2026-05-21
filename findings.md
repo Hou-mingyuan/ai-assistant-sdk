@@ -467,3 +467,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 静态快照覆盖范围扩大后，原 guard 只盯 ChatRequest/ChatResponse 已经不够，会漏掉 Session、Export、Connector、Async、Capability 等契约漂移。
 - 仅检查 `api-generated.d.ts` 不足以防止手工改 generated types；后端契约变更时应同时要求 `docs/api/openapi.json` 与 generated types 更新。
 - OpenAPI snapshot 单独变化也必须要求 generated types 更新，否则 `--spec-file --check` 会在后续 CI 才发现漂移。
+
+### 阶段 13.36 OpenAPI 文档同步发现
+
+- `docs/guide/openapi-typescript-codegen.md` 仍停留在 chat-only 阶段，会误导后续维护者只更新 `api-generated.d.ts`。
+- 文档需要明确 `docs/api/openapi.json` 是当前 reviewed contract，generated types 是由它派生的产物，两者应一起 review。
+- 当前更现实的后续路线不是继续扩大 paths 数量，而是做 release-time snapshot refresh 和逐步收紧 broad schema。
