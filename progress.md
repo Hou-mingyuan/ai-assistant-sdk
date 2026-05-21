@@ -684,3 +684,22 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`npm test -- useConnectionDiagnosticsState.spec.ts` 通过，5/5。
 - `ReadLints` 对 `useConnectionDiagnosticsState.ts`、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
+
+### 当前阶段 13.9
+
+状态：已完成。
+
+目标：
+- 强化协议契约测试。
+- 先补齐 `/sse` 标准化事件类型的后端契约。
+
+修改：
+- `ai-assistant-server/src/test/java/com/aiassistant/controller/SseStreamControllerTest.java`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- 首次运行 `mvn -pl ai-assistant-server -Dtest=SseStreamControllerTest test` 失败，原因是 Mockito 无法区分 `chatStream` 的 `String` 与 `List<String>` 重载。
+- 已用 `any(List.class)` 明确匹配 `/sse` 实际调用的 imageDataList 重载。
+- 重跑 `mvn -pl ai-assistant-server -Dtest=SseStreamControllerTest test`：4 个测试通过，0 失败。
+- `ReadLints` 对 `SseStreamControllerTest.java` 无诊断。

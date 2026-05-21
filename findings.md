@@ -317,3 +317,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - error → status、状态文案、token/baseUrl 诊断、model status、source、hint 和 remedy kind 都是纯状态计算，适合先抽离并单测。
 - 本阶段不移动 `fetchModels`、`fetchRuntimeModelConfig`、`saveRuntimeModelConfig`、`discoverRuntimeProviderModels` 调用，避免把网络副作用和纯状态拆分混在一次提交里。
 - 后续可继续把连接配置持久化和运行时 provider 表单保存拆成更小的 composable。
+
+### 阶段 13.9 协议契约测试发现
+
+- UI `streamChat` 已覆盖标准 SSE data 解析、跨 chunk、multiline、`[DONE]`、runtime meta header 和错误响应。
+- 后端 `AiAssistantControllerTest` 已覆盖 `/chat`、兼容 `/stream` 和 `/models` 的主要契约。
+- 后端 `SseStreamControllerTest` 原本只覆盖 translate/summarize 透传 model，缺少标准 `/sse` 的 `message` / `done` / `error` event 契约。
+- `LlmService.chatStream` 同时存在 `String imageData` 和 `List<String> imageDataList` 两个 7 参重载，测试中必须使用 typed matcher 避免 Mockito 重载歧义。

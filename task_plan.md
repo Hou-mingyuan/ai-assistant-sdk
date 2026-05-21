@@ -393,6 +393,23 @@
 - `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
 
+### 阶段 13.9 设计
+
+目标是强化协议契约测试，优先补齐 `/sse` 标准化事件类型的后端契约。
+
+预期修改：
+- 修改 `ai-assistant-server/src/test/java/com/aiassistant/controller/SseStreamControllerTest.java`
+
+结果：
+- 新增 `/sse` chat 流的 `message` / `done` 事件契约测试，覆盖 event、data、id、`X-Accel-Buffering` 和 `Cache-Control`。
+- 新增输入超限时返回 400 且输出 `error` event 的契约测试。
+- 过程中发现 Mockito 对 `chatStream` 两个 7 参重载存在匹配歧义，已用 `any(List.class)` 明确走 imageDataList 重载。
+
+验证：
+- 首次运行 `mvn -pl ai-assistant-server -Dtest=SseStreamControllerTest test` 失败，原因是 Mockito 重载歧义。
+- 修正 matcher 后重跑同一命令：4 个测试通过，0 失败。
+- `ReadLints` 对 `SseStreamControllerTest.java` 无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
@@ -403,3 +420,4 @@
 | 2026-04-29 | 手工 `cmd.exe /c` 拼接命令时引号被错误传递 | Windows 命令行转义不够稳健 | 放弃手工拼接，统一让 Node 的 `shell: true` 处理 |
 | 2026-05-21 | `helm template` 无法执行 | 当前机器未安装 `helm` 命令 | 记录为未验证项；保留模板文件静态审阅和生产配置 lint |
 | 2026-05-21 | `project-health-check --prod-config --strict` 失败 | 本地 `.env` 仍是空 access token 和 `allowed-origins=*` | 不修改本地 `.env`；改为对 `docker-compose.prod.yml` 和 Helm values 分别运行生产配置 lint |
+| 2026-05-21 | `SseStreamControllerTest` 首次编译失败 | Mockito `any()` 无法区分 `chatStream` 的 `String` 与 `List<String>` 重载 | 改用 `any(List.class)` 明确匹配 `/sse` 实际调用的 imageDataList 重载 |
