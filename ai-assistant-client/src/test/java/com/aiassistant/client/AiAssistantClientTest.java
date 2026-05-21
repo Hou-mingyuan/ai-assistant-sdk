@@ -141,6 +141,7 @@ class AiAssistantClientTest {
     @Test
     void chatStreamPreservesSseLeadingSpaceAfterSingleSpecSeparator() throws Exception {
         startServer("/ai-assistant/stream", exchange -> {
+            assertEquals("/ai-assistant/stream", exchange.getRequestURI().getPath());
             assertEquals("text/event-stream", exchange.getRequestHeaders().getFirst("Accept"));
             respond(exchange, 200, "data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n",
                     "text/event-stream;charset=UTF-8");
@@ -153,6 +154,27 @@ class AiAssistantClientTest {
 
         assertEquals(List.of("Hello", " world"), chunks);
         assertEquals("Hello world", String.join("", chunks));
+    }
+
+    @Test
+    void chatStreamSendsTokenAndRuntimeModelPayload() throws Exception {
+        startServer("/ai-assistant/stream", exchange -> {
+            assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(body.contains("\"action\":\"chat\""));
+            assertTrue(body.contains("\"text\":\"hi\""));
+            assertTrue(body.contains("\"systemPrompt\":\"system\""));
+            assertTrue(body.contains("\"model\":\"MiniMax-M2.7\""));
+            respond(exchange, 200, "data: ok\n\ndata: [DONE]\n\n",
+                    "text/event-stream;charset=UTF-8");
+        });
+
+        AiAssistantClient client = client();
+        List<String> chunks = new ArrayList<>();
+
+        client.chatStream("hi", "system", "MiniMax-M2.7", chunks::add);
+
+        assertEquals(List.of("ok"), chunks);
     }
 
     private AiAssistantClient client() {

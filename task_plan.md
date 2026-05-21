@@ -467,6 +467,19 @@
 - `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
 
+### 阶段 13.13 设计
+
+目标是继续强化协议契约测试，补齐 Java Client `/stream` 请求契约。
+
+预期修改：
+- 修改 `ai-assistant-client/src/test/java/com/aiassistant/client/AiAssistantClientTest.java`
+
+结果：
+- `chatStream` 测试覆盖 `/stream` 路径、`Accept: text/event-stream`、`X-AI-Token`、`action/text/systemPrompt/model` 请求体，以及 SSE data 解析。
+
+验证：
+- `mvn -pl ai-assistant-client -Dtest=AiAssistantClientTest test`：12 个测试通过，0 失败。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

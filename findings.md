@@ -343,3 +343,8 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - runtime provider 表单输入、从 sanitized config 回填、保存 payload 构造和 discover models 回填都是纯状态转换。
 - 拆出 `useRuntimeProviderConfigState` 后，`useAssistantDiagnostics.ts` 的 provider 相关代码只保留 API 调用成功/失败和状态消息处理。
 - API key 仍保持 write-only：读取 runtime config 后会清空 `providerApiKeyInput`，避免把已配置密钥回显到 UI。
+
+### 阶段 13.13 Java Client stream 契约发现
+
+- `AiAssistantClientTest` 已覆盖 chat 错误处理、token header、builder 校验、stream SSE 空格保留。
+- 本阶段补齐 `chatStream(text, systemPrompt, model, onChunk)` 的请求契约，确保 Java Client 与官方 `/stream` 兼容端点保持一致。

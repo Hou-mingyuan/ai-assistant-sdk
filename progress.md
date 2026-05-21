@@ -764,3 +764,18 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`npm test -- useRuntimeProviderConfigState.spec.ts` 通过，5/5。
 - `ReadLints` 对 `useRuntimeProviderConfigState.ts`、spec 和 `useAssistantDiagnostics.ts` 无诊断。
 - `npm run build:types`：通过。
+
+### 当前阶段 13.13
+
+状态：已完成。
+
+目标：
+- 强化 Java Client `/stream` 协议契约测试。
+
+修改：
+- `ai-assistant-client/src/test/java/com/aiassistant/client/AiAssistantClientTest.java`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `mvn -pl ai-assistant-client -Dtest=AiAssistantClientTest test`：12 个测试通过，0 失败。
