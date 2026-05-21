@@ -238,6 +238,7 @@ Web Component 适合 React、Vue 2、Angular、原生 HTML 或低代码平台：
 | 能力 | 推荐导入 | 说明 |
 | --- | --- | --- |
 | 主组件 / Vue 插件 | `@ai-assistant/vue` | 默认插件、`AiAssistant`、`useAiAssistant` 和样式仍从主入口接入。 |
+| 核心接入瘦身入口 | `@ai-assistant/vue/core` | 只暴露核心插件、主组件、`useAiAssistant` 和核心类型，适合不需要高级工具导出的宿主。 |
 | Admin SDK | `@ai-assistant/vue/admin` | 避免把管理面 helper 混进普通业务组件依赖。 |
 | MCP client / auto plugin | `@ai-assistant/vue/mcp` | 面向高级工具集成，生产需配合后端 MCP 开关和权限边界。 |
 | 表单自动填充工具 | `@ai-assistant/vue/form-fill` | 适合只复用 parser / matcher / filler 的宿主。 |

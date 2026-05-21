@@ -20,6 +20,11 @@
       "import": "./dist/ai-assistant.mjs",
       "require": "./dist/ai-assistant.umd.cjs"
     },
+    "./core": {
+      "types": "./dist/entries/core.d.ts",
+      "import": "./dist/core.mjs",
+      "require": "./dist/core.umd.cjs"
+    },
     "./admin": {
       "types": "./dist/entries/admin.d.ts",
       "import": "./dist/admin.mjs",

@@ -8,6 +8,10 @@ describe('package secondary exports', () => {
         types: './dist/entries/admin.d.ts',
         import: './dist/admin.mjs',
       },
+      './core': {
+        types: './dist/entries/core.d.ts',
+        import: './dist/core.mjs',
+      },
       './form-fill': {
         types: './dist/entries/form-fill.d.ts',
         import: './dist/form-fill.mjs',

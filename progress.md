@@ -1009,6 +1009,26 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `node --test scripts/bundle-composition-report.test.mjs`：2/2 通过。
 - `node scripts/project-health-check.mjs --dependency-footprint --bundle-composition`：通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
 - `node --test scripts/*.test.mjs`：25/25 通过。
-- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（24 paths）。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
 - `ReadLints` 对相关脚本、CI、文档和前端文件无诊断。
+
+### 当前阶段 13.26
+
+状态：已完成。
+
+目标：
+- 提供兼容性的前端瘦身入口。
+- 不删除主入口历史导出。
+
+修改：
+- 新增 `ai-assistant-ui/src/entries/core.ts`
+- 修改 `ai-assistant-ui/package.json`
+- 修改 `ai-assistant-ui/vite.config.ts`
+- 修改 `ai-assistant-ui/src/packageExports.spec.ts`
+- 修改 `docs/guide/frontend-recipes.md`
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `npm run build`：产出 `core.mjs` / `core.umd.cjs`，Package export check OK（27 paths）。

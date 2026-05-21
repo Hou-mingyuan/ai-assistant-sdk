@@ -420,3 +420,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 
 - 当前 baseline gzip 构成中 main 约 464 KB，feature chunks 约 280 KB，Web Component 约 224 KB，secondary entries 约 6.5 KB。
 - secondary entries 体积很小，说明继续把高级能力留在子入口是正确方向；主入口瘦身应优先分析 main 与 feature chunks 的关系。
+
+### 阶段 13.26 Core entry 瘦身路径发现
+
+- 直接从主入口移除高级导出会破坏历史用户，不适合作为小版本改动。
+- 新增 `@ai-assistant/vue/core` 可以先提供更窄的接入入口，后续文档示例可逐步引导新用户使用 core 或专门子入口。
+- `core.mjs` 本身非常小，但它仍会指向核心插件；真正降低宿主最终体积还需要后续继续拆主组件内部静态依赖。

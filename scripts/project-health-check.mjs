@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = new Set(process.argv.slice(2))
+const runReleaseCheck = args.has('--release-check')
 const runDocs = args.has('--docs') || args.has('--all')
 const runUiTests = args.has('--ui-test') || args.has('--all')
 const runServerTests = args.has('--server-test') || args.has('--all')
@@ -24,9 +25,13 @@ const runSsrfTest = args.has('--ssrf') || args.has('--all')
 /* K59: 行尾噪音检查：只读地区分真实内容差异与 CRLF/LF-only diff */
 const runLineEndings = args.has('--line-endings') || args.has('--all')
 /* K60: Starter 依赖足迹策略检查：防止 optional 能力退化为默认依赖 */
-const runDependencyFootprint = args.has('--dependency-footprint') || args.has('--all')
+const runDependencyFootprint =
+  args.has('--dependency-footprint') || runReleaseCheck || args.has('--all')
 /* K61: 包体归因报告：基于 bundle-size baseline 输出 main / wc / chunk 构成 */
-const runBundleComposition = args.has('--bundle-composition') || args.has('--all')
+const runBundleComposition = args.has('--bundle-composition') || runReleaseCheck || args.has('--all')
+/* K62: 仓库脚本单测 + 静态 OpenAPI 类型检查，作为 release-check 的轻量核心 */
+const runScriptTests = args.has('--script-test') || runReleaseCheck || args.has('--all')
+const runOpenApiTypes = args.has('--openapi-types') || runReleaseCheck || args.has('--all')
 
 const checks = [
   {
@@ -43,6 +48,29 @@ if (runDocs) {
     command: npmCommand(),
     args: ['run', 'build'],
     cwd: path.join(root, 'docs'),
+  })
+}
+
+if (runScriptTests) {
+  checks.push({
+    name: 'repo script tests',
+    command: process.execPath,
+    args: ['--test', path.join(root, 'scripts/*.test.mjs')],
+    cwd: root,
+  })
+}
+
+if (runOpenApiTypes) {
+  checks.push({
+    name: 'static OpenAPI generated type check',
+    command: process.execPath,
+    args: [
+      path.join(root, 'scripts/generate-frontend-types.mjs'),
+      '--spec-file',
+      path.join(root, 'docs/api/openapi.json'),
+      '--check',
+    ],
+    cwd: root,
   })
 }
 
@@ -207,6 +235,7 @@ for (const check of checks) {
 
 if (
   !runDocs &&
+  !runReleaseCheck &&
   !runUiTests &&
   !runServerTests &&
   !runPlaygroundBuild &&
@@ -218,10 +247,12 @@ if (
   !runSsrfTest &&
   !runLineEndings &&
   !runDependencyFootprint &&
-  !runBundleComposition
+  !runBundleComposition &&
+  !runScriptTests &&
+  !runOpenApiTypes
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, --script-test, --openapi-types, --release-check, or --all to run more checks.',
   )
 }
 

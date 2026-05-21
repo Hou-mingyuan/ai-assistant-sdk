@@ -666,13 +666,30 @@
 - 新增 `scripts/bundle-composition-report.mjs` 和测试。
 - 基于 `scripts/.bundle-size-baseline.json` 输出 main、webComponent、styles、workers、secondaryEntries、featureChunks 分组 gzip 统计。
 - 接入 `project-health-check --bundle-composition`。
+- 新增 `project-health-check --release-check`，串联版本一致性、脚本测试、静态 OpenAPI 类型比对、依赖足迹和包体归因。
 - `docs/guide/dependency-footprint.md` 增加包体归因命令说明。
 
 验证：
 - `node --test scripts/bundle-composition-report.test.mjs`：2 个测试通过。
 - `node scripts/project-health-check.mjs --dependency-footprint --bundle-composition`：通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
 - `node --test scripts/*.test.mjs`：25 个脚本测试全部通过。
-- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（24 paths）。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+
+### 阶段 13.26 设计
+
+目标是提供兼容性的前端瘦身入口，避免直接删除主入口历史导出。
+
+结果：
+- 新增 `ai-assistant-ui/src/entries/core.ts`。
+- `package.json` 新增 `@ai-assistant/vue/core` 二级入口。
+- `vite.config.ts` 将 `core` 加入 library entries。
+- `packageExports.spec.ts` 覆盖 `./core` 导出。
+- `docs/guide/frontend-recipes.md` 增加 core 入口说明。
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `npm run build`：产出 `core.mjs` / `core.umd.cjs`，Package export check OK（27 paths）。
 
 ## 错误记录
 

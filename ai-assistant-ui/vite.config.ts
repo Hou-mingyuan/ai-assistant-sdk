@@ -6,6 +6,7 @@ const isWC = process.env.BUILD_TARGET === 'wc';
 const preserveDist = process.env.PRESERVE_DIST === 'true';
 const libEntries = {
   'ai-assistant': resolve(__dirname, 'src/index.ts'),
+  core: resolve(__dirname, 'src/entries/core.ts'),
   admin: resolve(__dirname, 'src/entries/admin.ts'),
   'form-fill': resolve(__dirname, 'src/entries/form-fill.ts'),
   mcp: resolve(__dirname, 'src/entries/mcp.ts'),
