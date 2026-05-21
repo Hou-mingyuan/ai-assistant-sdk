@@ -65,6 +65,7 @@ ai-assistant:
 
   # ── 限流 ─────────────────────────────────────────────────
   rate-limit: ${AI_ASSISTANT_RATE_LIMIT:60}               # default: 0（=不限）；多副本部署需切 RedisRateLimitFilter
+  rate-limit-distributed: ${AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED:true} # Redis 可用时默认使用分布式限流；否则回退进程内限流
 
   # ── system prompt ────────────────────────────────────────
   system-prompt: ${AI_ASSISTANT_SYSTEM_PROMPT:}                                       # default: empty

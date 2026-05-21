@@ -101,6 +101,7 @@ app.use(AiAssistant, {
 | `temperature` | `0.7` | 模型随机性。 | 客服、知识问答等稳定场景可降低。 |
 | `llm-max-retries` | `2` | 非流式请求的瞬时错误重试次数。 | 网络不稳定时保留默认；高并发场景注意重试放大流量。 |
 | `rate-limit` | `0`（Starter）/ `60`（独立服务） | 每客户端每分钟限流。 | 单实例可用内置限流，多实例建议在网关或 Redis 层统一。 |
+| `rate-limit-distributed` | `true` | Redis 可用时是否优先注册 `RedisRateLimitFilter`。 | 多副本场景保持默认；未接入 Redis 的独立服务请把限流前移到网关。 |
 | `rate-limit-per-action` | 空 | 按 `chat`、`stream`、`export` 等动作覆盖限流。 | 对导出、上传等重操作单独设置更低配额。 |
 | `chat-max-total-chars` | `300000` | 单次聊天请求总字符上限。 | 避免超长请求拖垮服务或放大模型成本。 |
 | `chat-history-max-chars` | `48000` | 发送给模型的历史消息最大字符数。 | 长会话成本高时降低。 |
@@ -156,6 +157,7 @@ AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=10MB
 | `AI_ASSISTANT_ACCESS_TOKEN` | `ai-assistant.access-token` |
 | `AI_ASSISTANT_ALLOWED_ORIGINS` | `ai-assistant.allowed-origins` |
 | `AI_ASSISTANT_RATE_LIMIT` | `ai-assistant.rate-limit` |
+| `AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED` | `ai-assistant.rate-limit-distributed` |
 | `AI_ASSISTANT_ADMIN_ENABLED` | `ai-assistant.admin-enabled` |
 | `AI_ASSISTANT_ADMIN_TOKEN` | `ai-assistant.admin-token` |
 | `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` | `ai-assistant.runtime-config-secret-key` |
@@ -192,9 +194,14 @@ ai-assistant:
   access-token: ${AI_ASSISTANT_ACCESS_TOKEN}
   allowed-origins: https://your-frontend.example.com
   rate-limit: 60
+  rate-limit-distributed: true
   url-fetch-ssrf-protection: true
   allow-query-token-auth: false
   admin-enabled: false
+  admin-token: ${AI_ASSISTANT_ADMIN_TOKEN}
+  runtime-config-secret-key: ${AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY}
 ```
+
+`admin-token` 只有在启用管理接口或运行时模型配置时才必须设置；`runtime-config-secret-key` 只有在运行时模型 API key 需要重启后保留时才必须设置。多副本部署时，`rate-limit-distributed=true` 只有在运行时存在 Redis 客户端并配置了 Redis 连接后才会真正接管限流；否则请在 API 网关或平台层统一限流。
 
 如果必须开放管理接口、连接器管理、MCP Server 或 Headless 抓取，请先确保调用方鉴权、网络边界、日志审计和限流策略已经就位。上线前建议再按 [生产上线清单](./production-checklist) 逐项检查。
