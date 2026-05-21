@@ -289,3 +289,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `@ai-assistant/vue` 主入口同时导出了主组件、API helper、Admin SDK、MCP、插件、虚拟滚动、TTS、Prompt 模板、表单自动填充和多个低层算法工具。
 - 这些导出的稳定性不应等同看待；主接入层最稳定，低层算法 / 实验工具适合高级宿主锁版本使用。
 - 本轮选择只补文档和导出区维护提示，不移除导出，避免破坏已集成用户。
+
+### 阶段 13.5 Helm / Kubernetes 生产基线发现
+
+- `docs/guide/configuration.md`、`production-checklist.md`、`deployment-checklists.md`、`.env.example` 和 `docker-compose.prod.yml` 已经覆盖大部分生产安全基线。
+- Helm chart 原本只有 `secrets.apiKey` 走 Kubernetes Secret，`AI_ASSISTANT_ACCESS_TOKEN`、`AI_ASSISTANT_ADMIN_TOKEN` 和 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` 仍主要出现在 `env` values 中。
+- `docs/guide/kubernetes.md` 只覆盖基础部署提醒，缺少 Secret 注入、多副本状态一致性、Redis / 网关限流和 Actuator 暴露边界的具体说明。
+- 本阶段选择只调整 Helm 模板和文档，不修改 Java / Vue 运行时逻辑，降低回归风险。

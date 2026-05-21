@@ -581,3 +581,37 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `ReadLints` 对相关文件无诊断。
+
+### 当前阶段 13.5
+
+状态：已完成。
+
+目标：
+- 固化 Helm / Kubernetes 生产基线。
+- 将访问令牌、Admin 令牌和运行时配置加密密钥纳入 Helm Secret 注入。
+- 补齐 Kubernetes 文档里的 Secret、CORS、rate limit、Redis/session/memory 和 Actuator 说明。
+
+### 阶段 13.5 当前结果
+
+修改：
+- `helm/ai-assistant/values.yaml`
+- `helm/ai-assistant/templates/secret.yaml`
+- `helm/ai-assistant/templates/deployment.yaml`
+- `docs/guide/kubernetes.md`
+- `docs/guide/production-checklist.md`
+- `docs/guide/deployment-checklists.md`
+- `ai-assistant-service/README.md`
+- `scripts/production-config-lint.mjs`
+- `scripts/production-config-lint.test.mjs`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `ReadLints` 对相关 Helm / Markdown / Node 文件无诊断。
+- `helm template ai-assistant ./helm/ai-assistant ...` 未执行成功：当前机器未安装 `helm`。
+- `node scripts/project-health-check.mjs --prod-config --strict` 未通过：本地 `.env` 使用空访问 token 和宽 CORS，触发 high-severity。
+- `node --test scripts/production-config-lint.test.mjs`：6/6 通过。
+- `node scripts/production-config-lint.mjs --strict --file docker-compose.prod.yml`：通过。
+- `node scripts/production-config-lint.mjs --strict --file helm/ai-assistant/values.yaml`：0 high-severity，仅模板占位 WARN。
+- `mvn package`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过。

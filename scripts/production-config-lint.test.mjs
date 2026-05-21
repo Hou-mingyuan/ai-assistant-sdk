@@ -17,6 +17,24 @@ AI_ASSISTANT_MCP_SERVER_ENABLED: "true"
   assert.equal(env.AI_ASSISTANT_MCP_SERVER_ENABLED, 'true')
 })
 
+test('parseConfigText maps Helm chart secrets to production env keys', () => {
+  const env = parseConfigText(`
+secrets:
+  apiKey: sk-real
+  accessToken: client-token
+  adminToken: admin-token
+  runtimeConfigSecretKey: runtime-secret
+env:
+  AI_ASSISTANT_ALLOWED_ORIGINS: "https://app.example.com"
+`)
+
+  assert.equal(env.AI_ASSISTANT_API_KEY, 'sk-real')
+  assert.equal(env.AI_ASSISTANT_ACCESS_TOKEN, 'client-token')
+  assert.equal(env.AI_ASSISTANT_ADMIN_TOKEN, 'admin-token')
+  assert.equal(env.AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY, 'runtime-secret')
+  assert.equal(env.AI_ASSISTANT_ALLOWED_ORIGINS, 'https://app.example.com')
+})
+
 test('lintProductionConfig reports high-severity public exposure risks', () => {
   const findings = lintProductionConfig(
     {

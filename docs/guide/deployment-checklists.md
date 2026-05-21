@@ -24,6 +24,7 @@ AI Assistant SDK 有两种主要部署路径。开始前先选一种，再按对
 - [ ] 如需前端跨域访问，`ai-assistant.allowed-origins` 包含真实前端域名。
 - [ ] 生产环境已配置 `ai-assistant.access-token`，前端通过 `accessToken` 传入同一个值。
 - [ ] `ai-assistant.allow-query-token-auth=false`。
+- [ ] 如需启用 Admin 或运行时模型配置，已配置独立 `ai-assistant.admin-token`；需要持久化运行时 API key 时已配置 `ai-assistant.runtime-config-secret-key`。
 - [ ] 生产如需统一助手角色，已设置 `ai-assistant.allow-client-system-prompt=false`，并在前端关闭 `showSystemPromptEditor`。
 - [ ] 如果启用链接抓取，保持 `ai-assistant.url-fetch-ssrf-protection=true`。
 - [ ] 如果启用 Admin、MCP Server、连接器管理或 RAG，已确认对应接口只对可信调用方开放。
@@ -63,6 +64,8 @@ app.use(AiAssistant, {
 - [ ] `AI_ASSISTANT_ACCESS_TOKEN` 已配置，且不是示例值。
 - [ ] `AI_ASSISTANT_ALLOWED_ORIGINS` 使用明确前端域名，生产环境不使用 `*`。
 - [ ] `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false`。
+- [ ] 如果使用 Helm 部署，已通过 `secrets.apiKey` 和 `secrets.accessToken` 注入模型 Key 与访问 Token，未把长期密钥写入普通 `env` 配置。
+- [ ] 如需启用 Admin 或运行时模型配置，已配置独立 `AI_ASSISTANT_ADMIN_TOKEN`；需要持久化运行时 API key 时已配置 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY`。
 - [ ] 如需统一助手角色，`AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT=false`，前端设置 `showSystemPromptEditor: false`。
 - [ ] `AI_ASSISTANT_RATE_LIMIT` 已按业务流量设置。
 - [ ] Compose、Kubernetes 或平台层已设置 CPU、内存和日志滚动限制。

@@ -302,6 +302,37 @@
 - 本阶段没有删除或重命名任何导出，保持兼容。
 - `ReadLints` 对相关文件无诊断。
 
+### 阶段 13.5 设计
+
+目标是继续固化生产基线，补齐 Helm / Kubernetes 路径下的敏感配置注入和多副本说明。
+
+预期修改：
+- `helm/ai-assistant/values.yaml`
+- `helm/ai-assistant/templates/secret.yaml`
+- `helm/ai-assistant/templates/deployment.yaml`
+- `docs/guide/kubernetes.md`
+- `docs/guide/production-checklist.md`
+- `docs/guide/deployment-checklists.md`
+- `ai-assistant-service/README.md`
+- `scripts/production-config-lint.mjs`
+- `scripts/production-config-lint.test.mjs`
+
+结果：
+- Helm chart 将 `AI_ASSISTANT_ACCESS_TOKEN`、`AI_ASSISTANT_ADMIN_TOKEN` 和 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` 从 Secret 注入，避免长期密钥放在普通 `env` 配置中。
+- Kubernetes 文档补充 Secret 注入、明确 CORS、query token 禁用、多副本限流、Redis / Session / Memory / RAG 共享存储和 Actuator 暴露边界。
+- 生产清单和部署路径清单补充 Helm Secret 必配项。
+- `production-config-lint` 增加对 Helm `secrets.apiKey`、`secrets.accessToken`、`secrets.adminToken` 和 `secrets.runtimeConfigSecretKey` 的解析，避免 Secret 化后误判。
+
+验证：
+- `ReadLints` 对相关 Helm / Markdown / Node 文件无诊断。
+- `node --test scripts/production-config-lint.test.mjs`：6 个测试全部通过。
+- `node scripts/production-config-lint.mjs --strict --file docker-compose.prod.yml`：无问题。
+- `node scripts/production-config-lint.mjs --strict --file helm/ai-assistant/values.yaml`：只有模板占位 WARN，无 high-severity。
+- `mvn package`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过。
+- `helm template ...` 未执行成功：当前机器未安装 `helm` 命令。
+- `node scripts/project-health-check.mjs --prod-config --strict` 未通过：本地 `.env` 存在空 `AI_ASSISTANT_ACCESS_TOKEN` 和 `AI_ASSISTANT_ALLOWED_ORIGINS=*`，属于本地环境文件风险。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
@@ -310,3 +341,5 @@
 | 2026-04-29 | VitePress 构建提示 `env` 语言未加载 | 新增 Markdown 使用了未启用的代码块语言 | 将本次新增文档中的 `env` 代码块改为 `text` 后重新构建通过 |
 | 2026-04-29 | `project-health-check.mjs` 首次运行 `npm.cmd` 报 `EINVAL` | Windows 下直接 `spawnSync` `.cmd` 兼容性不足 | 改为 Windows 下使用 `shell: true` |
 | 2026-04-29 | 手工 `cmd.exe /c` 拼接命令时引号被错误传递 | Windows 命令行转义不够稳健 | 放弃手工拼接，统一让 Node 的 `shell: true` 处理 |
+| 2026-05-21 | `helm template` 无法执行 | 当前机器未安装 `helm` 命令 | 记录为未验证项；保留模板文件静态审阅和生产配置 lint |
+| 2026-05-21 | `project-health-check --prod-config --strict` 失败 | 本地 `.env` 仍是空 access token 和 `allowed-origins=*` | 不修改本地 `.env`；改为对 `docker-compose.prod.yml` 和 Helm values 分别运行生产配置 lint |

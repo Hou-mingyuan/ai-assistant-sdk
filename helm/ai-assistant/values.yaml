@@ -59,9 +59,11 @@ env:
   AI_ASSISTANT_BASE_URL: ""
   AI_ASSISTANT_MODEL: ""
   AI_ASSISTANT_CONTEXT_PATH: /ai-assistant
+  # Production must set an explicit frontend origin, for example https://app.example.com.
   AI_ASSISTANT_ALLOWED_ORIGINS: "*"
-  AI_ASSISTANT_ACCESS_TOKEN: ""
   AI_ASSISTANT_RATE_LIMIT: "60"
+  # Effective only when the runtime includes Spring Data Redis and redis.enabled=true.
+  AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED: "true"
   AI_ASSISTANT_TIMEOUT_SECONDS: "60"
   AI_ASSISTANT_MAX_TOKENS: "2048"
   AI_ASSISTANT_TEMPERATURE: "0.7"
@@ -85,7 +87,14 @@ env:
   JAVA_OPTS: -Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError
 
 secrets:
+  # Required: model provider API key, rendered as AI_ASSISTANT_API_KEY.
   apiKey: ""
+  # Required in production unless an upstream gateway fully owns authentication.
+  accessToken: ""
+  # Recommended when AI_ASSISTANT_ADMIN_ENABLED=true so Admin never falls back to accessToken.
+  adminToken: ""
+  # Set when runtime model API keys must survive restarts.
+  runtimeConfigSecretKey: ""
 
 redis:
   enabled: false

@@ -26,6 +26,7 @@
 - [ ] 前端通过 `X-AI-Token` 传递访问 Token。
 - [ ] `AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false`。
 - [ ] `AI_ASSISTANT_ALLOWED_ORIGINS` 使用明确域名，不使用 `*`。
+- [ ] Kubernetes / Helm 部署时，`AI_ASSISTANT_API_KEY`、`AI_ASSISTANT_ACCESS_TOKEN`、`AI_ASSISTANT_ADMIN_TOKEN` 和 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` 通过 Secret 注入，不写入普通 ConfigMap 或镜像。
 - [ ] 如果生产环境需要统一助手角色，`AI_ASSISTANT_ALLOW_CLIENT_SYSTEM_PROMPT=false`，前端同步关闭 `showSystemPromptEditor`。
 - [ ] 如果允许前端运行时修改模型供应商配置，已设置独立 `AI_ASSISTANT_ADMIN_TOKEN`，并只在可信管理入口传入前端 `adminToken`。
 - [ ] 如果要求运行时模型 API key 重启后仍保留，已设置高强度 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY`；否则确认 key 只保存在内存。
@@ -49,6 +50,7 @@
 ## 限流和资源
 
 - [ ] `AI_ASSISTANT_RATE_LIMIT` 已按业务流量设置。
+- [ ] 多副本部署时，已确认 `AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED=true` 仅在 Redis 客户端和 Redis 连接都存在时生效；否则限流已前移到 API 网关或平台层。
 - [ ] 如果配置了分 action 限流，`chat`、`stream`、`export`、`file` 等重操作都有合理配额。
 - [ ] 多副本部署时，不只依赖进程内限流；已在网关、Redis 或平台层做统一限流。
 - [ ] `AI_ASSISTANT_TIMEOUT_SECONDS` 能覆盖模型响应时间，但不会无限等待。

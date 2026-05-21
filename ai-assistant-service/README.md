@@ -84,6 +84,7 @@ Kubernetes 部署可以使用仓库内 Helm chart：
 ```bash
 helm upgrade --install ai-assistant ./helm/ai-assistant \
   --set secrets.apiKey=sk-your-key \
+  --set secrets.accessToken=your-client-token \
   --set env.AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example.com
 ```
 

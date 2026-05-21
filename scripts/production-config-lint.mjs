@@ -154,9 +154,16 @@ export function lintProductionConfig(env, options = {}) {
 
 export function parseConfigText(raw) {
   const env = new Map()
+  let yamlSection = ''
   for (const line of raw.split(/\r?\n/)) {
+    const indent = line.match(/^\s*/)?.[0].length ?? 0
     const trimmed = line.trim()
     if (!trimmed || trimmed.startsWith('#')) continue
+
+    if (indent === 0) {
+      const sectionMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*$/)
+      yamlSection = sectionMatch ? sectionMatch[1] : ''
+    }
 
     const envMatch = trimmed.match(/^([A-Z0-9_]+)\s*=\s*(.*)$/)
     if (envMatch) {
@@ -173,6 +180,14 @@ export function parseConfigText(raw) {
     const yamlMatch = trimmed.match(/^([A-Z0-9_]+):\s*(.*)$/)
     if (yamlMatch) {
       env.set(yamlMatch[1], stripQuotes(yamlMatch[2]))
+      continue
+    }
+
+    if (yamlSection === 'secrets' && indent > 0) {
+      const secretMatch = trimmed.match(/^(apiKey|accessToken|adminToken|runtimeConfigSecretKey):\s*(.*)$/)
+      if (secretMatch) {
+        env.set(toEnvSecretKey(secretMatch[1]), stripQuotes(secretMatch[2]))
+      }
     }
   }
   return Object.fromEntries(env.entries())
@@ -202,6 +217,15 @@ function stripQuotes(value) {
     return trimmed.slice(1, -1)
   }
   return trimmed
+}
+
+function toEnvSecretKey(key) {
+  return {
+    apiKey: 'AI_ASSISTANT_API_KEY',
+    accessToken: 'AI_ASSISTANT_ACCESS_TOKEN',
+    adminToken: 'AI_ASSISTANT_ADMIN_TOKEN',
+    runtimeConfigSecretKey: 'AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY',
+  }[key]
 }
 
 function isBlank(value) {
