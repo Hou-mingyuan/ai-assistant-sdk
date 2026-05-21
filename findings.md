@@ -296,3 +296,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - Helm chart 原本只有 `secrets.apiKey` 走 Kubernetes Secret，`AI_ASSISTANT_ACCESS_TOKEN`、`AI_ASSISTANT_ADMIN_TOKEN` 和 `AI_ASSISTANT_RUNTIME_CONFIG_SECRET_KEY` 仍主要出现在 `env` values 中。
 - `docs/guide/kubernetes.md` 只覆盖基础部署提醒，缺少 Secret 注入、多副本状态一致性、Redis / 网关限流和 Actuator 暴露边界的具体说明。
 - 本阶段选择只调整 Helm 模板和文档，不修改 Java / Vue 运行时逻辑，降低回归风险。
+
+### 阶段 13.6 Compare regions 拆分发现
+
+- `useExportActions`、`useMessageSelection`、`useAssistantDiagnostics` 已存在，批量导出和诊断状态不是当前最大残留点。
+- `AiAssistant.vue` 中 Compare regions 仍直接维护 `compareSet`、label、mark/unmark、compare-with、swap 和 clear，适合先抽为纯状态 composable。
+- 多模型并行对比由 `useMultiModelChat` 管理，和消息区域 Compare regions 是两套能力，本阶段只迁移消息区域比较集合。
+- KB drop / KB picker 仍留在主 SFC，后续可按 `useKnowledgeDrop.ts` 单独拆分。

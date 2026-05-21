@@ -34,7 +34,7 @@
 候选文件：
 
 - `src/composables/useKnowledgeDrop.ts`
-- `src/composables/useCompareRegions.ts`
+- `src/composables/useCompareRegions.ts`（已完成）
 
 边界：
 
@@ -44,6 +44,11 @@
 验证：
 
 - 覆盖多 KB picker、空集合、重复标记、删除消息后索引同步。
+
+当前进展：
+
+- Compare regions 状态已抽到 `useCompareRegions.ts`，覆盖整条消息 mark/unmark、selection 多槽位、compare-with 打开 dialog、4 侧上限、swap/clear。
+- KB drop / KB picker 编排仍在 `AiAssistant.vue`，可作为下一步继续拆分。
 
 ### 3. 抽取连接诊断状态
 

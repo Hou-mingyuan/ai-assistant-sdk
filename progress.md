@@ -615,3 +615,26 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `node scripts/production-config-lint.mjs --strict --file helm/ai-assistant/values.yaml`：0 high-severity，仅模板占位 WARN。
 - `mvn package`：通过。
 - `npm run build`（`ai-assistant-ui`）：通过。
+
+### 当前阶段 13.6
+
+状态：已完成。
+
+目标：
+- 继续拆分 `AiAssistant.vue`。
+- 将 Compare regions 编排迁移到独立 composable。
+- 保持 `CompareRegionsDialog.vue` 展示和多模型 `/compare` 面板行为不变。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useCompareRegions.ts`
+- 新增 `ai-assistant-ui/src/composables/useCompareRegions.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `ai-assistant-ui/REFACTORING_PLAN.md`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`npm test -- useCompareRegions.spec.ts` 首次失败，原因是缺少 `useCompareRegions` 模块。
+- GREEN：`npm test -- useCompareRegions.spec.ts` 通过，5/5。
+- `ReadLints` 对 `useCompareRegions.ts`、spec 和 `AiAssistant.vue` 无诊断。
+- `npm run build:types`：通过。

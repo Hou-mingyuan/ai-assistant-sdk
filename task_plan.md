@@ -333,6 +333,26 @@
 - `helm template ...` 未执行成功：当前机器未安装 `helm` 命令。
 - `node scripts/project-health-check.mjs --prod-config --strict` 未通过：本地 `.env` 存在空 `AI_ASSISTANT_ACCESS_TOKEN` 和 `AI_ASSISTANT_ALLOWED_ORIGINS=*`，属于本地环境文件风险。
 
+### 阶段 13.6 设计
+
+目标是继续拆分 `AiAssistant.vue`，优先抽离 Compare regions 编排，保持 UI 行为不变。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useCompareRegions.ts`
+- 新增 `ai-assistant-ui/src/composables/useCompareRegions.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 更新 `ai-assistant-ui/REFACTORING_PLAN.md`
+
+结果：
+- `compareSet`、`compareDialogOpen`、slot label、mark/unmark、compare-with、swap、clear 迁移到 `useCompareRegions`。
+- `AiAssistant.vue` 保留右键菜单上下文读取和代码块点击桥接，不再直接维护 Compare set 数组操作。
+- 多模型 `/compare` 面板保持不变，避免混淆两套对比能力。
+
+验证：
+- 已先写 `useCompareRegions.spec.ts` 并观察到 RED：缺少 `useCompareRegions` 导致 import 失败。
+- `npm test -- useCompareRegions.spec.ts`：5 个测试通过。
+- `npm run build:types`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

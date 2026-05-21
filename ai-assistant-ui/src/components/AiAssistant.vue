@@ -436,7 +436,7 @@
       :compare-mark-active="compareSet.length > 0"
       :compare-mark-active-for-this="compareSlotOf(msgCtxMenu.index) >= 0"
       :compare-set-count="compareSet.length"
-      :compare-set-full="compareSet.length >= MAX_COMPARE_SIDES"
+      :compare-set-full="compareSet.length >= maxCompareSides"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
@@ -769,6 +769,7 @@ import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessi
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
 import { useMessageSelection } from '../composables/useMessageSelection';
+import { useCompareRegions } from '../composables/useCompareRegions';
 import { useSendStream } from '../composables/useSendStream';
 import {
   isAbortCancellationMessage,
@@ -1526,7 +1527,7 @@ function ttsPauseToggle() {
 /**
  * K40 / K42: CompareRegionsView N-way state.
  *
- * 演进自 K40 (left + right) → K42 单一 `compareSet: CompareSide[]` (1-4)：
+ * 演进自 K40 (left + right) → K42 单一 `compareSet` (1-4)：
  * - 1 条 = "Add to Compare set" 后槽位为 A，等待第二条
  * - 2 条 = K40 原 UX，pair tab 只有一个，差异 dialog 立即可用
  * - 3-4 条 = pair tab N(N-1)/2 个（3 sides=3 tab，4 sides=6 tab）
@@ -1534,112 +1535,28 @@ function ttsPauseToggle() {
  * 槽位顺序代表添加顺序（不是 msgIndex 顺序）— 让用户掌控 base 是哪条。
  * Swap 在 dialog 内部按 pair 局部 swap。
  */
-interface CompareSide {
-  msgIndex: number;
-  content: string;
-  label: string;
-}
-const MAX_COMPARE_SIDES = 4;
-const compareSet = ref<CompareSide[]>([]);
-const compareDialogOpen = ref(false);
-function buildCompareLabel(
-  idx: number,
-  role: string,
-  slotLetter: string,
-  isSelection = false,
-): string {
-  const fmt = t.value.compareDialogMsgLabel || 'Msg #{idx} ({role})';
-  const base = fmt.replace('{idx}', String(idx + 1)).replace('{role}', role);
-  const selSuffix = isSelection ? ` · ${t.value.compareDialogSelectionTag || 'selection'}` : '';
-  return `[${slotLetter}] ${base}${selSuffix}`;
-}
-function reLabelCompareSet() {
-  compareSet.value = compareSet.value.map((side, slotIdx) => {
-    const baseRegex = /^\[[A-Z]\]\s/;
-    const stripped = side.label.replace(baseRegex, '');
-    const letter = String.fromCharCode(65 + slotIdx);
-    return { ...side, label: `[${letter}] ${stripped}` };
-  });
-}
-function isInCompareSet(idx: number): boolean {
-  return compareSet.value.some((s) => s.msgIndex === idx);
-}
-function compareSlotOf(idx: number): number {
-  return compareSet.value.findIndex((s) => s.msgIndex === idx);
-}
+const compareRegions = useCompareRegions({ messages, t });
+const {
+  compareSet,
+  compareDialogOpen,
+  compareSlotOf,
+  swapPair: onCompareSwapPair,
+  clearSet: onCompareClearSet,
+} = compareRegions;
+const maxCompareSides = compareRegions.maxSides;
+
 function onCompareMark() {
   const idx = msgCtxMenu.value.index;
-  if (idx < 0) return;
   const selection = (msgCtxMenu.value.selectionText ?? '').trim();
   closeMsgCtxMenu();
-  const m = messages.value[idx];
-  if (!m) return;
-
-  /* K45: selection mode — always pushes a NEW slot (no toggle), so the
-   * user can mark multiple regions of the same message. Toggle/unmark
-   * still works for whole-msg slots via the no-selection path. */
-  if (selection) {
-    if (compareSet.value.length >= MAX_COMPARE_SIDES) return;
-    const letter = String.fromCharCode(65 + compareSet.value.length);
-    compareSet.value.push({
-      msgIndex: idx,
-      content: selection,
-      label: buildCompareLabel(idx, m.role, letter, true),
-    });
-    return;
-  }
-
-  const existingSlot = compareSlotOf(idx);
-  if (existingSlot >= 0) {
-    compareSet.value.splice(existingSlot, 1);
-    reLabelCompareSet();
-    return;
-  }
-  if (compareSet.value.length >= MAX_COMPARE_SIDES) {
-    return;
-  }
-  const letter = String.fromCharCode(65 + compareSet.value.length);
-  compareSet.value.push({
-    msgIndex: idx,
-    content: m.contentArchive ?? m.content ?? '',
-    label: buildCompareLabel(idx, m.role, letter),
-  });
+  compareRegions.mark(idx, selection);
 }
+
 function onCompareWith() {
   const idx = msgCtxMenu.value.index;
   const selection = (msgCtxMenu.value.selectionText ?? '').trim();
   closeMsgCtxMenu();
-  if (idx < 0 || compareSet.value.length === 0) return;
-  /* K45: with selection -> always add (allows same msg multiple regions);
-   * without -> add whole msg only if not already in set. */
-  const shouldAdd = selection ? true : !isInCompareSet(idx);
-  if (shouldAdd && compareSet.value.length < MAX_COMPARE_SIDES) {
-    const m = messages.value[idx];
-    if (m) {
-      const letter = String.fromCharCode(65 + compareSet.value.length);
-      const content = selection ? selection : (m.contentArchive ?? m.content ?? '');
-      compareSet.value.push({
-        msgIndex: idx,
-        content,
-        label: buildCompareLabel(idx, m.role, letter, !!selection),
-      });
-    }
-  }
-  if (compareSet.value.length >= 2) {
-    compareDialogOpen.value = true;
-  }
-}
-function onCompareSwapPair(slotA: number, slotB: number) {
-  const arr = compareSet.value;
-  if (slotA < 0 || slotB < 0 || slotA >= arr.length || slotB >= arr.length) return;
-  const tmp = arr[slotA];
-  arr[slotA] = arr[slotB]!;
-  arr[slotB] = tmp!;
-  reLabelCompareSet();
-}
-function onCompareClearSet() {
-  compareSet.value = [];
-  compareDialogOpen.value = false;
+  compareRegions.compareWith(idx, selection);
 }
 
 /**
@@ -2636,16 +2553,11 @@ function handleBodyClick(e: MouseEvent) {
     const codeText = findCodeElementForCodeActionTarget(cmpBtn)?.textContent ?? '';
     const m = msgIdx >= 0 ? messages.value[msgIdx] : undefined;
     if (m && codeText.trim()) {
-      if (compareSet.value.length >= MAX_COMPARE_SIDES) {
+      if (compareSet.value.length >= maxCompareSides) {
         setExportToast(t.value.msgCtxCompareSetFull || 'Compare set is full (max 4)', 2400);
         return;
       }
-      const letter = String.fromCharCode(65 + compareSet.value.length);
-      compareSet.value.push({
-        msgIndex: msgIdx,
-        content: codeText,
-        label: buildCompareLabel(msgIdx, m.role, letter, true),
-      });
+      compareRegions.mark(msgIdx, codeText);
       /* Flash the button to confirm the add. */
       cmpBtn.classList.add('ai-code-cmp-btn-added');
       setTimeout(() => cmpBtn.classList.remove('ai-code-cmp-btn-added'), 1000);
