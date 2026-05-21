@@ -794,3 +794,19 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `mvn -pl ai-assistant-server -Dtest=AiAssistantControllerTest test`：17 个测试通过，0 失败。
+
+### 当前阶段 13.15
+
+状态：已完成。
+
+目标：
+- 强化 runtime config 后端契约测试。
+
+修改：
+- 新增 `ai-assistant-server/src/test/java/com/aiassistant/controller/RuntimeModelConfigControllerTest.java`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- 第一次命令 `mvn -pl ai-assistant-server -Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest test` 被 PowerShell 逗号解析拦截，未进入 Maven。
+- 重跑 `mvn -pl ai-assistant-server "-Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest" test`：5 个测试通过，0 失败。

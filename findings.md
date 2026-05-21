@@ -354,3 +354,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `AiAssistantController.stream` 对输入超限走 HTTP 400 + text/event-stream body，内容以 `[VALIDATION_ERROR]` 前缀给前端展示。
 - LLM stream 中途失败不会让 Servlet 直接变成 HTTP 500，而是通过 `fluxWithFriendlyErrors` 转成单个友好错误 chunk。
 - `/stream` 仍是官方 UI 和 Java Client 的兼容端点；typed event 需求继续由 `/sse` 覆盖。
+
+### 阶段 13.15 Runtime config 后端契约发现
+
+- `RuntimeConfigControllerTest` 已覆盖只读 `/runtime/config` 的安全摘要、密钥不泄露、feature flags 和 limits。
+- `RuntimeModelConfigController` 原本没有 controller 层测试；service 层已有更新、持久化、discover models 覆盖。
+- 本阶段补 controller 层契约，确保 Admin runtime model config 的响应仍保持 sanitized / write-only API key 语义。

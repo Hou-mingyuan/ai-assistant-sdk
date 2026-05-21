@@ -494,6 +494,21 @@
 验证：
 - `mvn -pl ai-assistant-server -Dtest=AiAssistantControllerTest test`：17 个测试通过，0 失败。
 
+### 阶段 13.15 设计
+
+目标是继续强化 runtime config 后端契约，覆盖只读 runtime config 和 Admin runtime model config。
+
+预期修改：
+- 新增 `ai-assistant-server/src/test/java/com/aiassistant/controller/RuntimeModelConfigControllerTest.java`
+
+结果：
+- 补齐 `GET /admin/runtime/model-config` 的 sanitized snapshot 契约，确保不返回 API key 明文。
+- 补齐 `POST /admin/runtime/model-config` 的更新契约，确保 provider/model/allowedModels 回写，并保持 API key write-only。
+
+验证：
+- 首次 PowerShell 命令未进入 Maven：`-Dtest=A,B` 逗号需要加引号。
+- 重跑 `mvn -pl ai-assistant-server "-Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest" test`：5 个测试通过，0 失败。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
@@ -505,3 +520,4 @@
 | 2026-05-21 | `helm template` 无法执行 | 当前机器未安装 `helm` 命令 | 记录为未验证项；保留模板文件静态审阅和生产配置 lint |
 | 2026-05-21 | `project-health-check --prod-config --strict` 失败 | 本地 `.env` 仍是空 access token 和 `allowed-origins=*` | 不修改本地 `.env`；改为对 `docker-compose.prod.yml` 和 Helm values 分别运行生产配置 lint |
 | 2026-05-21 | `SseStreamControllerTest` 首次编译失败 | Mockito `any()` 无法区分 `chatStream` 的 `String` 与 `List<String>` 重载 | 改用 `any(List.class)` 明确匹配 `/sse` 实际调用的 imageDataList 重载 |
+| 2026-05-21 | runtime config 双测试 Maven 命令被 PowerShell 拦截 | `-Dtest=A,B` 中逗号被 PowerShell 当作参数列表语法 | 将整个 `-Dtest=RuntimeConfigControllerTest,RuntimeModelConfigControllerTest` 用双引号包裹 |
