@@ -938,3 +938,77 @@ release）真正闭环、落地，并补 a11y 兜底。
 - RED：`node --test scripts/generate-frontend-types.test.mjs` 首次失败，原因是缺少 `loadSpecText` export。
 - GREEN：`node --test scripts/generate-frontend-types.test.mjs`：3 个测试通过。
 - `ReadLints` 对相关脚本和文档无诊断。
+
+### 当前阶段 13.22
+
+状态：已完成。
+
+目标：
+- 生成静态 OpenAPI 快照。
+- 扩大前端 `api-generated.d.ts` 覆盖面。
+
+修改：
+- 新增 `docs/api/openapi.json`
+- 新增 `ai-assistant-ui/.prettierignore`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 修改 `ai-assistant-ui/src/utils/api.ts`
+- 修改 `.github/workflows/ci.yml`
+- 修改 `docs/guide/openapi-typescript-codegen.md`
+
+验证：
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- api.spec.ts`：2 个测试文件、53 个测试通过。
+
+### 当前阶段 13.23
+
+状态：已完成。
+
+目标：
+- 拆分 `useAssistantDiagnostics.ts` 网络请求编排。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsModelRequests.ts`
+- 新增 `ai-assistant-ui/src/composables/useDiagnosticsModelRequests.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 修改 `ai-assistant-ui/REFACTORING_PLAN.md`
+
+验证：
+- RED：`npm test -- useDiagnosticsModelRequests.spec.ts` 首次失败，原因是缺少模块。
+- GREEN：`npm test -- useDiagnosticsModelRequests.spec.ts useDiagnosticsClipboard.spec.ts ConnectionDiagnostics.spec.ts api.spec.ts`：5 个测试文件、60 个测试通过。
+
+### 当前阶段 13.24
+
+状态：已完成。
+
+目标：
+- 建立 Starter 依赖足迹护栏。
+
+修改：
+- 新增 `scripts/dependency-footprint-check.mjs`
+- 新增 `scripts/dependency-footprint-check.test.mjs`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `.github/workflows/ci.yml`
+
+验证：
+- `node --test scripts/dependency-footprint-check.test.mjs`：3/3 通过。
+- `node scripts/dependency-footprint-check.mjs`：无问题。
+
+### 当前阶段 13.25
+
+状态：已完成。
+
+目标：
+- 补前端包体归因报告。
+
+修改：
+- 新增 `scripts/bundle-composition-report.mjs`
+- 新增 `scripts/bundle-composition-report.test.mjs`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `docs/guide/dependency-footprint.md`
+
+验证：
+- `node --test scripts/bundle-composition-report.test.mjs`：2/2 通过。
+- `node scripts/project-health-check.mjs --dependency-footprint --bundle-composition`：通过。
+- `node --test scripts/*.test.mjs`：25/25 通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（24 paths）。
+- `ReadLints` 对相关脚本、CI、文档和前端文件无诊断。

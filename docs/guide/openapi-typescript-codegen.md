@@ -155,6 +155,13 @@ node scripts/generate-frontend-types.mjs \
 
 这为后续“提交 `docs/api/openapi.json` 快照 → CI 从快照生成并比对 `api-generated.d.ts`”铺好入口，不需要每次 CI 都启动后端服务。
 
+当前 CI 的 repository job 已在 PR 上同时运行轻量变更 guard 和静态 spec 类型比对：
+
+```bash
+node scripts/openapi-type-sync-guard.mjs --base origin/<base> --head HEAD
+node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check
+```
+
 更完整的 live-spec drift check 可以作为后续增强：
 
 ```yaml
@@ -206,7 +213,8 @@ the `.d.ts` diff, and commit it with the server contract change.
 * **Next**: migrate the remaining hand-written response types in
   `utils/api.ts` one DTO at a time (`ModelsListResult`,
   `UrlPreviewResult`, prompt templates, export responses).
-* **Later**: commit a static-spec snapshot (`docs/api/openapi.json`) and run
-  `generate-frontend-types.mjs --spec-file docs/api/openapi.json --check` in CI.
-* **Eventually**: regenerate that static snapshot at release time, so codegen
-  no longer requires a running backend in pull-request CI.
+* **Later**: migrate the remaining REST helper types to `api-generated.d.ts`
+  schemas as their server DTOs are added to the static snapshot.
+* **Eventually**: regenerate the static snapshot at release time, so codegen
+  stays aligned with the live backend without requiring a running service in
+  pull-request CI.

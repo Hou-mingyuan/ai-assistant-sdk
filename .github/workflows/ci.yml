@@ -62,6 +62,13 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/openapi-type-sync-guard.mjs --base "origin/${{ github.base_ref }}" --head HEAD
 
+      - name: Check static OpenAPI generated types
+        if: github.event_name == 'pull_request'
+        run: node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check
+
+      - name: Check dependency footprint policy
+        run: node scripts/dependency-footprint-check.mjs
+
       - name: Multi-replica config lint
         # K1: warn-only on push to main, strict on PRs targeting main so that
         # accidentally adding in-process state with replicas>1 to .env /

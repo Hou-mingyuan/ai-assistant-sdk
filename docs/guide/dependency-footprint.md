@@ -39,6 +39,14 @@
 
 Mermaid 不是默认 dependency。代码块 Mermaid 渲染通过动态 `import('mermaid')` 尝试加载；宿主不安装 Mermaid 时会降级展示源码，不会增加默认包体积。
 
+可以用下面的只读报告查看当前 baseline 的包体构成：
+
+```bash
+node scripts/bundle-composition-report.mjs
+```
+
+报告按 gzip 体积分组主入口、Web Component、样式、worker、secondary entries 和 feature chunks。它不重新 build，只读取 `scripts/.bundle-size-baseline.json`，适合在拆分 secondary entry 前做归因。
+
 ## 何时继续拆分
 
 如果接入方明确不需要导出、Office/PDF 解析、Headless 抓取、RAG 或连接器，后续可考虑把这些能力进一步拆成独立 artifact 或 feature package。但拆分前需要确认：

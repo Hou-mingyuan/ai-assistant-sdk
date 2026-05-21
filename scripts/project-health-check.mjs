@@ -23,6 +23,10 @@ const runProdConfig = args.has('--prod-config') || args.has('--all')
 const runSsrfTest = args.has('--ssrf') || args.has('--all')
 /* K59: 行尾噪音检查：只读地区分真实内容差异与 CRLF/LF-only diff */
 const runLineEndings = args.has('--line-endings') || args.has('--all')
+/* K60: Starter 依赖足迹策略检查：防止 optional 能力退化为默认依赖 */
+const runDependencyFootprint = args.has('--dependency-footprint') || args.has('--all')
+/* K61: 包体归因报告：基于 bundle-size baseline 输出 main / wc / chunk 构成 */
+const runBundleComposition = args.has('--bundle-composition') || args.has('--all')
 
 const checks = [
   {
@@ -161,6 +165,24 @@ if (runLineEndings) {
   })
 }
 
+if (runDependencyFootprint) {
+  checks.push({
+    name: 'dependency footprint policy check',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/dependency-footprint-check.mjs')],
+    cwd: root,
+  })
+}
+
+if (runBundleComposition) {
+  checks.push({
+    name: 'bundle composition report',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/bundle-composition-report.mjs')],
+    cwd: root,
+  })
+}
+
 console.log('AI Assistant SDK health check')
 console.log(`Project root: ${root}`)
 console.log('')
@@ -194,10 +216,12 @@ if (
   !runMultiReplica &&
   !runProdConfig &&
   !runSsrfTest &&
-  !runLineEndings
+  !runLineEndings &&
+  !runDependencyFootprint &&
+  !runBundleComposition
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, or --all to run more checks.',
   )
 }
 

@@ -616,6 +616,64 @@
 - GREEN：`node --test scripts/generate-frontend-types.test.mjs` 通过，3/3。
 - `ReadLints` 对脚本、测试和文档无诊断。
 
+### 阶段 13.22 设计
+
+目标是补齐静态 OpenAPI 快照并扩大前端生成类型覆盖面。
+
+结果：
+- 新增 `docs/api/openapi.json`，覆盖 chat/stream/sse、models、runtime config、prompt templates 和 URL preview。
+- 运行 `generate-frontend-types.mjs --spec-file docs/api/openapi.json` 生成新的 `api-generated.d.ts`。
+- `utils/api.ts` 中 `ModelsListResult`、`ModelDetail`、`RuntimeModelConfigResult`、`RuntimeModelConfigPayload`、`UrlPreviewResult`、`PromptTemplateEntry` 改为引用 generated schema。
+- CI 新增 `generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`。
+- 前端新增 `.prettierignore` 排除生成文件 `src/types/api-generated.d.ts`，避免 codegen 输出与 Prettier 规则互相覆盖。
+
+验证：
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- api.spec.ts`：2 个测试文件、53 个测试通过。
+
+### 阶段 13.23 设计
+
+目标是继续拆分 `useAssistantDiagnostics.ts`，抽出模型诊断网络请求编排。
+
+结果：
+- 新增 `useDiagnosticsModelRequests.ts` 和对应 spec。
+- `refreshRuntimeModelConfig`、`refreshChatModels`、`runModelDiagnostics`、`saveProviderConfig`、`discoverProviderModels` 迁移到新 composable。
+- `useAssistantDiagnostics.ts` 继续作为诊断组合层。
+
+验证：
+- RED：`npm test -- useDiagnosticsModelRequests.spec.ts` 首次失败，原因是缺少模块。
+- GREEN：`npm test -- useDiagnosticsModelRequests.spec.ts useDiagnosticsClipboard.spec.ts ConnectionDiagnostics.spec.ts api.spec.ts`：5 个测试文件、60 个测试通过。
+
+### 阶段 13.24 设计
+
+目标是建立 Starter 依赖足迹护栏，为后续 core-only / feature artifact 拆分做准备。
+
+结果：
+- 新增 `scripts/dependency-footprint-check.mjs` 和测试。
+- 检查 Web/WebFlux/WebSocket/Actuator/Redis/JDBC/Resilience4j/Tracing/Playwright/Springdoc/Logstash 等低频能力必须保持 optional。
+- 明确 PDFBox/POI 当前仍是 documented required，若改 optional 需先更新文档。
+- 接入 `project-health-check --dependency-footprint` 和 CI repository job。
+
+验证：
+- `node --test scripts/dependency-footprint-check.test.mjs`：3 个测试通过。
+- `node scripts/dependency-footprint-check.mjs`：无问题。
+
+### 阶段 13.25 设计
+
+目标是补前端包体归因能力，为主入口继续瘦身提供数据。
+
+结果：
+- 新增 `scripts/bundle-composition-report.mjs` 和测试。
+- 基于 `scripts/.bundle-size-baseline.json` 输出 main、webComponent、styles、workers、secondaryEntries、featureChunks 分组 gzip 统计。
+- 接入 `project-health-check --bundle-composition`。
+- `docs/guide/dependency-footprint.md` 增加包体归因命令说明。
+
+验证：
+- `node --test scripts/bundle-composition-report.test.mjs`：2 个测试通过。
+- `node scripts/project-health-check.mjs --dependency-footprint --bundle-composition`：通过。
+- `node --test scripts/*.test.mjs`：25 个脚本测试全部通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（24 paths）。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

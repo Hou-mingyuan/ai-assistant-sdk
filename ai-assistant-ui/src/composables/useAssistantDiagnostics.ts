@@ -2,19 +2,13 @@ import { computed, ref, type ComputedRef } from 'vue';
 import type { AiAssistantOptions } from '../index';
 import type { I18nMessages } from '../utils/i18n';
 import {
-  discoverRuntimeProviderModels,
-  fetchModels,
-  fetchRuntimeModelConfig,
-  saveRuntimeModelConfig,
-} from '../utils/api';
-import {
-  modelListStatusFromError,
   useConnectionDiagnosticsState,
   type ModelListStatus,
 } from './useConnectionDiagnosticsState';
 import { useConnectionConfigState } from './useConnectionConfigState';
 import { useRuntimeProviderConfigState } from './useRuntimeProviderConfigState';
 import { useDiagnosticsClipboard } from './useDiagnosticsClipboard';
+import { useDiagnosticsModelRequests } from './useDiagnosticsModelRequests';
 
 export interface UseAssistantDiagnosticsOptions {
   options: AiAssistantOptions;
@@ -111,74 +105,31 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     }),
   });
 
-  async function refreshChatModels() {
-    modelChoices.value = [];
-    modelCapabilities.value = {};
-    selectedChatModel.value = '';
-    defaultChatModel.value = '';
-    modelListStatus.value = '';
-    modelListError.value = '';
-    if (!options.baseUrl || !showModelPicker.value) return;
-    try {
-      const r = await fetchModels(options.baseUrl, options.accessToken, { probe: true });
-      if (!r.success) {
-        modelListStatus.value = modelListStatusFromError(r.error);
-        modelListError.value = r.error || t.value.modelsLoadFailed;
-        return;
-      }
-      if (!r.models?.length) {
-        modelListStatus.value = 'empty';
-        return;
-      }
-      modelChoices.value = r.models;
-      modelCapabilities.value = Object.fromEntries(
-        (r.modelDetails ?? [])
-          .filter((detail) => detail.id && Array.isArray(detail.capabilities))
-          .map((detail) => [detail.id, detail.capabilities ?? []]),
-      );
-      const def =
-        r.defaultModel && r.models.includes(r.defaultModel) ? r.defaultModel : r.models[0];
-      defaultChatModel.value = def;
-      let pick = def;
-      try {
-        const saved = localStorage.getItem(selectedModelStorageKey.value);
-        if (saved && r.models.includes(saved)) pick = saved;
-      } catch {
-        /* ignore */
-      }
-      selectedChatModel.value = pick;
-    } catch (e: unknown) {
-      modelListStatus.value = 'network';
-      modelListError.value =
-        e instanceof Error ? e.message : String(e || t.value.modelsNetworkError);
-    }
-  }
-
-  async function refreshRuntimeModelConfig() {
-    if (!options.baseUrl) return;
-    const cfg = await fetchRuntimeModelConfig(
-      options.baseUrl,
-      options.accessToken,
-      options.adminToken,
-    );
-    if (!cfg.success) {
-      modelListStatus.value = modelListStatusFromError(cfg.error);
-      modelListError.value = cfg.error || t.value.modelsLoadFailed;
-      return;
-    }
-    applyRuntimeModelConfig(cfg);
-  }
-
-  async function runModelDiagnostics() {
-    diagnosticsBusy.value = true;
-    try {
-      await refreshRuntimeModelConfig();
-      await refreshChatModels();
-    } finally {
-      diagnosticsLastChecked.value = new Date().toLocaleString();
-      diagnosticsBusy.value = false;
-    }
-  }
+  const {
+    refreshRuntimeModelConfig,
+    refreshChatModels,
+    runModelDiagnostics,
+    saveProviderConfig,
+    discoverProviderModels,
+  } = useDiagnosticsModelRequests({
+    options,
+    t,
+    showModelPicker,
+    selectedModelStorageKey,
+    modelChoices,
+    modelCapabilities,
+    selectedChatModel,
+    defaultChatModel,
+    modelListStatus,
+    modelListError,
+    diagnosticsBusy,
+    diagnosticsLastChecked,
+    connectionConfigMessage,
+    providerApiKeyInput,
+    applyRuntimeModelConfig,
+    buildRuntimeModelConfigPayload,
+    applyDiscoveredModels,
+  });
 
   function toggleDiagnostics() {
     diagnosticsOpen.value = !diagnosticsOpen.value;
@@ -209,54 +160,6 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     persistConnectionConfigIfEnabled();
     await runModelDiagnostics();
     connectionConfigMessage.value = t.value.connectionConfigSaved;
-  }
-
-  async function saveProviderConfig() {
-    if (!options.baseUrl) return;
-    diagnosticsBusy.value = true;
-    try {
-      const result = await saveRuntimeModelConfig(
-        options.baseUrl,
-        buildRuntimeModelConfigPayload(),
-        options.accessToken,
-        options.adminToken,
-      );
-      if (!result.success) {
-        modelListStatus.value = modelListStatusFromError(result.error);
-        modelListError.value = result.error || t.value.modelsLoadFailed;
-        connectionConfigMessage.value = t.value.connectionConfigFailed;
-        return;
-      }
-      providerApiKeyInput.value = '';
-      await refreshChatModels();
-      connectionConfigMessage.value = t.value.connectionConfigSaved;
-    } finally {
-      diagnosticsBusy.value = false;
-      diagnosticsLastChecked.value = new Date().toLocaleString();
-    }
-  }
-
-  async function discoverProviderModels() {
-    if (!options.baseUrl) return;
-    diagnosticsBusy.value = true;
-    try {
-      const result = await discoverRuntimeProviderModels(
-        options.baseUrl,
-        options.accessToken,
-        options.adminToken,
-      );
-      if (!result.success || !result.models?.length) {
-        modelListStatus.value = modelListStatusFromError(result.error);
-        modelListError.value = result.error || t.value.modelsListEmpty;
-        connectionConfigMessage.value = t.value.connectionConfigFailed;
-        return;
-      }
-      applyDiscoveredModels(result.models);
-      connectionConfigMessage.value = t.value.connectionConfigTested;
-    } finally {
-      diagnosticsBusy.value = false;
-      diagnosticsLastChecked.value = new Date().toLocaleString();
-    }
   }
 
   return {

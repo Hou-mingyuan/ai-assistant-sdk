@@ -6,20 +6,9 @@ export type HistoryMessage = ApiSchemas['MessageItem'];
 
 export type ChatPayload = ApiSchemas['ChatRequest'];
 
-export interface ModelsListResult {
-  success: boolean;
-  models?: string[];
-  defaultModel?: string;
-  modelDetails?: ModelDetail[];
-  error?: string;
-}
+export type ModelsListResult = ApiSchemas['ModelsListResponse'];
 
-export interface ModelDetail {
-  id: string;
-  capabilities?: string[];
-  source?: string;
-  updatedAt?: string;
-}
+export type ModelDetail = ApiSchemas['ModelDetail'];
 
 export interface FetchModelsOptions {
   probe?: boolean;
@@ -28,34 +17,11 @@ export interface FetchModelsOptions {
 export type ChatResult = ApiSchemas['ChatResponse'];
 export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'];
 
-export interface RuntimeModelConfigResult {
-  success: boolean;
-  provider?: string;
-  baseUrl?: string;
-  model?: string;
-  allowedModels?: string[];
-  apiKeyConfigured?: boolean;
-  minimaxVlmBaseUrl?: string;
-  error?: string;
-}
+export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'];
 
-export interface RuntimeModelConfigPayload {
-  provider?: string;
-  baseUrl?: string;
-  apiKey?: string;
-  model?: string;
-  allowedModelsText?: string;
-  minimaxVlmBaseUrl?: string;
-}
+export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'];
 
-export interface UrlPreviewResult {
-  success: boolean;
-  imageUrl?: string;
-  title?: string;
-  summary?: string;
-  imageUrls?: string[];
-  error?: string;
-}
+export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
 
 function buildHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -207,11 +173,7 @@ export async function postServerExport(
   return { ok: true };
 }
 
-export interface PromptTemplateEntry {
-  name: string;
-  template: string;
-  hasFewShot?: boolean;
-}
+export type PromptTemplateEntry = ApiSchemas['PromptTemplateEntry'];
 
 export interface PromptTemplatesListResult {
   success: boolean;

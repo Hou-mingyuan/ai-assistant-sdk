@@ -399,3 +399,24 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - live `/v3/api-docs` drift check 需要启动后端和 springdoc 暴露，CI 成本与失败面较大。
 - 先让 `generate-frontend-types.mjs` 支持 `--spec-file`，可以把“读取 spec”与“生成/比对类型”解耦。
 - 后续只要提交 `docs/api/openapi.json` 快照，就能在 CI 中运行 `--spec-file docs/api/openapi.json --check`，不需要每次启动服务。
+
+### 阶段 13.22 静态 OpenAPI 快照发现
+
+- `docs/api/openapi.json` 先覆盖前端当前最常用的 REST wire types，不一次性扩到所有 Admin / Connector / Async DTO。
+- `api-generated.d.ts` 现在由 `openapi-typescript` 生成，替代原先手写临时快照。
+- `utils/api.ts` 中模型列表、runtime config、URL preview、prompt template 等类型已改为 generated schema alias。
+
+### 阶段 13.23 Diagnostics model requests 拆分发现
+
+- `useAssistantDiagnostics.ts` 中网络请求编排可独立测试，依赖面是 options、若干 refs、provider state 回调和 API 函数。
+- 抽成 `useDiagnosticsModelRequests.ts` 后，API 函数可注入，单测无需 mount Vue 组件或 mock 全局 fetch。
+
+### 阶段 13.24 依赖足迹护栏发现
+
+- 直接做 core-only starter artifact 拆包风险较高，先用脚本守住 optional 依赖边界更稳。
+- `dependency-footprint-check` 能防止低频能力意外退化为 starter 默认依赖，为后续拆包提供 CI 护栏。
+
+### 阶段 13.25 包体归因发现
+
+- 当前 baseline gzip 构成中 main 约 464 KB，feature chunks 约 280 KB，Web Component 约 224 KB，secondary entries 约 6.5 KB。
+- secondary entries 体积很小，说明继续把高级能力留在子入口是正确方向；主入口瘦身应优先分析 main 与 feature chunks 的关系。

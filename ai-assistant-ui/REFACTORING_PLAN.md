@@ -67,7 +67,8 @@
 
 - 连接诊断纯状态已抽到 `useConnectionDiagnosticsState.ts`，覆盖 error → status、endpoint/token 文案、状态文案、模型状态、来源提示和 remedy kind。
 - 诊断复制文本构造、复制状态、剪贴板 fallback 和自动清空 timer 已抽到 `useDiagnosticsClipboard.ts`。
-- 网络请求、运行时模型配置保存和 provider discovery 仍留在 `useAssistantDiagnostics.ts`，后续可再按请求编排拆分。
+- 模型列表刷新、runtime config 读取/保存和 provider discovery 已抽到 `useDiagnosticsModelRequests.ts`。
+- `useAssistantDiagnostics.ts` 现在主要负责组装各诊断 composable，并向组件返回统一状态。
 
 ## 执行规则
 
