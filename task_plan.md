@@ -742,6 +742,19 @@
 - `npm test -- packageExports.spec.ts`：通过。
 - `ReadLints` 对 `src/index.ts` 无诊断。
 
+### 阶段 13.31 设计
+
+目标是新增 v2 migration guide，集中说明大版本迁移路径。
+
+结果：
+- 新增 `docs/guide/v2-migration.md`。
+- 文档覆盖 frontend secondary entries、计划移除顺序、backend feature artifact 方向和 OpenAPI 类型生成要求。
+- VitePress sidebar 接入 `v2 Migration Guide`。
+
+验证：
+- `npm run build`（`docs`）：通过。
+- `ReadLints` 对新增文档和 VitePress 配置无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

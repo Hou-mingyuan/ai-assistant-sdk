@@ -1101,3 +1101,20 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `npm test -- packageExports.spec.ts`：通过。
 - `ReadLints` 对 `src/index.ts` 无诊断。
+
+### 当前阶段 13.31
+
+状态：已完成。
+
+目标：
+- 新增 v2 migration guide。
+
+修改：
+- 新增 `docs/guide/v2-migration.md`
+- 修改 `docs/.vitepress/config.ts`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- `npm run build`（`docs`）：通过。
+- `ReadLints` 对新增文档和 VitePress 配置无诊断。
