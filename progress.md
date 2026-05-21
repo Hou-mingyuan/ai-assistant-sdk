@@ -1085,3 +1085,19 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：10 个测试通过，0 失败。
+
+### 当前阶段 13.30
+
+状态：已完成。
+
+目标：
+- 为 v2 主入口高级导出迁移增加 deprecation 提示。
+
+修改：
+- `ai-assistant-ui/src/index.ts`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `ReadLints` 对 `src/index.ts` 无诊断。

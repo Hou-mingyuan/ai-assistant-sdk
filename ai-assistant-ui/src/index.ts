@@ -237,6 +237,7 @@ export type { ModelsListResult, PromptTemplateEntry, PromptTemplatesListResult }
 export type { RuntimeModelConfigPayload, RuntimeModelConfigResult } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
+/** @deprecated Import Admin SDK helpers from `@ai-assistant/vue/admin` in v2-ready code. */
 /* D3: Admin SDK — host-side admin dashboard helpers around /admin/* endpoints */
 export {
   adminOverview,
@@ -268,6 +269,7 @@ export type {
   AdminPluginsResult,
   AdminSystemInfo,
 } from './utils/adminApi';
+/** @deprecated Import screenshot helpers from `@ai-assistant/vue/screenshot` in v2-ready code. */
 export { captureScreenshot } from './utils/pageScreenshot';
 export { extractStructuredData } from './utils/pageStructuredData';
 export {
@@ -304,6 +306,7 @@ export type {
   UseMessageVirtualScrollOptions,
   VirtualWindow,
 } from './composables/useMessageVirtualScroll';
+/** @deprecated Import MCP helpers from `@ai-assistant/vue/mcp` in v2-ready code. */
 export { useMcpClient, McpRpcError } from './composables/useMcpClient';
 export type {
   McpClientOptions,
@@ -367,6 +370,7 @@ export type {
  * source/target pair (file revisions / API responses / etc.). */
 export { diffLines, opsToRows, summariseRows } from './composables/useLineDiff';
 export type { DiffOp, DiffOpEntry, SideBySideRow, DiffSummary } from './composables/useLineDiff';
+/** @deprecated Import form-fill helpers from `@ai-assistant/vue/form-fill` in v2-ready code. */
 /* L1: form auto-fill (Phase 1) — clipboard "key:value" pairs auto-write into
  * host page form fields. Composable + pure-function utils are exported so
  * advanced hosts can build custom UI without `<AiAssistant>`. */

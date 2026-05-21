@@ -730,6 +730,18 @@
 验证：
 - `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：10 个测试通过。
 
+### 阶段 13.30 设计
+
+目标是为 v2 主入口高级导出迁移增加 IDE/TS 提示，不立即删除导出。
+
+结果：
+- `src/index.ts` 中 Admin、MCP、Form Fill、Screenshot 相关主入口导出增加 `@deprecated` 指引。
+- 指引下游改用 `@ai-assistant/vue/admin`、`@ai-assistant/vue/mcp`、`@ai-assistant/vue/form-fill`、`@ai-assistant/vue/screenshot`。
+
+验证：
+- `npm test -- packageExports.spec.ts`：通过。
+- `ReadLints` 对 `src/index.ts` 无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
