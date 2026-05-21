@@ -37,9 +37,24 @@
  * | adminSystemInfo | GET  /admin/system |
  */
 
-import type { components } from '../types/api-generated';
+import type { components, paths } from '../types/api-generated';
 
 type ApiSchemas = components['schemas'];
+type ApiPaths = paths;
+
+type JsonResponse<Path extends keyof ApiPaths, Method extends keyof ApiPaths[Path]> =
+  NonNullable<ApiPaths[Path][Method]> extends {
+    responses: { 200: { content: { 'application/json': infer Response } } };
+  }
+    ? Response
+    : never;
+
+type JsonRequestBody<Path extends keyof ApiPaths, Method extends keyof ApiPaths[Path]> =
+  NonNullable<ApiPaths[Path][Method]> extends {
+    requestBody: { content: { 'application/json': infer Request } };
+  }
+    ? Request
+    : never;
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const ADMIN_PATH_PREFIX = '/admin';
@@ -63,23 +78,51 @@ export interface AdminCallOptions {
  * Response shapes
  * ──────────────────────────────────────────────────────────────── */
 
-export type AdminOverview = ApiSchemas['AdminOverview'];
+export type AdminOverview = JsonResponse<'/admin/overview', 'get'>;
+
+export type AdminTokenUsage = JsonResponse<'/admin/tokens', 'get'>;
+
+export type AdminTokenQuotaRequest = JsonRequestBody<'/admin/tokens/quota', 'post'>;
+
+export type AdminTokenQuotaResult = JsonResponse<'/admin/tokens/quota', 'post'>;
 
 export type AdminPromptEntry = ApiSchemas['AdminPromptEntry'];
 
+export type AdminPromptMap = JsonResponse<'/admin/prompts', 'get'>;
+
+export type AdminPromptCreateRequest = JsonRequestBody<'/admin/prompts', 'post'>;
+
+export type AdminPromptCreateResult = JsonResponse<'/admin/prompts', 'post'>;
+
 export type AdminToolEntry = ApiSchemas['AdminToolEntry'];
 
-export type AdminRagStats = ApiSchemas['AdminRagStats'];
+export type AdminToolMap = JsonResponse<'/admin/tools', 'get'>;
 
-export type AdminRagIngestResult = ApiSchemas['AdminRagIngestResult'];
+export type AdminRagStats = JsonResponse<'/admin/rag/stats', 'get'>;
+
+export type AdminRagIngestRequest = JsonRequestBody<'/admin/rag/ingest', 'post'>;
+
+export type AdminRagIngestResult = JsonResponse<'/admin/rag/ingest', 'post'>;
 
 export type AdminAbTestConfig = ApiSchemas['AdminAbTestConfig'];
 
-export type AdminFallbackChain = ApiSchemas['AdminFallbackChain'];
+export type AdminAbTestMap = JsonResponse<'/admin/ab-test', 'get'>;
 
-export type AdminPluginsResult = ApiSchemas['AdminPluginsResult'];
+export type AdminAbTestRequest = JsonRequestBody<'/admin/ab-test', 'post'>;
 
-export type AdminSystemInfo = ApiSchemas['AdminSystemInfo'];
+export type AdminAbTestResult = JsonResponse<'/admin/ab-test', 'post'>;
+
+export type AdminFallbackChain = JsonResponse<'/admin/fallback-chain', 'get'>;
+
+export type AdminFallbackChainRequest = JsonRequestBody<'/admin/fallback-chain', 'post'>;
+
+export type AdminFallbackChainResult = JsonResponse<'/admin/fallback-chain', 'post'>;
+
+export type AdminPluginsResult = JsonResponse<'/admin/plugins', 'get'>;
+
+export type AdminPluginUnloadResult = JsonResponse<'/admin/plugins/{pluginId}/unload', 'post'>;
+
+export type AdminSystemInfo = JsonResponse<'/admin/system', 'get'>;
 
 /* ────────────────────────────────────────────────────────────────
  * Internal helpers
@@ -180,8 +223,8 @@ export function adminListTokens(
   adminToken: string,
   tenantId?: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<Record<string, unknown>>> {
-  return adminFetch<Record<string, unknown>>(
+): Promise<AdminResult<AdminTokenUsage>> {
+  return adminFetch<AdminTokenUsage>(
     adminUrl(baseUrl, '/tokens', { tenantId }),
     { method: 'GET', headers: buildAdminHeaders(adminToken, false) },
     options,
@@ -195,13 +238,14 @@ export function adminSetTokenQuota(
   tenantId: string,
   dailyLimit: number,
   options?: AdminCallOptions,
-): Promise<AdminResult<{ success: boolean; tenantId: string; dailyLimit: number }>> {
+): Promise<AdminResult<AdminTokenQuotaResult>> {
+  const body: AdminTokenQuotaRequest = { tenantId, dailyLimit };
   return adminFetch(
     adminUrl(baseUrl, '/tokens/quota'),
     {
       method: 'POST',
       headers: buildAdminHeaders(adminToken, true),
-      body: JSON.stringify({ tenantId, dailyLimit }),
+      body: JSON.stringify(body),
     },
     options,
   );
@@ -212,8 +256,8 @@ export function adminListPrompts(
   baseUrl: string,
   adminToken: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<Record<string, AdminPromptEntry>>> {
-  return adminFetch<Record<string, AdminPromptEntry>>(
+): Promise<AdminResult<AdminPromptMap>> {
+  return adminFetch<AdminPromptMap>(
     adminUrl(baseUrl, '/prompts'),
     { method: 'GET', headers: buildAdminHeaders(adminToken, false) },
     options,
@@ -227,13 +271,14 @@ export function adminCreatePrompt(
   name: string,
   template: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<{ success: boolean; name: string }>> {
+): Promise<AdminResult<AdminPromptCreateResult>> {
+  const body: AdminPromptCreateRequest = { name, template };
   return adminFetch(
     adminUrl(baseUrl, '/prompts'),
     {
       method: 'POST',
       headers: buildAdminHeaders(adminToken, true),
-      body: JSON.stringify({ name, template }),
+      body: JSON.stringify(body),
     },
     options,
   );
@@ -244,8 +289,8 @@ export function adminListTools(
   baseUrl: string,
   adminToken: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<Record<string, AdminToolEntry>>> {
-  return adminFetch<Record<string, AdminToolEntry>>(
+): Promise<AdminResult<AdminToolMap>> {
+  return adminFetch<AdminToolMap>(
     adminUrl(baseUrl, '/tools'),
     { method: 'GET', headers: buildAdminHeaders(adminToken, false) },
     options,
@@ -259,7 +304,7 @@ export function adminIngestRag(
   content: string,
   opts?: { namespace?: string; docId?: string } & AdminCallOptions,
 ): Promise<AdminResult<AdminRagIngestResult>> {
-  const body: Record<string, string> = { content };
+  const body: AdminRagIngestRequest = { content };
   if (opts?.namespace) body.namespace = opts.namespace;
   if (opts?.docId) body.docId = opts.docId;
   return adminFetch(
@@ -295,8 +340,8 @@ export function adminConfigureAbTest(
   modelA: string,
   modelB: string,
   opts?: { percentA?: number } & AdminCallOptions,
-): Promise<AdminResult<{ success: boolean; test: string }>> {
-  const body: Record<string, unknown> = { name, modelA, modelB };
+): Promise<AdminResult<AdminAbTestResult>> {
+  const body: AdminAbTestRequest = { name, modelA, modelB };
   if (opts?.percentA != null) body.percentA = opts.percentA;
   return adminFetch(
     adminUrl(baseUrl, '/ab-test'),
@@ -314,8 +359,8 @@ export function adminListAbTests(
   baseUrl: string,
   adminToken: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<Record<string, AdminAbTestConfig>>> {
-  return adminFetch<Record<string, AdminAbTestConfig>>(
+): Promise<AdminResult<AdminAbTestMap>> {
+  return adminFetch<AdminAbTestMap>(
     adminUrl(baseUrl, '/ab-test'),
     { method: 'GET', headers: buildAdminHeaders(adminToken, false) },
     options,
@@ -328,13 +373,14 @@ export function adminSetFallbackChain(
   adminToken: string,
   chain: string[],
   options?: AdminCallOptions,
-): Promise<AdminResult<{ success: boolean; chain: string[] }>> {
+): Promise<AdminResult<AdminFallbackChainResult>> {
+  const body: AdminFallbackChainRequest = { chain };
   return adminFetch(
     adminUrl(baseUrl, '/fallback-chain'),
     {
       method: 'POST',
       headers: buildAdminHeaders(adminToken, true),
-      body: JSON.stringify({ chain }),
+      body: JSON.stringify(body),
     },
     options,
   );
@@ -372,7 +418,7 @@ export function adminUnloadPlugin(
   adminToken: string,
   pluginId: string,
   options?: AdminCallOptions,
-): Promise<AdminResult<{ success: boolean; pluginId: string }>> {
+): Promise<AdminResult<AdminPluginUnloadResult>> {
   return adminFetch(
     adminUrl(baseUrl, `/plugins/${encodeURIComponent(pluginId)}/unload`),
     { method: 'POST', headers: buildAdminHeaders(adminToken, false) },

@@ -1118,3 +1118,27 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `npm run build`（`docs`）：通过。
 - `ReadLints` 对新增文档和 VitePress 配置无诊断。
+
+### 当前阶段 13.32
+
+状态：已完成。
+
+目标：
+- 补齐 `adminApi.ts` 公开 Admin endpoints 的 OpenAPI path-level snapshot。
+- 让 Admin SDK 的 request/response 类型从 generated paths 派生。
+
+修改：
+- 新增 `scripts/openapi-admin-paths.test.mjs`
+- 修改 `docs/api/openapi.json`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 修改 `ai-assistant-ui/src/utils/adminApi.ts`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/openapi-admin-paths.test.mjs`：2 个测试通过。
+- `node --test scripts/*.test.mjs`：27 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
+- `npx vue-tsc --noEmit`：通过。

@@ -205,6 +205,320 @@
           }
         }
       }
+    },
+    "/admin/overview": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin dashboard overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tokens": {
+      "get": {
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Admin token usage snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTokenUsage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tokens/quota": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTokenQuotaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated tenant token quota",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTokenQuotaResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/prompts": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin prompt templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPromptMap"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPromptCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created or updated admin prompt template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPromptCreateResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/tools": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin tool registry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminToolMap"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/rag/ingest": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRagIngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Admin RAG ingest result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRagIngestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/rag/stats": {
+      "get": {
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Admin RAG namespace stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRagStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ab-test": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin active A/B tests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAbTestMap"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAbTestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configured admin A/B test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAbTestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/fallback-chain": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin fallback chain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFallbackChain"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminFallbackChainRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated admin fallback chain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFallbackChainResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/plugins": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin plugin registry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginsResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/plugins/{pluginId}/unload": {
+      "post": {
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unloaded admin plugin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPluginUnloadResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/system": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Admin system runtime info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystemInfo"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -451,6 +765,37 @@
           }
         }
       },
+      "AdminTokenUsage": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "AdminTokenQuotaRequest": {
+        "type": "object",
+        "required": ["tenantId", "dailyLimit"],
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "type": "number"
+          }
+        }
+      },
+      "AdminTokenQuotaResult": {
+        "type": "object",
+        "required": ["success", "tenantId", "dailyLimit"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "dailyLimit": {
+            "type": "number"
+          }
+        }
+      },
       "AdminPromptEntry": {
         "type": "object",
         "required": ["name", "template"],
@@ -459,6 +804,36 @@
             "type": "string"
           },
           "template": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminPromptMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/AdminPromptEntry"
+        }
+      },
+      "AdminPromptCreateRequest": {
+        "type": "object",
+        "required": ["name", "template"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminPromptCreateResult": {
+        "type": "object",
+        "required": ["success", "name"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -475,6 +850,12 @@
           }
         }
       },
+      "AdminToolMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/AdminToolEntry"
+        }
+      },
       "AdminRagStats": {
         "type": "object",
         "required": ["namespace", "documentCount"],
@@ -484,6 +865,21 @@
           },
           "documentCount": {
             "type": "integer"
+          }
+        }
+      },
+      "AdminRagIngestRequest": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "docId": {
+            "type": "string"
           }
         }
       },
@@ -517,10 +913,73 @@
           }
         }
       },
+      "AdminAbTestMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/AdminAbTestConfig"
+        }
+      },
+      "AdminAbTestRequest": {
+        "type": "object",
+        "required": ["name", "modelA", "modelB"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "modelA": {
+            "type": "string"
+          },
+          "modelB": {
+            "type": "string"
+          },
+          "percentA": {
+            "type": "number"
+          }
+        }
+      },
+      "AdminAbTestResult": {
+        "type": "object",
+        "required": ["success", "test"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "test": {
+            "type": "string"
+          }
+        }
+      },
       "AdminFallbackChain": {
         "type": "object",
         "required": ["chain"],
         "properties": {
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminFallbackChainRequest": {
+        "type": "object",
+        "required": ["chain"],
+        "properties": {
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminFallbackChainResult": {
+        "type": "object",
+        "required": ["success", "chain"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
           "chain": {
             "type": "array",
             "items": {
@@ -539,6 +998,18 @@
           },
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "AdminPluginUnloadResult": {
+        "type": "object",
+        "required": ["success", "pluginId"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "pluginId": {
+            "type": "string"
           }
         }
       },

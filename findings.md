@@ -443,3 +443,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 
 - 当前 starter 在缺少 Redis/JDBC/Playwright/OpenAPI/Tracing/Logstash 等低频依赖时，基础聊天自动装配仍可启动。
 - 这说明后续拆 feature artifact 时可以先围绕这些 optional 能力推进；PDF/POI 仍是更晚阶段的高风险拆分点。
+
+### 阶段 13.32 Admin path-level OpenAPI 发现
+
+- `adminApi.ts` 的公开函数已经稳定对应一组 `/admin/*` routes，适合先补 path-level OpenAPI snapshot，而不是一次扩全仓 REST paths。
+- Admin SDK 仍需要保留 `AdminResult<T>`，因为它是前端调用层的错误归一化协议；OpenAPI 只描述后端 200 JSON payload。
+- request body schema 适合从 paths 派生，能减少 `adminApi.ts` 中 `{ success: ... }` 等手写 inline 类型继续扩散。

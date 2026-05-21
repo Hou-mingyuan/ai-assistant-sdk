@@ -755,6 +755,23 @@
 - `npm run build`（`docs`）：通过。
 - `ReadLints` 对新增文档和 VitePress 配置无诊断。
 
+### 阶段 13.32 设计
+
+目标是把 `adminApi.ts` 已公开使用的 `/admin/*` paths 纳入静态 OpenAPI 快照，并让前端 Admin SDK 逐步使用 path-level generated types。
+
+结果：
+- 新增 `scripts/openapi-admin-paths.test.mjs`，先覆盖 Admin public operations 和 JSON request body schema 的快照契约。
+- `docs/api/openapi.json` 新增 `/admin/overview`、`/admin/tokens`、`/admin/prompts`、`/admin/tools`、`/admin/rag/*`、`/admin/ab-test`、`/admin/fallback-chain`、`/admin/plugins`、`/admin/system` 等 paths。
+- 重新生成 `ai-assistant-ui/src/types/api-generated.d.ts`。
+- `adminApi.ts` 的 request/response 类型进一步迁移到 `paths[...]` 派生的 path-level aliases，保留 `AdminResult<T>` 作为前端错误归一化包装。
+
+验证：
+- `node --test scripts/openapi-admin-paths.test.mjs`：2 个测试通过。
+- `node --test scripts/*.test.mjs`：27 个测试通过。
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
+- `npx vue-tsc --noEmit`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
