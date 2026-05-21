@@ -480,6 +480,20 @@
 验证：
 - `mvn -pl ai-assistant-client -Dtest=AiAssistantClientTest test`：12 个测试通过，0 失败。
 
+### 阶段 13.14 设计
+
+目标是继续强化协议契约测试，补齐服务端兼容 `/stream` 的错误输出契约。
+
+预期修改：
+- 修改 `ai-assistant-server/src/test/java/com/aiassistant/controller/AiAssistantControllerTest.java`
+
+结果：
+- 新增 LLM stream 中途失败时输出友好错误 chunk 的契约测试。
+- 新增输入超限时 `/stream` 返回 400 且 body 为 `[VALIDATION_ERROR] ...` chunk 的契约测试。
+
+验证：
+- `mvn -pl ai-assistant-server -Dtest=AiAssistantControllerTest test`：17 个测试通过，0 失败。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

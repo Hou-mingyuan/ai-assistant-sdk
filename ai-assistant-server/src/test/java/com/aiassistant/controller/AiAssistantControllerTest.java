@@ -186,6 +186,38 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_returnsFriendlyErrorChunkWhenLlmStreamFails() {
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.error(new RuntimeException("HTTP 429 upstream rate limit")));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("chat");
+
+        var response = controller.stream(req);
+        var chunks = response.getBody().collectList().block();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(chunks);
+        assertEquals(List.of("[RATE_LIMITED] HTTP 429 upstream rate limit"), chunks);
+    }
+
+    @Test
+    void stream_returnsValidationErrorChunkForOversizedInput() {
+        props.setChatMaxTotalChars(3);
+        ChatRequest req = new ChatRequest();
+        req.setText("too long");
+
+        var response = controller.stream(req);
+        var chunks = response.getBody().collectList().block();
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals(org.springframework.http.MediaType.TEXT_EVENT_STREAM, response.getHeaders().getContentType());
+        assertNotNull(chunks);
+        assertEquals(1, chunks.size());
+        assertTrue(chunks.get(0).startsWith("[VALIDATION_ERROR] "));
+    }
+
+    @Test
     void stream_translatePassesRequestedModelAndReturnsRuntimeMetadataHeaders() {
         props.setProvider("minimax");
         props.setModel("MiniMax-M2.5");

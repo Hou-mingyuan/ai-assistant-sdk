@@ -348,3 +348,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 
 - `AiAssistantClientTest` 已覆盖 chat 错误处理、token header、builder 校验、stream SSE 空格保留。
 - 本阶段补齐 `chatStream(text, systemPrompt, model, onChunk)` 的请求契约，确保 Java Client 与官方 `/stream` 兼容端点保持一致。
+
+### 阶段 13.14 服务端 stream 契约发现
+
+- `AiAssistantController.stream` 对输入超限走 HTTP 400 + text/event-stream body，内容以 `[VALIDATION_ERROR]` 前缀给前端展示。
+- LLM stream 中途失败不会让 Servlet 直接变成 HTTP 500，而是通过 `fluxWithFriendlyErrors` 转成单个友好错误 chunk。
+- `/stream` 仍是官方 UI 和 Java Client 的兼容端点；typed event 需求继续由 `/sse` 覆盖。

@@ -779,3 +779,18 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `mvn -pl ai-assistant-client -Dtest=AiAssistantClientTest test`：12 个测试通过，0 失败。
+
+### 当前阶段 13.14
+
+状态：已完成。
+
+目标：
+- 强化服务端兼容 `/stream` 协议契约测试。
+
+修改：
+- `ai-assistant-server/src/test/java/com/aiassistant/controller/AiAssistantControllerTest.java`
+- `task_plan.md`
+- `progress.md`
+
+验证：
+- `mvn -pl ai-assistant-server -Dtest=AiAssistantControllerTest test`：17 个测试通过，0 失败。
