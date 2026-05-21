@@ -7,15 +7,11 @@ import {
   fetchRuntimeModelConfig,
   saveRuntimeModelConfig,
 } from '../utils/api';
-
-type ModelListStatus =
-  | ''
-  | 'empty'
-  | 'network'
-  | 'unauthorized'
-  | 'rateLimited'
-  | 'serverError'
-  | 'failed';
+import {
+  modelListStatusFromError,
+  useConnectionDiagnosticsState,
+  type ModelListStatus,
+} from './useConnectionDiagnosticsState';
 
 export interface UseAssistantDiagnosticsOptions {
   options: AiAssistantOptions;
@@ -49,82 +45,41 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const providerApiKeyInput = ref('');
   const providerModelInput = ref('');
   const providerAllowedModelsInput = ref('');
+  const diagnosticsBaseUrl = computed({
+    get: () => options.baseUrl,
+    set: (value: string | undefined) => {
+      options.baseUrl = value;
+    },
+  });
+  const diagnosticsAccessToken = computed({
+    get: () => options.accessToken,
+    set: (value: string | undefined) => {
+      options.accessToken = value;
+    },
+  });
 
   const connectionBaseUrlStorageKey = 'ai-assistant-connection-base-url';
   const connectionTokenStorageKey = 'ai-assistant-connection-token';
-
-  const modelListMessage = computed(() => {
-    switch (modelListStatus.value) {
-      case 'empty':
-        return t.value.modelsListEmpty;
-      case 'network':
-        return t.value.modelsNetworkError;
-      case 'unauthorized':
-        return t.value.modelsUnauthorized;
-      case 'rateLimited':
-        return t.value.modelsRateLimited;
-      case 'serverError':
-        return t.value.modelsServerError;
-      case 'failed':
-        return t.value.modelsLoadFailed;
-      default:
-        return t.value.modelsListEmpty;
-    }
+  const diagnosticsState = useConnectionDiagnosticsState({
+    t,
+    baseUrl: diagnosticsBaseUrl,
+    accessToken: diagnosticsAccessToken,
+    diagnosticsBusy,
+    modelChoices,
+    selectedChatModel,
+    modelListStatus,
   });
-  const diagnosticsModelEndpoint = computed(() =>
-    options.baseUrl ? `${options.baseUrl.replace(/\/+$/, '')}/models` : '—',
-  );
-  const diagnosticsTokenText = computed(() =>
-    options.accessToken?.trim()
-      ? t.value.diagnosticsTokenConfigured
-      : t.value.diagnosticsTokenMissing,
-  );
-  const diagnosticsStatusMessage = computed(() => {
-    if (!options.baseUrl) return t.value.diagnosticsStatusNoBaseUrl;
-    if (diagnosticsBusy.value) return t.value.diagnosticsStatusChecking;
-    if (modelChoices.value.length > 0) return t.value.diagnosticsStatusReady;
-    return modelListMessage.value;
-  });
-  const modelStatusKind = computed<'ready' | 'checking' | 'warning' | 'offline'>(() => {
-    if (!options.baseUrl) return 'offline';
-    if (diagnosticsBusy.value) return 'checking';
-    if (selectedChatModel.value) return 'ready';
-    if (modelListStatus.value) return 'warning';
-    return 'offline';
-  });
-  const modelStatusText = computed(() => {
-    if (!options.baseUrl) return t.value.modelStatusUnconfigured;
-    if (diagnosticsBusy.value) return t.value.modelStatusChecking;
-    if (selectedChatModel.value) return selectedChatModel.value;
-    if (modelListStatus.value) return modelListMessage.value;
-    return t.value.modelStatusUnavailable;
-  });
-  const modelSourceText = computed(() => {
-    if (!options.baseUrl) return t.value.diagnosticsModelSourceUnavailable;
-    if (selectedChatModel.value) return t.value.diagnosticsModelSourceSelected;
-    return t.value.diagnosticsModelSourceDefault;
-  });
-  const modelHintText = computed(() => {
-    if (!options.baseUrl) return t.value.diagnosticsModelHintNoBaseUrl;
-    if (selectedChatModel.value) {
-      return t.value.diagnosticsModelHintReady.replace('{model}', selectedChatModel.value);
-    }
-    return t.value.diagnosticsModelHintCheck;
-  });
-  const diagnosticsRemedyKind = computed(() => {
-    if (selectedChatModel.value && modelChoices.value.length > 0) return 'ready';
-    if (!options.baseUrl) return 'noBaseUrl';
-    return modelListStatus.value || 'failed';
-  });
-
-  function modelListStatusFromError(error?: string): ModelListStatus {
-    if (!error) return 'failed';
-    if (/\b(401|403)\b/.test(error)) return 'unauthorized';
-    if (/\b429\b/.test(error)) return 'rateLimited';
-    if (/\b5\d\d\b/.test(error)) return 'serverError';
-    if (/failed to fetch|networkerror|timeout|aborted/i.test(error)) return 'network';
-    return 'failed';
-  }
+  const {
+    modelListMessage,
+    diagnosticsModelEndpoint,
+    diagnosticsTokenText,
+    diagnosticsStatusMessage,
+    modelStatusKind,
+    modelStatusText,
+    modelSourceText,
+    modelHintText,
+    diagnosticsRemedyKind,
+  } = diagnosticsState;
 
   async function refreshChatModels() {
     modelChoices.value = [];

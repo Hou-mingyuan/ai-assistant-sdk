@@ -373,6 +373,26 @@
 - `ReadLints` 对 `useKnowledgeDrop.ts`、spec 和 `AiAssistant.vue` 无诊断。
 - `npm run build:types`：通过。
 
+### 阶段 13.8 设计
+
+目标是继续拆分连接诊断状态，将纯文案和状态映射从 `useAssistantDiagnostics.ts` 中分离出来。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useConnectionDiagnosticsState.ts`
+- 新增 `ai-assistant-ui/src/composables/useConnectionDiagnosticsState.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 更新 `ai-assistant-ui/REFACTORING_PLAN.md`
+
+结果：
+- error → `ModelListStatus`、模型列表消息、endpoint、token 文案、诊断状态、模型状态、模型来源、提示文案和 remedy kind 迁移到 `useConnectionDiagnosticsState`。
+- `useAssistantDiagnostics.ts` 保留网络请求、运行时模型配置保存、连接配置持久化和复制诊断文本。
+
+验证：
+- 已先写 `useConnectionDiagnosticsState.spec.ts` 并观察到 RED：缺少 `useConnectionDiagnosticsState` 导致 import 失败。
+- `npm test -- useConnectionDiagnosticsState.spec.ts`：5 个测试通过。
+- `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
+- `npm run build:types`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

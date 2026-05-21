@@ -52,7 +52,7 @@
 
 ### 3. 抽取连接诊断状态
 
-候选文件：`src/composables/useConnectionDiagnosticsState.ts`
+候选文件：`src/composables/useConnectionDiagnosticsState.ts`（已完成）
 
 边界：
 
@@ -62,6 +62,11 @@
 验证：
 
 - 覆盖 401、429、5xx、网络失败、无 baseUrl。
+
+当前进展：
+
+- 连接诊断纯状态已抽到 `useConnectionDiagnosticsState.ts`，覆盖 error → status、endpoint/token 文案、状态文案、模型状态、来源提示和 remedy kind。
+- 网络请求、运行时模型配置保存、复制诊断文本仍留在 `useAssistantDiagnostics.ts`，后续可再按请求编排拆分。
 
 ## 执行规则
 

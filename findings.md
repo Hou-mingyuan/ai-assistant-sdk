@@ -310,3 +310,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `AiAssistant.vue` 中残留的 KB drop 编排包含 Quick Ingest、picker 可见性、pending files、auto-dismiss timer、键盘快捷键和 toast，适合集中到 `useKnowledgeDrop`。
 - 新 composable 保持纯状态和依赖注入：知识库 store、i18n、toast、focus picker 由父组件传入，避免直接依赖 DOM。
 - `AiAssistant.vue` 仍保留一个很小的 DOM focus 回调，用于 Teleport 后聚焦 picker shell。
+
+### 阶段 13.8 连接诊断状态拆分发现
+
+- `useAssistantDiagnostics.ts` 仍同时承担状态映射、网络请求、运行时模型配置保存、连接配置持久化和复制诊断文本。
+- error → status、状态文案、token/baseUrl 诊断、model status、source、hint 和 remedy kind 都是纯状态计算，适合先抽离并单测。
+- 本阶段不移动 `fetchModels`、`fetchRuntimeModelConfig`、`saveRuntimeModelConfig`、`discoverRuntimeProviderModels` 调用，避免把网络副作用和纯状态拆分混在一次提交里。
+- 后续可继续把连接配置持久化和运行时 provider 表单保存拆成更小的 composable。
