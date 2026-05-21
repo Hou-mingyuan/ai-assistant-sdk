@@ -34,6 +34,7 @@ export default defineConfig({
             { text: 'Plugin System', link: '/guide/plugins' },
             { text: 'Backend Architecture', link: '/guide/backend-architecture' },
             { text: 'Dependency Footprint', link: '/guide/dependency-footprint' },
+            { text: 'Observability Support Split', link: '/guide/observability-support-split' },
             { text: 'v2 Migration Guide', link: '/guide/v2-migration' },
             { text: 'Virtual Scroll Strategy', link: '/guide/virtual-scroll-strategy' },
           ],

@@ -480,3 +480,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `UsageStats` 和 batch response 已有稳定字段，适合先收紧 schema；仍返回自由结构的能力保持 broad schema，避免和实现脱节。
 - OpenAPI support 当前是独立 auto-configuration，适合用显式 enable 的 bean wiring 测试作为 Observability/Support 拆分前置护栏。
 - `AiAssistant.vue` 中服务端模板刷新逻辑是低风险可抽离切口，抽出后主 SFC 少承担一个远端模板编排职责。
+
+### 阶段 13.38 下一轮继续推进发现
+
+- `refresh-openapi-snapshot --check` 应只做 dry-run 比对，不写 snapshot；这样 release lane 可以安全地验证 live/exported spec 是否漂移。
+- Connector/provider health 的 status 值在实现中已经是固定集合，收紧 enum 不会改变运行时行为，却能让 generated types 更有用。
+- Prompt template 的弹窗交互可以继续独立于模板数据来源拆分，后续再接 command palette 触发时不必回到主 SFC。
+- Observability artifact 真拆前需要先把候选范围写清楚，尤其要排除 PDF/Office、RAG、Connector、Headless 这些不同风险面的能力。

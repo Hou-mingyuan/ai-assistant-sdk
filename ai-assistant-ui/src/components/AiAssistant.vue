@@ -721,6 +721,7 @@ import { useAudioPreferences } from '../composables/useAudioPreferences';
 import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics';
 import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
+import { usePromptTemplateInteraction } from '../composables/usePromptTemplateInteraction';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
@@ -1496,7 +1497,7 @@ watch(loading, (now, prev) => {
  * 与用户在 localStorage 里保存的模板合并展示。「使用」按钮把渲染后的文本写入
  * 主输入框，仍由用户决定何时发送，避免误触意外消耗 token。
  */
-const promptTemplateOpen = ref(false);
+const { promptTemplateOpen, onPromptTemplateUse } = usePromptTemplateInteraction({ input });
 const { presetPromptTemplates, refreshServerPromptTemplates } = useServerPromptTemplates(options);
 const promptTemplateLib = usePromptTemplateLibrary({
   presetTemplates: presetPromptTemplates,
@@ -1537,11 +1538,6 @@ const {
   onVirtualMeasureHeight,
   onBodyScrollForVirtual,
 } = scrollAndVirtual;
-
-function onPromptTemplateUse(rendered: string) {
-  input.value = rendered;
-  promptTemplateOpen.value = false;
-}
 
 /**
  * B8: Mermaid 渲染调度。

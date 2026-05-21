@@ -851,6 +851,26 @@
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 
+### 阶段 13.38 设计
+
+目标是按新一轮 1-4 继续推进：refresh dry-run、schema 再收紧、模板/命令区继续拆分、observability artifact 预演。
+
+结果：
+- `refresh-openapi-snapshot.mjs` 新增 `--check` dry-run 模式，支持只比对 live/exported spec 与当前 snapshot，并复用 generator `--check` 验证 generated types。
+- 继续收紧 connector/provider health status enum，并重新生成 `api-generated.d.ts`。
+- 新增 `usePromptTemplateInteraction.ts`，把模板使用时“写入 input + 关闭弹窗”的交互从 `AiAssistant.vue` 拆出。
+- 新增 `docs/guide/observability-support-split.md`，记录 Observability support artifact 的候选范围、兼容计划、模块形态和 done criteria，并接入 VitePress sidebar。
+
+验证：
+- `node --test scripts/refresh-openapi-snapshot.test.mjs`：5 个测试通过。
+- `npm test -- usePromptTemplateInteraction.spec.ts useServerPromptTemplates.spec.ts`：通过。
+- `node --test scripts/*.test.mjs`：36 个测试通过。
+- `npm test -- usePromptTemplateInteraction.spec.ts useServerPromptTemplates.spec.ts api.spec.ts`：4 个测试文件、56 个测试通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

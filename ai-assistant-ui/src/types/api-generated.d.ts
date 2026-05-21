@@ -1784,7 +1784,8 @@ export interface components {
         };
         PromptTemplateCreateResult: {
             name: string;
-            status: string;
+            /** @enum {string} */
+            status: "UP" | "DEGRADED";
         };
         PromptTemplateRenderRequest: {
             [key: string]: string;
@@ -1795,7 +1796,8 @@ export interface components {
         };
         HealthResponse: {
             success: boolean;
-            status: string;
+            /** @enum {string} */
+            status: "UP" | "DOWN";
             provider: string;
             model: string;
             llmReachable?: boolean | string;
@@ -1870,7 +1872,8 @@ export interface components {
         };
         AsyncSubmitResponse: {
             taskId: string;
-            status: string;
+            /** @enum {string} */
+            status: "UP" | "DOWN" | "UNKNOWN" | "PENDING";
         };
         AsyncStatusResponse: {
             taskId: string;

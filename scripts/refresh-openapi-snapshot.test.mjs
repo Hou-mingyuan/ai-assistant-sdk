@@ -1,7 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { normalizeSpecText, parseArgs } from './refresh-openapi-snapshot.mjs'
+import {
+  assertSnapshotMatches,
+  normalizeSpecText,
+  parseArgs,
+} from './refresh-openapi-snapshot.mjs'
 
 test('parseArgs accepts live URL, output paths, and codegen pin', () => {
   const args = parseArgs([
@@ -36,9 +43,26 @@ test('parseArgs can refresh from an existing spec file without regenerating type
   assert.equal(args.skipTypes, true)
 })
 
+test('parseArgs supports dry-run snapshot checks', () => {
+  const args = parseArgs(['node', 'scripts/refresh-openapi-snapshot.mjs', '--check'])
+
+  assert.equal(args.check, true)
+})
+
 test('normalizeSpecText pretty-prints JSON with trailing newline', () => {
   assert.equal(
     normalizeSpecText('{"info":{"title":"API"},"openapi":"3.1.0"}'),
     '{\n  "info": {\n    "title": "API"\n  },\n  "openapi": "3.1.0"\n}\n',
   )
+})
+
+test('assertSnapshotMatches accepts normalized equivalent JSON text', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'openapi-refresh-'))
+  const file = join(dir, 'openapi.json')
+  await writeFile(file, '{\r\n  "openapi": "3.1.0"\r\n}\r\n', 'utf8')
+  try {
+    await assertSnapshotMatches(file, '{\n  "openapi": "3.1.0"\n}\n')
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })

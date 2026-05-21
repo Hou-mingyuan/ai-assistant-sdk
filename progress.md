@@ -1254,3 +1254,34 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
+
+### 当前阶段 13.38
+
+状态：已完成。
+
+目标：
+- 继续推进 refresh dry-run、schema 收紧、prompt template 交互拆分、observability artifact 预演。
+
+修改：
+- 修改 `scripts/refresh-openapi-snapshot.mjs`
+- 修改 `scripts/refresh-openapi-snapshot.test.mjs`
+- 修改 `docs/api/openapi.json`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 新增 `ai-assistant-ui/src/composables/usePromptTemplateInteraction.ts`
+- 新增 `ai-assistant-ui/src/composables/usePromptTemplateInteraction.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 新增 `docs/guide/observability-support-split.md`
+- 修改 `docs/.vitepress/config.ts`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/refresh-openapi-snapshot.test.mjs`：5 个测试通过。
+- `npm test -- usePromptTemplateInteraction.spec.ts useServerPromptTemplates.spec.ts`：通过。
+- `node --test scripts/*.test.mjs`：36 个测试通过。
+- `npm test -- usePromptTemplateInteraction.spec.ts useServerPromptTemplates.spec.ts api.spec.ts`：4 个测试文件、56 个测试通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
