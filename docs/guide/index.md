@@ -103,6 +103,7 @@ Q1: 已有 Spring Boot 业务后端？
 | MCP Server 接入 | [MCP Server](./mcp-server) |
 | 插件扩展 | [Plugin System](./plugins) |
 | 后端模块边界和维护规则 | [Backend Architecture](./backend-architecture) |
+| Starter / 独立服务 / 前端依赖边界 | [Dependency Footprint](./dependency-footprint) |
 | Docker / Compose 独立服务 | [Standalone Service](./standalone-service) |
 | Starter 与独立服务部署选择 | [Deployment Checklists](./deployment-checklists) |
 | Kubernetes / Helm | [Kubernetes](./kubernetes) |

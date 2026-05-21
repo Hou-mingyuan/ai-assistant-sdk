@@ -410,6 +410,24 @@
 - 修正 matcher 后重跑同一命令：4 个测试通过，0 失败。
 - `ReadLints` 对 `SseStreamControllerTest.java` 无诊断。
 
+### 阶段 13.10 设计
+
+目标是评估依赖分层，把重型或低频能力的默认依赖、optional 依赖和运行条件写清楚。
+
+预期修改：
+- 新增 `docs/guide/dependency-footprint.md`
+- 更新 `docs/.vitepress/config.ts`
+- 更新 `docs/guide/index.md`
+
+结果：
+- 文档明确 Starter 基础依赖、Web 入口 optional、PDFBox/POI 导出依赖、Redis/JDBC、Resilience4j、Tracing、Playwright、Springdoc、Logstash 等能力边界。
+- 文档明确独立服务默认带 Web/WebFlux/WebSocket/Actuator/日志能力，但默认不带 Redis/JDBC/Playwright。
+- 文档明确前端 Mermaid 通过动态 import 作为宿主 opt-in 能力，不增加默认依赖。
+
+验证：
+- `ReadLints` 对新增文档、VitePress 配置和计划文件无诊断。
+- `node scripts/project-health-check.mjs --docs`：版本一致性检查通过，VitePress 文档站构建通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

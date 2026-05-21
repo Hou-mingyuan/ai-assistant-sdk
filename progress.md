@@ -703,3 +703,22 @@ release）真正闭环、落地，并补 a11y 兜底。
 - 已用 `any(List.class)` 明确匹配 `/sse` 实际调用的 imageDataList 重载。
 - 重跑 `mvn -pl ai-assistant-server -Dtest=SseStreamControllerTest test`：4 个测试通过，0 失败。
 - `ReadLints` 对 `SseStreamControllerTest.java` 无诊断。
+
+### 当前阶段 13.10
+
+状态：已完成。
+
+目标：
+- 评估依赖分层。
+- 用文档明确默认依赖、optional 依赖和宿主 opt-in 能力。
+
+修改：
+- 新增 `docs/guide/dependency-footprint.md`
+- 修改 `docs/.vitepress/config.ts`
+- 修改 `docs/guide/index.md`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- `ReadLints` 对新增文档、VitePress 配置和计划文件无诊断。
+- `node scripts/project-health-check.mjs --docs`：版本一致性检查通过，VitePress 文档站构建通过。

@@ -324,3 +324,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 后端 `AiAssistantControllerTest` 已覆盖 `/chat`、兼容 `/stream` 和 `/models` 的主要契约。
 - 后端 `SseStreamControllerTest` 原本只覆盖 translate/summarize 透传 model，缺少标准 `/sse` 的 `message` / `done` / `error` event 契约。
 - `LlmService.chatStream` 同时存在 `String imageData` 和 `List<String> imageDataList` 两个 7 参重载，测试中必须使用 typed matcher 避免 Mockito 重载歧义。
+
+### 阶段 13.10 依赖分层发现
+
+- Starter 中 Web/WebFlux/WebSocket/Actuator、Redis、JDBC、Resilience4j、Tracing、OTLP、Playwright、Springdoc、Logstash 等依赖已标 optional。
+- PDFBox/POI 当前不是 optional，因为 `/export` 和文件处理运行时直接依赖；如果未来拆分，需要独立 feature artifact 和清晰启动提示。
+- 独立服务显式带 Web/WebFlux/WebSocket/Actuator/JSON logging，但默认不带 Redis/JDBC/Playwright。
+- 前端 Mermaid 保持动态 import / 宿主 opt-in，不在 `@ai-assistant/vue` 默认 dependencies 中。

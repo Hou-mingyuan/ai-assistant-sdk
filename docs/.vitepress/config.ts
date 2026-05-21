@@ -33,6 +33,7 @@ export default defineConfig({
             { text: 'MCP Server', link: '/guide/mcp-server' },
             { text: 'Plugin System', link: '/guide/plugins' },
             { text: 'Backend Architecture', link: '/guide/backend-architecture' },
+            { text: 'Dependency Footprint', link: '/guide/dependency-footprint' },
             { text: 'Virtual Scroll Strategy', link: '/guide/virtual-scroll-strategy' },
           ],
         },
