@@ -917,3 +917,24 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `npm test -- packageExports.spec.ts`：1/1 通过。
 - `ReadLints` 对相关文档和 `index.ts` 无诊断。
+
+### 当前阶段 13.21
+
+状态：已完成。
+
+目标：
+- 推进 OpenAPI 契约闭环的低风险子步骤。
+- 让生成类型脚本支持本地静态 OpenAPI JSON 输入。
+
+修改：
+- `scripts/generate-frontend-types.mjs`
+- `scripts/generate-frontend-types.test.mjs`
+- `docs/guide/openapi-typescript-codegen.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+验证：
+- RED：`node --test scripts/generate-frontend-types.test.mjs` 首次失败，原因是缺少 `loadSpecText` export。
+- GREEN：`node --test scripts/generate-frontend-types.test.mjs`：3 个测试通过。
+- `ReadLints` 对相关脚本和文档无诊断。

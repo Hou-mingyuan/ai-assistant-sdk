@@ -601,6 +601,21 @@
 - `npm test -- packageExports.spec.ts`：1 个测试通过。
 - `ReadLints` 对 `frontend-recipes.md` 和 `index.ts` 无诊断。
 
+### 阶段 13.21 设计
+
+目标是继续推进 OpenAPI 契约闭环，为后续静态 spec 快照 CI 铺好入口。
+
+结果：
+- `scripts/generate-frontend-types.mjs` 新增 `--spec-file <openapi-json>` 参数。
+- 新增 `loadSpecText`，当提供 `specFile` 时从本地 OpenAPI JSON 读取，不访问 live `/v3/api-docs`。
+- `scripts/generate-frontend-types.test.mjs` 增加 spec-file 参数解析和本地文件读取测试。
+- `docs/guide/openapi-typescript-codegen.md` 更新静态 spec 输入说明和 roadmap。
+
+验证：
+- RED：`node --test scripts/generate-frontend-types.test.mjs` 首次失败，原因是缺少 `loadSpecText` export。
+- GREEN：`node --test scripts/generate-frontend-types.test.mjs` 通过，3/3。
+- `ReadLints` 对脚本、测试和文档无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

@@ -28,6 +28,7 @@
  *      node scripts/generate-frontend-types.mjs
  *    Optional flags:
  *      --url <openapi-json-url>     Default: http://localhost:8080/ai-assistant/v3/api-docs
+ *      --spec-file <openapi-json>   Read an already exported OpenAPI JSON file instead of fetch()
  *      --out <output-file>          Default: ai-assistant-ui/src/types/api-generated.d.ts
  *      --token <X-AI-Token value>   If the host gates /v3/api-docs behind auth
  *      --pin <openapi-typescript@x> Default: openapi-typescript@7
@@ -62,6 +63,7 @@ const repoRoot = resolve(dirname(__filename), '..');
 export function parseArgs(argv) {
   const args = {
     url: 'http://localhost:8080/ai-assistant/v3/api-docs',
+    specFile: null,
     out: 'ai-assistant-ui/src/types/api-generated.d.ts',
     token: null,
     pin: 'openapi-typescript@7',
@@ -71,6 +73,7 @@ export function parseArgs(argv) {
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--url') args.url = argv[++i];
+    else if (a === '--spec-file') args.specFile = argv[++i];
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--token') args.token = argv[++i];
     else if (a === '--pin') args.pin = argv[++i];
@@ -79,7 +82,7 @@ export function parseArgs(argv) {
     else if (a === '-h' || a === '--help') {
       console.log(
         'Usage: node scripts/generate-frontend-types.mjs ' +
-          '[--url <openapi-json-url>] [--out <file>] [--token <X-AI-Token>] ' +
+          '[--url <openapi-json-url>] [--spec-file <openapi-json>] [--out <file>] [--token <X-AI-Token>] ' +
           '[--pin openapi-typescript@<ver>] [--dry-run] [--check]',
       );
       process.exit(0);
@@ -114,6 +117,14 @@ async function fetchSpec(url, token) {
     );
   }
   return await response.text();
+}
+
+export async function loadSpecText(args) {
+  if (args.specFile) {
+    const specPath = resolve(repoRoot, args.specFile);
+    return await readFile(specPath, 'utf-8');
+  }
+  return await fetchSpec(args.url, args.token);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -171,8 +182,9 @@ async function main() {
   if (args.dryRun && args.check) {
     throw new Error('Use either --dry-run or --check, not both.');
   }
-  console.log(`[generate-frontend-types] Fetching OpenAPI spec from ${args.url}`);
-  const specText = await fetchSpec(args.url, args.token);
+  const source = args.specFile ? args.specFile : args.url;
+  console.log(`[generate-frontend-types] Loading OpenAPI spec from ${source}`);
+  const specText = await loadSpecText(args);
   console.log(
     `[generate-frontend-types] Got ${specText.length} bytes of OpenAPI JSON`,
   );

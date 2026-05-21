@@ -393,3 +393,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `package.json` 已有 `./admin`、`./mcp`、`./form-fill`、`./screenshot`、`./wc` 等二级入口，适合承接高级能力。
 - 主入口 `src/index.ts` 仍保留大量高级导出以兼容历史用户；本阶段不删除导出，只强化文档和注释约束。
 - 新项目应优先按能力从二级入口导入，后续新增高级 helper 默认不再加入主入口。
+
+### 阶段 13.21 OpenAPI 静态 spec 输入发现
+
+- live `/v3/api-docs` drift check 需要启动后端和 springdoc 暴露，CI 成本与失败面较大。
+- 先让 `generate-frontend-types.mjs` 支持 `--spec-file`，可以把“读取 spec”与“生成/比对类型”解耦。
+- 后续只要提交 `docs/api/openapi.json` 快照，就能在 CI 中运行 `--spec-file docs/api/openapi.json --check`，不需要每次启动服务。

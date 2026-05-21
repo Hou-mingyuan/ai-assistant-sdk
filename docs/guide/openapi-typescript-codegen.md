@@ -108,6 +108,7 @@ The generator script supports the following flags:
 | Flag | Default | Notes |
 |---|---|---|
 | `--url` | `http://localhost:8080/ai-assistant/v3/api-docs` | OpenAPI JSON endpoint |
+| `--spec-file` | none | Read a committed/static OpenAPI JSON snapshot instead of fetching a live endpoint |
 | `--out` | `ai-assistant-ui/src/types/api-generated.d.ts` | Output `.d.ts` path |
 | `--token` | none | Sent as `X-AI-Token` header if your spec is auth-gated |
 | `--pin` | `openapi-typescript@7` | Pin the codegen version. Bump deliberately and commit a regenerated file in the same PR |
@@ -143,6 +144,16 @@ node scripts/openapi-type-sync-guard.mjs --base origin/main --head HEAD
 - `ChatResponse.java`
 
 如果这些文件发生变化，但 `ai-assistant-ui/src/types/api-generated.d.ts` 没有同步变化，PR 会失败。这个 guard 不会运行 codegen，只负责防止最常见的“后端契约改了但前端类型快照没跟”。
+
+`generate-frontend-types.mjs` 也支持静态 spec 输入：
+
+```bash
+node scripts/generate-frontend-types.mjs \
+  --spec-file docs/api/openapi.json \
+  --check
+```
+
+这为后续“提交 `docs/api/openapi.json` 快照 → CI 从快照生成并比对 `api-generated.d.ts`”铺好入口，不需要每次 CI 都启动后端服务。
 
 更完整的 live-spec drift check 可以作为后续增强：
 
@@ -195,7 +206,7 @@ the `.d.ts` diff, and commit it with the server contract change.
 * **Next**: migrate the remaining hand-written response types in
   `utils/api.ts` one DTO at a time (`ModelsListResult`,
   `UrlPreviewResult`, prompt templates, export responses).
-* **Later**: wire the `--dry-run` drift check into CI as a required check.
-* **Eventually**: replace the standalone-service spec endpoint with a
-  static-spec snapshot (`docs/api/openapi.json`) regenerated at release
-  time, so codegen no longer requires a running backend.
+* **Later**: commit a static-spec snapshot (`docs/api/openapi.json`) and run
+  `generate-frontend-types.mjs --spec-file docs/api/openapi.json --check` in CI.
+* **Eventually**: regenerate that static snapshot at release time, so codegen
+  no longer requires a running backend in pull-request CI.
