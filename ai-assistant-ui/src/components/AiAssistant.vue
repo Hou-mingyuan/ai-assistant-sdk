@@ -722,6 +722,7 @@ import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics'
 import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
+import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -753,7 +754,7 @@ const AssistantInlineOverlays = defineAsyncComponent(() => import('./AssistantIn
  * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
 const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
 import type { AiAssistantOptions } from '../index';
-import { uploadFile, fetchUrlPreview, fetchPromptTemplates } from '../utils/api';
+import { uploadFile, fetchUrlPreview } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
@@ -1496,20 +1497,7 @@ watch(loading, (now, prev) => {
  * 主输入框，仍由用户决定何时发送，避免误触意外消耗 token。
  */
 const promptTemplateOpen = ref(false);
-/**
- * 服务端 `/templates` 端点暴露的官方模板。失败 / 端点不存在时安静地为空，
- * 不影响 options 预置模板和用户自建模板的展示。
- */
-const serverPromptTemplates = ref<{ id: string; label: string; template: string }[]>([]);
-const presetPromptTemplates = computed(() => {
-  const opt = (options.promptTemplates ?? []).map((p, idx) => ({
-    id: `preset_${idx}`,
-    label: p.label,
-    template: p.template,
-    variables: p.variables,
-  }));
-  return [...serverPromptTemplates.value, ...opt];
-});
+const { presetPromptTemplates, refreshServerPromptTemplates } = useServerPromptTemplates(options);
 const promptTemplateLib = usePromptTemplateLibrary({
   presetTemplates: presetPromptTemplates,
 });
@@ -1550,21 +1538,6 @@ const {
   onBodyScrollForVirtual,
 } = scrollAndVirtual;
 
-async function refreshServerPromptTemplates() {
-  if (!options.baseUrl) return;
-  try {
-    const r = await fetchPromptTemplates(options.baseUrl, options.accessToken);
-    if (r.success && r.templates) {
-      serverPromptTemplates.value = r.templates.map((t) => ({
-        id: `server:${t.name}`,
-        label: t.name,
-        template: t.template,
-      }));
-    }
-  } catch {
-    /* ignore: server templates are optional */
-  }
-}
 function onPromptTemplateUse(rendered: string) {
   input.value = rendered;
   promptTemplateOpen.value = false;

@@ -166,6 +166,20 @@ node scripts/generate-frontend-types.mjs \
 
 这条检查从已提交的静态 snapshot 生成临时 `.d.ts` 并比对，不需要每次 CI 都启动后端服务。
 
+Release-time refresh 可以使用专门脚本把 live spec 写回静态快照，并立即重新生成前端类型：
+
+```bash
+node scripts/refresh-openapi-snapshot.mjs \
+  --url http://localhost:8080/ai-assistant/v3/api-docs
+```
+
+如果你已经从别处导出了 spec，也可以从文件刷新：
+
+```bash
+node scripts/refresh-openapi-snapshot.mjs \
+  --spec-file tmp/openapi.json
+```
+
 当前 CI 的 repository job 已在 PR 上同时运行轻量变更 guard 和静态 spec 类型比对：
 
 ```bash

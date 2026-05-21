@@ -829,6 +829,28 @@
 验证：
 - `npm run build`（`docs`）：通过。
 
+### 阶段 13.37 设计
+
+目标是按 1-4 全部推进一轮：release-time snapshot refresh、schema 收紧、Observability/OpenAPI support 验证、主组件低风险瘦身。
+
+结果：
+- 新增 `scripts/refresh-openapi-snapshot.mjs` 和测试，用于 release-time 从 live URL 或已导出的 spec 文件刷新 `docs/api/openapi.json` 并重新生成前端类型。
+- 收紧 `UsageStatsSnapshot` 与 `BatchResponse` schema，避免继续使用过宽 `additionalProperties`。
+- `AiAssistantAutoConfigurationTest` 增加 OpenAPI support metadata 自动装配验证，覆盖显式启用时的 OpenAPI bean、server URL 和 security schemes。
+- 新增 `useServerPromptTemplates.ts` 与测试，从 `AiAssistant.vue` 抽出服务端模板刷新和 preset 合并逻辑。
+- OpenAPI codegen 文档补充 refresh 脚本用法。
+
+验证：
+- `node --test scripts/refresh-openapi-snapshot.test.mjs`：3 个测试通过。
+- `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：11 个测试通过。
+- `npm test -- useServerPromptTemplates.spec.ts`：2 个测试通过。
+- `node --test scripts/*.test.mjs`：34 个测试通过。
+- `npm test -- useServerPromptTemplates.spec.ts api.spec.ts`：3 个测试文件、55 个测试通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

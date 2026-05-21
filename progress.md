@@ -1222,3 +1222,35 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 验证：
 - `npm run build`（`docs`）：通过。
+
+### 当前阶段 13.37
+
+状态：已完成。
+
+目标：
+- 推进 release-time OpenAPI refresh、schema 收紧、Observability/OpenAPI support 验证和主组件瘦身切口。
+
+修改：
+- 新增 `scripts/refresh-openapi-snapshot.mjs`
+- 新增 `scripts/refresh-openapi-snapshot.test.mjs`
+- 修改 `docs/api/openapi.json`
+- 修改 `ai-assistant-ui/src/types/api-generated.d.ts`
+- 修改 `ai-assistant-server/src/test/java/com/aiassistant/autoconfigure/AiAssistantAutoConfigurationTest.java`
+- 新增 `ai-assistant-ui/src/composables/useServerPromptTemplates.ts`
+- 新增 `ai-assistant-ui/src/composables/useServerPromptTemplates.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `docs/guide/openapi-typescript-codegen.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/refresh-openapi-snapshot.test.mjs`：3 个测试通过。
+- `mvn -pl ai-assistant-server "-Dtest=AiAssistantAutoConfigurationTest" test`：11 个测试通过。
+- `npm test -- useServerPromptTemplates.spec.ts`：2 个测试通过。
+- `node --test scripts/*.test.mjs`：34 个测试通过。
+- `npm test -- useServerPromptTemplates.spec.ts api.spec.ts`：3 个测试文件、55 个测试通过。
+- `node scripts/project-health-check.mjs --release-check`：通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。

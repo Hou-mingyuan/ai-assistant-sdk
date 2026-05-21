@@ -473,3 +473,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `docs/guide/openapi-typescript-codegen.md` 仍停留在 chat-only 阶段，会误导后续维护者只更新 `api-generated.d.ts`。
 - 文档需要明确 `docs/api/openapi.json` 是当前 reviewed contract，generated types 是由它派生的产物，两者应一起 review。
 - 当前更现实的后续路线不是继续扩大 paths 数量，而是做 release-time snapshot refresh 和逐步收紧 broad schema。
+
+### 阶段 13.37 下一轮 1-4 推进发现
+
+- Release-time refresh 不应自动启动后端；脚本只负责从 live URL 或已导出的 spec 文件刷新 snapshot，并复用现有 generator。
+- `UsageStats` 和 batch response 已有稳定字段，适合先收紧 schema；仍返回自由结构的能力保持 broad schema，避免和实现脱节。
+- OpenAPI support 当前是独立 auto-configuration，适合用显式 enable 的 bean wiring 测试作为 Observability/Support 拆分前置护栏。
+- `AiAssistant.vue` 中服务端模板刷新逻辑是低风险可抽离切口，抽出后主 SFC 少承担一个远端模板编排职责。

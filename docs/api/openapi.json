@@ -1455,7 +1455,27 @@
       },
       "UsageStatsSnapshot": {
         "type": "object",
-        "additionalProperties": true
+        "required": ["totalCalls", "totalErrors", "callsByAction", "callsByDate"],
+        "properties": {
+          "totalCalls": {
+            "type": "integer"
+          },
+          "totalErrors": {
+            "type": "integer"
+          },
+          "callsByAction": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "callsByDate": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
       },
       "SessionData": {
         "type": "object",
@@ -1541,12 +1561,30 @@
           "results": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/BatchItemResponse"
             }
           },
           "count": {
             "type": "integer"
+          }
+        }
+      },
+      "BatchItemResponse": {
+        "type": "object",
+        "required": ["index"],
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["chat", "translate", "summarize"]
+          },
+          "result": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
           }
         }
       },

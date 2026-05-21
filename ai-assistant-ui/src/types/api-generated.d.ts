@@ -1801,7 +1801,14 @@ export interface components {
             llmReachable?: boolean | string;
         };
         UsageStatsSnapshot: {
-            [key: string]: unknown;
+            totalCalls: number;
+            totalErrors: number;
+            callsByAction: {
+                [key: string]: number;
+            };
+            callsByDate: {
+                [key: string]: number;
+            };
         };
         SessionData: {
             id?: string;
@@ -1831,10 +1838,15 @@ export interface components {
             targetLang?: string;
         };
         BatchResponse: {
-            results: {
-                [key: string]: unknown;
-            }[];
+            results: components["schemas"]["BatchItemResponse"][];
             count: number;
+        };
+        BatchItemResponse: {
+            index: number;
+            /** @enum {string} */
+            action?: "chat" | "translate" | "summarize";
+            result?: string;
+            error?: string;
         };
         CapabilityEntry: {
             name: string;
