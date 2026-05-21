@@ -428,6 +428,158 @@
           }
         }
       },
+      "AdminOverview": {
+        "type": "object",
+        "required": ["usage", "tokenUsage", "registeredTools", "promptTemplates", "activeABTests"],
+        "properties": {
+          "usage": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "tokenUsage": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "registeredTools": {
+            "type": "integer"
+          },
+          "promptTemplates": {
+            "type": "integer"
+          },
+          "activeABTests": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminPromptEntry": {
+        "type": "object",
+        "required": ["name", "template"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminToolEntry": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminRagStats": {
+        "type": "object",
+        "required": ["namespace", "documentCount"],
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "documentCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminRagIngestResult": {
+        "type": "object",
+        "required": ["success", "namespace", "chunks"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "chunks": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminAbTestConfig": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "modelA": {
+            "type": "string"
+          },
+          "modelB": {
+            "type": "string"
+          },
+          "percentA": {
+            "type": "number"
+          }
+        }
+      },
+      "AdminFallbackChain": {
+        "type": "object",
+        "required": ["chain"],
+        "properties": {
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminPluginsResult": {
+        "type": "object",
+        "required": ["plugins", "enabled"],
+        "properties": {
+          "plugins": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdminSystemInfo": {
+        "type": "object",
+        "properties": {
+          "javaVersion": {
+            "type": "string"
+          },
+          "osName": {
+            "type": "string"
+          },
+          "availableProcessors": {
+            "type": "integer"
+          },
+          "maxMemoryMb": {
+            "type": "integer"
+          },
+          "freeMemoryMb": {
+            "type": "integer"
+          },
+          "totalMemoryMb": {
+            "type": "integer"
+          },
+          "registeredTools": {
+            "type": "integer"
+          },
+          "promptTemplates": {
+            "type": "integer"
+          },
+          "fallbackChain": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "loadedPlugins": {
+            "type": "integer"
+          }
+        }
+      },
       "UrlPreviewResponse": {
         "type": "object",
         "required": ["success"],

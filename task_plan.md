@@ -704,6 +704,19 @@
 - `npm test -- packageExports.spec.ts`：通过。
 - `npm run build`：通过；`core.mjs` / `core.umd.cjs` 产出，主 `ai-assistant.mjs` 降到约 22 KB gzip 约 7 KB，重型实现下沉到共享 chunk。
 
+### 阶段 13.28 设计
+
+目标是继续扩大 generated schema 覆盖面，迁移 Admin API 常用 DTO。
+
+结果：
+- `docs/api/openapi.json` 新增 AdminOverview、AdminPromptEntry、AdminToolEntry、AdminRagStats、AdminRagIngestResult、AdminAbTestConfig、AdminFallbackChain、AdminPluginsResult、AdminSystemInfo schemas。
+- 重新生成 `api-generated.d.ts`。
+- `adminApi.ts` 中对应手写 interface 改为 generated schema alias。
+
+验证：
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

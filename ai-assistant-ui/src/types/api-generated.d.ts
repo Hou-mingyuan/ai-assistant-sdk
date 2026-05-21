@@ -394,6 +394,62 @@ export interface components {
             template: string;
             hasFewShot?: boolean;
         };
+        AdminOverview: {
+            usage: {
+                [key: string]: unknown;
+            };
+            tokenUsage: {
+                [key: string]: unknown;
+            };
+            registeredTools: number;
+            promptTemplates: number;
+            activeABTests: number;
+        };
+        AdminPromptEntry: {
+            name: string;
+            template: string;
+        };
+        AdminToolEntry: {
+            name: string;
+            description: string;
+        };
+        AdminRagStats: {
+            namespace: string;
+            documentCount: number;
+        };
+        AdminRagIngestResult: {
+            success: boolean;
+            namespace: string;
+            chunks: number;
+        };
+        AdminAbTestConfig: {
+            modelA?: string;
+            modelB?: string;
+            percentA?: number;
+        } & {
+            [key: string]: unknown;
+        };
+        AdminFallbackChain: {
+            chain: string[];
+        };
+        AdminPluginsResult: {
+            plugins: {
+                [key: string]: unknown;
+            };
+            enabled: boolean;
+        };
+        AdminSystemInfo: {
+            javaVersion?: string;
+            osName?: string;
+            availableProcessors?: number;
+            maxMemoryMb?: number;
+            freeMemoryMb?: number;
+            totalMemoryMb?: number;
+            registeredTools?: number;
+            promptTemplates?: number;
+            fallbackChain?: string[];
+            loadedPlugins?: number;
+        };
         UrlPreviewResponse: {
             success: boolean;
             imageUrl?: string;

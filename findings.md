@@ -432,3 +432,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 将 core entry 改为直接依赖 `core-plugin.ts` 后，`core` 不再经过 `index.ts` 的高级 re-export 面。
 - Vite library build 会把核心实现放到共享 chunk，`ai-assistant.mjs` 主入口本身显著变小；这为后续逐步移除主入口高级导出提供了可验证路径。
 - 当前仍保留主入口历史导出，真正 breaking removal 可以放到后续 v2 changelog / migration guide 中处理。
+
+### 阶段 13.28 Admin DTO generated schema 发现
+
+- Admin SDK 的类型面主要是简单响应 DTO，适合先迁移到静态 OpenAPI components，不必一次补全所有 Admin paths。
+- `AdminAbTestConfig` 保留 `additionalProperties: true`，兼容后端可扩展配置 map。
+- `adminApi.ts` 迁移为 generated schema alias 后，仍保留 `AdminResult<T>` 包装类型作为前端 SDK 自己的错误归一化协议。

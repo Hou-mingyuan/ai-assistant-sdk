@@ -37,6 +37,10 @@
  * | adminSystemInfo | GET  /admin/system |
  */
 
+import type { components } from '../types/api-generated';
+
+type ApiSchemas = components['schemas'];
+
 const DEFAULT_TIMEOUT_MS = 30_000;
 const ADMIN_PATH_PREFIX = '/admin';
 
@@ -59,63 +63,23 @@ export interface AdminCallOptions {
  * Response shapes
  * ──────────────────────────────────────────────────────────────── */
 
-export interface AdminOverview {
-  usage: Record<string, unknown>;
-  tokenUsage: Record<string, unknown>;
-  registeredTools: number;
-  promptTemplates: number;
-  activeABTests: number;
-}
+export type AdminOverview = ApiSchemas['AdminOverview'];
 
-export interface AdminPromptEntry {
-  name: string;
-  template: string;
-}
+export type AdminPromptEntry = ApiSchemas['AdminPromptEntry'];
 
-export interface AdminToolEntry {
-  name: string;
-  description: string;
-}
+export type AdminToolEntry = ApiSchemas['AdminToolEntry'];
 
-export interface AdminRagStats {
-  namespace: string;
-  documentCount: number;
-}
+export type AdminRagStats = ApiSchemas['AdminRagStats'];
 
-export interface AdminRagIngestResult {
-  success: boolean;
-  namespace: string;
-  chunks: number;
-}
+export type AdminRagIngestResult = ApiSchemas['AdminRagIngestResult'];
 
-export interface AdminAbTestConfig {
-  modelA?: string;
-  modelB?: string;
-  percentA?: number;
-  [key: string]: unknown;
-}
+export type AdminAbTestConfig = ApiSchemas['AdminAbTestConfig'];
 
-export interface AdminFallbackChain {
-  chain: string[];
-}
+export type AdminFallbackChain = ApiSchemas['AdminFallbackChain'];
 
-export interface AdminPluginsResult {
-  plugins: Record<string, unknown>;
-  enabled: boolean;
-}
+export type AdminPluginsResult = ApiSchemas['AdminPluginsResult'];
 
-export interface AdminSystemInfo {
-  javaVersion?: string;
-  osName?: string;
-  availableProcessors?: number;
-  maxMemoryMb?: number;
-  freeMemoryMb?: number;
-  totalMemoryMb?: number;
-  registeredTools?: number;
-  promptTemplates?: number;
-  fallbackChain?: string[];
-  loadedPlugins?: number;
-}
+export type AdminSystemInfo = ApiSchemas['AdminSystemInfo'];
 
 /* ────────────────────────────────────────────────────────────────
  * Internal helpers

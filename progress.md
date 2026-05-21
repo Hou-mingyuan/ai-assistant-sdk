@@ -1050,3 +1050,23 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `npm test -- packageExports.spec.ts`：通过。
 - `npm run build`：通过；`core.mjs` / `core.umd.cjs` 正常产出，Package export check OK（27 paths）。
+
+### 当前阶段 13.28
+
+状态：已完成。
+
+目标：
+- 迁移 Admin API 常用 DTO 到 generated schema。
+
+修改：
+- `docs/api/openapi.json`
+- `ai-assistant-ui/src/types/api-generated.d.ts`
+- `ai-assistant-ui/src/utils/adminApi.ts`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+验证：
+- `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
+- `npm test -- adminApi.spec.ts api.spec.ts`：2 个测试文件、53 个测试通过。
+- `ReadLints` 对相关 OpenAPI、generated types 和 Admin SDK 文件无诊断。
