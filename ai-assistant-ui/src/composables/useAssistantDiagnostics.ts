@@ -12,6 +12,7 @@ import {
   useConnectionDiagnosticsState,
   type ModelListStatus,
 } from './useConnectionDiagnosticsState';
+import { useConnectionConfigState } from './useConnectionConfigState';
 
 export interface UseAssistantDiagnosticsOptions {
   options: AiAssistantOptions;
@@ -35,10 +36,6 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const diagnosticsCopyMessage = ref('');
   const diagnosticsLastChecked = ref('');
   const modelListError = ref('');
-  const connectionBaseUrlInput = ref(options.baseUrl || '');
-  const connectionTokenInput = ref(options.accessToken || '');
-  const connectionPersistEnabled = ref(true);
-  const connectionConfigMessage = ref('');
   const modelListStatus = ref<ModelListStatus>('');
   const providerInput = ref('');
   const providerBaseUrlInput = ref('');
@@ -58,8 +55,19 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     },
   });
 
-  const connectionBaseUrlStorageKey = 'ai-assistant-connection-base-url';
-  const connectionTokenStorageKey = 'ai-assistant-connection-token';
+  const connectionConfig = useConnectionConfigState({ options, t });
+  const {
+    connectionBaseUrlInput,
+    connectionTokenInput,
+    connectionPersistEnabled,
+    connectionConfigMessage,
+    connectionBaseUrlStorageKey,
+    connectionTokenStorageKey,
+    syncConnectionInputsFromOptions,
+    applyConnectionConfigInputs,
+    persistConnectionConfigIfEnabled,
+    useDefaultBaseUrlForDiagnostics,
+  } = connectionConfig;
   const diagnosticsState = useConnectionDiagnosticsState({
     t,
     baseUrl: diagnosticsBaseUrl,
@@ -154,47 +162,12 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     }
   }
 
-  function syncConnectionInputsFromOptions() {
-    connectionBaseUrlInput.value = options.baseUrl || '';
-    connectionTokenInput.value = options.accessToken || '';
-  }
-
   function toggleDiagnostics() {
     diagnosticsOpen.value = !diagnosticsOpen.value;
     if (diagnosticsOpen.value) {
       syncConnectionInputsFromOptions();
       void runModelDiagnostics();
     }
-  }
-
-  function applyConnectionConfigInputs() {
-    const baseUrl = connectionBaseUrlInput.value.trim();
-    const token = connectionTokenInput.value.trim();
-    options.baseUrl = baseUrl || undefined;
-    options.accessToken = token || undefined;
-  }
-
-  function persistConnectionConfigIfEnabled() {
-    const baseUrl = connectionBaseUrlInput.value.trim();
-    const token = connectionTokenInput.value.trim();
-    try {
-      if (!connectionPersistEnabled.value) {
-        localStorage.removeItem(connectionBaseUrlStorageKey);
-        localStorage.removeItem(connectionTokenStorageKey);
-        return;
-      }
-      if (baseUrl) localStorage.setItem(connectionBaseUrlStorageKey, baseUrl);
-      else localStorage.removeItem(connectionBaseUrlStorageKey);
-      if (token) localStorage.setItem(connectionTokenStorageKey, token);
-      else localStorage.removeItem(connectionTokenStorageKey);
-    } catch {
-      /* localStorage may be unavailable or full. */
-    }
-  }
-
-  function useDefaultBaseUrlForDiagnostics() {
-    connectionBaseUrlInput.value = '/ai-assistant';
-    connectionConfigMessage.value = t.value.connectionConfigDefaultApplied;
   }
 
   function handleSendBlockedAction() {

@@ -722,3 +722,24 @@ release）真正闭环、落地，并补 a11y 兜底。
 验证：
 - `ReadLints` 对新增文档、VitePress 配置和计划文件无诊断。
 - `node scripts/project-health-check.mjs --docs`：版本一致性检查通过，VitePress 文档站构建通过。
+
+### 当前阶段 13.11
+
+状态：已完成。
+
+目标：
+- 继续拆分 `useAssistantDiagnostics.ts`。
+- 将连接配置输入和 localStorage 持久化状态迁移到独立 composable。
+
+修改：
+- 新增 `ai-assistant-ui/src/composables/useConnectionConfigState.ts`
+- 新增 `ai-assistant-ui/src/composables/useConnectionConfigState.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+- 修改 `task_plan.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`npm test -- useConnectionConfigState.spec.ts` 首次失败，原因是缺少 `useConnectionConfigState` 模块。
+- GREEN：`npm test -- useConnectionConfigState.spec.ts` 通过，6/6。
+- `ReadLints` 对 `useConnectionConfigState.ts`、spec 和 `useAssistantDiagnostics.ts` 无诊断。
+- `npm run build:types`：通过。

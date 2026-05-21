@@ -331,3 +331,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - PDFBox/POI 当前不是 optional，因为 `/export` 和文件处理运行时直接依赖；如果未来拆分，需要独立 feature artifact 和清晰启动提示。
 - 独立服务显式带 Web/WebFlux/WebSocket/Actuator/JSON logging，但默认不带 Redis/JDBC/Playwright。
 - 前端 Mermaid 保持动态 import / 宿主 opt-in，不在 `@ai-assistant/vue` 默认 dependencies 中。
+
+### 阶段 13.11 连接配置状态拆分发现
+
+- `useAssistantDiagnostics.ts` 中连接配置输入、localStorage 持久化和默认 baseUrl 提示是纯状态逻辑，不依赖网络请求。
+- 将这部分拆到 `useConnectionConfigState` 后，`useAssistantDiagnostics.ts` 中剩余的主要职责是运行模型诊断、保存 runtime provider 配置、发现模型和复制诊断文本。
+- localStorage 写入仍做 try/catch，保持原有“不可用或满容量时不影响 UI”的行为。

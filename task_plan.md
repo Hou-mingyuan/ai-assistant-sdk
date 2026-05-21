@@ -428,6 +428,25 @@
 - `ReadLints` 对新增文档、VitePress 配置和计划文件无诊断。
 - `node scripts/project-health-check.mjs --docs`：版本一致性检查通过，VitePress 文档站构建通过。
 
+### 阶段 13.11 设计
+
+目标是继续拆分 `useAssistantDiagnostics.ts`，将连接 baseUrl/token 输入和 localStorage 持久化状态迁移到独立 composable。
+
+预期修改：
+- 新增 `ai-assistant-ui/src/composables/useConnectionConfigState.ts`
+- 新增 `ai-assistant-ui/src/composables/useConnectionConfigState.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantDiagnostics.ts`
+
+结果：
+- `connectionBaseUrlInput`、`connectionTokenInput`、`connectionPersistEnabled`、`connectionConfigMessage`、storage key、sync/apply/persist/default-base-url 逻辑迁移到 `useConnectionConfigState`。
+- `useAssistantDiagnostics.ts` 保留测试连接、保存连接配置、运行模型诊断等编排逻辑。
+
+验证：
+- 已先写 `useConnectionConfigState.spec.ts` 并观察到 RED：缺少 `useConnectionConfigState` 导致 import 失败。
+- `npm test -- useConnectionConfigState.spec.ts`：6 个测试通过。
+- `ReadLints` 对新 composable、spec 和 `useAssistantDiagnostics.ts` 无诊断。
+- `npm run build:types`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |
