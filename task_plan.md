@@ -803,6 +803,19 @@
 - `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
 - `npx vue-tsc --noEmit`：通过。
 
+### 阶段 13.35 设计
+
+目标是让轻量 OpenAPI type sync guard 跟上已经扩大的静态快照覆盖面。
+
+结果：
+- `openapi-type-sync-guard.mjs` 的 contract files 从聊天端点扩展到当前已覆盖的主要 REST controllers、DTO、`ConnectorProperties`、MCP controller 和 runtime model config service。
+- 新增 `OPENAPI_SPEC_FILE`，当后端契约文件变更时要求 `docs/api/openapi.json` 与 `api-generated.d.ts` 同步变化。
+- 当 OpenAPI snapshot 单独变更时，也要求重新生成 frontend types。
+- 更新 guard 单测覆盖缺 spec、缺 generated types、Windows path normalization 等场景。
+
+验证：
+- `node --test scripts/openapi-type-sync-guard.test.mjs`：5 个测试通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

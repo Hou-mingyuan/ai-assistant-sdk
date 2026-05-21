@@ -461,3 +461,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `api.ts` 里仍有通用 helper 需要保留前端自己的归一化结果类型，例如 `PromptTemplatesListResult` 和 server export 的 `{ ok }` 下载结果；OpenAPI 类型只适合作为 wire payload 的来源。
 - 用临时 TypeScript probe 做脚本测试，比把类型断言塞进 `*.spec.ts` 更可靠，因为前端 `tsconfig.json` 明确排除了 spec 文件。
 - `RuntimeDiscoverModelsResult` 需要显式 schema，否则从 `additionalProperties` 生成的类型太宽，不能给调用层提供实际约束。
+
+### 阶段 13.35 OpenAPI sync guard 发现
+
+- 静态快照覆盖范围扩大后，原 guard 只盯 ChatRequest/ChatResponse 已经不够，会漏掉 Session、Export、Connector、Async、Capability 等契约漂移。
+- 仅检查 `api-generated.d.ts` 不足以防止手工改 generated types；后端契约变更时应同时要求 `docs/api/openapi.json` 与 generated types 更新。
+- OpenAPI snapshot 单独变化也必须要求 generated types 更新，否则 `--spec-file --check` 会在后续 CI 才发现漂移。

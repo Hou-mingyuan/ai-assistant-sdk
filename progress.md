@@ -1188,3 +1188,21 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npm test -- api.spec.ts`：2 个测试文件、53 个测试通过。
 - `node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check`：通过。
 - `npx vue-tsc --noEmit`：通过。
+
+### 当前阶段 13.35
+
+状态：已完成。
+
+目标：
+- 扩展 OpenAPI type sync guard 的后端契约覆盖范围。
+- 要求契约变更时同步提交静态 OpenAPI snapshot 与 generated frontend types。
+
+修改：
+- 修改 `scripts/openapi-type-sync-guard.mjs`
+- 修改 `scripts/openapi-type-sync-guard.test.mjs`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- `node --test scripts/openapi-type-sync-guard.test.mjs`：5 个测试通过。
