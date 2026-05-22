@@ -1,17 +1,17 @@
 {
-  "updatedAt": "2026-05-22T02:51:20.015Z",
+  "updatedAt": "2026-05-22T02:59:33.459Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
       "size": 749222,
       "gzip": 239089
     },
-    "AiAssistant-FJjSjEIA.js": {
-      "size": 833841,
-      "gzip": 187423
+    "AiAssistant-bO3h3H2W.js": {
+      "size": 833817,
+      "gzip": 187419
     },
-    "useAiAssistant-D1nz5JM-.js": {
-      "size": 787777,
-      "gzip": 174427
+    "useAiAssistant-B3mkP6Jr.js": {
+      "size": 787753,
+      "gzip": 174422
     },
     "useAiAssistant-uaH8Ugll.cjs": {
       "size": 440957,
@@ -101,13 +101,13 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-DffMX-L7.js": {
+    "PromptTemplateDialog-BqRLF4gQ.js": {
       "size": 15408,
-      "gzip": 3051
+      "gzip": 3050
     },
-    "PromptTemplateDialog-C6-pVmQd.js": {
+    "PromptTemplateDialog-CrNG7AvN.js": {
       "size": 15448,
-      "gzip": 3021
+      "gzip": 3020
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
@@ -283,7 +283,7 @@
     },
     "ai-assistant-wc.mjs": {
       "size": 3413,
-      "gzip": 1272
+      "gzip": 1273
     },
     "java-2tSfCXoV.cjs": {
       "size": 2675,
@@ -323,7 +323,7 @@
     },
     "core.mjs": {
       "size": 2417,
-      "gzip": 997
+      "gzip": 996
     },
     "PageSelectionBar-D3WtfEiM.js": {
       "size": 2789,
@@ -449,11 +449,11 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 520104
+      "gzip": 520101
     },
     "chunks": {
       "files": 94,
-      "gzip": 534882
+      "gzip": 534874
     },
     "main": {
       "files": 3,
