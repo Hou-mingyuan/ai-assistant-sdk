@@ -998,6 +998,32 @@
 - `npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：7/7 通过。
 - `mvn -pl ai-assistant-observability-support test`：1/1 通过。
 
+### 阶段 13.44 设计
+
+目标是继续完成用户要求的 4 项：
+- 将 tracing / OTLP / logstash bridge 从 starter POM 下沉到 observability support artifact。
+- 让 `project-health-check --release-check` 自带 UI build 顺序，并让 CI frontend job 复用该 release lane。
+- 将 `useAssistantCommandRegistry` 从 prompt/feature 专用参数改为 command families。
+- 基于当前 UI 构建刷新 bundle baseline，消除 hash chunk 新增/删除噪音。
+
+结果：
+- `ai-assistant-server/pom.xml` 移除 `micrometer-tracing-bridge-otel`、`opentelemetry-exporter-otlp`、`logstash-logback-encoder`，这些坐标由 `ai-assistant-observability-support` 承接。
+- `scripts/project-health-check.mjs` 在 `--release-check` 下先运行 `ai-assistant-ui` 的 `npm run build`，再读取 dist 做 bundle-size / composition 检查。
+- `.github/workflows/ci.yml` 的 frontend job 改为复用 `project-health-check --release-check`，减少本地和 CI 检查顺序漂移。
+- `useAssistantCommandRegistry` 改为 `families` 输入，`AiAssistant.vue` 只声明 prompt / feature 命令族顺序。
+- `scripts/.bundle-size-baseline.json` 已基于当前构建刷新，bundle change summary 为 none / none / none / none。
+
+验证：
+- RED 已观察：support guard 因 starter 仍含 tracing/logstash 依赖失败；release-check 顺序测试因缺少 build step 失败；command registry spec 因缺少 `families` 输入失败。
+- GREEN：`node --test scripts/observability-support-module.test.mjs scripts/project-health-check.test.mjs`：9/9 通过。
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts`：1/1 通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node ../scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline。
+- `node scripts/project-health-check.mjs --release-check`：通过，包含 UI build、47 个脚本测试、静态 OpenAPI 检查、bundle-size 和依赖足迹检查。
+- `npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：7/7 通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

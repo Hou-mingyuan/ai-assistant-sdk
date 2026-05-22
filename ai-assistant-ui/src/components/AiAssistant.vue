@@ -1668,10 +1668,16 @@ const featureCommands = useAssistantFeatureCommands({
   },
 });
 const commandRegistry = useAssistantCommandRegistry({
-  featureSlashCommands: featureCommands.slashCommands,
-  promptSlashCommands: promptCommands.slashCommands,
-  featurePaletteCommands: featureCommands.commandPaletteCommands,
-  promptPaletteCommands: promptCommands.commandPaletteCommands,
+  families: [
+    {
+      slashCommands: promptCommands.slashCommands,
+      paletteCommands: promptCommands.commandPaletteCommands,
+    },
+    {
+      slashCommands: featureCommands.slashCommands,
+      paletteCommands: featureCommands.commandPaletteCommands,
+    },
+  ],
 });
 
 const slashCmd = useSlashCommands({

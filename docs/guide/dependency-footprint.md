@@ -12,8 +12,9 @@
 | Web 入口 | Spring Web、WebFlux、WebSocket、Actuator | 在 `pom.xml` 中标为 optional；宿主按实际入口引入，独立服务会显式带上这些能力。 |
 | 导出与文件处理 | PDFBox、Apache POI | 当前 `/export` 和文件解析运行期依赖这些库，因此不是 optional。若宿主完全不开放导出/Office 解析，可在后续版本考虑拆成单独 feature artifact。 |
 | 多副本与存储 | Redis、JDBC | optional；只有宿主提供 Redis/JDBC 依赖和连接配置时，Redis session、Redis rate limit、JDBC memory 等能力才会接管。 |
-| 稳定性与可观测 | Resilience4j、Micrometer tracing、OpenTelemetry OTLP | optional；需要熔断/重试或链路追踪时由宿主引入并配置。 |
-| 低频扩展 | Playwright、Springdoc OpenAPI、Logstash encoder | optional；分别用于 headless 抓取、OpenAPI UI、结构化日志。 |
+| 稳定性 | Resilience4j | optional；需要熔断/重试时由宿主引入并配置。 |
+| 可观测 support | Springdoc OpenAPI、Micrometer tracing、OpenTelemetry OTLP、Logstash encoder | 已下沉到 `ai-assistant-observability-support`。OpenAPI 由 support artifact 直接承接；tracing / logstash bridge 仍是 optional，宿主按运行时需要显式启用。 |
+| 低频扩展 | Playwright | optional；用于 headless 抓取。 |
 
 ### 接入建议
 
@@ -53,11 +54,10 @@ node scripts/bundle-composition-report.mjs
 node scripts/project-health-check.mjs --release-check
 ```
 
-当前该 lane 会执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、bundle-size 变化摘要和包体归因报告。`bundle-size-check` 读取已构建的 `ai-assistant-ui/dist`，因此本地和 CI 都应按顺序先运行前端 build，再运行 release-check：
+当前该 lane 会先构建 `ai-assistant-ui`，再执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、bundle-size 变化摘要和包体归因报告。也就是说本地和 CI 都可以直接运行：
 
 ```bash
-cd ai-assistant-ui && npm run build
-cd .. && node scripts/project-health-check.mjs --release-check
+node scripts/project-health-check.mjs --release-check
 ```
 
 ## 何时继续拆分

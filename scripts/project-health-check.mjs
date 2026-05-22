@@ -127,8 +127,14 @@ if (runE2eTests) {
 }
 
 if (runBundleSize) {
-  /* --all 时 build:lib 先做以保证 dist 是最新；单独 --bundle 时假设 dist 已存在 */
-  if (args.has('--all')) {
+  if (runReleaseCheck) {
+    checks.push({
+      name: 'frontend build (for release-check bundle baseline)',
+      command: npmCommand(),
+      args: ['run', 'build'],
+      cwd: path.join(root, 'ai-assistant-ui'),
+    })
+  } else if (args.has('--all')) {
     checks.push({
       name: 'frontend build:lib (for bundle-size baseline)',
       command: npmCommand(),

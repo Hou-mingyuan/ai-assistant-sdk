@@ -132,17 +132,6 @@
             <version>2.2.0</version>
             <optional>true</optional>
         </dependency>
-        <!-- Micrometer Tracing + OpenTelemetry bridge -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <optional>true</optional>
-        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
@@ -180,13 +169,6 @@
             <artifactId>mockwebserver</artifactId>
             <version>4.12.0</version>
             <scope>test</scope>
-        </dependency>
-        <!-- Structured JSON logging (opt-in: activate via logback-spring.xml) -->
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>8.0</version>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 

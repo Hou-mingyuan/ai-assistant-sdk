@@ -27,6 +27,8 @@ do not need to remember a second OpenAPI dependency.
 Tracing and structured logging bridge dependencies are present as optional
 dependencies; hosts still opt in by configuring Micrometer tracing exporters or
 Logstash logging in their own runtime.
+The base starter no longer declares the tracing / OTLP / Logstash bridge
+dependencies directly; those coordinates are guarded in the support module.
 
 - `core-only` path keeps proving base chat wiring starts without OpenAPI,
   tracing, logstash, Redis, JDBC, or Playwright classes.

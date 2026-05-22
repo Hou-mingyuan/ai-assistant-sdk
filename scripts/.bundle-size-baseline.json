@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-05-22T02:59:33.459Z",
+  "updatedAt": "2026-05-22T03:46:59.037Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 749222,
-      "gzip": 239089
+      "size": 749509,
+      "gzip": 239149
     },
-    "AiAssistant-bO3h3H2W.js": {
-      "size": 833817,
-      "gzip": 187419
+    "AiAssistant-BfRI6nZ0.js": {
+      "size": 834410,
+      "gzip": 187524
     },
-    "useAiAssistant-B3mkP6Jr.js": {
-      "size": 787753,
-      "gzip": 174422
+    "useAiAssistant-7vF1Z9hs.js": {
+      "size": 788346,
+      "gzip": 174529
     },
-    "useAiAssistant-uaH8Ugll.cjs": {
-      "size": 440957,
-      "gzip": 132628
+    "useAiAssistant-67zA2GI2.cjs": {
+      "size": 441244,
+      "gzip": 132692
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
@@ -39,11 +39,11 @@
     },
     "ai-assistant.mjs": {
       "size": 22103,
-      "gzip": 7057
+      "gzip": 7058
     },
     "ai-assistant.umd.cjs": {
       "size": 15102,
-      "gzip": 5739
+      "gzip": 5742
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -101,11 +101,11 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-BqRLF4gQ.js": {
+    "PromptTemplateDialog-DVcCBxPe.js": {
       "size": 15408,
       "gzip": 3050
     },
-    "PromptTemplateDialog-CrNG7AvN.js": {
+    "PromptTemplateDialog-BQjwJ534.js": {
       "size": 15448,
       "gzip": 3020
     },
@@ -185,9 +185,9 @@
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-BZaICTe6.cjs": {
+    "PromptTemplateDialog-Bh6f0Qw7.cjs": {
       "size": 8258,
-      "gzip": 2333
+      "gzip": 2334
     },
     "AssistantInlineOverlays-BFciw9O2.cjs": {
       "size": 7775,
@@ -283,7 +283,7 @@
     },
     "ai-assistant-wc.mjs": {
       "size": 3413,
-      "gzip": 1273
+      "gzip": 1272
     },
     "java-2tSfCXoV.cjs": {
       "size": 2675,
@@ -323,7 +323,7 @@
     },
     "core.mjs": {
       "size": 2417,
-      "gzip": 996
+      "gzip": 998
     },
     "PageSelectionBar-D3WtfEiM.js": {
       "size": 2789,
@@ -349,13 +349,13 @@
       "size": 1578,
       "gzip": 873
     },
+    "core.umd.cjs": {
+      "size": 1631,
+      "gzip": 872
+    },
     "yaml-zRfk8pDS.cjs": {
       "size": 1901,
       "gzip": 870
-    },
-    "core.umd.cjs": {
-      "size": 1631,
-      "gzip": 869
     },
     "ColorThemeSwitcher-BW4fvn5P.cjs": {
       "size": 1557,
@@ -449,15 +449,15 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 520101
+      "gzip": 520265
     },
     "chunks": {
       "files": 94,
-      "gzip": 534874
+      "gzip": 535051
     },
     "main": {
       "files": 3,
-      "gzip": 68982
+      "gzip": 68986
     },
     "secondary": {
       "files": 10,

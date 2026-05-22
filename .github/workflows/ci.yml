@@ -162,9 +162,10 @@ jobs:
         run: npm run format:check
         working-directory: ai-assistant-ui
 
-      - name: Type check + Publish Build
-        run: npm run build
-        working-directory: ai-assistant-ui
+      - name: Type check + Publish Build + Release Check
+        # Uses the same release lane documented for local verification. The lane
+        # builds ai-assistant-ui before reading dist for bundle-size checks.
+        run: node scripts/project-health-check.mjs --release-check
 
       - name: Test with coverage
         run: npm run test:coverage
@@ -184,12 +185,6 @@ jobs:
       - name: Package install smoke check
         run: npm run smoke:package
         working-directory: ai-assistant-ui
-
-      - name: Bundle size watchdog (vs baseline)
-        # 报表无论通过失败都生成，但只在超过 +10% gzip 时拒绝合并。
-        # 若需要 update baseline，本地运行：
-        #   node scripts/bundle-size-check.mjs --update-baseline && git add scripts/.bundle-size-baseline.json
-        run: node scripts/bundle-size-check.mjs --max-delta-percent 10
 
       - name: Generate PR comment markdown (bundle + coverage)
         # 仅在 PR 上生成；push 到 main 不发评论。报表写入 .ci-reports/ 供下一步发布。

@@ -1440,3 +1440,42 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`node --test scripts/observability-support-module.test.mjs`：7/7 通过。
 - GREEN：`npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：3 个测试文件、7 个测试通过。
 - GREEN：`mvn -pl ai-assistant-observability-support test`：1 个测试通过。
+
+### 当前阶段 13.44
+
+状态：已完成。
+
+目标：
+- 将 tracing / OTLP / logstash bridge 从 starter POM 下沉到 observability support artifact。
+- 让 release-check 自带 UI build 顺序，并在 CI frontend job 复用同一 release lane。
+- 将 command registry 从 prompt/feature 专用参数收敛为 command families。
+- 刷新 bundle baseline，消除当前 hash chunk 噪音。
+
+修改：
+- 修改 `ai-assistant-server/pom.xml`
+- 修改 `scripts/observability-support-module.test.mjs`
+- 新增 `scripts/project-health-check.test.mjs`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `.github/workflows/ci.yml`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `docs/guide/dependency-footprint.md`
+- 修改 `docs/guide/observability-support-split.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/observability-support-module.test.mjs scripts/project-health-check.test.mjs` 首次失败，证明 starter 仍声明 tracing/logstash bridge，且 release-check 还没有自带 UI build step。
+- RED：`npm test -- useAssistantCommandRegistry.spec.ts` 首次失败，证明 registry 仍依赖 prompt/feature 专用参数。
+- GREEN：`node --test scripts/observability-support-module.test.mjs scripts/project-health-check.test.mjs`：9 个测试通过。
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts`：1 个测试通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node ../scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+- `node scripts/project-health-check.mjs --release-check`：通过，包含 UI build、47 个脚本测试、静态 OpenAPI 检查、bundle-size 和依赖足迹检查。
+- `npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：3 个测试文件、7 个测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `ReadLints` 对本轮修改文件无诊断。

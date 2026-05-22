@@ -524,3 +524,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - Standalone service 不需要直接依赖 springdoc；它依赖 support artifact 即可获得 OpenAPI support classpath，脚本 guard 可以防止未来又把 springdoc 直接塞回 service。
 - `useAssistantCommandRegistry` 的价值是把“命令族怎么合并”从 `AiAssistant.vue` 拿走。后续新增命令时，应优先在 prompt/feature command composable 内扩展，再由 registry 组合。
 - Release-check 新增 bundle-size lane 后，必须把“先 build UI，再 release-check”写进文档；否则干净工作区直接运行会因为 dist 不存在而失败。
+
+### 阶段 13.44 继续推进发现
+
+- Starter POM 仍保留 tracing / OTLP / logstash optional 依赖时，虽然不会强制传递给宿主，但依赖边界仍容易被误读为 starter 所有。将这些坐标移到 support artifact 后，observability support 的职责更清晰。
+- `project-health-check --release-check` 自身先运行 UI build，比只在文档中要求人工排序更可靠；CI 可以直接复用同一条 release lane，避免本地和 CI 检查顺序漂移。
+- `useAssistantCommandRegistry` 如果显式接收 prompt / feature 两类参数，后续新增 memory / KB / diagnostics 命令族时仍要回主组件改组合逻辑。改为 `families` 后，主组件只声明命令族顺序。
+- Bundle baseline 的 hash chunk 噪音来自已确认构建产物变化；刷新 baseline 后，release-check 的 change summary 重新回到 added / removed / growth / shrunk 全 none。
