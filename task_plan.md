@@ -1135,6 +1135,30 @@
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 阶段 13.49 设计
+
+目标是继续完成下一轮优化：
+- 给 command registry 增加 palette command duplicate id 检测。
+- 补 `useCommandPaletteRegistration` 动态更新测试。
+- 将 CI metrics comment marker、report 顺序、footer 抽成导出常量/函数并测试。
+- 在 support quick start 中加入 starter-only vs with-support OpenAPI 对照说明。
+- 完成打包、提交和推送。
+
+结果：
+- `useAssistantCommandRegistry` 新增 `duplicatePaletteCommandIds` computed，不改变现有 command merge 行为。
+- `useCommandPaletteRegistration.spec.ts` 覆盖 computed command list 变化后重新 clear/register。
+- `ci-metrics-comment.mjs` 导出 `CI_METRICS_COMMENT_MARKER`、`CI_METRICS_REPORT_ORDER` 和 `formatCiMetricsFooter`，测试覆盖格式契约。
+- `observability-support-quick-start.md` 增加 “Starter only” / “With support artifact” 对照示例。
+
+验证：
+- RED 已观察：duplicate id computed 缺失、CI constants 缺失、support quick start 缺 starter-only/with-support 对照时对应测试失败。
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts useCommandPaletteRegistration.spec.ts`：4/4 通过。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs`：6/6 通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，63 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

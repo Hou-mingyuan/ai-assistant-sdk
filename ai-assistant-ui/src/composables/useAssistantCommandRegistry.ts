@@ -18,9 +18,22 @@ export function useAssistantCommandRegistry(options: UseAssistantCommandRegistry
   const commandPaletteExtraCommands = computed(() =>
     options.families.flatMap((family) => family.commandPaletteCommands?.value ?? []),
   );
+  const duplicatePaletteCommandIds = computed(() => {
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const command of commandPaletteExtraCommands.value) {
+      if (seen.has(command.id)) {
+        duplicates.add(command.id);
+      } else {
+        seen.add(command.id);
+      }
+    }
+    return [...duplicates];
+  });
 
   return {
     slashCommands,
     commandPaletteExtraCommands,
+    duplicatePaletteCommandIds,
   };
 }

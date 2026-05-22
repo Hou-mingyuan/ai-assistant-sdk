@@ -5,7 +5,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 
-import { buildCiMetricsComment } from './ci-metrics-comment.mjs'
+import {
+  buildCiMetricsComment,
+  CI_METRICS_COMMENT_MARKER,
+  CI_METRICS_REPORT_ORDER,
+  formatCiMetricsFooter,
+} from './ci-metrics-comment.mjs'
 
 test('ci metrics comment combines bundle coverage and support dependency sections', () => {
   const body = buildCiMetricsComment({
@@ -16,11 +21,16 @@ test('ci metrics comment combines bundle coverage and support dependency section
     runNumber: '42',
   })
 
+  assert.equal(CI_METRICS_COMMENT_MARKER, '<!-- ci-metrics-sticky -->')
+  assert.deepEqual(CI_METRICS_REPORT_ORDER, ['bundle', 'coverage', 'supportDependencies'])
   assert.match(body, /<!-- ci-metrics-sticky -->/)
   assert.match(body, /### Bundle Size/)
   assert.match(body, /### Coverage/)
   assert.match(body, /### Observability Support Dependency Boundary/)
-  assert.match(body, /run #42/)
+  assert.match(body, new RegExp(formatCiMetricsFooter({
+    runUrl: 'https://github.com/example/repo/actions/runs/123',
+    runNumber: '42',
+  }).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
 })
 
 test('ci metrics comment CLI writes combined markdown from report files', async () => {

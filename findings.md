@@ -562,3 +562,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 上一轮把 app commands 迁出 built-in registration 时，memory / KB palette entries 也被移走但尚未进入 feature family。补入 `useAssistantFeatureCommands` 后，slash 和 palette 入口重新共享同一组 feature actions。
 - `ci-metrics-comment.mjs` 只有纯函数测试还不够，CLI fixture 能覆盖真实文件路径、输出文件和参数解析，避免 workflow 使用方式漂移。
 - OpenAPI auto-configuration 实现已迁入 support artifact 后，README 和 quick start 都需要直接提醒用户通过 `ai-assistant-observability-support` 获取该 class，避免仍按 starter-internal classpath 查找。
+
+### 阶段 13.49 继续推进发现
+
+- Command palette 的 `register()` 会按 id 覆盖既有命令；在 registry 层暴露 duplicate id 列表，可以让后续 UI 或测试选择是否阻塞，而不改变当前注册行为。
+- `useCommandPaletteRegistration` 的 immediate watch 还需要覆盖动态更新路径；否则 command families 的 computed 输出变化后可能只在首次注册时有效。
+- CI metrics comment 的 marker、report 顺序和 footer 都是 PR comment 更新契约，导出常量并测试后，workflow 和脚本之间的隐性格式约定更可维护。
+- Support quick start 用 “Starter only / With support artifact” 对照说明，比只说 class 迁移更容易解释为什么 starter-only 下 `ai-assistant.openapi.enabled=true` 不会暴露 springdoc endpoints。

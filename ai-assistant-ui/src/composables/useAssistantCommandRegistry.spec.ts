@@ -33,5 +33,27 @@ describe('useAssistantCommandRegistry', () => {
       'ai.open-prompt-templates',
       'ai.open-plugins',
     ]);
+    expect(registry.duplicatePaletteCommandIds.value).toEqual([]);
+  });
+
+  it('reports duplicate palette command ids across families', () => {
+    const registry = useAssistantCommandRegistry({
+      families: [
+        {
+          name: 'app',
+          commandPaletteCommands: computed(() => [
+            { id: 'ai.open-memory', label: 'Memory', action: () => undefined },
+          ]),
+        },
+        {
+          name: 'feature',
+          commandPaletteCommands: computed(() => [
+            { id: 'ai.open-memory', label: 'Memory again', action: () => undefined },
+          ]),
+        },
+      ],
+    });
+
+    expect(registry.duplicatePaletteCommandIds.value).toEqual(['ai.open-memory']);
   });
 });

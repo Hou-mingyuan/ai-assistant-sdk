@@ -35,6 +35,21 @@ previously imported that starter-internal class directly, depend on
 `ai-assistant-observability-support`; the base starter no longer ships that
 implementation.
 
+### Starter only
+
+When a host only depends on `ai-assistant-spring-boot-starter`, OpenAPI support is
+absent even if `ai-assistant.openapi.enabled=true` is present. This keeps the
+base starter free of springdoc implementation classes.
+
+### With support artifact
+
+After adding `ai-assistant-observability-support`, the same property imports
+`AiAssistantOpenApiAutoConfiguration` and exposes the springdoc endpoints:
+
+```properties
+ai-assistant.openapi.enabled=true
+```
+
 ## Tracing
 
 Tracing remains opt-in. Add and configure the exporter that matches your

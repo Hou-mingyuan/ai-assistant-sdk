@@ -5,6 +5,8 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+export const CI_METRICS_COMMENT_MARKER = '<!-- ci-metrics-sticky -->'
+export const CI_METRICS_REPORT_ORDER = ['bundle', 'coverage', 'supportDependencies']
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = parseArgs(process.argv.slice(2))
@@ -26,17 +28,21 @@ export function buildCiMetricsComment({
   runUrl,
   runNumber,
 }) {
+  const sections = {
+    bundle: bundleMarkdown,
+    coverage: coverageMarkdown,
+    supportDependencies: supportDependenciesMarkdown,
+  }
   return [
-    '<!-- ci-metrics-sticky -->',
-    trimTrailingNewline(bundleMarkdown),
-    '',
-    trimTrailingNewline(coverageMarkdown),
-    '',
-    trimTrailingNewline(supportDependenciesMarkdown),
-    '',
-    `<sub>Updated by [CI workflow](${runUrl}) · run #${runNumber}.</sub>`,
+    CI_METRICS_COMMENT_MARKER,
+    ...CI_METRICS_REPORT_ORDER.flatMap((key) => [trimTrailingNewline(sections[key]), '']),
+    formatCiMetricsFooter({ runUrl, runNumber }),
     '',
   ].join('\n')
+}
+
+export function formatCiMetricsFooter({ runUrl, runNumber }) {
+  return `<sub>Updated by [CI workflow](${runUrl}) · run #${runNumber}.</sub>`
 }
 
 function parseArgs(argv) {

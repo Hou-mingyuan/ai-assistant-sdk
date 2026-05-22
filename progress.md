@@ -1645,3 +1645,37 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+
+### 当前阶段 13.49
+
+状态：已完成。
+
+目标：
+- 给 command registry 增加 palette command duplicate id 检测。
+- 补 `useCommandPaletteRegistration` 动态更新测试。
+- 把 CI metrics comment marker、report 顺序、footer 变成可测试常量。
+- 在 support quick start 中加入 starter-only vs with-support OpenAPI 对照示例。
+- 完成打包、提交和推送。
+
+修改：
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useCommandPaletteRegistration.spec.ts`
+- 修改 `scripts/ci-metrics-comment.mjs`
+- 修改 `scripts/ci-metrics-comment.test.mjs`
+- 修改 `scripts/observability-support-docs.test.mjs`
+- 修改 `docs/guide/observability-support-quick-start.md`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `findings.md`
+- 修改 `progress.md`
+- 修改 `task_plan.md`
+
+验证：
+- RED：`npm test -- useAssistantCommandRegistry.spec.ts useCommandPaletteRegistration.spec.ts` 首次失败，证明 duplicate id computed 缺失。
+- RED：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs` 首次失败，证明 CI constants 尚未导出且 support quick start 缺 starter-only/with-support 对照。
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts useCommandPaletteRegistration.spec.ts`：2 个测试文件、4 个测试通过。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs`：6 个测试通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，63 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
