@@ -20,16 +20,31 @@ describe('useAssistantCommandFamilies', () => {
           { id: 'ai.open-plugins', label: 'Plugins', action: () => undefined },
         ]),
       },
+      workflowCommands: {
+        slashCommands: [],
+        commandPaletteCommands: computed(() => [
+          { id: 'ai.open-diagnostics', label: 'Diagnostics', action: () => undefined },
+          { id: 'ai.open-sessions', label: 'Sessions', action: () => undefined },
+          { id: 'ai.open-export', label: 'Export', action: () => undefined },
+        ]),
+      },
     });
 
     expect(families.map((family) => family.slashCommands?.[0]?.name)).toEqual([
       '/template',
       '/memory',
+      undefined,
     ]);
     expect(
       families.flatMap(
         (family) => family.paletteCommands?.value.map((command) => command.id) ?? [],
       ),
-    ).toEqual(['ai.open-prompt-templates', 'ai.open-plugins']);
+    ).toEqual([
+      'ai.open-prompt-templates',
+      'ai.open-plugins',
+      'ai.open-diagnostics',
+      'ai.open-sessions',
+      'ai.open-export',
+    ]);
   });
 });

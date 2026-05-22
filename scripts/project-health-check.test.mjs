@@ -11,7 +11,7 @@ test('release-check builds the frontend before reading bundle dist output', asyn
   assert.notEqual(buildStep, -1)
   assert.notEqual(bundleStep, -1)
   assert.ok(buildStep < bundleStep)
-  assert.match(source, /if \(runReleaseCheck\)[\s\S]*?args: \['run', 'build'\]/)
+  assert.match(source, /if \(runReleaseCheckFull\)[\s\S]*?args: \['run', 'build'\]/)
 })
 
 test('release-check reports support dependency boundaries', async () => {
@@ -20,4 +20,13 @@ test('release-check reports support dependency boundaries', async () => {
   assert.match(source, /const runSupportDependencyReport =/)
   assert.match(source, /name: 'support dependency boundary report'/)
   assert.match(source, /support-dependency-report\.mjs/)
+})
+
+test('release-check has fast and full lanes', async () => {
+  const source = await readFile('scripts/project-health-check.mjs', 'utf8')
+
+  assert.match(source, /const runReleaseCheckFast = args\.has\('--release-check-fast'\)/)
+  assert.match(source, /const runReleaseCheckFull = args\.has\('--release-check-full'\) \|\| runReleaseCheck/)
+  assert.match(source, /--release-check-fast/)
+  assert.match(source, /--release-check-full/)
 })

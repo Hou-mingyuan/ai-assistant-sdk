@@ -1486,8 +1486,10 @@ release）真正闭环、落地，并补 a11y 兜底。
 
 目标：
 - 新增 Observability support quick start。
-- 新增 support dependency boundary report 并接入 release-check。
-- 抽出 `useAssistantCommandFamilies`，继续减少 `AiAssistant.vue` 命令拼接细节。
+- 记录 OpenAPI implementation 迁移预研。
+- 新增 support dependency boundary report，支持 Markdown 输出并接入 release-check。
+- 抽出 `useAssistantCommandFamilies` / `useAssistantWorkflowCommands`，继续减少 `AiAssistant.vue` 命令拼接细节。
+- 拆分 release-check fast/full lane。
 - 精简 CI frontend job 中已被 release-check 覆盖的重复 exports 检查。
 
 修改：
@@ -1503,6 +1505,8 @@ release）真正闭环、落地，并补 a11y 兜底。
 - 修改 `scripts/project-health-check.test.mjs`
 - 新增 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.ts`
 - 新增 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.spec.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantWorkflowCommands.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantWorkflowCommands.spec.ts`
 - 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
 - 修改 `.github/workflows/ci.yml`
 - 修改 `task_plan.md`
@@ -1510,12 +1514,15 @@ release）真正闭环、落地，并补 a11y 兜底。
 - 修改 `progress.md`
 
 验证：
-- RED：脚本测试首次失败，原因是缺 `support-dependency-report.mjs`、quick start 文档/侧边栏入口、release-check support report lane，以及 CI 仍存在重复 exports check。
-- RED：`npm test -- useAssistantCommandFamilies.spec.ts` 首次失败，原因是缺 `useAssistantCommandFamilies` 模块。
+- RED：脚本测试首次失败，原因是缺 `support-dependency-report.mjs`、Markdown 输出、quick start 文档/侧边栏入口、OpenAPI migration pre-study、release-check support report lane、release-check fast/full，以及 CI 仍存在重复 exports check。
+- RED：`npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts` 首次失败，原因是缺 workflow commands 模块且 command families 还未接收 workflow family。
 - GREEN：`node --test scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-release-lane.test.mjs`：6 个测试通过。
-- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts`：1 个测试通过。
+- GREEN：`npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts`：2 个测试通过。
 - `node scripts/project-health-check.mjs --release-check`：通过，包含 support dependency boundary report；bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
 - `npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：4 个测试文件、8 个测试通过。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 - `ReadLints` 对本轮修改文件无诊断。
+- `node scripts/project-health-check.mjs --release-check-full`：通过；刷新 baseline 后 bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
+- `node scripts/project-health-check.mjs --release-check-fast`：通过，55 个脚本测试全部通过。
+- `npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：5 个测试文件、9 个测试通过。

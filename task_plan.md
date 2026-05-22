@@ -1028,26 +1028,33 @@
 
 目标是继续完成用户要求的 4 项：
 - 新增 Observability support quick start，分别说明 OpenAPI、Tracing、JSON logging 的最小接入路径。
-- 新增 support dependency boundary report，展示 starter 与 support artifact 的关键依赖归属，并接入 release-check。
-- 新增 `useAssistantCommandFamilies`，让 `AiAssistant.vue` 不再手写 prompt / feature family 数组。
+- 记录 OpenAPI implementation 迁移预研，明确源码从 starter 移到 support module 的候选顺序。
+- 新增 support dependency boundary report，展示 starter 与 support artifact 的关键依赖归属，支持 Markdown 输出，并接入 release-check。
+- 新增 `useAssistantCommandFamilies` 和 `useAssistantWorkflowCommands`，让 diagnostics / sessions / export 也进入 command family。
+- 将 release-check 拆成 `--release-check-fast` 与 `--release-check-full`，保留 `--release-check` 作为 full alias。
 - 精简 CI frontend job 中已被 release-check 覆盖的 package exports 检查。
 
 结果：
 - 新增 `docs/guide/observability-support-quick-start.md`，并接入 VitePress sidebar。
-- 新增 `scripts/support-dependency-report.mjs` 与测试；release-check 增加 `support dependency boundary report`。
-- 新增 `useAssistantCommandFamilies.ts` 与测试；`AiAssistant.vue` 改为通过该 composable 向 registry 传 families。
+- `observability-support-split.md` 增加 OpenAPI implementation migration pre-study，记录源码迁移、compatibility shim 和测试扩展顺序。
+- 新增 `scripts/support-dependency-report.mjs` 与测试；release-check 增加 `support dependency boundary report`，并支持 `--markdown-out`。
+- 新增 `useAssistantCommandFamilies.ts` / `useAssistantWorkflowCommands.ts` 与测试；`AiAssistant.vue` 改为通过 composable 向 registry 传 prompt / feature / workflow families。
+- `scripts/project-health-check.mjs` 新增 `--release-check-fast` / `--release-check-full` 分层；`--release-check` 继续作为 full alias。
 - `.github/workflows/ci.yml` 移除重复的 `Package exports smoke check`，保留 `Package install smoke check`。
 - `dependency-footprint.md` 和 `observability-support-split.md` 同步补充 support report / quick start 入口。
 
 验证：
-- RED 已观察：缺 support dependency report 模块、缺 quick start 文档/侧边栏、缺 `useAssistantCommandFamilies`、CI 仍包含重复 exports check。
-- GREEN：`node --test scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-release-lane.test.mjs`：6/6 通过。
-- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts`：1/1 通过。
+- RED 已观察：缺 support dependency report 模块、缺 Markdown 输出、缺 quick start 文档/侧边栏、缺 OpenAPI migration pre-study、缺 `useAssistantCommandFamilies` / `useAssistantWorkflowCommands`、缺 release-check fast/full，CI 仍包含重复 exports check。
+- GREEN：`node --test scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-release-lane.test.mjs`：相关新增脚本测试通过。
+- GREEN：`npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts`：2/2 通过。
 - `node scripts/project-health-check.mjs --release-check`：通过，包含 support dependency boundary report；bundle change summary 为 none / none / none / none。
 - `npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：8/8 通过。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 - `ReadLints` 对本轮修改文件无诊断。
+- `node scripts/project-health-check.mjs --release-check-full`：通过；刷新 baseline 后 bundle change summary 为 none / none / none / none。
+- `node scripts/project-health-check.mjs --release-check-fast`：通过，55 个脚本测试全部通过。
+- `npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：9/9 通过。
 
 ## 错误记录
 

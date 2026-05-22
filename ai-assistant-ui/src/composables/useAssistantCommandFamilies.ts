@@ -12,6 +12,7 @@ interface AssistantCommandSource {
 export interface UseAssistantCommandFamiliesOptions {
   promptCommands: AssistantCommandSource;
   featureCommands: AssistantCommandSource;
+  workflowCommands?: AssistantCommandSource;
 }
 
 export function useAssistantCommandFamilies(
@@ -26,5 +27,13 @@ export function useAssistantCommandFamilies(
       slashCommands: options.featureCommands.slashCommands,
       paletteCommands: options.featureCommands.commandPaletteCommands,
     },
+    ...(options.workflowCommands
+      ? [
+          {
+            slashCommands: options.workflowCommands.slashCommands,
+            paletteCommands: options.workflowCommands.commandPaletteCommands,
+          },
+        ]
+      : []),
   ];
 }

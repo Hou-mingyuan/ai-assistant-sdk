@@ -6,9 +6,8 @@ import type { I18nMessages } from '../utils/i18n';
  * Refactor (T1-Wave2)：原本在 AiAssistant.vue 里以一个 ~110 行的大 computed 形式存在的
  * VSCode 风 Ctrl+K Command Palette 内置命令清单，整合到独立 composable。
  *
- * - 10 个内置命令：toggle-panel / new-session / clear / toggle-theme /
- *   open-personalize / open-diagnostics / open-sessions / open-memory /
- *   open-kb / open-keyboard-help
+ * - 8 个内置命令：toggle-panel / new-session / clear / toggle-theme /
+ *   open-personalize / open-memory / open-kb / open-keyboard-help
  * - 内置命令变化时自动 cmdPalette.clear() + register()
  * - 标签随 isOpen / isDark 实时切换（toggle-panel 显示「打开/关闭」、toggle-theme
  *   显示「浅色/深色」）
@@ -26,8 +25,6 @@ export interface BuiltInCommandsDeps {
   clearMessages: () => void;
   toggleManualTheme: () => void;
   openPersonalize: () => void;
-  diagnosticsOpen: Ref<boolean>;
-  sessionsDrawerOpen: Ref<boolean>;
   memoryOpen: Ref<boolean>;
   kbPanelOpen: Ref<boolean>;
   keyboardHelpOpen: Ref<boolean>;
@@ -53,8 +50,6 @@ export function useBuiltInCommands(deps: BuiltInCommandsDeps) {
     clearMessages,
     toggleManualTheme,
     openPersonalize,
-    diagnosticsOpen,
-    sessionsDrawerOpen,
     memoryOpen,
     kbPanelOpen,
     keyboardHelpOpen,
@@ -111,26 +106,6 @@ export function useBuiltInCommands(deps: BuiltInCommandsDeps) {
       keywords: ['personalize', 'settings', '个性化', '系统提示词'],
       action: () => {
         openPersonalize();
-      },
-    },
-    {
-      id: 'ai.open-diagnostics',
-      label: '连接诊断 / Connection diagnostics',
-      group: '设置',
-      icon: '🔍',
-      keywords: ['diagnostics', 'health', '连接', '诊断'],
-      action: () => {
-        diagnosticsOpen.value = true;
-      },
-    },
-    {
-      id: 'ai.open-sessions',
-      label: '所有会话 / All sessions',
-      group: '会话',
-      icon: '📚',
-      keywords: ['sessions', '会话', '抽屉'],
-      action: () => {
-        sessionsDrawerOpen.value = true;
       },
     },
     {

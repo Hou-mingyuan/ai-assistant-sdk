@@ -19,3 +19,16 @@ test('observability support dependency report shows bridges moved out of starter
   assert.match(report.text, /opentelemetry-exporter-otlp\s+starter: absent\s+support: optional/)
   assert.match(report.text, /logstash-logback-encoder\s+starter: absent\s+support: optional/)
 })
+
+test('observability support dependency report renders markdown tables', async () => {
+  const starterPom = await readFile('ai-assistant-server/pom.xml', 'utf8')
+  const supportPom = await readFile('ai-assistant-observability-support/pom.xml', 'utf8')
+
+  const report = buildSupportDependencyReport({
+    starterDependencies: parseDependencies(starterPom),
+    supportDependencies: parseDependencies(supportPom),
+  })
+
+  assert.match(report.markdown, /\| Artifact \| Starter \| Support \| Expected \|/)
+  assert.match(report.markdown, /\| `micrometer-tracing-bridge-otel` \| `absent` \| `optional` \| `starter absent \/ support optional` \|/)
+})

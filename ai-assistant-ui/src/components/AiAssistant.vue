@@ -729,6 +729,7 @@ import { useAssistantPromptCommands } from '../composables/useAssistantPromptCom
 import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureCommands';
 import { useAssistantCommandRegistry } from '../composables/useAssistantCommandRegistry';
 import { useAssistantCommandFamilies } from '../composables/useAssistantCommandFamilies';
+import { useAssistantWorkflowCommands } from '../composables/useAssistantWorkflowCommands';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1668,10 +1669,17 @@ const featureCommands = useAssistantFeatureCommands({
     void formAutoFill.triggerFromText(text);
   },
 });
+const workflowCommands = useAssistantWorkflowCommands({
+  t,
+  diagnosticsOpen,
+  sessionsDrawerOpen,
+  openExportMenu: () => toggleBatchExportMenu(),
+});
 const commandRegistry = useAssistantCommandRegistry({
   families: useAssistantCommandFamilies({
     promptCommands,
     featureCommands,
+    workflowCommands,
   }),
 });
 
@@ -2478,8 +2486,6 @@ useBuiltInCommands({
   clearMessages,
   toggleManualTheme,
   openPersonalize,
-  diagnosticsOpen,
-  sessionsDrawerOpen,
   memoryOpen,
   kbPanelOpen,
   keyboardHelpOpen,

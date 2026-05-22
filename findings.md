@@ -535,6 +535,8 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 ### 阶段 13.45 继续推进发现
 
 - Observability support 仅有 split 文档时，用户仍需要在 OpenAPI、Tracing、JSON logging 三种接入方式之间自行拼配置。单独 quick start 更适合放 copy-paste 配置，并强调 tracing/logstash 不会自动启用。
-- 依赖足迹检查只告诉 starter 是否违反 optional 策略，不能直观看出 observability bridge 已从 starter 移到 support。新增 support dependency report 可以把 starter/support 的 direct/optional/absent 状态作为 release-check 输出。
-- `useAssistantCommandRegistry` 已支持 generic families 后，prompt / feature family 数组仍留在 `AiAssistant.vue`。新增 `useAssistantCommandFamilies` 后，主组件只调用一个组合函数，后续新增命令族时不再散落拼接逻辑。
+- OpenAPI implementation 仍留在 starter 时，support artifact 还不是完整源码边界；当前只适合做 migration pre-study，等 breaking-version 时再移动源码并决定是否需要 compatibility shim。
+- 依赖足迹检查只告诉 starter 是否违反 optional 策略，不能直观看出 observability bridge 已从 starter 移到 support。新增 support dependency report 可以把 starter/support 的 direct/optional/absent 状态作为 release-check 输出，Markdown 输出则便于后续接入 PR comment。
+- `useAssistantCommandRegistry` 已支持 generic families 后，prompt / feature family 数组仍留在 `AiAssistant.vue`。新增 `useAssistantCommandFamilies` 和 workflow family 后，diagnostics / sessions / export 也能按 family 管理，后续新增命令族时不再散落拼接逻辑。
 - CI 的 `npm run check:exports` 已被 release-check 内部 `npm run build` 覆盖，因为 package build 末尾会运行 `check:exports`。删除单独 step 后保留 package install smoke check，避免失去安装验证。
+- Release-check 同时承担本地快速确认和 CI 完整 gate 时会变重；`--release-check-fast` / `--release-check-full` 分层后，本地可跳过 UI build / bundle，CI 和发版仍跑完整路径。

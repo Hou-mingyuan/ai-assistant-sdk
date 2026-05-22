@@ -7,13 +7,16 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = new Set(process.argv.slice(2))
 const runReleaseCheck = args.has('--release-check')
+const runReleaseCheckFast = args.has('--release-check-fast')
+const runReleaseCheckFull = args.has('--release-check-full') || runReleaseCheck
+const runReleaseChecks = runReleaseCheckFast || runReleaseCheckFull
 const runDocs = args.has('--docs') || args.has('--all')
 const runUiTests = args.has('--ui-test') || args.has('--all')
 const runServerTests = args.has('--server-test') || args.has('--all')
 const runPlaygroundBuild = args.has('--playground-build') || args.has('--all')
 const runE2eTests = args.has('--e2e') || args.has('--all')
 /* I4/K63: bundle-size-check 作为可选 lane；release-check 会在已构建 dist 上输出变化摘要 */
-const runBundleSize = args.has('--bundle') || runReleaseCheck || args.has('--all')
+const runBundleSize = args.has('--bundle') || runReleaseCheckFull || args.has('--all')
 /* J2: 集成 coverage-check 作为可选 lane。--all 时会先跑 test:coverage 生成 summary */
 const runCoverage = args.has('--coverage') || args.has('--all')
 /* K1: 多实例配置 lint：扫 .env / compose / helm 检查 in-process state 与 replicas>1 冲突 */
@@ -26,15 +29,15 @@ const runSsrfTest = args.has('--ssrf') || args.has('--all')
 const runLineEndings = args.has('--line-endings') || args.has('--all')
 /* K60: Starter 依赖足迹策略检查：防止 optional 能力退化为默认依赖 */
 const runDependencyFootprint =
-  args.has('--dependency-footprint') || runReleaseCheck || args.has('--all')
+  args.has('--dependency-footprint') || runReleaseChecks || args.has('--all')
 const runSupportDependencyReport =
-  args.has('--support-dependency-report') || runReleaseCheck || args.has('--all')
+  args.has('--support-dependency-report') || runReleaseChecks || args.has('--all')
 /* K61: 包体归因报告：基于 bundle-size baseline 输出 main / wc / chunk 构成 */
-const runBundleComposition = args.has('--bundle-composition') || runReleaseCheck || args.has('--all')
+const runBundleComposition = args.has('--bundle-composition') || runReleaseCheckFull || args.has('--all')
 /* K62: 仓库脚本单测 + 静态 OpenAPI 类型检查，作为 release-check 的轻量核心 */
-const runScriptTests = args.has('--script-test') || runReleaseCheck || args.has('--all')
-const runOpenApiTypes = args.has('--openapi-types') || runReleaseCheck || args.has('--all')
-const runOpenApiRefresh = args.has('--openapi-refresh') || runReleaseCheck || args.has('--all')
+const runScriptTests = args.has('--script-test') || runReleaseChecks || args.has('--all')
+const runOpenApiTypes = args.has('--openapi-types') || runReleaseChecks || args.has('--all')
+const runOpenApiRefresh = args.has('--openapi-refresh') || runReleaseChecks || args.has('--all')
 
 const checks = [
   {
@@ -129,7 +132,7 @@ if (runE2eTests) {
 }
 
 if (runBundleSize) {
-  if (runReleaseCheck) {
+  if (runReleaseCheckFull) {
     checks.push({
       name: 'frontend build (for release-check bundle baseline)',
       command: npmCommand(),
@@ -269,6 +272,8 @@ for (const check of checks) {
 if (
   !runDocs &&
   !runReleaseCheck &&
+  !runReleaseCheckFast &&
+  !runReleaseCheckFull &&
   !runUiTests &&
   !runServerTests &&
   !runPlaygroundBuild &&
@@ -286,7 +291,7 @@ if (
   !runOpenApiTypes
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check-fast, --release-check-full, --release-check, or --all to run more checks.',
   )
 }
 
