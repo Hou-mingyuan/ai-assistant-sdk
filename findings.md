@@ -494,3 +494,11 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `project-health-check --release-check` 适合承接 refresh dry-run；这样 release lane 同时验证 snapshot 格式与 generated types。
 - quick prompt 过滤逻辑是另一个低风险 SFC 瘦身切口，和 prompt template interaction 不共享状态，可独立抽离。
 - bundle baseline 更新确认当前构建输出已被记录；后续体积回归判断会基于最新 chunk/hash 结构。
+
+### 阶段 13.40 全部推进发现
+
+- Observability support module 目前仍不适合一次性迁移 tracing/logstash/health/metrics 的生产类；先把 Spring Boot auto-configuration metadata 放进 support artifact，可以验证 artifact 边界，又不删除 starter 里的兼容类。
+- `AiAssistant.vue` 里 quick prompt button、empty-state prompt template、slash `/template` 和 command palette prompt 入口本质上都是“把 prompt 写入输入区或打开模板库”，适合统一到 `useAssistantPromptCommands`。
+- `useBuiltInCommands` 以前每次 watch 都会 `clear()` 后重新注册 built-in commands，因此外部单独 register 的 prompt commands 会被覆盖；新增 `extraCommands` 比在组件里手动补 register 更稳定。
+- OpenAPI refresh dry-run 失败时只说 stale 不够定位；path/schema key 的新增删除已经能覆盖大多数 release drift 判断，字段级差异保留给 review diff。
+- Bundle baseline review 最常见的问题是“不知道变化来自新增 chunk、删除 chunk 还是已有 chunk 变胖”，新增/删除/增长/缩小摘要比只看 top table 更容易审查。

@@ -48,10 +48,55 @@ export function normalizeSpecText(specText) {
 }
 
 export async function assertSnapshotMatches(outPath, specText) {
-  const current = normalizeSpecText(await readFile(outPath, 'utf8'))
+  const currentText = await readFile(outPath, 'utf8')
+  const current = normalizeSpecText(currentText)
   if (current !== specText) {
-    throw new Error(`${outPath} is stale. Re-run refresh-openapi-snapshot without --check.`)
+    const drift = summarizeSpecDrift(currentText, specText)
+    throw new Error(
+      `${outPath} is stale. Re-run refresh-openapi-snapshot without --check.\n${drift}`,
+    )
   }
+}
+
+export function summarizeSpecDrift(currentText, nextText) {
+  let current
+  let next
+  try {
+    current = JSON.parse(currentText)
+    next = JSON.parse(nextText)
+  } catch {
+    return 'Drift summary unavailable: one of the OpenAPI documents is not valid JSON.'
+  }
+
+  const lines = ['Drift summary:']
+  lines.push(...summarizeKeys('paths', current.paths, next.paths))
+  lines.push(
+    ...summarizeKeys(
+      'schemas',
+      current.components?.schemas,
+      next.components?.schemas,
+    ),
+  )
+  const currentVersion = current.info?.version
+  const nextVersion = next.info?.version
+  if (currentVersion !== nextVersion) {
+    lines.push(`info.version changed: ${currentVersion ?? '(missing)'} -> ${nextVersion ?? '(missing)'}`)
+  }
+  if (lines.length === 1) {
+    lines.push('no path/schema key changes detected; content differs inside existing entries.')
+  }
+  return lines.join('\n')
+}
+
+function summarizeKeys(label, current = {}, next = {}) {
+  const before = new Set(Object.keys(current ?? {}))
+  const after = new Set(Object.keys(next ?? {}))
+  const added = [...after].filter((key) => !before.has(key)).sort()
+  const removed = [...before].filter((key) => !after.has(key)).sort()
+  const lines = []
+  if (added.length > 0) lines.push(`${label} added: ${added.join(', ')}`)
+  if (removed.length > 0) lines.push(`${label} removed: ${removed.join(', ')}`)
+  return lines
 }
 
 async function loadSpecText(args) {

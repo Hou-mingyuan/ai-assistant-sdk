@@ -297,7 +297,7 @@
             :key="qi"
             type="button"
             class="ai-quick-prompt-btn"
-            @click="input = qp.text"
+            @click="applyQuickPrompt(qp)"
           >
             {{ qp.label }}
           </button>
@@ -725,6 +725,7 @@ import { usePromptTemplateInteraction } from '../composables/usePromptTemplateIn
 import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
 import { useQuickPromptOptions } from '../composables/useQuickPromptOptions';
 import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
+import { useAssistantPromptCommands } from '../composables/useAssistantPromptCommands';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1503,6 +1504,26 @@ const { presetPromptTemplates, refreshServerPromptTemplates } = useServerPromptT
 const promptTemplateLib = usePromptTemplateLibrary({
   presetTemplates: presetPromptTemplates,
 });
+const { quickPrompts } = useQuickPromptOptions(options);
+
+type PromptTemplate = NonNullable<AiAssistantOptions['promptTemplates']>[number];
+const promptTemplateList = computed<PromptTemplate[]>(() => {
+  const t = options.promptTemplates;
+  if (!Array.isArray(t)) return [];
+  return t.filter((x) => x && typeof x.label === 'string' && typeof x.template === 'string');
+});
+
+const promptCommands = useAssistantPromptCommands({
+  input,
+  setMode,
+  quickPrompts,
+  promptTemplates: promptTemplateList,
+  openPromptTemplateDialog: () => {
+    void refreshServerPromptTemplates();
+    promptTemplateOpen.value = true;
+  },
+});
+const { applyQuickPrompt, applyPromptTemplate } = promptCommands;
 
 /**
  * C10: 真接入虚拟滚动（opt-in via options.virtualScroll）。
@@ -1691,8 +1712,7 @@ const slashCmd = useSlashCommands({
       },
       icon: 'M14 3v4a1 1 0 0 0 1 1h4l-5-5zM5 3h7v5a2 2 0 0 0 2 2h5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 9h10v2H7v-2zm0 4h7v2H7v-2z',
       action: () => {
-        void refreshServerPromptTemplates();
-        promptTemplateOpen.value = true;
+        promptCommands.openPromptTemplateDialog?.();
         return true;
       },
     },
@@ -1749,36 +1769,6 @@ const pageContextDisabledOverride = ref(false);
 const pageContextConfigured = computed(() => (options.pageContextBlocks?.length ?? 0) > 0);
 function togglePageContext() {
   pageContextDisabledOverride.value = !pageContextDisabledOverride.value;
-}
-
-const { quickPrompts } = useQuickPromptOptions(options);
-
-type PromptTemplate = NonNullable<AiAssistantOptions['promptTemplates']>[number];
-const promptTemplateList = computed<PromptTemplate[]>(() => {
-  const t = options.promptTemplates;
-  if (!Array.isArray(t)) return [];
-  return t.filter((x) => x && typeof x.label === 'string' && typeof x.template === 'string');
-});
-
-function applyPromptTemplate(tpl: PromptTemplate) {
-  const vars = tpl.variables;
-  if (!vars || vars.length === 0) {
-    input.value = tpl.template;
-    setMode('chat');
-    return;
-  }
-  const values: Record<string, string> = {};
-  for (const v of vars) {
-    const answer = prompt(v.label, v.default ?? '');
-    if (answer === null) return;
-    values[v.name] = answer;
-  }
-  let text = tpl.template;
-  for (const [k, val] of Object.entries(values)) {
-    text = text.split(`{{${k}}}`).join(val);
-  }
-  input.value = text;
-  setMode('chat');
 }
 
 const {
@@ -2544,6 +2534,7 @@ useBuiltInCommands({
   kbPanelOpen,
   keyboardHelpOpen,
   cmdPalette,
+  extraCommands: promptCommands.commandPaletteCommands,
 });
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });

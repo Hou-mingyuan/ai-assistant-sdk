@@ -89,6 +89,38 @@ export function groupBundleEntries(entries) {
     return groups;
 }
 
+export function summarizeBaselineChanges(entries, baseline, maxDeltaPercent = 10) {
+    const baselineFiles = baseline?.files ?? {};
+    const actualByFile = new Map(entries.map((entry) => [entry.relative, entry]));
+    const added = entries
+        .filter((entry) => !baselineFiles[entry.relative])
+        .sort((a, b) => b.gzip - a.gzip);
+    const removed = Object.entries(baselineFiles)
+        .filter(([relative]) => !actualByFile.has(relative))
+        .map(([relative, value]) => ({
+            relative,
+            size: value.size ?? 0,
+            gzip: value.gzip ?? 0,
+        }))
+        .sort((a, b) => b.gzip - a.gzip);
+    const changed = entries
+        .map((entry) => {
+            const base = baselineFiles[entry.relative];
+            if (!base?.gzip) return null;
+            const deltaGzip = entry.gzip - base.gzip;
+            const deltaPercent = (deltaGzip / base.gzip) * 100;
+            return { ...entry, baselineGzip: base.gzip, deltaGzip, deltaPercent };
+        })
+        .filter(Boolean);
+    const grown = changed
+        .filter((entry) => entry.deltaGzip > 0 && entry.deltaPercent > maxDeltaPercent)
+        .sort((a, b) => b.deltaGzip - a.deltaGzip);
+    const shrunk = changed
+        .filter((entry) => entry.deltaGzip < 0)
+        .sort((a, b) => a.deltaGzip - b.deltaGzip);
+    return { added, removed, grown, shrunk };
+}
+
 if (isCli) {
     const root = path.resolve(path.dirname(modulePath), "..");
     const args = parseArgs(process.argv.slice(2));
@@ -338,6 +370,16 @@ if (isCli) {
             );
         }
         lines.push("");
+        if (baseline) {
+            const changes = summarizeBaselineChanges(entries, baseline, maxPct);
+            lines.push("#### Change Summary");
+            lines.push("");
+            lines.push(renderMarkdownChangeList("Added", changes.added));
+            lines.push(renderMarkdownChangeList("Removed", changes.removed));
+            lines.push(renderMarkdownDeltaList("Over budget growth", changes.grown));
+            lines.push(renderMarkdownDeltaList("Shrunk", changes.shrunk));
+            lines.push("");
+        }
         lines.push("| Group | Files | Gzip | Δ gzip vs baseline |");
         lines.push("| --- | ---: | ---: | ---: |");
         const baselineGroups = baselineGroupsFromFiles(baseline);
@@ -401,6 +443,25 @@ if (isCli) {
         );
         lines.push("");
         return lines.join("\n");
+    }
+
+    function renderMarkdownChangeList(label, entries) {
+        if (entries.length === 0) return `- **${label}:** none`;
+        return `- **${label}:** ${entries
+            .slice(0, 5)
+            .map((entry) => `\`${entry.relative}\` (${formatKB(entry.gzip)} gzip)`)
+            .join(", ")}${entries.length > 5 ? `, +${entries.length - 5} more` : ""}`;
+    }
+
+    function renderMarkdownDeltaList(label, entries) {
+        if (entries.length === 0) return `- **${label}:** none`;
+        return `- **${label}:** ${entries
+            .slice(0, 5)
+            .map(
+                (entry) =>
+                    `\`${entry.relative}\` (${formatDelta(entry.gzip, entry.baselineGzip)})`,
+            )
+            .join(", ")}${entries.length > 5 ? `, +${entries.length - 5} more` : ""}`;
     }
 
     /* Pretty table */
@@ -473,6 +534,8 @@ if (isCli) {
                 true,
             ),
     );
+
+    printChangeSummary(entries, baseline, maxDeltaPercent);
 
     if (entries.length > topN) {
         console.log(
@@ -555,5 +618,42 @@ if (isCli) {
             ),
         );
         process.exit(1);
+    }
+
+    function printChangeSummary(entries, baseline, maxPct) {
+        if (!baseline) return;
+        const changes = summarizeBaselineChanges(entries, baseline, maxPct);
+        console.log("");
+        console.log("Change summary vs baseline:");
+        printChangeLine("Added", changes.added);
+        printChangeLine("Removed", changes.removed);
+        printDeltaLine("Over budget growth", changes.grown);
+        printDeltaLine("Shrunk", changes.shrunk);
+    }
+
+    function printChangeLine(label, entries) {
+        if (entries.length === 0) {
+            console.log(`  ${label}: none`);
+            return;
+        }
+        console.log(
+            `  ${label}: ${entries
+                .slice(0, 5)
+                .map((entry) => `${entry.relative} (${formatKB(entry.gzip)} gzip)`)
+                .join(", ")}${entries.length > 5 ? `, +${entries.length - 5} more` : ""}`,
+        );
+    }
+
+    function printDeltaLine(label, entries) {
+        if (entries.length === 0) {
+            console.log(`  ${label}: none`);
+            return;
+        }
+        console.log(
+            `  ${label}: ${entries
+                .slice(0, 5)
+                .map((entry) => `${entry.relative} (${formatDelta(entry.gzip, entry.baselineGzip)})`)
+                .join(", ")}${entries.length > 5 ? `, +${entries.length - 5} more` : ""}`,
+        );
     }
 }

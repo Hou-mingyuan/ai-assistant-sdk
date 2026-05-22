@@ -8,6 +8,7 @@ import {
   assertSnapshotMatches,
   normalizeSpecText,
   parseArgs,
+  summarizeSpecDrift,
 } from './refresh-openapi-snapshot.mjs'
 
 test('parseArgs accepts live URL, output paths, and codegen pin', () => {
@@ -65,4 +66,24 @@ test('assertSnapshotMatches accepts normalized equivalent JSON text', async () =
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+})
+
+test('summarizeSpecDrift reports added and removed paths and schemas', () => {
+  const summary = summarizeSpecDrift(
+    JSON.stringify({
+      openapi: '3.1.0',
+      paths: { '/old': {} },
+      components: { schemas: { OldDto: {} } },
+    }),
+    JSON.stringify({
+      openapi: '3.1.0',
+      paths: { '/new': {} },
+      components: { schemas: { NewDto: {} } },
+    }),
+  )
+
+  assert.match(summary, /paths added: \/new/)
+  assert.match(summary, /paths removed: \/old/)
+  assert.match(summary, /schemas added: NewDto/)
+  assert.match(summary, /schemas removed: OldDto/)
 })

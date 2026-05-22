@@ -1307,3 +1307,42 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
+
+### 当前阶段 13.40
+
+状态：已完成。
+
+目标：
+- 将 observability support skeleton 推进到真实 artifact metadata。
+- 继续拆出 prompt/quick prompt 与 command palette 的编排逻辑。
+- 增强 OpenAPI refresh dry-run 的漂移诊断。
+- 增强 bundle baseline 变化摘要输出。
+
+修改：
+- 修改 `ai-assistant-observability-support/pom.xml`
+- 新增 `ai-assistant-observability-support/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- 新增 `scripts/observability-support-module.test.mjs`
+- 新增 `ai-assistant-ui/src/composables/useAssistantPromptCommands.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantPromptCommands.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useBuiltInCommands.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/refresh-openapi-snapshot.mjs`
+- 修改 `scripts/refresh-openapi-snapshot.test.mjs`
+- 修改 `scripts/bundle-size-check.mjs`
+- 修改 `scripts/bundle-size-check.test.mjs`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/observability-support-module.test.mjs scripts/refresh-openapi-snapshot.test.mjs scripts/bundle-size-check.test.mjs` 首次失败，缺少 support metadata、`summarizeSpecDrift` 和 `summarizeBaselineChanges`。
+- RED：`npm test -- useAssistantPromptCommands.spec.ts useBuiltInCommands.spec.ts` 首次失败，缺少 `useAssistantPromptCommands`。
+- GREEN：`node --test scripts/observability-support-module.test.mjs`：2/2 通过。
+- GREEN：`npm test -- useAssistantPromptCommands.spec.ts useBuiltInCommands.spec.ts`：3/3 通过。
+- GREEN：`node --test scripts/refresh-openapi-snapshot.test.mjs`：6/6 通过。
+- GREEN：`node --test scripts/bundle-size-check.test.mjs`：2/2 通过。
+- `node --test scripts/*.test.mjs`：40/40 通过。
+- `npm test -- useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：3 个测试文件、5 个测试通过。
+- `npx vue-tsc --noEmit`：通过。
+- `ReadLints` 对本轮改动文件无诊断。
+- `mvn -pl ai-assistant-observability-support test` 未完成：Maven 卡在依赖下载，已停止；没有执行 Maven package。

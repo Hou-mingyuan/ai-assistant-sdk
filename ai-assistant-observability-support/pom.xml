@@ -16,4 +16,12 @@
 
     <name>AI Assistant Observability Support</name>
     <description>Optional OpenAPI, tracing, and structured logging support for AI Assistant SDK hosts.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.aiassistant</groupId>
+            <artifactId>ai-assistant-spring-boot-starter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>

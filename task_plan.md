@@ -884,6 +884,53 @@
 验证：
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline。
 
+### 阶段 13.40 设计
+
+目标是把上一轮 4 个方向全部落地到可 review 的小切口：
+- Observability support artifact 不再只是空 module，先承接 Spring Boot auto-configuration metadata，用于后续 OpenAPI / tracing / logging support 迁移。
+- 前端 command palette / prompt template / quick prompt 的触发关系从 `AiAssistant.vue` 继续外移，减少主组件编排代码。
+- `refresh-openapi-snapshot --check` 失败时输出可定位的漂移摘要，而不是只提示 stale。
+- `bundle-size-check` 输出新增、删除、增长、缩小文件摘要，帮助 review bundle baseline 变化来源。
+
+预期修改：
+- `ai-assistant-observability-support/pom.xml`
+- `ai-assistant-observability-support/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- `scripts/observability-support-module.test.mjs`
+- `ai-assistant-ui/src/composables/useAssistantPromptCommands.ts`
+- `ai-assistant-ui/src/composables/useAssistantPromptCommands.spec.ts`
+- `ai-assistant-ui/src/composables/useBuiltInCommands.ts`
+- `ai-assistant-ui/src/components/AiAssistant.vue`
+- `scripts/refresh-openapi-snapshot.mjs`
+- `scripts/refresh-openapi-snapshot.test.mjs`
+- `scripts/bundle-size-check.mjs`
+- `scripts/bundle-size-check.test.mjs`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+约束：
+- 不自动 git commit / push。
+- 可以运行本轮新增/修改脚本和前端单测；Maven 只跑新增 support module 的轻量单测，不做 package。
+
+结果：
+- `ai-assistant-observability-support` 增加对 `ai-assistant-spring-boot-starter` 的依赖，并新增 Spring Boot `AutoConfiguration.imports` metadata，先承接 `AiAssistantOpenApiAutoConfiguration` 的 support artifact 边界。
+- 新增 `useAssistantPromptCommands.ts`，把 quick prompt 应用、预置 prompt template 渲染、prompt template dialog 打开和 command palette prompt commands 统一到一个 composable。
+- `useBuiltInCommands.ts` 支持 `extraCommands`，command palette 现在可以接收 prompt library / quick prompt 入口。
+- `refresh-openapi-snapshot.mjs` 的 `--check` 漂移失败信息增加 path/schema/info.version 摘要。
+- `bundle-size-check.mjs` 增加 baseline change summary，覆盖新增、删除、超预算增长和缩小文件。
+
+验证：
+- RED 已观察：新增脚本测试因缺少 support metadata、`summarizeSpecDrift`、`summarizeBaselineChanges` 失败；新增前端 spec 因缺少 `useAssistantPromptCommands` 失败。
+- `node --test scripts/observability-support-module.test.mjs`：2/2 通过。
+- `npm test -- useAssistantPromptCommands.spec.ts useBuiltInCommands.spec.ts`：3/3 通过。
+- `node --test scripts/refresh-openapi-snapshot.test.mjs`：6/6 通过。
+- `node --test scripts/bundle-size-check.test.mjs`：2/2 通过。
+- `node --test scripts/*.test.mjs`：40/40 通过。
+- `npm test -- useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：5/5 通过。
+- `npx vue-tsc --noEmit`：通过。
+- `ReadLints` 对本轮改动文件无诊断。
+- `mvn -pl ai-assistant-observability-support test` 未完成：卡在 Maven 依赖下载，已停止；本轮未执行 Maven package。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

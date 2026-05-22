@@ -41,6 +41,7 @@ export interface BuiltInCommandsDeps {
     open: Ref<boolean>;
     commands: Ref<CommandItem[]>;
   };
+  extraCommands?: ComputedRef<CommandItem[]> | Ref<CommandItem[]>;
 }
 
 export function useBuiltInCommands(deps: BuiltInCommandsDeps) {
@@ -58,6 +59,7 @@ export function useBuiltInCommands(deps: BuiltInCommandsDeps) {
     kbPanelOpen,
     keyboardHelpOpen,
     cmdPalette,
+    extraCommands,
   } = deps;
 
   const builtInCommands = computed<CommandItem[]>(() => [
@@ -162,6 +164,7 @@ export function useBuiltInCommands(deps: BuiltInCommandsDeps) {
         keyboardHelpOpen.value = true;
       },
     },
+    ...(extraCommands?.value ?? []),
   ]);
 
   watch(
