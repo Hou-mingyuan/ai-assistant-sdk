@@ -54,7 +54,7 @@ node scripts/bundle-composition-report.mjs
 node scripts/project-health-check.mjs --release-check
 ```
 
-当前该 lane 会先构建 `ai-assistant-ui`，再执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、bundle-size 变化摘要和包体归因报告。也就是说本地和 CI 都可以直接运行：
+当前该 lane 会先构建 `ai-assistant-ui`，再执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、support 依赖边界报告、bundle-size 变化摘要和包体归因报告。也就是说本地和 CI 都可以直接运行：
 
 ```bash
 node scripts/project-health-check.mjs --release-check

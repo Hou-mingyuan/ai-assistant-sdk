@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-05-22T03:46:59.037Z",
+  "updatedAt": "2026-05-22T04:07:34.486Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 749509,
-      "gzip": 239149
+      "size": 749631,
+      "gzip": 239215
     },
-    "AiAssistant-BfRI6nZ0.js": {
-      "size": 834410,
-      "gzip": 187524
+    "AiAssistant-CmVYcW0j.js": {
+      "size": 834553,
+      "gzip": 187549
     },
-    "useAiAssistant-7vF1Z9hs.js": {
-      "size": 788346,
-      "gzip": 174529
+    "useAiAssistant-DTXLAXxT.js": {
+      "size": 788489,
+      "gzip": 174555
     },
-    "useAiAssistant-67zA2GI2.cjs": {
-      "size": 441244,
-      "gzip": 132692
+    "useAiAssistant-CrmF7Nu0.cjs": {
+      "size": 441366,
+      "gzip": 132744
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
@@ -39,11 +39,11 @@
     },
     "ai-assistant.mjs": {
       "size": 22103,
-      "gzip": 7058
+      "gzip": 7057
     },
     "ai-assistant.umd.cjs": {
       "size": 15102,
-      "gzip": 5742
+      "gzip": 5740
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -101,13 +101,13 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-DVcCBxPe.js": {
+    "PromptTemplateDialog-DyvjjIMH.js": {
       "size": 15408,
       "gzip": 3050
     },
-    "PromptTemplateDialog-BQjwJ534.js": {
+    "PromptTemplateDialog-Bze69c7d.js": {
       "size": 15448,
-      "gzip": 3020
+      "gzip": 3022
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
@@ -185,9 +185,9 @@
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-Bh6f0Qw7.cjs": {
+    "PromptTemplateDialog-BIKt6ZDD.cjs": {
       "size": 8258,
-      "gzip": 2334
+      "gzip": 2333
     },
     "AssistantInlineOverlays-BFciw9O2.cjs": {
       "size": 7775,
@@ -351,7 +351,7 @@
     },
     "core.umd.cjs": {
       "size": 1631,
-      "gzip": 872
+      "gzip": 871
     },
     "yaml-zRfk8pDS.cjs": {
       "size": 1901,
@@ -449,15 +449,15 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 520265
+      "gzip": 520356
     },
     "chunks": {
       "files": 94,
-      "gzip": 535051
+      "gzip": 535129
     },
     "main": {
       "files": 3,
-      "gzip": 68986
+      "gzip": 68983
     },
     "secondary": {
       "files": 10,

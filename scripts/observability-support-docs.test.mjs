@@ -1,0 +1,19 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+
+test('observability support quick start documents each opt-in path', async () => {
+  const doc = await readFile('docs/guide/observability-support-quick-start.md', 'utf8')
+
+  assert.match(doc, /OpenAPI/)
+  assert.match(doc, /Tracing/)
+  assert.match(doc, /JSON logging/)
+  assert.match(doc, /ai-assistant-observability-support/)
+})
+
+test('observability support quick start is linked from the guide sidebar', async () => {
+  const config = await readFile('docs/.vitepress/config.ts', 'utf8')
+
+  assert.match(config, /Observability Support Quick Start/)
+  assert.match(config, /\/guide\/observability-support-quick-start/)
+})

@@ -178,10 +178,6 @@ jobs:
         #   git add scripts/.coverage-baseline.json
         run: node scripts/coverage-check.mjs --max-drop-percent 1.0
 
-      - name: Package exports smoke check
-        run: npm run check:exports
-        working-directory: ai-assistant-ui
-
       - name: Package install smoke check
         run: npm run smoke:package
         working-directory: ai-assistant-ui

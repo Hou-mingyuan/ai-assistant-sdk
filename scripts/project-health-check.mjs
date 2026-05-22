@@ -27,6 +27,8 @@ const runLineEndings = args.has('--line-endings') || args.has('--all')
 /* K60: Starter 依赖足迹策略检查：防止 optional 能力退化为默认依赖 */
 const runDependencyFootprint =
   args.has('--dependency-footprint') || runReleaseCheck || args.has('--all')
+const runSupportDependencyReport =
+  args.has('--support-dependency-report') || runReleaseCheck || args.has('--all')
 /* K61: 包体归因报告：基于 bundle-size baseline 输出 main / wc / chunk 构成 */
 const runBundleComposition = args.has('--bundle-composition') || runReleaseCheck || args.has('--all')
 /* K62: 仓库脚本单测 + 静态 OpenAPI 类型检查，作为 release-check 的轻量核心 */
@@ -224,6 +226,15 @@ if (runDependencyFootprint) {
   })
 }
 
+if (runSupportDependencyReport) {
+  checks.push({
+    name: 'support dependency boundary report',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/support-dependency-report.mjs')],
+    cwd: root,
+  })
+}
+
 if (runBundleComposition) {
   checks.push({
     name: 'bundle composition report',
@@ -269,12 +280,13 @@ if (
   !runSsrfTest &&
   !runLineEndings &&
   !runDependencyFootprint &&
+  !runSupportDependencyReport &&
   !runBundleComposition &&
   !runScriptTests &&
   !runOpenApiTypes
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check, or --all to run more checks.',
   )
 }
 

@@ -1024,6 +1024,31 @@
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 
+### 阶段 13.45 设计
+
+目标是继续完成用户要求的 4 项：
+- 新增 Observability support quick start，分别说明 OpenAPI、Tracing、JSON logging 的最小接入路径。
+- 新增 support dependency boundary report，展示 starter 与 support artifact 的关键依赖归属，并接入 release-check。
+- 新增 `useAssistantCommandFamilies`，让 `AiAssistant.vue` 不再手写 prompt / feature family 数组。
+- 精简 CI frontend job 中已被 release-check 覆盖的 package exports 检查。
+
+结果：
+- 新增 `docs/guide/observability-support-quick-start.md`，并接入 VitePress sidebar。
+- 新增 `scripts/support-dependency-report.mjs` 与测试；release-check 增加 `support dependency boundary report`。
+- 新增 `useAssistantCommandFamilies.ts` 与测试；`AiAssistant.vue` 改为通过该 composable 向 registry 传 families。
+- `.github/workflows/ci.yml` 移除重复的 `Package exports smoke check`，保留 `Package install smoke check`。
+- `dependency-footprint.md` 和 `observability-support-split.md` 同步补充 support report / quick start 入口。
+
+验证：
+- RED 已观察：缺 support dependency report 模块、缺 quick start 文档/侧边栏、缺 `useAssistantCommandFamilies`、CI 仍包含重复 exports check。
+- GREEN：`node --test scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-release-lane.test.mjs`：6/6 通过。
+- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts`：1/1 通过。
+- `node scripts/project-health-check.mjs --release-check`：通过，包含 support dependency boundary report；bundle change summary 为 none / none / none / none。
+- `npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：8/8 通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `ReadLints` 对本轮修改文件无诊断。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

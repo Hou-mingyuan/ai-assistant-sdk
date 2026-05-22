@@ -728,6 +728,7 @@ import { useServerPromptTemplates } from '../composables/useServerPromptTemplate
 import { useAssistantPromptCommands } from '../composables/useAssistantPromptCommands';
 import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureCommands';
 import { useAssistantCommandRegistry } from '../composables/useAssistantCommandRegistry';
+import { useAssistantCommandFamilies } from '../composables/useAssistantCommandFamilies';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1668,16 +1669,10 @@ const featureCommands = useAssistantFeatureCommands({
   },
 });
 const commandRegistry = useAssistantCommandRegistry({
-  families: [
-    {
-      slashCommands: promptCommands.slashCommands,
-      paletteCommands: promptCommands.commandPaletteCommands,
-    },
-    {
-      slashCommands: featureCommands.slashCommands,
-      paletteCommands: featureCommands.commandPaletteCommands,
-    },
-  ],
+  families: useAssistantCommandFamilies({
+    promptCommands,
+    featureCommands,
+  }),
 });
 
 const slashCmd = useSlashCommands({

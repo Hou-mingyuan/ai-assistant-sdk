@@ -531,3 +531,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `project-health-check --release-check` 自身先运行 UI build，比只在文档中要求人工排序更可靠；CI 可以直接复用同一条 release lane，避免本地和 CI 检查顺序漂移。
 - `useAssistantCommandRegistry` 如果显式接收 prompt / feature 两类参数，后续新增 memory / KB / diagnostics 命令族时仍要回主组件改组合逻辑。改为 `families` 后，主组件只声明命令族顺序。
 - Bundle baseline 的 hash chunk 噪音来自已确认构建产物变化；刷新 baseline 后，release-check 的 change summary 重新回到 added / removed / growth / shrunk 全 none。
+
+### 阶段 13.45 继续推进发现
+
+- Observability support 仅有 split 文档时，用户仍需要在 OpenAPI、Tracing、JSON logging 三种接入方式之间自行拼配置。单独 quick start 更适合放 copy-paste 配置，并强调 tracing/logstash 不会自动启用。
+- 依赖足迹检查只告诉 starter 是否违反 optional 策略，不能直观看出 observability bridge 已从 starter 移到 support。新增 support dependency report 可以把 starter/support 的 direct/optional/absent 状态作为 release-check 输出。
+- `useAssistantCommandRegistry` 已支持 generic families 后，prompt / feature family 数组仍留在 `AiAssistant.vue`。新增 `useAssistantCommandFamilies` 后，主组件只调用一个组合函数，后续新增命令族时不再散落拼接逻辑。
+- CI 的 `npm run check:exports` 已被 release-check 内部 `npm run build` 覆盖，因为 package build 末尾会运行 `check:exports`。删除单独 step 后保留 package install smoke check，避免失去安装验证。

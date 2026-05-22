@@ -13,3 +13,11 @@ test('release-check builds the frontend before reading bundle dist output', asyn
   assert.ok(buildStep < bundleStep)
   assert.match(source, /if \(runReleaseCheck\)[\s\S]*?args: \['run', 'build'\]/)
 })
+
+test('release-check reports support dependency boundaries', async () => {
+  const source = await readFile('scripts/project-health-check.mjs', 'utf8')
+
+  assert.match(source, /const runSupportDependencyReport =/)
+  assert.match(source, /name: 'support dependency boundary report'/)
+  assert.match(source, /support-dependency-report\.mjs/)
+})
