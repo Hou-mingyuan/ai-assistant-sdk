@@ -23,6 +23,7 @@ test('frontend PR comment includes observability support dependency boundary', a
   const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
 
   assert.match(workflow, /support-dependency-report\.mjs --markdown-out \.ci-reports\/support-dependencies\.md/)
+  assert.match(workflow, /command-registry-report\.mjs --markdown-out \.ci-reports\/command-registry\.md/)
   assert.match(workflow, /node scripts\/ci-metrics-comment\.mjs/)
 })
 

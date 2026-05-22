@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-05-22T05:50:34.386Z",
+  "updatedAt": "2026-05-22T06:00:24.429Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 751761,
-      "gzip": 239913
+      "size": 751853,
+      "gzip": 239950
     },
-    "AiAssistant-BSiWsVP4.js": {
-      "size": 837767,
-      "gzip": 188208
+    "AiAssistant-C1YJpYRA.js": {
+      "size": 837893,
+      "gzip": 188249
     },
-    "useAiAssistant-BfDYzKpJ.js": {
-      "size": 791703,
-      "gzip": 175218
+    "useAiAssistant-DmYNn_eX.js": {
+      "size": 791829,
+      "gzip": 175260
     },
-    "useAiAssistant-DfaZ81aZ.cjs": {
-      "size": 443500,
-      "gzip": 133249
+    "useAiAssistant-DsK1jYxZ.cjs": {
+      "size": 443584,
+      "gzip": 133273
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
@@ -39,11 +39,11 @@
     },
     "ai-assistant.mjs": {
       "size": 22103,
-      "gzip": 7058
+      "gzip": 7057
     },
     "ai-assistant.umd.cjs": {
       "size": 15102,
-      "gzip": 5741
+      "gzip": 5742
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -101,13 +101,13 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-LytaJ2s4.js": {
+    "PromptTemplateDialog-Cyl8jvEQ.js": {
       "size": 15408,
-      "gzip": 3049
+      "gzip": 3051
     },
-    "PromptTemplateDialog-BgrU2v78.js": {
+    "PromptTemplateDialog-Bj6n_ke8.js": {
       "size": 15448,
-      "gzip": 3023
+      "gzip": 3021
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
@@ -185,7 +185,7 @@
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-CTBCsjbg.cjs": {
+    "PromptTemplateDialog-CuxtJ0vx.cjs": {
       "size": 8258,
       "gzip": 2334
     },
@@ -283,7 +283,7 @@
     },
     "ai-assistant-wc.mjs": {
       "size": 3413,
-      "gzip": 1271
+      "gzip": 1272
     },
     "java-2tSfCXoV.cjs": {
       "size": 2675,
@@ -323,7 +323,7 @@
     },
     "core.mjs": {
       "size": 2417,
-      "gzip": 999
+      "gzip": 997
     },
     "PageSelectionBar-D3WtfEiM.js": {
       "size": 2789,
@@ -449,11 +449,11 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 521712
+      "gzip": 521791
     },
     "chunks": {
       "files": 94,
-      "gzip": 536300
+      "gzip": 536364
     },
     "main": {
       "files": 3,

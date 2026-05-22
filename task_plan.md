@@ -1184,6 +1184,30 @@
 - `npm run build`（`docs`）：通过。
 - `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 阶段 13.52 设计
+
+目标是继续完成下一轮优化：
+- command registry debug report 接入 CI metrics report。
+- duplicate command id 严格模式在测试环境启用。
+- `refresh-release-baselines.mjs` 增加 `--check` 模式。
+- README 增加 observability support direct/optional 能力矩阵。
+- 完成打包、提交和推送。
+
+结果：
+- 新增 `scripts/command-registry-report.mjs`，CI 生成 `.ci-reports/command-registry.md` 并并入 sticky comment。
+- `ci-metrics-comment.mjs` 支持 command registry section。
+- `AiAssistant.vue` 在 test 模式下启用 `throwOnDuplicatePaletteCommandIds`。
+- `refresh-release-baselines.mjs` 支持 `--check`。
+- README 增加 OpenAPI / Tracing / JSON logging direct/optional 矩阵。
+
+验证：
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts useAssistantCommandFamilies.spec.ts`：5/5 通过。
+- GREEN：`node --test scripts/command-registry-report.test.mjs scripts/ci-metrics-comment.test.mjs scripts/ci-release-lane.test.mjs scripts/refresh-release-baselines.test.mjs scripts/observability-support-docs.test.mjs scripts/frontend-command-registry.test.mjs`：15/15 通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，68 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

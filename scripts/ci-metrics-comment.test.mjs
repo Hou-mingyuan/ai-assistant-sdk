@@ -17,16 +17,23 @@ test('ci metrics comment combines bundle coverage and support dependency section
     bundleMarkdown: '### Bundle Size\n\nbundle ok\n',
     coverageMarkdown: '### Coverage\n\ncoverage ok\n',
     supportDependenciesMarkdown: '### Observability Support Dependency Boundary\n\nsupport ok\n',
+    commandRegistryMarkdown: '### Command Registry Families\n\nregistry ok\n',
     runUrl: 'https://github.com/example/repo/actions/runs/123',
     runNumber: '42',
   })
 
   assert.equal(CI_METRICS_COMMENT_MARKER, '<!-- ci-metrics-sticky -->')
-  assert.deepEqual(CI_METRICS_REPORT_ORDER, ['bundle', 'coverage', 'supportDependencies'])
+  assert.deepEqual(CI_METRICS_REPORT_ORDER, [
+    'bundle',
+    'coverage',
+    'supportDependencies',
+    'commandRegistry',
+  ])
   assert.match(body, /<!-- ci-metrics-sticky -->/)
   assert.match(body, /### Bundle Size/)
   assert.match(body, /### Coverage/)
   assert.match(body, /### Observability Support Dependency Boundary/)
+  assert.match(body, /### Command Registry Families/)
   assert.match(body, new RegExp(formatCiMetricsFooter({
     runUrl: 'https://github.com/example/repo/actions/runs/123',
     runNumber: '42',
@@ -39,10 +46,12 @@ test('ci metrics comment CLI writes combined markdown from report files', async 
     const bundle = path.join(dir, 'bundle.md')
     const coverage = path.join(dir, 'coverage.md')
     const support = path.join(dir, 'support.md')
+    const registry = path.join(dir, 'registry.md')
     const out = path.join(dir, 'combined.md')
     await writeFile(bundle, '### Bundle Size\n\nbundle ok\n', 'utf8')
     await writeFile(coverage, '### Coverage\n\ncoverage ok\n', 'utf8')
     await writeFile(support, '### Observability Support Dependency Boundary\n\nsupport ok\n', 'utf8')
+    await writeFile(registry, '### Command Registry Families\n\nregistry ok\n', 'utf8')
 
     execFileSync(process.execPath, [
       'scripts/ci-metrics-comment.mjs',
@@ -52,6 +61,8 @@ test('ci metrics comment CLI writes combined markdown from report files', async 
       coverage,
       '--support-dependencies',
       support,
+      '--command-registry',
+      registry,
       '--out',
       out,
       '--run-url',
@@ -64,6 +75,7 @@ test('ci metrics comment CLI writes combined markdown from report files', async 
     assert.match(body, /bundle ok/)
     assert.match(body, /coverage ok/)
     assert.match(body, /support ok/)
+    assert.match(body, /registry ok/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }

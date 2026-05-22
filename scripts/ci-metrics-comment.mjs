@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export const CI_METRICS_COMMENT_MARKER = '<!-- ci-metrics-sticky -->'
-export const CI_METRICS_REPORT_ORDER = ['bundle', 'coverage', 'supportDependencies']
+export const CI_METRICS_REPORT_ORDER = ['bundle', 'coverage', 'supportDependencies', 'commandRegistry']
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = parseArgs(process.argv.slice(2))
@@ -14,6 +14,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     bundleMarkdown: readFileSync(path.resolve(root, args.bundle), 'utf8'),
     coverageMarkdown: readFileSync(path.resolve(root, args.coverage), 'utf8'),
     supportDependenciesMarkdown: readFileSync(path.resolve(root, args.supportDependencies), 'utf8'),
+    commandRegistryMarkdown: readFileSync(path.resolve(root, args.commandRegistry), 'utf8'),
     runUrl: args.runUrl,
     runNumber: args.runNumber,
   })
@@ -25,6 +26,7 @@ export function buildCiMetricsComment({
   bundleMarkdown,
   coverageMarkdown,
   supportDependenciesMarkdown,
+  commandRegistryMarkdown = '',
   runUrl,
   runNumber,
 }) {
@@ -32,6 +34,7 @@ export function buildCiMetricsComment({
     bundle: bundleMarkdown,
     coverage: coverageMarkdown,
     supportDependencies: supportDependenciesMarkdown,
+    commandRegistry: commandRegistryMarkdown,
   }
   return [
     CI_METRICS_COMMENT_MARKER,
@@ -50,6 +53,7 @@ function parseArgs(argv) {
     bundle: '.ci-reports/bundle.md',
     coverage: '.ci-reports/coverage.md',
     supportDependencies: '.ci-reports/support-dependencies.md',
+    commandRegistry: '.ci-reports/command-registry.md',
     out: '.ci-reports/combined.md',
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -57,6 +61,7 @@ function parseArgs(argv) {
     if (arg === '--bundle') out.bundle = argv[++i]
     else if (arg === '--coverage') out.coverage = argv[++i]
     else if (arg === '--support-dependencies') out.supportDependencies = argv[++i]
+    else if (arg === '--command-registry') out.commandRegistry = argv[++i]
     else if (arg === '--out') out.out = argv[++i]
     else if (arg === '--run-url') out.runUrl = argv[++i]
     else if (arg === '--run-number') out.runNumber = argv[++i]

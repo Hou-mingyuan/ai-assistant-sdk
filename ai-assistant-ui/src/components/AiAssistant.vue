@@ -1685,7 +1685,9 @@ const appCommands = useAssistantAppCommands({
   openPersonalize,
   keyboardHelpOpen,
 });
+const importMetaWithEnv = import.meta as ImportMeta & { env?: { DEV?: boolean; MODE?: string } };
 const commandRegistry = useAssistantCommandRegistry({
+  throwOnDuplicatePaletteCommandIds: importMetaWithEnv.env?.MODE === 'test',
   families: useAssistantCommandFamilies({
     appCommands,
     promptCommands,
@@ -1693,7 +1695,6 @@ const commandRegistry = useAssistantCommandRegistry({
     workflowCommands,
   }),
 });
-const importMetaWithEnv = import.meta as ImportMeta & { env?: { DEV?: boolean } };
 watch(
   commandRegistry.duplicatePaletteCommandIds,
   (ids) => {

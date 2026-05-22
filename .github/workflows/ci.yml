@@ -184,10 +184,12 @@ jobs:
           node scripts/bundle-size-check.mjs --markdown-out .ci-reports/bundle.md --max-delta-percent 10 || true
           node scripts/coverage-check.mjs --markdown-out .ci-reports/coverage.md --max-drop-percent 1.0 || true
           node scripts/support-dependency-report.mjs --markdown-out .ci-reports/support-dependencies.md || true
+          node scripts/command-registry-report.mjs --markdown-out .ci-reports/command-registry.md || true
           node scripts/ci-metrics-comment.mjs \
             --bundle .ci-reports/bundle.md \
             --coverage .ci-reports/coverage.md \
             --support-dependencies .ci-reports/support-dependencies.md \
+            --command-registry .ci-reports/command-registry.md \
             --out .ci-reports/combined.md \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --run-number "${{ github.run_number }}"

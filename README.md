@@ -23,6 +23,14 @@ README 只作为项目总览和常用入口。更完整、可导航的安装、�
 | 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
 | 贡献代码 / 安装本地 pre-commit hook | [Git Hooks 指引](docs/guide/git-hooks.md) |
 
+Observability support 能力矩阵：
+
+| 能力 | support artifact 状态 |
+| --- | --- |
+| OpenAPI | direct |
+| Tracing | optional |
+| JSON logging | optional |
+
 如果你是第一次接入，建议先按"后端 Starter 集成"和"独立服务部署"二选一，不要同时混用两条路径。
 
 ---
