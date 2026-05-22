@@ -22,6 +22,8 @@ The first migration step is now in place: `ai-assistant-observability-support`
 owns the Spring Boot auto-configuration metadata for OpenAPI support. The
 starter still contains the implementation class so existing source references
 remain stable, but hosts must add the support artifact to auto-import it.
+The support artifact also brings `springdoc-openapi-starter-webmvc-ui`, so hosts
+do not need to remember a second OpenAPI dependency.
 
 - `core-only` path keeps proving base chat wiring starts without OpenAPI,
   tracing, logstash, Redis, JDBC, or Playwright classes.

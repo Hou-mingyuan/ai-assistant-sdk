@@ -1378,3 +1378,36 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`npm test -- useAssistantFeatureCommands.spec.ts useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：4 个测试文件、7 个测试通过。
 - `npx vue-tsc --noEmit` 首次失败，发现 form-fill action 返回 `Promise<boolean>` 不匹配；修正为 `void formAutoFill.triggerFromText(text)` 后通过。
 - `git add -u` 后，上一轮 42 个 line-ending-only 状态清理为工作区干净，没有产生单独行尾提交。
+
+### 当前阶段 13.42
+
+状态：已完成。
+
+目标：
+- 让 observability support artifact 自带 OpenAPI support 依赖。
+- 增加 support module 的 Java slice test。
+- 将 `/template` slash command 纳入 prompt command composable。
+- 刷新 bundle baseline。
+
+修改：
+- 修改 `ai-assistant-observability-support/pom.xml`
+- 新增 `ai-assistant-observability-support/src/test/java/com/aiassistant/observabilitysupport/OpenApiSupportAutoConfigurationTest.java`
+- 修改 `scripts/observability-support-module.test.mjs`
+- 修改 `docs/guide/observability-support-split.md`
+- 修改 `ai-assistant-ui/src/composables/useAssistantPromptCommands.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantPromptCommands.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/observability-support-module.test.mjs` 首次失败，缺少 springdoc dependency。
+- RED：`npm test -- useAssistantPromptCommands.spec.ts` 首次失败，缺少 `slashCommands`。
+- RED：`mvn -pl ai-assistant-observability-support test` 首次失败，缺少 OpenAPI/JUnit/Spring Boot test classpath。
+- GREEN：`node --test scripts/observability-support-module.test.mjs`：5/5 通过。
+- GREEN：`npm test -- useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：2 个测试文件、6 个测试通过。
+- GREEN：`mvn -pl ai-assistant-observability-support test`：1 个测试通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline。

@@ -26,6 +26,12 @@ test('observability support module depends on the starter it augments', async ()
   assert.match(pom, /<artifactId>ai-assistant-spring-boot-starter<\/artifactId>/)
 })
 
+test('observability support module brings springdoc for OpenAPI support', async () => {
+  const pom = await readFile('ai-assistant-observability-support/pom.xml', 'utf8')
+
+  assert.match(pom, /<artifactId>springdoc-openapi-starter-webmvc-ui<\/artifactId>/)
+})
+
 test('standalone service keeps OpenAPI support by depending on the support artifact', async () => {
   const pom = await readFile('ai-assistant-service/pom.xml', 'utf8')
 

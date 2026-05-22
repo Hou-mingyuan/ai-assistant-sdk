@@ -509,3 +509,11 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - Line-ending-only 噪音在本轮 `git add -u` 后不再出现在工作区状态里，说明这些差异只是 Git 触碰时的 CRLF/LF 归一化提示，没有需要单独提交的实际内容。
 - Slash command 和 command palette 的重复主要集中在 feature panel actions。新增 `useAssistantFeatureCommands` 后，plugins / compare / form-fill 的 palette 入口和 slash 入口共享同一组 action，后续 memory / KB 内置 palette 也可以按同样方向继续收敛。
 - `project-health-check --release-check` 接入 bundle-size lane 后会依赖已构建的 `ai-assistant-ui/dist`。这符合 release 前先 build 再 check 的使用方式，但文档必须写清楚，避免在干净仓库直接跑 release-check 误以为失败。
+
+### 阶段 13.42 继续推进发现
+
+- Support artifact 如果只承接 `AutoConfiguration.imports`，宿主仍需要额外记住 springdoc 依赖；把 `springdoc-openapi-starter-webmvc-ui` 放进 support artifact 更符合“加一个 support artifact 即获得 OpenAPI support”的用户心智。
+- Support module 不是 Spring Boot parent，需要显式导入 Spring Boot BOM；否则 springdoc 传递依赖会拉到 3.5.13 一组依赖，导致下载和版本对齐都不稳定。
+- 最小 Java slice test 放在 support module 内，可以验证 support artifact 的依赖边界和 `AiAssistantOpenApiAutoConfiguration` wiring；脚本测试继续负责 metadata ownership。
+- `/template` 和 prompt library palette entry 属于同一 prompt 命令族，迁移到 `useAssistantPromptCommands` 后，`AiAssistant.vue` 只组合 feature commands 与 prompt commands，不再维护模板命令细节。
+- 本轮刷新 bundle baseline 后，release-check 的新增/删除 hash chunk 噪音归零；后续 bundle-size 摘要会更聚焦真实增长。

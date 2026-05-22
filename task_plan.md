@@ -954,6 +954,28 @@
 - `npm test -- useAssistantFeatureCommands.spec.ts useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：7/7 通过。
 - `npx vue-tsc --noEmit`：通过。
 
+### 阶段 13.42 设计
+
+目标是把用户再次确认的 4 项继续全部做完：
+- Observability support artifact 继续承接 OpenAPI 依赖边界，support artifact 自带 springdoc。
+- 为 support artifact 增加最小 Java slice test，验证显式启用 OpenAPI 后能装配 `OpenAPI` bean。
+- 将 `/template` slash command 迁移到 `useAssistantPromptCommands`，继续减少 `AiAssistant.vue` inline command 定义。
+- 基于最新构建刷新 bundle baseline，消除已确认的 hash chunk 新增/删除噪音。
+
+结果：
+- `ai-assistant-observability-support/pom.xml` 增加 Spring Boot BOM、`springdoc-openapi-starter-webmvc-ui` 和 test 依赖。
+- 新增 `OpenApiSupportAutoConfigurationTest`，用 `ApplicationContextRunner` 验证 OpenAPI support 显式启用时的 bean wiring。
+- `useAssistantPromptCommands` 新增 `slashCommands` 输出，`AiAssistant.vue` 的 `extraCommands` 改为使用 prompt composable 提供的 `/template`。
+- `scripts/.bundle-size-baseline.json` 已基于最新 UI 构建刷新，记录 111 个文件。
+
+验证：
+- RED 已观察：support script test 缺 springdoc 失败；support Java test 缺 JUnit / Spring Boot test / OpenAPI classpath 失败；prompt command spec 缺 `slashCommands` 失败。
+- `node --test scripts/observability-support-module.test.mjs`：5/5 通过。
+- `npm test -- useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：6/6 通过。
+- `mvn -pl ai-assistant-observability-support test`：1/1 通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

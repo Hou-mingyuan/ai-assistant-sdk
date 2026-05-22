@@ -1519,6 +1519,9 @@ const promptCommands = useAssistantPromptCommands({
   setMode,
   quickPrompts,
   promptTemplates: promptTemplateList,
+  templateDescription: computed(
+    () => t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates',
+  ),
   openPromptTemplateDialog: () => {
     void refreshServerPromptTemplates();
     promptTemplateOpen.value = true;
@@ -1675,20 +1678,7 @@ const slashCmd = useSlashCommands({
   onNewSession: () => startNewSession(),
   onExport: () => toggleBatchExportMenu(),
   onChangeMode: (m) => onChangeMode(m),
-  extraCommands: [
-    ...featureCommands.slashCommands,
-    {
-      name: '/template',
-      get description() {
-        return t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates';
-      },
-      icon: 'M14 3v4a1 1 0 0 0 1 1h4l-5-5zM5 3h7v5a2 2 0 0 0 2 2h5v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2 9h10v2H7v-2zm0 4h7v2H7v-2z',
-      action: () => {
-        promptCommands.openPromptTemplateDialog?.();
-        return true;
-      },
-    },
-  ],
+  extraCommands: [...featureCommands.slashCommands, ...promptCommands.slashCommands],
 });
 
 function onSlashKeydown(e: KeyboardEvent) {

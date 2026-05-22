@@ -64,4 +64,21 @@ describe('useAssistantPromptCommands', () => {
     expect(openPromptTemplateDialog).toHaveBeenCalledTimes(1);
     expect(input.value).toBe('Explain this');
   });
+
+  it('exposes a slash command for opening the prompt template library', () => {
+    const openPromptTemplateDialog = vi.fn();
+    const commands = useAssistantPromptCommands({
+      input: ref(''),
+      setMode: vi.fn(),
+      quickPrompts: computed(() => []),
+      promptTemplates: computed(() => []),
+      openPromptTemplateDialog,
+    });
+
+    expect(commands.slashCommands.map((cmd) => cmd.name)).toEqual(['/template']);
+
+    commands.slashCommands[0]?.action();
+
+    expect(openPromptTemplateDialog).toHaveBeenCalledTimes(1);
+  });
 });
