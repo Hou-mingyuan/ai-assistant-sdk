@@ -60,6 +60,14 @@ node scripts/project-health-check.mjs --release-check
 node scripts/project-health-check.mjs --release-check
 ```
 
+如果本次构建输出的 hash chunk 变化已经确认，需要刷新 release baseline，请统一运行：
+
+```bash
+node scripts/refresh-release-baselines.mjs
+```
+
+当前脚本会更新 `scripts/.bundle-size-baseline.json`；后续如果新增 coverage 或 OpenAPI release baseline，也应作为 step 追加到同一个脚本里。
+
 ## 何时继续拆分
 
 如果接入方明确不需要导出、Office/PDF 解析、Headless 抓取、RAG 或连接器，后续可考虑把这些能力进一步拆成独立 artifact 或 feature package。但拆分前需要确认：

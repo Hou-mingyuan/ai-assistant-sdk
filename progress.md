@@ -1646,6 +1646,18 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 当前阶段 13.51
+
+状态：已完成。
+
+说明：阶段 13.50 为本轮最新实现记录；本段补充最终验证口径，避免尾部阶段顺序误读。
+
+验证：
+- `node scripts/project-health-check.mjs --release-check-full`：通过，66 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ### 当前阶段 13.50
 
 状态：已完成。

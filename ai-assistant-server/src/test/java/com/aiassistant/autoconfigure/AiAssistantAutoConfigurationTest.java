@@ -27,6 +27,7 @@ import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -262,6 +263,15 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context).doesNotHaveBean("headlessFetchService");
                             assertThat(context).doesNotHaveBean("aiAssistantRedisRateLimitFilter");
                         });
+    }
+
+    @Test
+    void starterOnlyDoesNotRegisterOpenApiWhenPropertyIsEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ai-assistant.api-key=sk-test-openapi",
+                        "ai-assistant.openapi.enabled=true")
+                .run(context -> assertThat(context).doesNotHaveBean(OpenAPI.class));
     }
 
     /**

@@ -13,6 +13,7 @@ export interface AssistantCommandFamily {
 
 export interface UseAssistantCommandRegistryOptions {
   families: AssistantCommandFamily[];
+  throwOnDuplicatePaletteCommandIds?: boolean;
 }
 
 export function useAssistantCommandRegistry(options: UseAssistantCommandRegistryOptions) {
@@ -32,10 +33,38 @@ export function useAssistantCommandRegistry(options: UseAssistantCommandRegistry
     }
     return [...duplicates];
   });
+  const commandPaletteDebugRows = computed(() =>
+    options.families.flatMap((family) =>
+      (family.commandPaletteCommands?.value ?? []).map((command) => ({
+        family: family.name,
+        source: family.source ?? family.name,
+        commandId: command.id,
+        label: command.label,
+      })),
+    ),
+  );
+  const commandPaletteDebugMarkdown = computed(() =>
+    [
+      '| Family | Source | Command ID | Label |',
+      '| --- | --- | --- | --- |',
+      ...commandPaletteDebugRows.value.map(
+        (row) => `| ${row.family} | ${row.source} | \`${row.commandId}\` | ${row.label} |`,
+      ),
+      '',
+    ].join('\n'),
+  );
+
+  if (options.throwOnDuplicatePaletteCommandIds && duplicatePaletteCommandIds.value.length > 0) {
+    throw new Error(
+      `Duplicate command palette ids: ${duplicatePaletteCommandIds.value.join(', ')}`,
+    );
+  }
 
   return {
     slashCommands,
     commandPaletteExtraCommands,
     duplicatePaletteCommandIds,
+    commandPaletteDebugRows,
+    commandPaletteDebugMarkdown,
   };
 }

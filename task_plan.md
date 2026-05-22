@@ -1179,7 +1179,7 @@
 - RED 已观察：metadata、duplicate id 消费、baseline refresh 脚本、POM 示例缺失时对应测试失败。
 - GREEN：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts`：3/3 通过。
 - GREEN：`node --test scripts/frontend-command-registry.test.mjs scripts/refresh-release-baselines.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-metrics-comment.test.mjs`：8/8 通过。
-- `node scripts/project-health-check.mjs --release-check-full`：通过，65 个脚本测试通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，66 个脚本测试通过。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 - `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。

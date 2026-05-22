@@ -56,4 +56,55 @@ describe('useAssistantCommandRegistry', () => {
 
     expect(registry.duplicatePaletteCommandIds.value).toEqual(['ai.open-memory']);
   });
+
+  it('can fail fast when duplicate palette command ids are present', () => {
+    expect(() =>
+      useAssistantCommandRegistry({
+        throwOnDuplicatePaletteCommandIds: true,
+        families: [
+          {
+            name: 'app',
+            source: 'app',
+            commandPaletteCommands: computed(() => [
+              { id: 'ai.toggle-panel', label: 'Toggle', action: () => undefined },
+            ]),
+          },
+          {
+            name: 'workflow',
+            source: 'workflow',
+            commandPaletteCommands: computed(() => [
+              { id: 'ai.toggle-panel', label: 'Duplicate', action: () => undefined },
+            ]),
+          },
+        ],
+      }),
+    ).toThrow(/Duplicate command palette ids: ai\.toggle-panel/);
+  });
+
+  it('renders a debug markdown report for command families', () => {
+    const registry = useAssistantCommandRegistry({
+      families: [
+        {
+          name: 'prompt',
+          source: 'prompt',
+          description: 'Prompt commands',
+          commandPaletteCommands: computed(() => [
+            { id: 'ai.open-prompt-templates', label: 'Templates', action: () => undefined },
+          ]),
+        },
+      ],
+    });
+
+    expect(registry.commandPaletteDebugRows.value).toEqual([
+      {
+        family: 'prompt',
+        source: 'prompt',
+        commandId: 'ai.open-prompt-templates',
+        label: 'Templates',
+      },
+    ]);
+    expect(registry.commandPaletteDebugMarkdown.value).toContain(
+      '| prompt | prompt | `ai.open-prompt-templates` | Templates |',
+    );
+  });
 });
