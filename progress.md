@@ -1608,3 +1608,40 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `mvn package`：通过。
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+
+### 当前阶段 13.48
+
+状态：已完成。
+
+目标：
+- 将 `useBuiltInCommands` 改名为 `useCommandPaletteRegistration`。
+- 为 `ci-metrics-comment.mjs` 增加真实文件输入输出的 CLI fixture 测试。
+- 将 memory / KB palette entries 迁入 feature command family。
+- 更新 README / observability quick start，说明 OpenAPI auto-configuration class 现在由 support artifact 提供。
+- 完成打包、提交和推送。
+
+修改：
+- 删除 `ai-assistant-ui/src/composables/useBuiltInCommands.ts`
+- 新增 `ai-assistant-ui/src/composables/useCommandPaletteRegistration.ts`
+- 新增 `ai-assistant-ui/src/composables/useCommandPaletteRegistration.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `ai-assistant-ui/src/composables/useAssistantFeatureCommands.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantFeatureCommands.spec.ts`
+- 修改 `scripts/ci-metrics-comment.test.mjs`
+- 修改 `scripts/observability-support-docs.test.mjs`
+- 修改 `docs/guide/observability-support-quick-start.md`
+- 修改 `README.md`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `findings.md`
+- 修改 `progress.md`
+- 修改 `task_plan.md`
+
+验证：
+- RED：`npm test -- useAssistantFeatureCommands.spec.ts useCommandPaletteRegistration.spec.ts` 首次失败，证明 memory/KB palette entries 缺失且新 registration composable 尚未存在。
+- RED：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs` 首次失败，证明 public docs 尚未说明 OpenAPI class 迁移。
+- GREEN：`npm test -- useAssistantFeatureCommands.spec.ts useCommandPaletteRegistration.spec.ts useAssistantCommandFamilies.spec.ts`：3 个测试文件、5 个测试通过。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs`：6 个测试通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，63 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。

@@ -25,3 +25,13 @@ test('observability split doc records OpenAPI implementation migration status', 
   assert.match(doc, /`AiAssistantOpenApiAutoConfiguration` now lives/)
   assert.match(doc, /compatibility shim/)
 })
+
+test('public docs point OpenAPI auto-configuration users to the support artifact', async () => {
+  const quickStart = await readFile('docs/guide/observability-support-quick-start.md', 'utf8')
+  const readme = await readFile('README.md', 'utf8')
+
+  assert.match(quickStart, /AiAssistantOpenApiAutoConfiguration/)
+  assert.match(quickStart, /base starter no longer ships that\s+implementation/)
+  assert.match(readme, /Observability support/)
+  assert.match(readme, /ai-assistant-observability-support/)
+})

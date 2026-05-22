@@ -18,6 +18,7 @@ README 只作为项目总览和常用入口。更完整、可导航的安装、�
 | 配置前端事件、快捷 Prompt 和常见交互 | [前端集成配方](docs/guide/frontend-recipes.md) |
 | 维护后端模块边界和扩展点 | [后端架构维护说明](docs/guide/backend-architecture.md) |
 | 对接聊天、流式输出或管理接口 | [API 文档](docs/api/index.md) |
+| 启用 OpenAPI、Tracing 或 JSON logging | [Observability support](docs/guide/observability-support-quick-start.md)：通过 `ai-assistant-observability-support` 接入 |
 | 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) |
 | 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
 | 贡献代码 / 安装本地 pre-commit hook | [Git Hooks 指引](docs/guide/git-hooks.md) |

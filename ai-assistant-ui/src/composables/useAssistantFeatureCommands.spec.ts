@@ -51,6 +51,34 @@ describe('useAssistantFeatureCommands', () => {
     expect(openMultiModelCompare).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps memory and knowledge base palette entries in the feature family', () => {
+    const memoryOpen = ref(false);
+    const kbPanelOpen = ref(false);
+    const commands = useAssistantFeatureCommands({
+      t,
+      input: ref(''),
+      memoryOpen,
+      kbPanelOpen,
+      pluginsPanelOpen: ref(false),
+      formAutoFillEnabled: computed(() => false),
+      openMultiModelCompare: vi.fn(),
+      triggerFormAutoFill: vi.fn(),
+    });
+
+    expect(commands.commandPaletteCommands.value.map((cmd) => cmd.id)).toEqual([
+      'ai.open-memory',
+      'ai.open-kb',
+      'ai.open-plugins',
+      'ai.compare-models',
+    ]);
+
+    commands.commandPaletteCommands.value[0]?.action();
+    commands.commandPaletteCommands.value[1]?.action();
+
+    expect(memoryOpen.value).toBe(true);
+    expect(kbPanelOpen.value).toBe(true);
+  });
+
   it('adds form-fill slash and palette commands only when enabled', () => {
     const triggerFormAutoFill = vi.fn();
     const input = ref('/fill name: Ada');

@@ -1110,6 +1110,31 @@
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 阶段 13.48 设计
+
+目标是继续完成下一轮优化：
+- 将 `useBuiltInCommands` 改名为职责更准确的 `useCommandPaletteRegistration`。
+- 给 `ci-metrics-comment.mjs` 增加 CLI fixture 测试。
+- 把 memory / KB palette entries 迁入 feature family，恢复并保护命令入口。
+- 更新 public docs，说明 OpenAPI auto-configuration class 现在来自 support artifact。
+- 完成打包、提交和推送。
+
+结果：
+- 新增 `useCommandPaletteRegistration` 与测试，删除旧 `useBuiltInCommands`。
+- `AiAssistant.vue` 改为调用 `useCommandPaletteRegistration`，command definitions 继续来自 app / prompt / feature / workflow families。
+- `useAssistantFeatureCommands` 增加 `ai.open-memory` 与 `ai.open-kb` palette entries，并复用 slash command actions。
+- `ci-metrics-comment.test.mjs` 增加真实临时文件 CLI 测试。
+- `README.md` 和 `observability-support-quick-start.md` 增加 support artifact / `AiAssistantOpenApiAutoConfiguration` 迁移说明。
+
+验证：
+- RED 已观察：新 registration composable 缺失、memory/KB palette entries 缺失、docs 缺 OpenAPI class support artifact 说明时对应测试失败。
+- GREEN：`npm test -- useAssistantFeatureCommands.spec.ts useCommandPaletteRegistration.spec.ts useAssistantCommandFamilies.spec.ts`：5/5 通过。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/observability-support-docs.test.mjs`：6/6 通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，63 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

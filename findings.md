@@ -555,3 +555,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `OpenAPI` host override 属于 support artifact 的关键兼容契约，测试应放在 support module，而不是 starter auto-configuration suite。
 - App-level command palette entries（panel/session/theme/personalize/keyboard help）与 prompt/feature/workflow 一样适合作为 command family；`useBuiltInCommands` 只保留 palette clear/register watch 后，`AiAssistant.vue` 的命令入口继续变薄。
 - CI 去重不只靠人工审查 workflow，脚本测试可以断言 `Run repo script tests`、静态 OpenAPI 类型检查、dependency footprint 等 step 不再重复出现在 workflow 中。
+
+### 阶段 13.48 继续推进发现
+
+- `useBuiltInCommands` 已经不再定义 built-in commands，继续保留旧名字会误导后续维护；改名为 `useCommandPaletteRegistration` 后，command definitions 与 palette registration 的职责分离更清楚。
+- 上一轮把 app commands 迁出 built-in registration 时，memory / KB palette entries 也被移走但尚未进入 feature family。补入 `useAssistantFeatureCommands` 后，slash 和 palette 入口重新共享同一组 feature actions。
+- `ci-metrics-comment.mjs` 只有纯函数测试还不够，CLI fixture 能覆盖真实文件路径、输出文件和参数解析，避免 workflow 使用方式漂移。
+- OpenAPI auto-configuration 实现已迁入 support artifact 后，README 和 quick start 都需要直接提醒用户通过 `ai-assistant-observability-support` 获取该 class，避免仍按 starter-internal classpath 查找。

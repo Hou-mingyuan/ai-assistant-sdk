@@ -103,6 +103,22 @@ export function useAssistantFeatureCommands(options: UseAssistantFeatureCommands
 
   const commandPaletteCommands = computed<CommandItem[]>(() => [
     {
+      id: 'ai.open-memory',
+      label: options.t.value.memoryLabel || '记忆管理 / Memory',
+      group: '知识',
+      icon: '🧠',
+      keywords: ['memory', '记忆', '事实'],
+      action: actions.openMemory,
+    },
+    {
+      id: 'ai.open-kb',
+      label: options.t.value.kbLabel || '知识库管理 / Knowledge base',
+      group: '知识',
+      icon: '📖',
+      keywords: ['kb', 'knowledge', '知识库', 'rag'],
+      action: actions.openKnowledgeBase,
+    },
+    {
       id: 'ai.open-plugins',
       label: options.t.value.pluginsLabel || '插件管理 / Plugins',
       group: '能力',

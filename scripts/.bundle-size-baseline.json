@@ -1,21 +1,21 @@
 {
-  "updatedAt": "2026-05-22T05:13:29.104Z",
+  "updatedAt": "2026-05-22T05:23:21.697Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 750015,
-      "gzip": 239283
+      "size": 750365,
+      "gzip": 239378
     },
-    "AiAssistant-BJgWjaP9.js": {
-      "size": 835230,
-      "gzip": 187616
+    "AiAssistant-D6-vuUVX.js": {
+      "size": 835736,
+      "gzip": 187710
     },
-    "useAiAssistant-DDlDm5sJ.js": {
-      "size": 789166,
-      "gzip": 174615
+    "useAiAssistant-C6qaFzo4.js": {
+      "size": 789672,
+      "gzip": 174716
     },
-    "useAiAssistant-B_dHfbTk.cjs": {
-      "size": 441766,
-      "gzip": 132691
+    "useAiAssistant-BR52O6-J.cjs": {
+      "size": 442116,
+      "gzip": 132766
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
@@ -39,11 +39,11 @@
     },
     "ai-assistant.mjs": {
       "size": 22103,
-      "gzip": 7057
+      "gzip": 7056
     },
     "ai-assistant.umd.cjs": {
       "size": 15102,
-      "gzip": 5740
+      "gzip": 5742
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -101,13 +101,13 @@
       "size": 17168,
       "gzip": 3264
     },
-    "PromptTemplateDialog-BwsPkEyq.js": {
+    "PromptTemplateDialog-Ds3GzlY-.js": {
       "size": 15408,
       "gzip": 3050
     },
-    "PromptTemplateDialog-sywG2MeX.js": {
+    "PromptTemplateDialog-Bbq7VIXI.js": {
       "size": 15448,
-      "gzip": 3020
+      "gzip": 3022
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
@@ -185,9 +185,9 @@
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-D6reu-99.cjs": {
+    "PromptTemplateDialog-D03m8BXc.cjs": {
       "size": 8258,
-      "gzip": 2333
+      "gzip": 2334
     },
     "AssistantInlineOverlays-BFciw9O2.cjs": {
       "size": 7775,
@@ -323,7 +323,7 @@
     },
     "core.mjs": {
       "size": 2417,
-      "gzip": 997
+      "gzip": 996
     },
     "PageSelectionBar-D3WtfEiM.js": {
       "size": 2789,
@@ -351,7 +351,7 @@
     },
     "core.umd.cjs": {
       "size": 1631,
-      "gzip": 870
+      "gzip": 872
     },
     "yaml-zRfk8pDS.cjs": {
       "size": 1901,
@@ -449,15 +449,15 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 520491
+      "gzip": 520680
     },
     "chunks": {
       "files": 94,
-      "gzip": 535132
+      "gzip": 535312
     },
     "main": {
       "files": 3,
-      "gzip": 68983
+      "gzip": 68984
     },
     "secondary": {
       "files": 10,

@@ -30,6 +30,11 @@ Keep the endpoint behind the same authentication and network boundary as your
 host application. The support artifact imports the OpenAPI auto-configuration;
 the base starter no longer imports it by default.
 
+`AiAssistantOpenApiAutoConfiguration` now lives in this support artifact. If you
+previously imported that starter-internal class directly, depend on
+`ai-assistant-observability-support`; the base starter no longer ships that
+implementation.
+
 ## Tracing
 
 Tracing remains opt-in. Add and configure the exporter that matches your

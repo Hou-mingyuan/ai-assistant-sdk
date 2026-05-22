@@ -738,8 +738,7 @@ import {
   resolveVirtualScrollOption,
 } from '../composables/useScrollAndVirtual';
 import { useCommandPalette } from '../composables/useCommandPalette';
-/* Refactor (T1-Wave2)：内置命令清单已抽到 useBuiltInCommands */
-import { useBuiltInCommands } from '../composables/useBuiltInCommands';
+import { useCommandPaletteRegistration } from '../composables/useCommandPaletteRegistration';
 const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
 const CompareRegionsDialog = defineAsyncComponent(() => import('./CompareRegionsDialog.vue'));
 const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
@@ -2489,20 +2488,9 @@ function onPageSelAction(action: 'ask' | 'translate' | 'summarize') {
  */
 const cmdPalette = useCommandPalette();
 
-/* Refactor (T1-Wave2)：原 ~110 行内置命令清单 + watch 注册逻辑抽到 useBuiltInCommands。 */
-useBuiltInCommands({
-  t,
-  isOpen,
-  isDark,
-  startNewSession,
-  clearMessages,
-  toggleManualTheme,
-  openPersonalize,
-  memoryOpen,
-  kbPanelOpen,
-  keyboardHelpOpen,
+useCommandPaletteRegistration({
   cmdPalette,
-  extraCommands: commandRegistry.commandPaletteExtraCommands,
+  commands: commandRegistry.commandPaletteExtraCommands,
 });
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });
