@@ -11,6 +11,26 @@ test('observability support module owns OpenAPI support auto-configuration metad
   assert.match(imports, /com\.aiassistant\.autoconfigure\.AiAssistantOpenApiAutoConfiguration/)
 })
 
+test('observability support module owns the OpenAPI auto-configuration implementation', async () => {
+  const source = await readFile(
+    'ai-assistant-observability-support/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java',
+    'utf8',
+  )
+
+  assert.match(source, /public class AiAssistantOpenApiAutoConfiguration/)
+  assert.match(source, /new OpenAPI\(\)/)
+})
+
+test('starter no longer owns the OpenAPI auto-configuration implementation', async () => {
+  await assert.rejects(
+    readFile(
+      'ai-assistant-server/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java',
+      'utf8',
+    ),
+    /ENOENT/,
+  )
+})
+
 test('starter auto-configuration metadata no longer pulls OpenAPI support by default', async () => {
   const imports = await readFile(
     'ai-assistant-server/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports',

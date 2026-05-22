@@ -27,7 +27,6 @@ import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -93,11 +92,6 @@ class AiAssistantAutoConfigurationTest {
                                     "io.opentelemetry.api.trace.Tracer",
                                     "net.logstash.logback.encoder.LogstashEncoder"))
                     .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
-
-    private final WebApplicationContextRunner openApiSupportContextRunner =
-            new WebApplicationContextRunner()
-                    .withConfiguration(
-                            AutoConfigurations.of(AiAssistantOpenApiAutoConfiguration.class));
 
     @Test
     void autoConfigurationDoesNotActivateWhenNoApiKeyConfigured() {
@@ -267,27 +261,6 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context).hasSingleBean(SessionStore.class);
                             assertThat(context).doesNotHaveBean("headlessFetchService");
                             assertThat(context).doesNotHaveBean("aiAssistantRedisRateLimitFilter");
-                        });
-    }
-
-    @Test
-    void openApiSupportRegistersMetadataOnlyWhenExplicitlyEnabled() {
-        openApiSupportContextRunner
-                .withPropertyValues(
-                        "ai-assistant.openapi.enabled=true", "ai-assistant.context-path=/custom-ai")
-                .run(
-                        context -> {
-                            assertThat(context).hasSingleBean(OpenAPI.class);
-                            OpenAPI openAPI = context.getBean(OpenAPI.class);
-                            assertThat(openAPI.getInfo().getTitle())
-                                    .isEqualTo("AI Assistant SDK API");
-                            assertThat(openAPI.getServers())
-                                    .anySatisfy(
-                                            server ->
-                                                    assertThat(server.getUrl())
-                                                            .isEqualTo("/custom-ai"));
-                            assertThat(openAPI.getComponents().getSecuritySchemes())
-                                    .containsKeys("AiToken", "AdminToken", "TenantId");
                         });
     }
 

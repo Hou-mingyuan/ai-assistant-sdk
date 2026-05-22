@@ -730,6 +730,7 @@ import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureC
 import { useAssistantCommandRegistry } from '../composables/useAssistantCommandRegistry';
 import { useAssistantCommandFamilies } from '../composables/useAssistantCommandFamilies';
 import { useAssistantWorkflowCommands } from '../composables/useAssistantWorkflowCommands';
+import { useAssistantAppCommands } from '../composables/useAssistantAppCommands';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1675,8 +1676,19 @@ const workflowCommands = useAssistantWorkflowCommands({
   sessionsDrawerOpen,
   openExportMenu: () => toggleBatchExportMenu(),
 });
+const appCommands = useAssistantAppCommands({
+  t,
+  isOpen,
+  isDark,
+  startNewSession,
+  clearMessages,
+  toggleManualTheme,
+  openPersonalize,
+  keyboardHelpOpen,
+});
 const commandRegistry = useAssistantCommandRegistry({
   families: useAssistantCommandFamilies({
+    appCommands,
     promptCommands,
     featureCommands,
     workflowCommands,

@@ -1526,3 +1526,85 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `node scripts/project-health-check.mjs --release-check-full`：通过；刷新 baseline 后 bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
 - `node scripts/project-health-check.mjs --release-check-fast`：通过，55 个脚本测试全部通过。
 - `npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：5 个测试文件、9 个测试通过。
+
+### 当前阶段 13.46
+
+状态：已完成。
+
+目标：
+- PR sticky comment 纳入 support dependency boundary report。
+- CI release lane 分层：repository 跑 fast，frontend 跑 full。
+- OpenAPI implementation 从 starter 迁到 observability support artifact。
+- Command family API 统一命名和返回结构。
+- 刷新 bundle baseline。
+
+修改：
+- 修改 `.github/workflows/ci.yml`
+- 修改 `scripts/ci-release-lane.test.mjs`
+- 修改 `scripts/observability-support-module.test.mjs`
+- 修改 `scripts/observability-support-docs.test.mjs`
+- 修改 `docs/guide/observability-support-split.md`
+- 新增 `ai-assistant-observability-support/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java`
+- 删除 `ai-assistant-server/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java`
+- 修改 `ai-assistant-observability-support/src/test/java/com/aiassistant/observabilitysupport/OpenApiSupportAutoConfigurationTest.java`
+- 修改 `ai-assistant-server/src/test/java/com/aiassistant/autoconfigure/AiAssistantAutoConfigurationTest.java`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.spec.ts`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/ci-release-lane.test.mjs scripts/observability-support-module.test.mjs` 首次失败，证明 CI 尚未接入 fast/full + support report comment，且 OpenAPI implementation 仍在 starter。
+- RED：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts` 首次失败，证明 command family 尚未暴露统一的 `name` / `commandPaletteCommands` API。
+- GREEN：`node --test scripts/ci-release-lane.test.mjs scripts/observability-support-module.test.mjs scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs`：18 个测试通过。
+- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantWorkflowCommands.spec.ts`：3 个测试文件、3 个测试通过。
+- `mvn -pl ai-assistant-observability-support test`：1 个测试通过。
+- `mvn -pl ai-assistant-server test`：621 个测试通过。
+- `node scripts/project-health-check.mjs --release-check-fast`：通过，59 个脚本测试全部通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node scripts/project-health-check.mjs --release-check-full`：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+- `ReadLints` 对本轮修改文件无诊断；`git diff --check` 无空白错误，仅有既有 CRLF/LF 提示。
+
+### 当前阶段 13.47
+
+状态：已完成。
+
+目标：
+- 将 CI PR metrics comment 拼接逻辑从 workflow inline shell 抽成脚本。
+- 补齐 support artifact 中 host-provided `OpenAPI` bean 覆盖测试。
+- 将 panel/session/theme/personalize/keyboard help 纳入 app command family。
+- 用脚本测试固化 CI 去重审计。
+- 完成打包、提交和推送。
+
+修改：
+- 新增 `scripts/ci-metrics-comment.mjs`
+- 新增 `scripts/ci-metrics-comment.test.mjs`
+- 修改 `.github/workflows/ci.yml`
+- 修改 `scripts/ci-release-lane.test.mjs`
+- 修改 `ai-assistant-observability-support/src/test/java/com/aiassistant/observabilitysupport/OpenApiSupportAutoConfigurationTest.java`
+- 新增 `ai-assistant-ui/src/composables/useAssistantAppCommands.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantAppCommands.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useBuiltInCommands.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `findings.md`
+- 修改 `progress.md`
+- 修改 `task_plan.md`
+
+验证：
+- RED：`node --test scripts/ci-metrics-comment.test.mjs scripts/ci-release-lane.test.mjs` 首次失败，原因是缺 `ci-metrics-comment.mjs` 且 workflow 仍 inline 拼接 comment。
+- RED：`npm test -- useAssistantAppCommands.spec.ts useAssistantCommandFamilies.spec.ts` 首次失败，原因是缺 `useAssistantAppCommands` 且 command families 未包含 app family。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/ci-release-lane.test.mjs`：5 个测试通过。
+- GREEN：`npm test -- useAssistantAppCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts`：3 个测试文件、3 个测试通过。
+- `mvn -pl ai-assistant-observability-support test`：2 个测试通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，61 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。

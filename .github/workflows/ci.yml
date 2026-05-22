@@ -52,22 +52,14 @@ jobs:
             node --check "$f"
           done
 
-      - name: Check package version consistency
-        run: node scripts/check-version-consistency.mjs
-
-      - name: Run repo script tests
-        run: node --test scripts/*.test.mjs
+      - name: Run fast release checks
+        # Keeps repository-wide script/OpenAPI/dependency gates in one lane while
+        # the frontend job owns the heavier UI build and bundle baseline checks.
+        run: node scripts/project-health-check.mjs --release-check-fast
 
       - name: Check OpenAPI frontend type sync
         if: github.event_name == 'pull_request'
         run: node scripts/openapi-type-sync-guard.mjs --base "origin/${{ github.base_ref }}" --head HEAD
-
-      - name: Check static OpenAPI generated types
-        if: github.event_name == 'pull_request'
-        run: node scripts/generate-frontend-types.mjs --spec-file docs/api/openapi.json --check
-
-      - name: Check dependency footprint policy
-        run: node scripts/dependency-footprint-check.mjs
 
       - name: Multi-replica config lint
         # K1: warn-only on push to main, strict on PRs targeting main so that
@@ -165,7 +157,7 @@ jobs:
       - name: Type check + Publish Build + Release Check
         # Uses the same release lane documented for local verification. The lane
         # builds ai-assistant-ui before reading dist for bundle-size checks.
-        run: node scripts/project-health-check.mjs --release-check
+        run: node scripts/project-health-check.mjs --release-check-full
 
       - name: Test with coverage
         run: npm run test:coverage
@@ -182,23 +174,23 @@ jobs:
         run: npm run smoke:package
         working-directory: ai-assistant-ui
 
-      - name: Generate PR comment markdown (bundle + coverage)
+      - name: Generate PR comment markdown (bundle + coverage + support dependencies)
         # 仅在 PR 上生成；push 到 main 不发评论。报表写入 .ci-reports/ 供下一步发布。
-        # exit-code 0 复用即可：bundle/coverage 在前面的 step 已分别做硬门槛，
+        # exit-code 0 复用即可：bundle/coverage/support report 在前面的 step 已分别做硬门槛，
         # 这里 || true 是为了即使前面失败仍能展示报表（继续上传 artifact）。
         if: github.event_name == 'pull_request'
         run: |
           mkdir -p .ci-reports
           node scripts/bundle-size-check.mjs --markdown-out .ci-reports/bundle.md --max-delta-percent 10 || true
           node scripts/coverage-check.mjs --markdown-out .ci-reports/coverage.md --max-drop-percent 1.0 || true
-          {
-            echo "<!-- ci-metrics-sticky -->"
-            cat .ci-reports/bundle.md
-            echo ""
-            cat .ci-reports/coverage.md
-            echo ""
-            echo "<sub>Updated by [CI workflow](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) · run #${{ github.run_number }}.</sub>"
-          } > .ci-reports/combined.md
+          node scripts/support-dependency-report.mjs --markdown-out .ci-reports/support-dependencies.md || true
+          node scripts/ci-metrics-comment.mjs \
+            --bundle .ci-reports/bundle.md \
+            --coverage .ci-reports/coverage.md \
+            --support-dependencies .ci-reports/support-dependencies.md \
+            --out .ci-reports/combined.md \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --run-number "${{ github.run_number }}"
 
       - name: Post / update sticky PR comment
         if: github.event_name == 'pull_request'

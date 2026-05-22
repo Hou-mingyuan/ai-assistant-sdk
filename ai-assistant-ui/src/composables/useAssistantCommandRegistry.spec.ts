@@ -8,18 +8,20 @@ describe('useAssistantCommandRegistry', () => {
     const registry = useAssistantCommandRegistry({
       families: [
         {
+          name: 'prompt',
           slashCommands: [
             { name: '/template', description: 'Templates', icon: 'T', action: () => true },
           ],
-          paletteCommands: computed(() => [
+          commandPaletteCommands: computed(() => [
             { id: 'ai.open-prompt-templates', label: 'Templates', action: () => undefined },
           ]),
         },
         {
+          name: 'feature',
           slashCommands: [
             { name: '/memory', description: 'Memory', icon: 'M', action: () => true },
           ],
-          paletteCommands: computed(() => [
+          commandPaletteCommands: computed(() => [
             { id: 'ai.open-plugins', label: 'Plugins', action: () => undefined },
           ]),
         },

@@ -540,3 +540,18 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `useAssistantCommandRegistry` 已支持 generic families 后，prompt / feature family 数组仍留在 `AiAssistant.vue`。新增 `useAssistantCommandFamilies` 和 workflow family 后，diagnostics / sessions / export 也能按 family 管理，后续新增命令族时不再散落拼接逻辑。
 - CI 的 `npm run check:exports` 已被 release-check 内部 `npm run build` 覆盖，因为 package build 末尾会运行 `check:exports`。删除单独 step 后保留 package install smoke check，避免失去安装验证。
 - Release-check 同时承担本地快速确认和 CI 完整 gate 时会变重；`--release-check-fast` / `--release-check-full` 分层后，本地可跳过 UI build / bundle，CI 和发版仍跑完整路径。
+
+### 阶段 13.46 继续推进发现
+
+- OpenAPI implementation 迁到 support artifact 后，starter 不应保留 compatibility shim；否则 starter 会反向依赖 support artifact，破坏“base starter 不默认带 observability support”的边界。保留相同 package name 更适合作为源码兼容缓冲。
+- Repository CI 适合跑 `--release-check-fast` 来覆盖脚本测试、静态 OpenAPI、依赖足迹和 support boundary；frontend CI 再跑 `--release-check-full`，让 UI build / bundle baseline 只由前端 lane 承担。
+- Support dependency report 已有 Markdown 输出，接入 PR sticky comment 后可以和 bundle / coverage 一起展示，不需要新增单独 comment marker。
+- `AssistantCommandFamily` 使用 `commandPaletteCommands` 比 `paletteCommands` 更贴近 prompt / feature / workflow composable 的既有返回名；增加 `name` 后，后续 diagnostics 或 session family 出问题时更容易定位来源。
+- 本轮 UI 源码变化只造成 hash chunk added/removed 噪音和极小 gzip 波动；刷新 bundle baseline 后 release-check 后续会继续聚焦真实体积增长。
+
+### 阶段 13.47 继续推进发现
+
+- PR metrics comment 的 YAML inline shell 已经开始承担“读取文件、拼接 markdown、写 combined report”三件事；抽成 `ci-metrics-comment.mjs` 后，workflow 只负责生成输入 report，拼接格式可以用 Node 单测保护。
+- `OpenAPI` host override 属于 support artifact 的关键兼容契约，测试应放在 support module，而不是 starter auto-configuration suite。
+- App-level command palette entries（panel/session/theme/personalize/keyboard help）与 prompt/feature/workflow 一样适合作为 command family；`useBuiltInCommands` 只保留 palette clear/register watch 后，`AiAssistant.vue` 的命令入口继续变薄。
+- CI 去重不只靠人工审查 workflow，脚本测试可以断言 `Run repo script tests`、静态 OpenAPI 类型检查、dependency footprint 等 step 不再重复出现在 workflow 中。

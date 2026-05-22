@@ -18,10 +18,10 @@ test('observability support quick start is linked from the guide sidebar', async
   assert.match(config, /\/guide\/observability-support-quick-start/)
 })
 
-test('observability split doc records OpenAPI implementation migration pre-study', async () => {
+test('observability split doc records OpenAPI implementation migration status', async () => {
   const doc = await readFile('docs/guide/observability-support-split.md', 'utf8')
 
-  assert.match(doc, /OpenAPI implementation migration pre-study/)
-  assert.match(doc, /move `AiAssistantOpenApiAutoConfiguration`/)
+  assert.match(doc, /OpenAPI implementation migration status/)
+  assert.match(doc, /`AiAssistantOpenApiAutoConfiguration` now lives/)
   assert.match(doc, /compatibility shim/)
 })

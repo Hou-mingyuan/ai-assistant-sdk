@@ -1056,6 +1056,60 @@
 - `node scripts/project-health-check.mjs --release-check-fast`：通过，55 个脚本测试全部通过。
 - `npm test -- useAssistantWorkflowCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：9/9 通过。
 
+### 阶段 13.46 设计
+
+目标是继续完成下一轮优化：
+- 将 support dependency Markdown report 接入 CI PR sticky comment。
+- 将 repository CI 改跑 `--release-check-fast`，frontend CI 改跑 `--release-check-full`，减少重复但保留完整 gate。
+- 将 `AiAssistantOpenApiAutoConfiguration` 实现源码迁入 `ai-assistant-observability-support`，base starter 不再拥有该 implementation。
+- 统一 command family API 命名，所有命令族都暴露 `name`、`slashCommands`、`commandPaletteCommands`。
+- 刷新 bundle baseline，消除本轮 UI build hash chunk 噪音。
+
+结果：
+- `.github/workflows/ci.yml` 的 repository job 新增 fast release lane，frontend job 明确使用 full release lane，PR comment 追加 support dependency boundary section。
+- OpenAPI auto-configuration 源码从 `ai-assistant-server` 移入 `ai-assistant-observability-support`，support slice test 覆盖 title、server 和 security schemes。
+- `useAssistantCommandRegistry` 与 `useAssistantCommandFamilies` 统一使用 `commandPaletteCommands`，并为 prompt / feature / workflow families 增加 `name`。
+- `observability-support-split.md` 从 migration pre-study 更新为 migration status。
+- `scripts/.bundle-size-baseline.json` 已基于当前构建刷新，bundle change summary 为 none / none / none / none。
+
+验证：
+- RED 已观察：CI release lane 测试因缺 fast/full 分层和 support report comment 失败；OpenAPI ownership 测试因 support module 缺源码且 starter 仍有源码失败；command family 测试因缺 `name` 和 `commandPaletteCommands` 失败。
+- GREEN：`node --test scripts/ci-release-lane.test.mjs scripts/observability-support-module.test.mjs scripts/support-dependency-report.test.mjs scripts/project-health-check.test.mjs`：18/18 通过。
+- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts useAssistantWorkflowCommands.spec.ts`：3 个测试文件、3 个测试通过。
+- `mvn -pl ai-assistant-observability-support test`：1/1 通过。
+- `mvn -pl ai-assistant-server test`：621/621 通过。
+- `node scripts/project-health-check.mjs --release-check-fast`：通过，59 个脚本测试全部通过。
+- `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
+- `node scripts/project-health-check.mjs --release-check-full`：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+- `ReadLints` 对本轮修改文件无诊断；`git diff --check` 无空白错误，仅有既有 CRLF/LF 提示。
+
+### 阶段 13.47 设计
+
+目标是继续完成下一轮优化：
+- 把 PR metrics comment 拼接从 workflow inline shell 抽成 `ci-metrics-comment.mjs`。
+- 给 support artifact 补 host-provided `OpenAPI` bean override 测试。
+- 将 app-level command palette 入口纳入 command family。
+- 用 CI release lane 测试固化去重审计。
+- 完成打包、提交和推送。
+
+结果：
+- 新增 `scripts/ci-metrics-comment.mjs`，workflow 只负责生成 bundle / coverage / support dependency report，再调用脚本生成 combined markdown。
+- `OpenApiSupportAutoConfigurationTest` 增加 host `OpenAPI` bean 优先生效的覆盖测试。
+- 新增 `useAssistantAppCommands`，承接 panel/session/theme/personalize/keyboard help palette entries；`useBuiltInCommands` 只保留 clear/register watch。
+- `useAssistantCommandFamilies` 支持 app family，并保持 app / prompt / feature / workflow 的注册顺序。
+- `ci-release-lane.test.mjs` 增加去重审计断言，防止 workflow 重新出现已由 health-check 承担的重复 step。
+
+验证：
+- RED 已观察：缺 `ci-metrics-comment.mjs`、workflow 仍 inline 拼接 comment、缺 app command family 时对应脚本/UI 测试失败。
+- GREEN：`node --test scripts/ci-metrics-comment.test.mjs scripts/ci-release-lane.test.mjs`：5/5 通过。
+- GREEN：`npm test -- useAssistantAppCommands.spec.ts useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts`：3 个测试文件、3 个测试通过。
+- `mvn -pl ai-assistant-observability-support test`：2/2 通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，61 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

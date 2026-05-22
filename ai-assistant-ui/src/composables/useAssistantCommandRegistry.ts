@@ -4,8 +4,9 @@ import type { SlashCommand } from './useSlashCommands';
 import type { CommandItem } from '../types/command-palette';
 
 export interface AssistantCommandFamily {
+  name: string;
   slashCommands?: SlashCommand[];
-  paletteCommands?: ComputedRef<CommandItem[]>;
+  commandPaletteCommands?: ComputedRef<CommandItem[]>;
 }
 
 export interface UseAssistantCommandRegistryOptions {
@@ -15,7 +16,7 @@ export interface UseAssistantCommandRegistryOptions {
 export function useAssistantCommandRegistry(options: UseAssistantCommandRegistryOptions) {
   const slashCommands = options.families.flatMap((family) => family.slashCommands ?? []);
   const commandPaletteExtraCommands = computed(() =>
-    options.families.flatMap((family) => family.paletteCommands?.value ?? []),
+    options.families.flatMap((family) => family.commandPaletteCommands?.value ?? []),
   );
 
   return {

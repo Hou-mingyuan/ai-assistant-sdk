@@ -10,6 +10,7 @@ interface AssistantCommandSource {
 }
 
 export interface UseAssistantCommandFamiliesOptions {
+  appCommands?: AssistantCommandSource;
   promptCommands: AssistantCommandSource;
   featureCommands: AssistantCommandSource;
   workflowCommands?: AssistantCommandSource;
@@ -19,19 +20,31 @@ export function useAssistantCommandFamilies(
   options: UseAssistantCommandFamiliesOptions,
 ): AssistantCommandFamily[] {
   return [
+    ...(options.appCommands
+      ? [
+          {
+            name: 'app',
+            slashCommands: options.appCommands.slashCommands,
+            commandPaletteCommands: options.appCommands.commandPaletteCommands,
+          },
+        ]
+      : []),
     {
+      name: 'prompt',
       slashCommands: options.promptCommands.slashCommands,
-      paletteCommands: options.promptCommands.commandPaletteCommands,
+      commandPaletteCommands: options.promptCommands.commandPaletteCommands,
     },
     {
+      name: 'feature',
       slashCommands: options.featureCommands.slashCommands,
-      paletteCommands: options.featureCommands.commandPaletteCommands,
+      commandPaletteCommands: options.featureCommands.commandPaletteCommands,
     },
     ...(options.workflowCommands
       ? [
           {
+            name: 'workflow',
             slashCommands: options.workflowCommands.slashCommands,
-            paletteCommands: options.workflowCommands.commandPaletteCommands,
+            commandPaletteCommands: options.workflowCommands.commandPaletteCommands,
           },
         ]
       : []),

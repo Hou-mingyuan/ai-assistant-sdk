@@ -6,6 +6,12 @@ import { useAssistantCommandFamilies } from './useAssistantCommandFamilies';
 describe('useAssistantCommandFamilies', () => {
   it('wraps prompt and feature commands into ordered registry families', () => {
     const families = useAssistantCommandFamilies({
+      appCommands: {
+        slashCommands: [],
+        commandPaletteCommands: computed(() => [
+          { id: 'ai.toggle-panel', label: 'Toggle panel', action: () => undefined },
+        ]),
+      },
       promptCommands: {
         slashCommands: [
           { name: '/template', description: 'Templates', icon: 'T', action: () => true },
@@ -30,16 +36,19 @@ describe('useAssistantCommandFamilies', () => {
       },
     });
 
+    expect(families.map((family) => family.name)).toEqual(['app', 'prompt', 'feature', 'workflow']);
     expect(families.map((family) => family.slashCommands?.[0]?.name)).toEqual([
+      undefined,
       '/template',
       '/memory',
       undefined,
     ]);
     expect(
       families.flatMap(
-        (family) => family.paletteCommands?.value.map((command) => command.id) ?? [],
+        (family) => family.commandPaletteCommands?.value.map((command) => command.id) ?? [],
       ),
     ).toEqual([
+      'ai.toggle-panel',
       'ai.open-prompt-templates',
       'ai.open-plugins',
       'ai.open-diagnostics',

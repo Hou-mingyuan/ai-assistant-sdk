@@ -73,19 +73,21 @@ Expected contents:
 - Documentation for exposing `/v3/api-docs` safely.
 - Tests proving host-provided `OpenAPI` beans still win.
 
-## OpenAPI implementation migration pre-study
+## OpenAPI implementation migration status
 
-The next breaking-version candidate is to move `AiAssistantOpenApiAutoConfiguration`
-from the base starter source set into `ai-assistant-observability-support`.
-The current metadata split already proves the support artifact can own import
-registration; moving the implementation class would complete the classpath split.
+`AiAssistantOpenApiAutoConfiguration` now lives in
+`ai-assistant-observability-support` while retaining the package name
+`com.aiassistant.autoconfigure`. This completes the support artifact ownership of
+the OpenAPI implementation and metadata; the base starter no longer compiles or
+imports the implementation class.
 
-Recommended sequence:
+The migration followed the pre-study sequence:
 
 1. Move `AiAssistantOpenApiAutoConfiguration` into the support module and keep
    package name compatibility if possible.
-2. Add a small compatibility shim or migration note for users importing the class
-   directly from starter internals.
+2. Add a migration note for users importing the class directly from starter
+   internals; a compatibility shim would require a reverse dependency from the
+   starter to the support artifact and is intentionally avoided.
 3. Keep `ai-assistant-service` depending on support so standalone OpenAPI behavior
    remains unchanged.
 4. Extend the support module slice test to prove host-provided `OpenAPI` beans
