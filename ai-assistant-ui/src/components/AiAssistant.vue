@@ -1693,6 +1693,16 @@ const commandRegistry = useAssistantCommandRegistry({
     workflowCommands,
   }),
 });
+const importMetaWithEnv = import.meta as ImportMeta & { env?: { DEV?: boolean } };
+watch(
+  commandRegistry.duplicatePaletteCommandIds,
+  (ids) => {
+    if (ids.length > 0 && importMetaWithEnv.env?.DEV) {
+      console.warn('[AiAssistant] Duplicate command palette ids:', ids);
+    }
+  },
+  { immediate: true },
+);
 
 const slashCmd = useSlashCommands({
   input,

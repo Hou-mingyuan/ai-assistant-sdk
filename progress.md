@@ -1646,6 +1646,42 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 当前阶段 13.50
+
+状态：已完成。
+
+目标：
+- 在 `AiAssistant.vue` 中消费 duplicate command palette id 检测结果。
+- 为 command family 增加 `source` / `description` metadata。
+- 新增 release baseline refresh 脚本。
+- 在 support quick start 中补 starter/support POM 示例。
+- 完成打包、提交和推送。
+
+修改：
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandFamilies.spec.ts`
+- 修改 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.ts`
+- 新增 `scripts/frontend-command-registry.test.mjs`
+- 新增 `scripts/refresh-release-baselines.mjs`
+- 新增 `scripts/refresh-release-baselines.test.mjs`
+- 修改 `scripts/observability-support-docs.test.mjs`
+- 修改 `docs/guide/observability-support-quick-start.md`
+- 修改 `scripts/.bundle-size-baseline.json`
+- 修改 `findings.md`
+- 修改 `progress.md`
+- 修改 `task_plan.md`
+
+验证：
+- RED：`npm test -- useAssistantCommandFamilies.spec.ts` 首次失败，证明 command family metadata 缺失。
+- RED：`node --test scripts/frontend-command-registry.test.mjs scripts/refresh-release-baselines.test.mjs scripts/observability-support-docs.test.mjs` 首次失败，证明 UI 未消费 duplicate ids、baseline refresh 脚本缺失、docs 缺 POM 对照。
+- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts`：2 个测试文件、3 个测试通过。
+- GREEN：`node --test scripts/frontend-command-registry.test.mjs scripts/refresh-release-baselines.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-metrics-comment.test.mjs`：8 个测试通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，65 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ### 当前阶段 13.49
 
 状态：已完成。

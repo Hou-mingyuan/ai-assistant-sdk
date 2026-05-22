@@ -37,6 +37,18 @@ describe('useAssistantCommandFamilies', () => {
     });
 
     expect(families.map((family) => family.name)).toEqual(['app', 'prompt', 'feature', 'workflow']);
+    expect(families.map((family) => family.source)).toEqual([
+      'app',
+      'prompt',
+      'feature',
+      'workflow',
+    ]);
+    expect(families.map((family) => family.description)).toEqual([
+      'Application commands',
+      'Prompt commands',
+      'Feature commands',
+      'Workflow commands',
+    ]);
     expect(families.map((family) => family.slashCommands?.[0]?.name)).toEqual([
       undefined,
       '/template',

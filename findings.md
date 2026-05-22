@@ -569,3 +569,9 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `useCommandPaletteRegistration` 的 immediate watch 还需要覆盖动态更新路径；否则 command families 的 computed 输出变化后可能只在首次注册时有效。
 - CI metrics comment 的 marker、report 顺序和 footer 都是 PR comment 更新契约，导出常量并测试后，workflow 和脚本之间的隐性格式约定更可维护。
 - Support quick start 用 “Starter only / With support artifact” 对照说明，比只说 class 迁移更容易解释为什么 starter-only 下 `ai-assistant.openapi.enabled=true` 不会暴露 springdoc endpoints。
+
+### 阶段 13.50 继续推进发现
+
+- duplicate id 检测只有返回值还不够，`AiAssistant.vue` 在开发环境消费后能把 family 组合错误尽早暴露给维护者，同时不影响生产运行。
+- Command family metadata 的 `source` / `description` 可以作为后续调试面板或诊断日志的基础，不需要现在引入更重的 registry 模型。
+- release baseline 刷新已经重复出现，独立脚本 `refresh-release-baselines.mjs` 能把“刷新哪些 baseline”集中维护，后续 coverage/openapi baseline 可按 step 追加。

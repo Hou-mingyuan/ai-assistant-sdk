@@ -41,10 +41,35 @@ When a host only depends on `ai-assistant-spring-boot-starter`, OpenAPI support 
 absent even if `ai-assistant.openapi.enabled=true` is present. This keeps the
 base starter free of springdoc implementation classes.
 
+Starter-only POM:
+
+```xml
+<dependency>
+  <groupId>com.aiassistant</groupId>
+  <artifactId>ai-assistant-spring-boot-starter</artifactId>
+  <version>${ai-assistant.version}</version>
+</dependency>
+```
+
 ### With support artifact
 
 After adding `ai-assistant-observability-support`, the same property imports
 `AiAssistantOpenApiAutoConfiguration` and exposes the springdoc endpoints:
+
+Support-enabled POM:
+
+```xml
+<dependency>
+  <groupId>com.aiassistant</groupId>
+  <artifactId>ai-assistant-spring-boot-starter</artifactId>
+  <version>${ai-assistant.version}</version>
+</dependency>
+<dependency>
+  <groupId>com.aiassistant</groupId>
+  <artifactId>ai-assistant-observability-support</artifactId>
+  <version>${ai-assistant.version}</version>
+</dependency>
+```
 
 ```properties
 ai-assistant.openapi.enabled=true

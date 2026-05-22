@@ -24,6 +24,8 @@ export function useAssistantCommandFamilies(
       ? [
           {
             name: 'app',
+            source: 'app',
+            description: 'Application commands',
             slashCommands: options.appCommands.slashCommands,
             commandPaletteCommands: options.appCommands.commandPaletteCommands,
           },
@@ -31,11 +33,15 @@ export function useAssistantCommandFamilies(
       : []),
     {
       name: 'prompt',
+      source: 'prompt',
+      description: 'Prompt commands',
       slashCommands: options.promptCommands.slashCommands,
       commandPaletteCommands: options.promptCommands.commandPaletteCommands,
     },
     {
       name: 'feature',
+      source: 'feature',
+      description: 'Feature commands',
       slashCommands: options.featureCommands.slashCommands,
       commandPaletteCommands: options.featureCommands.commandPaletteCommands,
     },
@@ -43,6 +49,8 @@ export function useAssistantCommandFamilies(
       ? [
           {
             name: 'workflow',
+            source: 'workflow',
+            description: 'Workflow commands',
             slashCommands: options.workflowCommands.slashCommands,
             commandPaletteCommands: options.workflowCommands.commandPaletteCommands,
           },

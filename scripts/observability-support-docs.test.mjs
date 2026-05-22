@@ -34,6 +34,8 @@ test('public docs point OpenAPI auto-configuration users to the support artifact
   assert.match(quickStart, /base starter no longer ships that\s+implementation/)
   assert.match(quickStart, /Starter only/)
   assert.match(quickStart, /With support artifact/)
+  assert.match(quickStart, /Starter-only POM/)
+  assert.match(quickStart, /Support-enabled POM/)
   assert.match(readme, /Observability support/)
   assert.match(readme, /ai-assistant-observability-support/)
 })

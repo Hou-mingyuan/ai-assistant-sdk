@@ -1159,6 +1159,31 @@
 - `npm run build`（`docs`）：通过。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline；change summary 为 added none / removed none / over budget growth none / shrunk none。
 
+### 阶段 13.50 设计
+
+目标是继续完成下一轮优化：
+- 在 UI 内部消费 `duplicatePaletteCommandIds`，开发环境输出 warning。
+- 为 command families 增加 lightweight metadata：`source` 与 `description`。
+- 新增 `scripts/refresh-release-baselines.mjs`，集中刷新 release baseline。
+- 给 support quick start 补 starter-only 与 support-enabled POM 示例。
+- 完成打包、提交和推送。
+
+结果：
+- `AiAssistant.vue` 监听 `duplicatePaletteCommandIds` 并在 dev 环境输出重复 command id warning。
+- `useAssistantCommandFamilies` 为 app / prompt / feature / workflow family 增加 source 与 description。
+- 新增 `scripts/frontend-command-registry.test.mjs` 和 `scripts/refresh-release-baselines.test.mjs`。
+- 新增 `scripts/refresh-release-baselines.mjs`，当前包含 bundle-size baseline refresh step。
+- `observability-support-quick-start.md` 增加 starter-only 与 support-enabled POM 对照。
+
+验证：
+- RED 已观察：metadata、duplicate id 消费、baseline refresh 脚本、POM 示例缺失时对应测试失败。
+- GREEN：`npm test -- useAssistantCommandFamilies.spec.ts useAssistantCommandRegistry.spec.ts`：3/3 通过。
+- GREEN：`node --test scripts/frontend-command-registry.test.mjs scripts/refresh-release-baselines.test.mjs scripts/observability-support-docs.test.mjs scripts/ci-metrics-comment.test.mjs`：8/8 通过。
+- `node scripts/project-health-check.mjs --release-check-full`：通过，65 个脚本测试通过。
+- `mvn package`：通过。
+- `npm run build`（`docs`）：通过。
+- `node scripts/refresh-release-baselines.mjs`：通过，bundle change summary 为 added none / removed none / over budget growth none / shrunk none。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

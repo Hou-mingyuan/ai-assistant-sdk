@@ -5,6 +5,8 @@ import type { CommandItem } from '../types/command-palette';
 
 export interface AssistantCommandFamily {
   name: string;
+  source?: string;
+  description?: string;
   slashCommands?: SlashCommand[];
   commandPaletteCommands?: ComputedRef<CommandItem[]>;
 }
