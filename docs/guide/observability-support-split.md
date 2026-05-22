@@ -24,6 +24,9 @@ starter still contains the implementation class so existing source references
 remain stable, but hosts must add the support artifact to auto-import it.
 The support artifact also brings `springdoc-openapi-starter-webmvc-ui`, so hosts
 do not need to remember a second OpenAPI dependency.
+Tracing and structured logging bridge dependencies are present as optional
+dependencies; hosts still opt in by configuring Micrometer tracing exporters or
+Logstash logging in their own runtime.
 
 - `core-only` path keeps proving base chat wiring starts without OpenAPI,
   tracing, logstash, Redis, JDBC, or Playwright classes.
@@ -62,7 +65,7 @@ com.aiassistant:ai-assistant-observability-support
 Expected contents:
 
 - Observability auto-configuration imports.
-- Springdoc / tracing / logstash optional dependency bridge.
+- Springdoc dependency and tracing / logstash optional dependency bridge.
 - Documentation for exposing `/v3/api-docs` safely.
 - Tests proving host-provided `OpenAPI` beans still win.
 

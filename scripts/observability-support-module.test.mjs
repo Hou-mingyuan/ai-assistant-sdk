@@ -32,8 +32,25 @@ test('observability support module brings springdoc for OpenAPI support', async 
   assert.match(pom, /<artifactId>springdoc-openapi-starter-webmvc-ui<\/artifactId>/)
 })
 
+test('observability support module documents optional tracing and structured logging bridges', async () => {
+  const pom = await readFile('ai-assistant-observability-support/pom.xml', 'utf8')
+
+  assert.match(pom, /<artifactId>micrometer-tracing-bridge-otel<\/artifactId>[\s\S]*?<optional>true<\/optional>/)
+  assert.match(pom, /<artifactId>opentelemetry-exporter-otlp<\/artifactId>[\s\S]*?<optional>true<\/optional>/)
+  assert.match(pom, /<artifactId>logstash-logback-encoder<\/artifactId>[\s\S]*?<optional>true<\/optional>/)
+})
+
 test('standalone service keeps OpenAPI support by depending on the support artifact', async () => {
   const pom = await readFile('ai-assistant-service/pom.xml', 'utf8')
 
   assert.match(pom, /<artifactId>ai-assistant-observability-support<\/artifactId>/)
+})
+
+test('standalone service relies on support artifact instead of direct springdoc wiring', async () => {
+  const servicePom = await readFile('ai-assistant-service/pom.xml', 'utf8')
+  const supportPom = await readFile('ai-assistant-observability-support/pom.xml', 'utf8')
+
+  assert.doesNotMatch(servicePom, /<artifactId>springdoc-openapi-starter-webmvc-ui<\/artifactId>/)
+  assert.match(servicePom, /<artifactId>ai-assistant-observability-support<\/artifactId>/)
+  assert.match(supportPom, /<artifactId>springdoc-openapi-starter-webmvc-ui<\/artifactId>/)
 })

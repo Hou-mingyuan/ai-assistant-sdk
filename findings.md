@@ -517,3 +517,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - 最小 Java slice test 放在 support module 内，可以验证 support artifact 的依赖边界和 `AiAssistantOpenApiAutoConfiguration` wiring；脚本测试继续负责 metadata ownership。
 - `/template` 和 prompt library palette entry 属于同一 prompt 命令族，迁移到 `useAssistantPromptCommands` 后，`AiAssistant.vue` 只组合 feature commands 与 prompt commands，不再维护模板命令细节。
 - 本轮刷新 bundle baseline 后，release-check 的新增/删除 hash chunk 噪音归零；后续 bundle-size 摘要会更聚焦真实增长。
+
+### 阶段 13.43 继续推进发现
+
+- Support artifact 自带 springdoc 后，tracing/logstash 适合先作为 optional dependency bridge，而不是立即改变运行时自动配置；这能表达 artifact 边界，同时不强迫宿主启用 tracing/exporter/logstash。
+- Standalone service 不需要直接依赖 springdoc；它依赖 support artifact 即可获得 OpenAPI support classpath，脚本 guard 可以防止未来又把 springdoc 直接塞回 service。
+- `useAssistantCommandRegistry` 的价值是把“命令族怎么合并”从 `AiAssistant.vue` 拿走。后续新增命令时，应优先在 prompt/feature command composable 内扩展，再由 registry 组合。
+- Release-check 新增 bundle-size lane 后，必须把“先 build UI，再 release-check”写进文档；否则干净工作区直接运行会因为 dist 不存在而失败。

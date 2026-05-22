@@ -53,7 +53,12 @@ node scripts/bundle-composition-report.mjs
 node scripts/project-health-check.mjs --release-check
 ```
 
-当前该 lane 会执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、bundle-size 变化摘要和包体归因报告。`bundle-size-check` 读取已构建的 `ai-assistant-ui/dist`，因此本地 release-check 前应先运行前端 build。
+当前该 lane 会执行版本一致性、脚本单测、静态 OpenAPI 类型比对、依赖足迹策略检查、bundle-size 变化摘要和包体归因报告。`bundle-size-check` 读取已构建的 `ai-assistant-ui/dist`，因此本地和 CI 都应按顺序先运行前端 build，再运行 release-check：
+
+```bash
+cd ai-assistant-ui && npm run build
+cd .. && node scripts/project-health-check.mjs --release-check
+```
 
 ## 何时继续拆分
 

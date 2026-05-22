@@ -976,6 +976,28 @@
 - `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，更新 111 个文件 baseline。
 
+### 阶段 13.43 设计
+
+目标是继续完成用户要求的 4 项：
+- Observability support 增加 tracing/logstash optional dependency guard。
+- Standalone service 的 OpenAPI support 继续通过 support artifact 验证。
+- 抽出命令组合层，减少 `AiAssistant.vue` 里手动拼接 slash/palette commands。
+- 明确 release-check 的 build 顺序文档。
+
+结果：
+- `ai-assistant-observability-support/pom.xml` 增加 `micrometer-tracing-bridge-otel`、`opentelemetry-exporter-otlp`、`logstash-logback-encoder` optional dependencies。
+- `observability-support-module.test.mjs` 增加 optional tracing/logstash guard，以及 standalone service 不直接依赖 springdoc 的验证。
+- 新增 `useAssistantCommandRegistry.ts` 与测试，统一组合 feature/prompt 的 slash commands 与 command palette extra commands。
+- `AiAssistant.vue` 改为使用 `useAssistantCommandRegistry`，不再直接拼接 `extraCommands` 和 palette extra commands。
+- `dependency-footprint.md` 增加 release-check 前先 build UI 的本地/CI 顺序。
+- `observability-support-split.md` 补充 support artifact 当前自带 springdoc、tracing/logstash optional bridge 的说明。
+
+验证：
+- RED 已观察：support guard 缺 optional dependency 失败；command registry spec 缺模块失败。
+- `node --test scripts/observability-support-module.test.mjs`：7/7 通过。
+- `npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：7/7 通过。
+- `mvn -pl ai-assistant-observability-support test`：1/1 通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

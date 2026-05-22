@@ -1411,3 +1411,32 @@ release）真正闭环、落地，并补 a11y 兜底。
 - GREEN：`mvn -pl ai-assistant-observability-support test`：1 个测试通过。
 - `npm run build`（`ai-assistant-ui`）：通过，Package export check OK（27 paths）。
 - `node scripts/bundle-size-check.mjs --update-baseline`：完成，写入 111 个文件 baseline。
+
+### 当前阶段 13.43
+
+状态：已完成。
+
+目标：
+- 给 observability support 增加 tracing/logstash optional dependency guard。
+- 继续验证 standalone service 通过 support artifact 获得 OpenAPI support。
+- 抽出命令组合 registry。
+- 补 release-check 运行顺序文档。
+
+修改：
+- 修改 `ai-assistant-observability-support/pom.xml`
+- 修改 `scripts/observability-support-module.test.mjs`
+- 新增 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantCommandRegistry.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `docs/guide/observability-support-split.md`
+- 修改 `docs/guide/dependency-footprint.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/observability-support-module.test.mjs` 首次失败，缺少 tracing/logstash optional dependencies。
+- RED：`npm test -- useAssistantCommandRegistry.spec.ts` 首次失败，缺少模块。
+- GREEN：`node --test scripts/observability-support-module.test.mjs`：7/7 通过。
+- GREEN：`npm test -- useAssistantCommandRegistry.spec.ts useAssistantPromptCommands.spec.ts useAssistantFeatureCommands.spec.ts`：3 个测试文件、7 个测试通过。
+- GREEN：`mvn -pl ai-assistant-observability-support test`：1 个测试通过。

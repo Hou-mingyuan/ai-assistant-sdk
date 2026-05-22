@@ -727,6 +727,7 @@ import { useQuickPromptOptions } from '../composables/useQuickPromptOptions';
 import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
 import { useAssistantPromptCommands } from '../composables/useAssistantPromptCommands';
 import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureCommands';
+import { useAssistantCommandRegistry } from '../composables/useAssistantCommandRegistry';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1666,10 +1667,12 @@ const featureCommands = useAssistantFeatureCommands({
     void formAutoFill.triggerFromText(text);
   },
 });
-const commandPaletteExtraCommands = computed(() => [
-  ...promptCommands.commandPaletteCommands.value,
-  ...featureCommands.commandPaletteCommands.value,
-]);
+const commandRegistry = useAssistantCommandRegistry({
+  featureSlashCommands: featureCommands.slashCommands,
+  promptSlashCommands: promptCommands.slashCommands,
+  featurePaletteCommands: featureCommands.commandPaletteCommands,
+  promptPaletteCommands: promptCommands.commandPaletteCommands,
+});
 
 const slashCmd = useSlashCommands({
   input,
@@ -1678,7 +1681,7 @@ const slashCmd = useSlashCommands({
   onNewSession: () => startNewSession(),
   onExport: () => toggleBatchExportMenu(),
   onChangeMode: (m) => onChangeMode(m),
-  extraCommands: [...featureCommands.slashCommands, ...promptCommands.slashCommands],
+  extraCommands: commandRegistry.slashCommands,
 });
 
 function onSlashKeydown(e: KeyboardEvent) {
@@ -2480,7 +2483,7 @@ useBuiltInCommands({
   kbPanelOpen,
   keyboardHelpOpen,
   cmdPalette,
-  extraCommands: commandPaletteExtraCommands,
+  extraCommands: commandRegistry.commandPaletteExtraCommands,
 });
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });
