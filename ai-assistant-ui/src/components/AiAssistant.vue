@@ -726,6 +726,7 @@ import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrar
 import { useQuickPromptOptions } from '../composables/useQuickPromptOptions';
 import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
 import { useAssistantPromptCommands } from '../composables/useAssistantPromptCommands';
+import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureCommands';
 import { useMermaidRenderer } from '../composables/useMermaidRenderer';
 /* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
 import {
@@ -1592,11 +1593,8 @@ watch(
 );
 /* K21 Phase 1: kbNewName / kbFileInputRef / kbUploadTargetId / addMemoryItem /
  * createKb / onKbFileSelect / triggerKbUpload all moved into
- * AssistantInlineOverlays.vue. We keep the *toggle* functions here because the
- * Settings popover menu actions still reference them by name. */
-function toggleKbPanel() {
-  kbPanelOpen.value = !kbPanelOpen.value;
-}
+ * AssistantInlineOverlays.vue. We keep memory toggle here because keyboard
+ * shortcuts still reference it by name. */
 function toggleMemoryPanel() {
   memoryOpen.value = !memoryOpen.value;
 }
@@ -1653,6 +1651,23 @@ const formAutoFillToastText = computed(() => {
   return tpl.replace('{filled}', String(s.filled)).replace('{failed}', String(s.failed));
 });
 
+const featureCommands = useAssistantFeatureCommands({
+  t,
+  input,
+  memoryOpen,
+  kbPanelOpen,
+  pluginsPanelOpen,
+  formAutoFillEnabled,
+  openMultiModelCompare,
+  triggerFormAutoFill: (text) => {
+    void formAutoFill.triggerFromText(text);
+  },
+});
+const commandPaletteExtraCommands = computed(() => [
+  ...promptCommands.commandPaletteCommands.value,
+  ...featureCommands.commandPaletteCommands.value,
+]);
+
 const slashCmd = useSlashCommands({
   input,
   t: computed(() => t.value) as unknown as Ref<I18nMessages>,
@@ -1661,50 +1676,7 @@ const slashCmd = useSlashCommands({
   onExport: () => toggleBatchExportMenu(),
   onChangeMode: (m) => onChangeMode(m),
   extraCommands: [
-    {
-      name: '/memory',
-      get description() {
-        return t.value.memoryLabel || '记忆管理';
-      },
-      icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
-      action: () => {
-        toggleMemoryPanel();
-        return true;
-      },
-    },
-    {
-      name: '/kb',
-      get description() {
-        return t.value.kbLabel || '知识库';
-      },
-      icon: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z',
-      action: () => {
-        toggleKbPanel();
-        return true;
-      },
-    },
-    {
-      name: '/plugins',
-      get description() {
-        return t.value.pluginsLabel || '插件管理';
-      },
-      icon: 'M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 3v8h8V3H3zm13.66-1.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65z',
-      action: () => {
-        pluginsPanelOpen.value = !pluginsPanelOpen.value;
-        return true;
-      },
-    },
-    {
-      name: '/compare',
-      get description() {
-        return t.value.slashCmdCompareDesc || t.value.compareTitle || 'Compare models';
-      },
-      icon: 'M3 5h7v14H3V5zm11 0h7v6h-7V5zm0 8h7v6h-7v-6z',
-      action: () => {
-        openMultiModelCompare();
-        return true;
-      },
-    },
+    ...featureCommands.slashCommands,
     {
       name: '/template',
       get description() {
@@ -1716,22 +1688,6 @@ const slashCmd = useSlashCommands({
         return true;
       },
     },
-    ...(formAutoFillEnabled.value
-      ? [
-          {
-            name: '/fill',
-            get description() {
-              return t.value.slashCmdFillDesc || 'Auto-fill form fields from clipboard pairs';
-            },
-            icon: 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 12h8v2H8zm0 4h5v2H8z',
-            action: () => {
-              const buf = input.value.replace(/^\/fill\b\s*/i, '').trim();
-              void formAutoFill.triggerFromText(buf);
-              return true;
-            },
-          },
-        ]
-      : []),
   ],
 });
 
@@ -2534,7 +2490,7 @@ useBuiltInCommands({
   kbPanelOpen,
   keyboardHelpOpen,
   cmdPalette,
-  extraCommands: promptCommands.commandPaletteCommands,
+  extraCommands: commandPaletteExtraCommands,
 });
 
 defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });

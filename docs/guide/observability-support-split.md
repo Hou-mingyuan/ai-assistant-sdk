@@ -18,8 +18,10 @@ should stay on their own split plans.
 
 ## Compatibility Plan
 
-For v1.x, keep existing behavior and dependencies compatible. The first
-observable step is verification, not removal:
+The first migration step is now in place: `ai-assistant-observability-support`
+owns the Spring Boot auto-configuration metadata for OpenAPI support. The
+starter still contains the implementation class so existing source references
+remain stable, but hosts must add the support artifact to auto-import it.
 
 - `core-only` path keeps proving base chat wiring starts without OpenAPI,
   tracing, logstash, Redis, JDBC, or Playwright classes.
@@ -27,6 +29,25 @@ observable step is verification, not removal:
   explicitly enabled and support classes are present.
 - Standalone service can keep depending on the full feature set so batteries
   included behavior remains unchanged.
+
+## Maven Usage
+
+Starter hosts that want generated OpenAPI metadata should add the support
+artifact alongside the starter and keep `ai-assistant.openapi.enabled=true`
+explicit:
+
+```xml
+<dependency>
+  <groupId>com.aiassistant</groupId>
+  <artifactId>ai-assistant-spring-boot-starter</artifactId>
+  <version>${ai-assistant.version}</version>
+</dependency>
+<dependency>
+  <groupId>com.aiassistant</groupId>
+  <artifactId>ai-assistant-observability-support</artifactId>
+  <version>${ai-assistant.version}</version>
+</dependency>
+```
 
 ## Future Module Shape
 

@@ -1346,3 +1346,35 @@ release）真正闭环、落地，并补 a11y 兜底。
 - `npx vue-tsc --noEmit`：通过。
 - `ReadLints` 对本轮改动文件无诊断。
 - `mvn -pl ai-assistant-observability-support test` 未完成：Maven 卡在依赖下载，已停止；没有执行 Maven package。
+
+### 当前阶段 13.41
+
+状态：已完成。
+
+目标：
+- Observability support artifact 继续迁移 OpenAPI auto-configuration metadata。
+- 清理 line-ending-only 噪音。
+- 继续收拢 feature slash command 与 command palette action。
+- 让 release-check 输出 bundle-size 变化摘要。
+
+修改：
+- 修改 `ai-assistant-server/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- 修改 `ai-assistant-service/pom.xml`
+- 修改 `scripts/observability-support-module.test.mjs`
+- 修改 `docs/guide/observability-support-split.md`
+- 新增 `ai-assistant-ui/src/composables/useAssistantFeatureCommands.ts`
+- 新增 `ai-assistant-ui/src/composables/useAssistantFeatureCommands.spec.ts`
+- 修改 `ai-assistant-ui/src/components/AiAssistant.vue`
+- 修改 `scripts/project-health-check.mjs`
+- 修改 `docs/guide/dependency-footprint.md`
+- 修改 `task_plan.md`
+- 修改 `findings.md`
+- 修改 `progress.md`
+
+验证：
+- RED：`node --test scripts/observability-support-module.test.mjs` 首次 2/4 失败，证明 starter metadata 仍直接导入 OpenAPI 且 standalone service 未显式依赖 support artifact。
+- GREEN：`node --test scripts/observability-support-module.test.mjs`：4/4 通过。
+- RED：`npm test -- useAssistantFeatureCommands.spec.ts` 首次失败，缺少模块。
+- GREEN：`npm test -- useAssistantFeatureCommands.spec.ts useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：4 个测试文件、7 个测试通过。
+- `npx vue-tsc --noEmit` 首次失败，发现 form-fill action 返回 `Promise<boolean>` 不匹配；修正为 `void formAutoFill.triggerFromText(text)` 后通过。
+- `git add -u` 后，上一轮 42 个 line-ending-only 状态清理为工作区干净，没有产生单独行尾提交。

@@ -931,6 +931,29 @@
 - `ReadLints` 对本轮改动文件无诊断。
 - `mvn -pl ai-assistant-observability-support test` 未完成：卡在 Maven 依赖下载，已停止；本轮未执行 Maven package。
 
+### 阶段 13.41 设计
+
+目标是把用户确认的下一轮 4 项全部做完：
+- Observability support artifact 继续迁移 OpenAPI auto-configuration metadata，starter 默认 metadata 不再直接导入 OpenAPI support。
+- 清理上一轮遗留的 line-ending-only 工作区噪音，避免继续污染 review。
+- 继续收拢 slash command 与 command palette 的 feature action 定义。
+- 让 `project-health-check --release-check` 输出 bundle-size 变化摘要。
+
+结果：
+- `ai-assistant-server` 的 `AutoConfiguration.imports` 移除 `AiAssistantOpenApiAutoConfiguration`，由 `ai-assistant-observability-support` artifact metadata 承接。
+- `ai-assistant-service` 增加 `ai-assistant-observability-support` 依赖，保持 standalone service 的 OpenAPI support 开箱行为。
+- `observability-support-split.md` 增加 Maven 使用方式和当前迁移状态。
+- 新增 `useAssistantFeatureCommands.ts` 与测试，把 memory、KB、plugins、compare、form-fill 的 slash command / command palette action 集中管理。
+- `AiAssistant.vue` 改为从 `useAssistantFeatureCommands` 注入 extra slash commands，并把 prompt + feature palette commands 合并后交给 `useBuiltInCommands`。
+- `project-health-check --release-check` 纳入 `bundle-size-check` lane，输出新增/删除/增长/缩小摘要；`dependency-footprint.md` 同步说明 release-check 前需有已构建 dist。
+- 执行 `git add -u` 后，上一轮 42 个 line-ending-only 状态清理为工作区干净；没有产生可提交内容。
+
+验证：
+- RED 已观察：`observability-support-module.test.mjs` 因 starter metadata 仍导入 OpenAPI、service 缺 support 依赖失败；`useAssistantFeatureCommands.spec.ts` 因缺少模块失败；`vue-tsc` 首次发现 form-fill action 返回 `Promise<boolean>` 类型不匹配。
+- `node --test scripts/observability-support-module.test.mjs`：4/4 通过。
+- `npm test -- useAssistantFeatureCommands.spec.ts useAssistantPromptCommands.spec.ts useQuickPromptOptions.spec.ts usePromptTemplateInteraction.spec.ts`：7/7 通过。
+- `npx vue-tsc --noEmit`：通过。
+
 ## 错误记录
 
 | 时间 | 问题 | 原因 | 处理 |

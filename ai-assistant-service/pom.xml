@@ -30,6 +30,11 @@
             <artifactId>ai-assistant-spring-boot-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.aiassistant</groupId>
+            <artifactId>ai-assistant-observability-support</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

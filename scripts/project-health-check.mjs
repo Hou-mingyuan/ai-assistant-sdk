@@ -12,8 +12,8 @@ const runUiTests = args.has('--ui-test') || args.has('--all')
 const runServerTests = args.has('--server-test') || args.has('--all')
 const runPlaygroundBuild = args.has('--playground-build') || args.has('--all')
 const runE2eTests = args.has('--e2e') || args.has('--all')
-/* I4: 集成 F2 bundle-size-check 作为可选 lane。需要 ai-assistant-ui/dist 已构建 */
-const runBundleSize = args.has('--bundle') || args.has('--all')
+/* I4/K63: bundle-size-check 作为可选 lane；release-check 会在已构建 dist 上输出变化摘要 */
+const runBundleSize = args.has('--bundle') || runReleaseCheck || args.has('--all')
 /* J2: 集成 coverage-check 作为可选 lane。--all 时会先跑 test:coverage 生成 summary */
 const runCoverage = args.has('--coverage') || args.has('--all')
 /* K1: 多实例配置 lint：扫 .env / compose / helm 检查 in-process state 与 replicas>1 冲突 */

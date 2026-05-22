@@ -502,3 +502,10 @@ README 中的 API 接口文档包含聊天、模型列表、流式输出、文�
 - `useBuiltInCommands` 以前每次 watch 都会 `clear()` 后重新注册 built-in commands，因此外部单独 register 的 prompt commands 会被覆盖；新增 `extraCommands` 比在组件里手动补 register 更稳定。
 - OpenAPI refresh dry-run 失败时只说 stale 不够定位；path/schema key 的新增删除已经能覆盖大多数 release drift 判断，字段级差异保留给 review diff。
 - Bundle baseline review 最常见的问题是“不知道变化来自新增 chunk、删除 chunk 还是已有 chunk 变胖”，新增/删除/增长/缩小摘要比只看 top table 更容易审查。
+
+### 阶段 13.41 继续推进发现
+
+- OpenAPI support 的安全迁移点是 metadata 归属，不是立即删除 implementation class。将 starter metadata 移除、support metadata 保留、standalone service 显式依赖 support，可以同时实现“core starter 默认更轻”和“独立服务行为不变”。
+- Line-ending-only 噪音在本轮 `git add -u` 后不再出现在工作区状态里，说明这些差异只是 Git 触碰时的 CRLF/LF 归一化提示，没有需要单独提交的实际内容。
+- Slash command 和 command palette 的重复主要集中在 feature panel actions。新增 `useAssistantFeatureCommands` 后，plugins / compare / form-fill 的 palette 入口和 slash 入口共享同一组 action，后续 memory / KB 内置 palette 也可以按同样方向继续收敛。
+- `project-health-check --release-check` 接入 bundle-size lane 后会依赖已构建的 `ai-assistant-ui/dist`。这符合 release 前先 build 再 check 的使用方式，但文档必须写清楚，避免在干净仓库直接跑 release-check 误以为失败。
