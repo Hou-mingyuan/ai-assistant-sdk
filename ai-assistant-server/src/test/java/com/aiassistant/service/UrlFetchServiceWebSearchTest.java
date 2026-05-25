@@ -274,6 +274,37 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void searchWebDeduplicatesSourcesIgnoringTrackingQueryStrings() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">First summary</a>
+                                    <a class="result__snippet">Tracked summary</a>
+                                    <a class="result__a" href="https://dup.example/news?id=1&utm_source=a">
+                                      First result
+                                    </a>
+                                    <a class="result__a" href="https://dup.example/news?id=1&utm_source=b">
+                                      Tracked result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("duplicate query");
+
+        assertThat(result.resultCount()).isEqualTo(1);
+        assertThat(result.markdown()).contains("First result").doesNotContain("Tracked result");
+    }
+
+    @Test
     void searchWebPrioritizesHigherQualitySourcesAndExposesPreviewCards() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

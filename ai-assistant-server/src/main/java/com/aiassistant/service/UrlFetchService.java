@@ -532,7 +532,7 @@ public class UrlFetchService {
                 content = safeSearchSnippet(content);
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
-                if (!seenUrls.add(url)) continue;
+                if (!seenUrls.add(canonicalSearchSourceKey(url))) continue;
                 if (!isSearchSourceDomainAllowed(url)) continue;
                 SearchQuality quality = scoreSearchSource(title, url, content);
                 sourceUrls.add(url);
@@ -583,7 +583,7 @@ public class UrlFetchService {
             String url = normalizeDuckDuckGoUrl(stripTags(lm.group(1)).trim());
             String title = stripTags(lm.group(2)).trim();
             if (url.isBlank() || title.isBlank()) continue;
-            if (!seenUrls.add(url)) continue;
+            if (!seenUrls.add(canonicalSearchSourceKey(url))) continue;
             if (!isSearchSourceDomainAllowed(url)) continue;
             String snippet = hits.size() < snippets.size() ? safeSearchSnippet(snippets.get(hits.size())) : "";
             SearchQuality quality = scoreSearchSource(title, url, snippet);
@@ -745,6 +745,26 @@ public class UrlFetchService {
         }
         List<String> allowed = parseDomainList(properties.getUrlFetch().getWebSearchAllowedDomains());
         return allowed.isEmpty() || allowed.stream().anyMatch(host::endsWith);
+    }
+
+    private static String canonicalSearchSourceKey(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            String query = uri.getRawQuery();
+            String stableQuery = "";
+            if (query != null) {
+                stableQuery =
+                        java.util.Arrays.stream(query.split("&"))
+                                .filter(part -> !part.toLowerCase(Locale.ROOT).startsWith("utm_"))
+                                .sorted()
+                                .collect(java.util.stream.Collectors.joining("&"));
+            }
+            return host + path + (stableQuery.isBlank() ? "" : "?" + stableQuery);
+        } catch (Exception ignored) {
+            return url == null ? "" : url;
+        }
     }
 
     private static List<String> parseDomainList(String raw) {

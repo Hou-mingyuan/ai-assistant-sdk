@@ -18,6 +18,8 @@ describe('useDiagnosticsClipboard', () => {
       selectedModel: 'deepseek-chat',
       modelSourceText: 'server',
       modelStatusText: 'ready',
+      webSearchDiagnosticsText: 'tavily · configured · 5 · probe ok',
+      webSearchStats: { attempts: 3, successes: 2, fallbacks: 1, averageDurationMs: 88 },
       modelCount: 2,
       lastChecked: '2026-05-21 17:00',
     });
@@ -25,6 +27,8 @@ describe('useDiagnosticsClipboard', () => {
     expect(text).toContain('AI Assistant Diagnostics');
     expect(text).toContain('Base URL: /ai-assistant');
     expect(text).toContain('Access token: configured');
+    expect(text).toContain('Web search: tavily · configured · 5 · probe ok');
+    expect(text).toContain('Web search stats: 2/3 ok, 1 fallback, 88ms avg');
     expect(text).toContain('Available models: 2');
   });
 

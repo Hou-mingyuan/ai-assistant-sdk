@@ -107,6 +107,8 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
       selectedModel: selectedChatModel.value,
       modelSourceText: modelSourceText.value,
       modelStatusText: modelStatusText.value,
+      webSearchDiagnosticsText: webSearchDiagnosticsText.value,
+      webSearchStats: webSearchStats.value,
       modelCount: modelChoices.value.length,
       lastChecked: diagnosticsLastChecked.value,
     }),

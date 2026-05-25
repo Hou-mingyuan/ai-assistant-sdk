@@ -14,6 +14,8 @@ export interface DiagnosticsSnapshot {
   selectedModel: string;
   modelSourceText: string;
   modelStatusText: string;
+  webSearchDiagnosticsText?: string;
+  webSearchStats?: Record<string, number> | null;
   modelCount: number;
   lastChecked: string;
 }
@@ -36,9 +38,18 @@ export function buildDiagnosticsText(snapshot: DiagnosticsSnapshot) {
     `Selected model: ${snapshot.selectedModel || '(not selected)'}`,
     `Model source: ${snapshot.modelSourceText}`,
     `Model status: ${snapshot.modelStatusText}`,
+    `Web search: ${snapshot.webSearchDiagnosticsText || '(not checked)'}`,
+    `Web search stats: ${formatWebSearchStats(snapshot.webSearchStats)}`,
     `Available models: ${snapshot.modelCount}`,
     `Last checked: ${snapshot.lastChecked || '(never)'}`,
   ].join('\n');
+}
+
+function formatWebSearchStats(stats?: Record<string, number> | null) {
+  if (!stats?.attempts) return '(none)';
+  return `${stats.successes ?? 0}/${stats.attempts} ok, ${stats.fallbacks ?? 0} fallback, ${
+    stats.averageDurationMs ?? 0
+  }ms avg`;
 }
 
 export function useDiagnosticsClipboard(opts: UseDiagnosticsClipboardOptions) {
