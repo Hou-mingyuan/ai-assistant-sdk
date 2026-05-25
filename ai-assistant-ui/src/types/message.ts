@@ -82,6 +82,7 @@ export interface Message {
     webSearchProvider?: string;
     webSearchFallback?: boolean;
     webSearchResultCount?: number;
+    webSearchSourceUrls?: string[];
     elapsedMs?: number;
     ttftMs?: number;
     retried?: boolean;

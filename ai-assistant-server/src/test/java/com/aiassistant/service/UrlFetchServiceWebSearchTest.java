@@ -67,6 +67,7 @@ class UrlFetchServiceWebSearchTest {
                 .contains("Stable result")
                 .contains("https://example.com/stable")
                 .contains("Fresh indexed summary");
+        assertThat(result.sourceUrls()).containsExactly("https://example.com/stable");
         assertThat(httpClient.requests()).hasSize(1);
         assertThat(httpClient.requests().get(0).method()).isEqualTo("POST");
     }
@@ -104,6 +105,7 @@ class UrlFetchServiceWebSearchTest {
                 .contains("Fallback result")
                 .contains("https://fallback.example/news")
                 .contains("Fallback summary");
+        assertThat(result.sourceUrls()).containsExactly("https://fallback.example/news");
         assertThat(httpClient.requests()).hasSize(2);
         assertThat(httpClient.requests().get(0).method()).isEqualTo("POST");
         assertThat(httpClient.requests().get(1).method()).isEqualTo("GET");

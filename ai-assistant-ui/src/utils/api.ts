@@ -97,6 +97,7 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   if (!headers) return undefined;
   const visionInputCountRaw = headers.get('X-AI-Vision-Input-Count');
   const webSearchResultCountRaw = headers.get('X-AI-Web-Search-Result-Count');
+  const webSearchSourceUrlsRaw = headers.get('X-AI-Web-Search-Source-Urls');
   const meta: ChatRuntimeMeta = {
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
@@ -113,8 +114,26 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
           ? false
           : undefined,
     webSearchResultCount: webSearchResultCountRaw ? Number(webSearchResultCountRaw) : undefined,
+    webSearchSourceUrls: parseEncodedHeaderList(webSearchSourceUrlsRaw),
   };
   return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
+}
+
+function parseEncodedHeaderList(raw?: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  const values = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      try {
+        return decodeURIComponent(part);
+      } catch {
+        return part;
+      }
+    })
+    .filter(Boolean);
+  return values.length ? values : undefined;
 }
 
 const DEFAULT_TIMEOUT_MS = 60_000;

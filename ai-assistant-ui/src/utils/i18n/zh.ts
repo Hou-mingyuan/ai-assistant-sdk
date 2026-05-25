@@ -260,6 +260,7 @@ export const zh: I18nMessages = {
   responseMetaWebSearchFallback: '搜索降级',
   responseMetaWebSearchResult: '条结果',
   responseMetaWebSearchResults: '条结果',
+  responseMetaWebSearchSource: '来源',
   responseMetaMoreLabel: '更多详情',
   responseMetaHideLabel: '收起详情',
   settingsLabel: '设置',

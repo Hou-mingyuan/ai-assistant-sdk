@@ -252,6 +252,33 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_returnsTopWebSearchSourceUrlsHeader() {
+        when(urlFetchService.searchWeb("current news"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "# 联网搜索结果\n来源：Tavily\n1. Result",
+                                "Tavily",
+                                false,
+                                2,
+                                Instant.parse("2026-05-25T04:00:00Z"),
+                                java.util.List.of(
+                                        "https://example.com/a",
+                                        "https://example.com/b?x=1&y=2")));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("current news");
+        req.setAction("chat");
+        req.setWebSearch(true);
+
+        var response = controller.stream(req);
+
+        assertEquals(
+                "https%3A%2F%2Fexample.com%2Fa,https%3A%2F%2Fexample.com%2Fb%3Fx%3D1%26y%3D2",
+                response.getHeaders().getFirst("X-AI-Web-Search-Source-Urls"));
+    }
+
+    @Test
     void stream_reportsWebSearchAttemptEvenWhenNoResultsAreFound() {
         when(urlFetchService.searchWeb("rare topic"))
                 .thenReturn(

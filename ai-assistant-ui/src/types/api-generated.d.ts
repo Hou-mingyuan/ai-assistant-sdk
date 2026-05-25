@@ -1733,6 +1733,7 @@ export interface components {
             webSearchProvider?: string;
             webSearchFallback?: boolean;
             webSearchResultCount?: number;
+            webSearchSourceUrls?: string[];
         };
         ModelsListResponse: {
             success: boolean;

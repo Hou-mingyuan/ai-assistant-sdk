@@ -151,6 +151,37 @@ describe('MessageList assistant metadata', () => {
     expect(meta.text()).toContain('Search fallback');
   });
 
+  it('keeps web search source URLs behind response metadata details', async () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer',
+        timestamp: Date.now(),
+        meta: {
+          webSearchEnabled: true,
+          webSearchProvider: 'Tavily',
+          webSearchResultCount: 2,
+          webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b?x=1&y=2'],
+        },
+      },
+    ]);
+
+    const meta = wrapper.find('.ai-msg-meta');
+    expect(meta.text()).not.toContain('Source 1');
+    const toggle = wrapper.find('.ai-msg-meta-toggle');
+    expect(toggle.exists()).toBe(true);
+
+    await toggle.trigger('click');
+
+    expect(meta.text()).toContain('Source 1');
+    expect(meta.text()).toContain('Source 2');
+    const links = wrapper.findAll('.ai-msg-meta-source-link');
+    expect(links.map((link) => link.attributes('href'))).toEqual([
+      'https://example.com/a',
+      'https://example.com/b?x=1&y=2',
+    ]);
+  });
+
   it('omits the details toggle when no secondary meta is present', () => {
     const wrapper = mountList([
       {

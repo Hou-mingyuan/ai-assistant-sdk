@@ -410,7 +410,12 @@ public class UrlFetchService {
                 }
             }
             return new WebSearchResult(
-                    sb.toString(), provider, fallbackFromStableProvider, hits.size(), Instant.now());
+                    sb.toString(),
+                    provider,
+                    fallbackFromStableProvider,
+                    hits.size(),
+                    Instant.now(),
+                    hits.stream().map(SearchHit::url).toList());
         } catch (Exception e) {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
             return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
@@ -461,12 +466,14 @@ public class UrlFetchService {
             }
             StringBuilder sb = newSearchMarkdown("Tavily", query);
             int index = 1;
+            List<String> sourceUrls = new ArrayList<>();
             for (JsonNode item : results) {
                 String title = item.path("title").asText("");
                 String url = item.path("url").asText("");
                 String content = item.path("content").asText("");
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
+                sourceUrls.add(url);
                 sb.append('\n').append(index++).append(". ").append(title).append('\n');
                 sb.append("   URL: ").append(url).append('\n');
                 if (hasText(publishedDate)) sb.append("   时间: ").append(publishedDate).append('\n');
@@ -476,7 +483,8 @@ public class UrlFetchService {
             int resultCount = index - 1;
             return resultCount == 0
                     ? WebSearchResult.empty()
-                    : new WebSearchResult(sb.toString(), "Tavily", false, resultCount, Instant.now());
+                    : new WebSearchResult(
+                            sb.toString(), "Tavily", false, resultCount, Instant.now(), sourceUrls);
         } catch (Exception e) {
             log.debug("Tavily web search failed for query '{}': {}", query, e.getMessage());
             return WebSearchResult.emptyAttempt("Tavily", false);
@@ -991,13 +999,27 @@ public class UrlFetchService {
     private record SearchHit(String title, String url, String snippet) {}
 
     public record WebSearchResult(
-            String markdown, String provider, boolean fallback, int resultCount, Instant searchedAt) {
+            String markdown,
+            String provider,
+            boolean fallback,
+            int resultCount,
+            Instant searchedAt,
+            List<String> sourceUrls) {
+        public WebSearchResult(
+                String markdown,
+                String provider,
+                boolean fallback,
+                int resultCount,
+                Instant searchedAt) {
+            this(markdown, provider, fallback, resultCount, searchedAt, List.of());
+        }
+
         public static WebSearchResult empty() {
-            return new WebSearchResult("", "", false, 0, null);
+            return new WebSearchResult("", "", false, 0, null, List.of());
         }
 
         public static WebSearchResult emptyAttempt(String provider, boolean fallback) {
-            return new WebSearchResult("", provider, fallback, 0, Instant.now());
+            return new WebSearchResult("", provider, fallback, 0, Instant.now(), List.of());
         }
 
         public boolean hasAttempt() {

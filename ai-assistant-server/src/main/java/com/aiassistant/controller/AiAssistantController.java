@@ -11,6 +11,8 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
 import jakarta.validation.Valid;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ import reactor.core.publisher.Flux;
 public class AiAssistantController {
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantController.class);
+    private static final int MAX_WEB_SEARCH_SOURCE_URL_HEADERS = 3;
     private static final String VISION_PROBE_IMAGE =
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
@@ -212,6 +215,7 @@ public class AiAssistantController {
             meta.setWebSearchProvider(webSearch.provider());
             meta.setWebSearchFallback(webSearch.fallback());
             meta.setWebSearchResultCount(webSearch.resultCount());
+            meta.setWebSearchSourceUrls(webSearch.sourceUrls());
         }
         return meta;
     }
@@ -253,11 +257,24 @@ public class AiAssistantController {
             headers.add(
                     "X-AI-Web-Search-Result-Count",
                     String.valueOf(meta.getWebSearchResultCount()));
+            String encodedSourceUrls = encodeWebSearchSourceUrls(meta.getWebSearchSourceUrls());
+            addHeader(headers, "X-AI-Web-Search-Source-Urls", encodedSourceUrls);
         }
         headers.add(
                 HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count");
+                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count, X-AI-Web-Search-Source-Urls");
         return headers;
+    }
+
+    private static String encodeWebSearchSourceUrls(List<String> urls) {
+        if (urls == null || urls.isEmpty()) {
+            return null;
+        }
+        return urls.stream()
+                .filter(url -> url != null && !url.isBlank())
+                .limit(MAX_WEB_SEARCH_SOURCE_URL_HEADERS)
+                .map(url -> URLEncoder.encode(url, StandardCharsets.UTF_8))
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     private static void addHeader(HttpHeaders headers, String name, String value) {

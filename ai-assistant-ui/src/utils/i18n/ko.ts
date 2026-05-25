@@ -269,6 +269,7 @@ export const ko: I18nMessages = {
   responseMetaWebSearchFallback: '검색 폴백',
   responseMetaWebSearchResult: '개 결과',
   responseMetaWebSearchResults: '개 결과',
+  responseMetaWebSearchSource: '출처',
   responseMetaMoreLabel: '자세히 보기',
   responseMetaHideLabel: '자세히 접기',
   settingsLabel: '설정',

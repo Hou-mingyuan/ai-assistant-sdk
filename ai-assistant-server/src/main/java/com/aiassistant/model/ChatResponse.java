@@ -1,5 +1,7 @@
 package com.aiassistant.model;
 
+import java.util.List;
+
 /** 统一 API 响应体：{@code success}=true 时结果在 {@code result}，否则错误信息在 {@code error}。 */
 public class ChatResponse {
 
@@ -87,6 +89,7 @@ public class ChatResponse {
         private String webSearchProvider;
         private boolean webSearchFallback;
         private int webSearchResultCount;
+        private List<String> webSearchSourceUrls;
 
         public String getRequestedModel() {
             return requestedModel;
@@ -166,6 +169,14 @@ public class ChatResponse {
 
         public void setWebSearchResultCount(int webSearchResultCount) {
             this.webSearchResultCount = webSearchResultCount;
+        }
+
+        public List<String> getWebSearchSourceUrls() {
+            return webSearchSourceUrls;
+        }
+
+        public void setWebSearchSourceUrls(List<String> webSearchSourceUrls) {
+            this.webSearchSourceUrls = webSearchSourceUrls;
         }
     }
 }

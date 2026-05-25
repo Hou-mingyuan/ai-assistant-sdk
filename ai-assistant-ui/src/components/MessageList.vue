@@ -503,6 +503,17 @@
           <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
             {{ t.responseMetaRetried || 'Retried' }}
           </span>
+          <a
+            v-for="(url, sourceIdx) in webSearchSourceUrls(msg.meta)"
+            :key="`${displayOffset + renderedStart + idx}-source-${sourceIdx}`"
+            class="ai-msg-meta-pill ai-msg-meta-source-link"
+            :href="url"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click.stop
+          >
+            {{ t.responseMetaWebSearchSource || 'Source' }} {{ sourceIdx + 1 }}
+          </a>
         </div>
       </div>
     </div>
@@ -577,13 +588,18 @@ function webSearchResultLabel(count: number) {
   return `${safeCount} ${unit}`;
 }
 
+function webSearchSourceUrls(meta: Message['meta']) {
+  return (meta?.webSearchSourceUrls || []).filter((url) => typeof url === 'string' && url.trim());
+}
+
 function hasSecondaryMeta(meta: Message['meta']): boolean {
   if (!meta) return false;
   return (
     (typeof meta.visionInputCount === 'number' && meta.visionInputCount > 0) ||
     Boolean(meta.visionRoute) ||
     typeof meta.ttftMs === 'number' ||
-    Boolean(meta.retried)
+    Boolean(meta.retried) ||
+    webSearchSourceUrls(meta).length > 0
   );
 }
 

@@ -277,6 +277,7 @@ export const en: I18nMessages = {
   responseMetaWebSearchFallback: 'Search fallback',
   responseMetaWebSearchResult: 'result',
   responseMetaWebSearchResults: 'results',
+  responseMetaWebSearchSource: 'Source',
   responseMetaMoreLabel: 'More details',
   responseMetaHideLabel: 'Hide details',
   settingsLabel: 'Settings',

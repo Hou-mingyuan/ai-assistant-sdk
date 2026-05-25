@@ -521,6 +521,8 @@ describe('streamChat', () => {
         'X-AI-Web-Search-Provider': 'Tavily',
         'X-AI-Web-Search-Fallback': 'false',
         'X-AI-Web-Search-Result-Count': '2',
+        'X-AI-Web-Search-Source-Urls':
+          'https%3A%2F%2Fexample.com%2Fa,https%3A%2F%2Fexample.com%2Fb%3Fx%3D1%26y%3D2',
       }),
     );
 
@@ -547,6 +549,7 @@ describe('streamChat', () => {
       webSearchProvider: 'Tavily',
       webSearchFallback: false,
       webSearchResultCount: 2,
+      webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b?x=1&y=2'],
     });
   });
 

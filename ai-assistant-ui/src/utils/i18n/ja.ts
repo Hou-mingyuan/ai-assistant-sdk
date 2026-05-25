@@ -272,6 +272,7 @@ export const ja: I18nMessages = {
   responseMetaWebSearchFallback: '検索フォールバック',
   responseMetaWebSearchResult: '件',
   responseMetaWebSearchResults: '件',
+  responseMetaWebSearchSource: 'ソース',
   responseMetaMoreLabel: '詳細を表示',
   responseMetaHideLabel: '詳細を閉じる',
   settingsLabel: '設定',

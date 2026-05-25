@@ -364,6 +364,7 @@ export interface I18nMessages {
   responseMetaWebSearchFallback?: string;
   responseMetaWebSearchResult?: string;
   responseMetaWebSearchResults?: string;
+  responseMetaWebSearchSource?: string;
   /** Labels for the collapsible "more details" toggle that hides secondary meta pills by default. */
   responseMetaMoreLabel?: string;
   responseMetaHideLabel?: string;
