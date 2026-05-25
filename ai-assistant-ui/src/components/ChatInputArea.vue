@@ -57,6 +57,25 @@
         {{ t.modelSwitchToVision }}
       </button>
     </div>
+    <div class="ai-context-center" role="status" aria-live="polite">
+      <span class="ai-context-center-title">{{ t.pageContextOn || 'Context' }}</span>
+      <span class="ai-context-chip">{{ contextModeLabel }}</span>
+      <span class="ai-context-chip">{{ contextModelLabel }}</span>
+      <button
+        v-if="pageContextConfigured"
+        type="button"
+        class="ai-context-chip ai-context-chip-button"
+        :aria-pressed="pageContextEnabled ? 'true' : 'false'"
+        @click="$emit('togglePageContext')"
+      >
+        {{ contextPageLabel }}
+      </button>
+      <span v-else class="ai-context-chip">{{ t.pageContextOff || 'Context off' }}</span>
+      <span v-if="pendingImageThumbs.length" class="ai-context-chip">
+        {{ t.pendingImage }} × {{ pendingImageThumbs.length }}
+      </span>
+      <span class="ai-context-chip">{{ advancedToolsOpen ? '高级模式' : '简洁模式' }}</span>
+    </div>
     <!-- Slash command popup -->
     <Transition name="ai-slash-fade">
       <div
@@ -335,6 +354,19 @@ const imageRiskVisible = computed(
     !!props.selectedModel.trim() &&
     !selectedModelLooksVisionCapable.value,
 );
+const contextModeLabel = computed(() => {
+  if (props.mode === 'translate') return props.t.translate;
+  if (props.mode === 'summarize') return props.t.summarize;
+  return props.t.chat;
+});
+const contextModelLabel = computed(
+  () => props.selectedModel || props.modelStatusText || props.t.modelLabel,
+);
+const contextPageLabel = computed(() => {
+  if (!props.pageContextEnabled) return props.t.pageContextOff || 'Context off';
+  const count = props.pageContextBlockCount ?? 0;
+  return `${props.t.pageContextOn || 'Context'}${count > 1 ? ` · ${count}` : ''}`;
+});
 const firstVisionModel = computed(
   () =>
     props.modelChoices.find(

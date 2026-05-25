@@ -457,4 +457,28 @@ describe('ChatInputArea (K44)', () => {
       w.unmount();
     });
   });
+
+  describe('context center', () => {
+    it('summarizes mode, model, page context, pending files, and ux mode', async () => {
+      const w = mountInput({
+        selectedModel: 'MiniMax-M2.7',
+        modelStatusText: 'Ready',
+        pendingImageThumbs: ['data:image/png;base64,one'],
+        pageContextConfigured: true,
+        pageContextEnabled: true,
+        pageContextBlockCount: 3,
+      });
+
+      const center = w.find('.ai-context-center');
+      expect(center.exists()).toBe(true);
+      expect(center.text()).toContain('Chat');
+      expect(center.text()).toContain('MiniMax-M2.7');
+      expect(center.text()).toContain('Pending image × 1');
+      expect(center.text()).toContain('Context · 3');
+
+      await w.find('.ai-context-chip-button').trigger('click');
+      expect(w.emitted('togglePageContext')).toBeTruthy();
+      w.unmount();
+    });
+  });
 });
