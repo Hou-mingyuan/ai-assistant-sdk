@@ -279,6 +279,13 @@
             {{ sourceIdx + 1 }}
           </a>
         </div>
+        <div
+          v-if="msg.role === 'assistant' && webSearchCitationWarning(msg)"
+          class="ai-web-search-citation-warning"
+          role="note"
+        >
+          {{ webSearchCitationWarning(msg) }}
+        </div>
       </template>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
@@ -479,6 +486,9 @@
         <span v-if="msg.meta.webSearchFallback" class="ai-msg-meta-pill">
           {{ t.responseMetaWebSearchFallback || 'Search fallback' }}
         </span>
+        <span v-if="msg.meta.webSearchFailureReason" class="ai-msg-meta-pill">
+          {{ msg.meta.webSearchFailureReason }}
+        </span>
         <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
           {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
         </span>
@@ -520,6 +530,15 @@
           </span>
           <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
             {{ t.responseMetaRetried || 'Retried' }}
+          </span>
+          <span v-if="msg.meta.webSearchDurationMs != null" class="ai-msg-meta-pill">
+            Search {{ formatMs(msg.meta.webSearchDurationMs) }}
+          </span>
+          <span v-if="msg.meta.webSearchStableDurationMs != null" class="ai-msg-meta-pill">
+            Stable {{ formatMs(msg.meta.webSearchStableDurationMs) }}
+          </span>
+          <span v-if="msg.meta.webSearchFallbackDurationMs != null" class="ai-msg-meta-pill">
+            Fallback {{ formatMs(msg.meta.webSearchFallbackDurationMs) }}
           </span>
           <a
             v-for="(url, sourceIdx) in webSearchSourceUrls(msg.meta)"
@@ -610,6 +629,19 @@ function webSearchSourceUrls(meta: Message['meta']) {
   return (meta?.webSearchSourceUrls || []).filter((url) => typeof url === 'string' && url.trim());
 }
 
+function webSearchCitationWarning(msg: Message) {
+  const meta = msg.meta;
+  if (!meta?.webSearchEnabled) return '';
+  const sourceCount = webSearchSourceUrls(meta).length || meta.webSearchResultCount || 0;
+  if (sourceCount <= 0) return '';
+  const refs = Array.from(msg.content.matchAll(/\[(\d+)\]/g)).map((match) => Number(match[1]));
+  if (refs.length === 0) return 'Citation check: no source number cited.';
+  if (refs.some((ref) => !Number.isInteger(ref) || ref < 1 || ref > sourceCount)) {
+    return 'Citation check: referenced source number is unavailable.';
+  }
+  return '';
+}
+
 function hasSecondaryMeta(meta: Message['meta']): boolean {
   if (!meta) return false;
   return (
@@ -617,6 +649,9 @@ function hasSecondaryMeta(meta: Message['meta']): boolean {
     Boolean(meta.visionRoute) ||
     typeof meta.ttftMs === 'number' ||
     Boolean(meta.retried) ||
+    typeof meta.webSearchDurationMs === 'number' ||
+    typeof meta.webSearchStableDurationMs === 'number' ||
+    typeof meta.webSearchFallbackDurationMs === 'number' ||
     webSearchSourceUrls(meta).length > 0
   );
 }

@@ -14,6 +14,9 @@ describe('useRuntimeProviderConfigState', () => {
       model: 'MiniMax-M2.7',
       allowedModels: ['MiniMax-M2.7', 'MiniMax-M2.5'],
       apiKeyConfigured: true,
+      webSearchProvider: 'tavily',
+      webSearchMaxResults: 8,
+      webSearchApiKeyConfigured: true,
     });
 
     expect(state.providerInput.value).toBe('minimax');
@@ -21,6 +24,9 @@ describe('useRuntimeProviderConfigState', () => {
     expect(state.providerModelInput.value).toBe('MiniMax-M2.7');
     expect(state.providerAllowedModelsInput.value).toBe('MiniMax-M2.7, MiniMax-M2.5');
     expect(state.providerApiKeyInput.value).toBe('');
+    expect(state.webSearchProviderInput.value).toBe('tavily');
+    expect(state.webSearchMaxResultsInput.value).toBe('8');
+    expect(state.webSearchApiKeyInput.value).toBe('');
   });
 
   it('uses empty strings for missing runtime config fields', () => {
@@ -42,6 +48,9 @@ describe('useRuntimeProviderConfigState', () => {
     state.providerApiKeyInput.value = 'sk-test';
     state.providerModelInput.value = 'gpt-4o-mini';
     state.providerAllowedModelsInput.value = 'gpt-4o-mini, gpt-4o';
+    state.webSearchProviderInput.value = 'tavily';
+    state.webSearchApiKeyInput.value = 'tvly-test';
+    state.webSearchMaxResultsInput.value = '6';
 
     expect(state.buildRuntimeModelConfigPayload()).toEqual({
       provider: 'openai',
@@ -49,6 +58,9 @@ describe('useRuntimeProviderConfigState', () => {
       apiKey: 'sk-test',
       model: 'gpt-4o-mini',
       allowedModelsText: 'gpt-4o-mini, gpt-4o',
+      webSearchProvider: 'tavily',
+      webSearchApiKey: 'tvly-test',
+      webSearchMaxResults: 6,
     });
   });
 

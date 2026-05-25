@@ -494,6 +494,9 @@
       :provider-api-key-input="providerApiKeyInput"
       :provider-model-input="providerModelInput"
       :provider-allowed-models-input="providerAllowedModelsInput"
+      :web-search-provider-input="webSearchProviderInput"
+      :web-search-api-key-input="webSearchApiKeyInput"
+      :web-search-max-results-input="webSearchMaxResultsInput"
       @update:theme="(v) => (themePalette = v as ThemePresetId)"
       @update:audio="onAudioPrefsUpdate"
       @save-provider-config="saveProviderConfig"
@@ -503,6 +506,9 @@
       @update:provider-api-key-input="providerApiKeyInput = $event"
       @update:provider-model-input="providerModelInput = $event"
       @update:provider-allowed-models-input="providerAllowedModelsInput = $event"
+      @update:web-search-provider-input="webSearchProviderInput = $event"
+      @update:web-search-api-key-input="webSearchApiKeyInput = $event"
+      @update:web-search-max-results-input="webSearchMaxResultsInput = $event"
       @close="personalizeOpen = false"
     />
 
@@ -1119,6 +1125,9 @@ const {
   providerApiKeyInput,
   providerModelInput,
   providerAllowedModelsInput,
+  webSearchProviderInput,
+  webSearchApiKeyInput,
+  webSearchMaxResultsInput,
   webSearchDiagnosticsText,
   modelListMessage,
   diagnosticsModelEndpoint,

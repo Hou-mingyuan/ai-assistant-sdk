@@ -30,11 +30,24 @@ export interface FetchModelsOptions {
 }
 
 export type ChatResult = ApiSchemas['ChatResponse'];
-export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'];
+export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'] & {
+  webSearchFailureReason?: string;
+  webSearchDurationMs?: number;
+  webSearchStableDurationMs?: number;
+  webSearchFallbackDurationMs?: number;
+};
 
-export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'];
+export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'] & {
+  webSearchProvider?: string;
+  webSearchMaxResults?: number;
+  webSearchApiKeyConfigured?: boolean;
+};
 
-export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'];
+export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'] & {
+  webSearchProvider?: string;
+  webSearchApiKey?: string;
+  webSearchMaxResults?: number;
+};
 
 export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
 
@@ -105,6 +118,9 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   const visionInputCountRaw = headers.get('X-AI-Vision-Input-Count');
   const webSearchResultCountRaw = headers.get('X-AI-Web-Search-Result-Count');
   const webSearchSourceUrlsRaw = headers.get('X-AI-Web-Search-Source-Urls');
+  const webSearchDurationMsRaw = headers.get('X-AI-Web-Search-Duration-Ms');
+  const webSearchStableDurationMsRaw = headers.get('X-AI-Web-Search-Stable-Duration-Ms');
+  const webSearchFallbackDurationMsRaw = headers.get('X-AI-Web-Search-Fallback-Duration-Ms');
   const meta: ChatRuntimeMeta = {
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
@@ -122,8 +138,18 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
           : undefined,
     webSearchResultCount: webSearchResultCountRaw ? Number(webSearchResultCountRaw) : undefined,
     webSearchSourceUrls: parseEncodedHeaderList(webSearchSourceUrlsRaw),
+    webSearchFailureReason: headers.get('X-AI-Web-Search-Failure') || undefined,
+    webSearchDurationMs: parseOptionalNumber(webSearchDurationMsRaw),
+    webSearchStableDurationMs: parseOptionalNumber(webSearchStableDurationMsRaw),
+    webSearchFallbackDurationMs: parseOptionalNumber(webSearchFallbackDurationMsRaw),
   };
   return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
+}
+
+function parseOptionalNumber(raw?: string | null): number | undefined {
+  if (!raw) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : undefined;
 }
 
 function parseEncodedHeaderList(raw?: string | null): string[] | undefined {

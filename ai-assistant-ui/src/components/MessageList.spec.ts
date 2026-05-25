@@ -266,6 +266,61 @@ describe('MessageList web search sources', () => {
       'https://example.com/b',
     ]);
   });
+
+  it('warns when a searched answer does not cite available source numbers', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer without a bracket citation',
+        meta: {
+          webSearchEnabled: true,
+          webSearchResultCount: 2,
+          webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b'],
+        },
+      },
+    ]);
+
+    expect(wrapper.find('.ai-web-search-citation-warning').exists()).toBe(true);
+  });
+
+  it('warns when a searched answer cites a source number that is not available', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer with [3]',
+        meta: {
+          webSearchEnabled: true,
+          webSearchResultCount: 2,
+          webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b'],
+        },
+      },
+    ]);
+
+    expect(wrapper.find('.ai-web-search-citation-warning').text()).toContain('Citation check');
+  });
+
+  it('shows web search timing breakdown in metadata details', async () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer [1]',
+        meta: {
+          webSearchEnabled: true,
+          webSearchProvider: 'DuckDuckGo fallback',
+          webSearchResultCount: 1,
+          webSearchDurationMs: 321,
+          webSearchStableDurationMs: 120,
+          webSearchFallbackDurationMs: 201,
+        },
+      },
+    ]);
+
+    await wrapper.find('.ai-msg-meta-toggle').trigger('click');
+
+    expect(wrapper.find('.ai-msg-meta').text()).toContain('Search 0.3s');
+    expect(wrapper.find('.ai-msg-meta').text()).toContain('Stable 0.1s');
+    expect(wrapper.find('.ai-msg-meta').text()).toContain('Fallback 0.2s');
+  });
 });
 
 describe('MessageList reading preview', () => {

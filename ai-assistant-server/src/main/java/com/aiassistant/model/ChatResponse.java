@@ -90,6 +90,10 @@ public class ChatResponse {
         private boolean webSearchFallback;
         private int webSearchResultCount;
         private List<String> webSearchSourceUrls;
+        private String webSearchFailureReason;
+        private long webSearchDurationMs = -1;
+        private long webSearchStableDurationMs = -1;
+        private long webSearchFallbackDurationMs = -1;
 
         public String getRequestedModel() {
             return requestedModel;
@@ -177,6 +181,38 @@ public class ChatResponse {
 
         public void setWebSearchSourceUrls(List<String> webSearchSourceUrls) {
             this.webSearchSourceUrls = webSearchSourceUrls;
+        }
+
+        public String getWebSearchFailureReason() {
+            return webSearchFailureReason;
+        }
+
+        public void setWebSearchFailureReason(String webSearchFailureReason) {
+            this.webSearchFailureReason = webSearchFailureReason;
+        }
+
+        public long getWebSearchDurationMs() {
+            return webSearchDurationMs;
+        }
+
+        public void setWebSearchDurationMs(long webSearchDurationMs) {
+            this.webSearchDurationMs = webSearchDurationMs;
+        }
+
+        public long getWebSearchStableDurationMs() {
+            return webSearchStableDurationMs;
+        }
+
+        public void setWebSearchStableDurationMs(long webSearchStableDurationMs) {
+            this.webSearchStableDurationMs = webSearchStableDurationMs;
+        }
+
+        public long getWebSearchFallbackDurationMs() {
+            return webSearchFallbackDurationMs;
+        }
+
+        public void setWebSearchFallbackDurationMs(long webSearchFallbackDurationMs) {
+            this.webSearchFallbackDurationMs = webSearchFallbackDurationMs;
         }
     }
 }

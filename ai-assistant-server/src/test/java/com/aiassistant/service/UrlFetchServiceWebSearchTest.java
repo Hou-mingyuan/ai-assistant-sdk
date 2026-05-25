@@ -274,6 +274,64 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void searchWebPrioritizesHigherQualitySourcesAndExposesPreviewCards() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">Random repost summary</a>
+                                    <a class="result__snippet">Official API documentation summary</a>
+                                    <a class="result__a" href="https://random-blog.example/post">
+                                      Random repost
+                                    </a>
+                                    <a class="result__a" href="https://docs.example.com/api/search">
+                                      Official API documentation
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("api docs");
+
+        assertThat(result.sourceUrls())
+                .containsExactly(
+                        "https://docs.example.com/api/search",
+                        "https://random-blog.example/post");
+        assertThat(result.sources()).hasSize(2);
+        assertThat(result.sources().get(0).title()).isEqualTo("Official API documentation");
+        assertThat(result.sources().get(0).qualityLabel()).isEqualTo("docs");
+        assertThat(result.sources().get(0).qualityScore())
+                .isGreaterThan(result.sources().get(1).qualityScore());
+        assertThat(result.markdown()).contains("质量：docs");
+    }
+
+    @Test
+    void searchWebReportsFailureReasonAndTimingBreakdown() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueString(500, "{\"error\":\"upstream unavailable\"}")
+                        .queueInputStream(200, "<html><body>No usable search results</body></html>");
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("tavily");
+        properties.getUrlFetch().setWebSearchApiKey("tvly-test");
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("rare topic");
+
+        assertThat(result.failureReason()).isEqualTo("no_results");
+        assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
+        assertThat(result.stableProviderDurationMs()).isGreaterThanOrEqualTo(0);
+        assertThat(result.fallbackDurationMs()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
     void searchWebCapsTavilyTimeoutToKeepFallbackResponsive() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

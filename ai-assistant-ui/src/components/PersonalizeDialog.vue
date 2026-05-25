@@ -216,6 +216,63 @@
               {{ t.providerConfigSaveAndRefresh || 'Save model config and refresh list' }}
             </button>
           </div>
+          <div class="ai-personalize-model-section">
+            <div class="ai-personalize-audio-head">
+              <span class="ai-personalize-audio-label">
+                {{ t.webSearchLabel || 'Web search' }}
+              </span>
+            </div>
+            <label class="ai-personalize-model-field">
+              <span>{{ t.providerConfigProvider || 'Provider' }}</span>
+              <input
+                :value="webSearchProviderInput"
+                type="text"
+                placeholder="duckduckgo / tavily"
+                autocomplete="off"
+                @input="
+                  $emit('update:webSearchProviderInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>{{ t.providerConfigApiKey || 'API key' }}</span>
+              <input
+                :value="webSearchApiKeyInput"
+                type="password"
+                :placeholder="
+                  t.providerConfigApiKeyPlaceholder || 'Leave blank to keep current key'
+                "
+                autocomplete="off"
+                @input="
+                  $emit('update:webSearchApiKeyInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>Max results</span>
+              <input
+                :value="webSearchMaxResultsInput"
+                type="number"
+                min="1"
+                max="10"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:webSearchMaxResultsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <button
+              type="button"
+              class="ai-personalize-done"
+              :disabled="disabled"
+              @click="$emit('saveProviderConfig')"
+            >
+              {{ t.providerConfigSaveAndRefresh || 'Save config and refresh' }}
+            </button>
+          </div>
           <div class="ai-personalize-actions">
             <button type="button" class="ai-personalize-done" @click="$emit('close')">
               {{ t.personalizeDone }}
@@ -268,6 +325,9 @@ const props = defineProps<{
   providerApiKeyInput?: string;
   providerModelInput?: string;
   providerAllowedModelsInput?: string;
+  webSearchProviderInput?: string;
+  webSearchApiKeyInput?: string;
+  webSearchMaxResultsInput?: string;
 }>();
 
 const emit = defineEmits<{
@@ -287,6 +347,9 @@ const emit = defineEmits<{
   (e: 'update:providerApiKeyInput', value: string): void;
   (e: 'update:providerModelInput', value: string): void;
   (e: 'update:providerAllowedModelsInput', value: string): void;
+  (e: 'update:webSearchProviderInput', value: string): void;
+  (e: 'update:webSearchApiKeyInput', value: string): void;
+  (e: 'update:webSearchMaxResultsInput', value: string): void;
 }>();
 
 function emitAudio(patch: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>) {

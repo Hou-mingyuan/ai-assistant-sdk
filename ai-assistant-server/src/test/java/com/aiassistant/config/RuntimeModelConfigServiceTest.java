@@ -37,6 +37,28 @@ class RuntimeModelConfigServiceTest {
     }
 
     @Test
+    void updateMutatesWebSearchConfigurationWithoutExposingApiKey() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        RuntimeModelConfigService service = new RuntimeModelConfigService(properties);
+        RuntimeModelConfigService.UpdateRequest request =
+                new RuntimeModelConfigService.UpdateRequest();
+        request.setWebSearchProvider("tavily");
+        request.setWebSearchApiKey("tvly-runtime");
+        request.setWebSearchMaxResults(8);
+
+        var response = service.update(request).toResponse();
+
+        assertEquals("tavily", properties.getUrlFetch().getWebSearchProvider());
+        assertEquals("tvly-runtime", properties.getUrlFetch().getWebSearchApiKey());
+        assertEquals(8, properties.getUrlFetch().getWebSearchMaxResults());
+        assertEquals("tavily", response.get("webSearchProvider"));
+        assertEquals(8, response.get("webSearchMaxResults"));
+        assertEquals(true, response.get("webSearchApiKeyConfigured"));
+        assertFalse(response.containsKey("webSearchApiKey"));
+        assertFalse(response.toString().contains("tvly-runtime"));
+    }
+
+    @Test
     void persistsNonSecretConfigButDoesNotPersistApiKey(@TempDir Path tempDir) {
         Path file = tempDir.resolve("runtime-model.properties");
         AiAssistantProperties first = new AiAssistantProperties();

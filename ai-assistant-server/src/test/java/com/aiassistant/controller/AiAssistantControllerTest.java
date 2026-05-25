@@ -279,6 +279,37 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_returnsWebSearchFailureAndTimingHeaders() {
+        when(urlFetchService.searchWeb("rare topic"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "",
+                                "DuckDuckGo fallback",
+                                true,
+                                0,
+                                Instant.parse("2026-05-25T04:00:00Z"),
+                                java.util.List.of(),
+                                java.util.List.of(),
+                                "no_results",
+                                321,
+                                120,
+                                201));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("rare topic");
+        req.setAction("chat");
+        req.setWebSearch(true);
+
+        var response = controller.stream(req);
+
+        assertEquals("no_results", response.getHeaders().getFirst("X-AI-Web-Search-Failure"));
+        assertEquals("321", response.getHeaders().getFirst("X-AI-Web-Search-Duration-Ms"));
+        assertEquals("120", response.getHeaders().getFirst("X-AI-Web-Search-Stable-Duration-Ms"));
+        assertEquals("201", response.getHeaders().getFirst("X-AI-Web-Search-Fallback-Duration-Ms"));
+    }
+
+    @Test
     void stream_reportsWebSearchAttemptEvenWhenNoResultsAreFound() {
         when(urlFetchService.searchWeb("rare topic"))
                 .thenReturn(

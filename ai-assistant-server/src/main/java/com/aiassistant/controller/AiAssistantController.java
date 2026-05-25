@@ -216,6 +216,10 @@ public class AiAssistantController {
             meta.setWebSearchFallback(webSearch.fallback());
             meta.setWebSearchResultCount(webSearch.resultCount());
             meta.setWebSearchSourceUrls(webSearch.sourceUrls());
+            meta.setWebSearchFailureReason(webSearch.failureReason());
+            meta.setWebSearchDurationMs(webSearch.durationMs());
+            meta.setWebSearchStableDurationMs(webSearch.stableProviderDurationMs());
+            meta.setWebSearchFallbackDurationMs(webSearch.fallbackDurationMs());
         }
         return meta;
     }
@@ -259,10 +263,21 @@ public class AiAssistantController {
                     String.valueOf(meta.getWebSearchResultCount()));
             String encodedSourceUrls = encodeWebSearchSourceUrls(meta.getWebSearchSourceUrls());
             addHeader(headers, "X-AI-Web-Search-Source-Urls", encodedSourceUrls);
+            addHeader(headers, "X-AI-Web-Search-Failure", meta.getWebSearchFailureReason());
+            addNonNegativeLongHeader(
+                    headers, "X-AI-Web-Search-Duration-Ms", meta.getWebSearchDurationMs());
+            addNonNegativeLongHeader(
+                    headers,
+                    "X-AI-Web-Search-Stable-Duration-Ms",
+                    meta.getWebSearchStableDurationMs());
+            addNonNegativeLongHeader(
+                    headers,
+                    "X-AI-Web-Search-Fallback-Duration-Ms",
+                    meta.getWebSearchFallbackDurationMs());
         }
         headers.add(
                 HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count, X-AI-Web-Search-Source-Urls");
+                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count, X-AI-Web-Search-Source-Urls, X-AI-Web-Search-Failure, X-AI-Web-Search-Duration-Ms, X-AI-Web-Search-Stable-Duration-Ms, X-AI-Web-Search-Fallback-Duration-Ms");
         return headers;
     }
 
@@ -280,6 +295,12 @@ public class AiAssistantController {
     private static void addHeader(HttpHeaders headers, String name, String value) {
         if (value != null && !value.isBlank()) {
             headers.add(name, value);
+        }
+    }
+
+    private static void addNonNegativeLongHeader(HttpHeaders headers, String name, long value) {
+        if (value >= 0) {
+            headers.add(name, String.valueOf(value));
         }
     }
 

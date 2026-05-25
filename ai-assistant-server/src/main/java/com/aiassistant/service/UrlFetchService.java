@@ -363,6 +363,7 @@ public class UrlFetchService {
         if (query == null || query.isBlank()) {
             return WebSearchResult.empty();
         }
+        long started = System.nanoTime();
         String normalizedQuery = normalizeWebSearchQuery(query);
         if (normalizedQuery.isBlank()) {
             return WebSearchResult.empty();
@@ -382,15 +383,25 @@ public class UrlFetchService {
         }
         boolean stableProviderAttempted =
                 "tavily".equals(provider) && hasText(properties.getUrlFetch().getWebSearchApiKey());
+        long stableDurationMs = -1;
+        long fallbackDurationMs = -1;
         WebSearchResult result;
         if (stableProviderAttempted) {
+            long stableStarted = System.nanoTime();
             WebSearchResult tavily = searchTavily(normalizedQuery);
+            stableDurationMs = elapsedMs(stableStarted);
             if (tavily.hasResults()) {
+                tavily =
+                        tavily.withTimings(
+                                elapsedMs(started), stableDurationMs, fallbackDurationMs);
                 putCachedSearch(cacheKey, tavily);
                 return tavily;
             }
         }
+        long fallbackStarted = System.nanoTime();
         result = searchDuckDuckGo(normalizedQuery, stableProviderAttempted);
+        fallbackDurationMs = elapsedMs(fallbackStarted);
+        result = result.withTimings(elapsedMs(started), stableDurationMs, fallbackDurationMs);
         putCachedSearch(cacheKey, result);
         return result;
     }
@@ -409,10 +420,9 @@ public class UrlFetchService {
                     Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
             List<SearchHit> hits = parseDuckDuckGoResults(html, maxResults);
             if (hits.isEmpty()) {
-                return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
+                return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider, "no_results");
             }
-            StringBuilder sb =
-                    newSearchMarkdown(provider, query);
+            StringBuilder sb = newSearchMarkdown(provider, query);
             for (int i = 0; i < hits.size(); i++) {
                 SearchHit hit = hits.get(i);
                 sb.append('\n')
@@ -423,6 +433,7 @@ public class UrlFetchService {
                         .append("   URL: ")
                         .append(hit.url())
                         .append('\n');
+                sb.append("   质量：").append(hit.qualityLabel()).append('\n');
                 if (!hit.snippet().isBlank()) {
                     sb.append("   摘要: ").append(hit.snippet()).append('\n');
                 }
@@ -433,10 +444,12 @@ public class UrlFetchService {
                     fallbackFromStableProvider,
                     hits.size(),
                     Instant.now(),
-                    hits.stream().map(SearchHit::url).toList());
+                    hits.stream().map(SearchHit::url).toList(),
+                    hits.stream().map(SearchHit::toSource).toList());
         } catch (Exception e) {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
-            return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
+            return WebSearchResult.emptyAttempt(
+                    provider, fallbackFromStableProvider, "provider_failed");
         }
     }
 
@@ -501,6 +514,7 @@ public class UrlFetchService {
             StringBuilder sb = newSearchMarkdown("Tavily", query);
             int index = 1;
             List<String> sourceUrls = new ArrayList<>();
+            List<SearchSource> sources = new ArrayList<>();
             Set<String> seenUrls = new LinkedHashSet<>();
             for (JsonNode item : results) {
                 String title = item.path("title").asText("");
@@ -509,21 +523,30 @@ public class UrlFetchService {
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
                 if (!seenUrls.add(url)) continue;
+                SearchQuality quality = scoreSearchSource(title, url, content);
                 sourceUrls.add(url);
                 sb.append('\n').append(index++).append(". ").append(title).append('\n');
                 sb.append("   URL: ").append(url).append('\n');
+                sb.append("   质量：").append(quality.label()).append('\n');
                 if (hasText(publishedDate)) sb.append("   时间: ").append(publishedDate).append('\n');
                 if (hasText(content)) sb.append("   摘要: ").append(content).append('\n');
+                sources.add(new SearchSource(title, url, content, quality.score(), quality.label()));
                 if (index > maxResults) break;
             }
             int resultCount = index - 1;
             return resultCount == 0
-                    ? WebSearchResult.empty()
+                    ? WebSearchResult.emptyAttempt("Tavily", false, "no_results")
                     : new WebSearchResult(
-                            sb.toString(), "Tavily", false, resultCount, Instant.now(), sourceUrls);
+                            sb.toString(),
+                            "Tavily",
+                            false,
+                            resultCount,
+                            Instant.now(),
+                            sourceUrls,
+                            sources);
         } catch (Exception e) {
             log.debug("Tavily web search failed for query '{}': {}", query, e.getMessage());
-            return WebSearchResult.emptyAttempt("Tavily", false);
+            return WebSearchResult.emptyAttempt("Tavily", false, "provider_failed");
         }
     }
 
@@ -551,8 +574,10 @@ public class UrlFetchService {
             if (url.isBlank() || title.isBlank()) continue;
             if (!seenUrls.add(url)) continue;
             String snippet = hits.size() < snippets.size() ? snippets.get(hits.size()) : "";
-            hits.add(new SearchHit(title, url, snippet));
+            SearchQuality quality = scoreSearchSource(title, url, snippet);
+            hits.add(new SearchHit(title, url, snippet, quality.score(), quality.label()));
         }
+        hits.sort(Comparator.comparingInt(SearchHit::qualityScore).reversed());
         return hits;
     }
 
@@ -575,6 +600,48 @@ public class UrlFetchService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private static long elapsedMs(long startedNanos) {
+        return Math.max(0, Duration.ofNanos(System.nanoTime() - startedNanos).toMillis());
+    }
+
+    private static SearchQuality scoreSearchSource(String title, String url, String snippet) {
+        int score = 50;
+        String label = "general";
+        String text =
+                ((title == null ? "" : title)
+                                + " "
+                                + (url == null ? "" : url)
+                                + " "
+                                + (snippet == null ? "" : snippet))
+                        .toLowerCase(Locale.ROOT);
+        String host = "";
+        String path = "";
+        try {
+            URI uri = URI.create(url);
+            host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            path = uri.getPath() == null ? "" : uri.getPath().toLowerCase(Locale.ROOT);
+        } catch (Exception ignored) {
+        }
+        if (host.startsWith("docs.") || path.contains("/docs") || path.contains("/api")) {
+            score += 45;
+            label = "docs";
+        } else if (host.endsWith(".gov") || host.endsWith(".edu") || text.contains("official")) {
+            score += 35;
+            label = "official";
+        } else if (host.contains("news") || path.contains("/news") || text.contains("news")) {
+            score += 25;
+            label = "news";
+        }
+        if (text.contains("reference") || text.contains("documentation")) {
+            score += 18;
+            if ("general".equals(label)) label = "docs";
+        }
+        if (text.contains("blog") || text.contains("repost") || text.contains("forum")) {
+            score -= 12;
+        }
+        return new SearchQuality(score, label);
     }
 
     private UrlPreviewResponse tryHeadlessFallback(String url) {
@@ -1082,7 +1149,17 @@ public class UrlFetchService {
         searchCache.put(key, new SearchCacheEntry(result, Instant.now().plusSeconds(ttl)));
     }
 
-    private record SearchHit(String title, String url, String snippet) {}
+    private record SearchQuality(int score, String label) {}
+
+    private record SearchHit(
+            String title, String url, String snippet, int qualityScore, String qualityLabel) {
+        SearchSource toSource() {
+            return new SearchSource(title, url, snippet, qualityScore, qualityLabel);
+        }
+    }
+
+    public record SearchSource(
+            String title, String url, String snippet, int qualityScore, String qualityLabel) {}
 
     public record WebSearchResult(
             String markdown,
@@ -1090,7 +1167,12 @@ public class UrlFetchService {
             boolean fallback,
             int resultCount,
             Instant searchedAt,
-            List<String> sourceUrls) {
+            List<String> sourceUrls,
+            List<SearchSource> sources,
+            String failureReason,
+            long durationMs,
+            long stableProviderDurationMs,
+            long fallbackDurationMs) {
         public WebSearchResult(
                 String markdown,
                 String provider,
@@ -1101,11 +1183,54 @@ public class UrlFetchService {
         }
 
         public static WebSearchResult empty() {
-            return new WebSearchResult("", "", false, 0, null, List.of());
+            return new WebSearchResult("", "", false, 0, null, List.of(), List.of(), "", -1, -1, -1);
         }
 
         public static WebSearchResult emptyAttempt(String provider, boolean fallback) {
-            return new WebSearchResult("", provider, fallback, 0, Instant.now(), List.of());
+            return emptyAttempt(provider, fallback, "no_results");
+        }
+
+        public static WebSearchResult emptyAttempt(
+                String provider, boolean fallback, String failureReason) {
+            return new WebSearchResult(
+                    "", provider, fallback, 0, Instant.now(), List.of(), List.of(), failureReason, -1, -1, -1);
+        }
+
+        public WebSearchResult(
+                String markdown,
+                String provider,
+                boolean fallback,
+                int resultCount,
+                Instant searchedAt,
+                List<String> sourceUrls) {
+            this(markdown, provider, fallback, resultCount, searchedAt, sourceUrls, List.of());
+        }
+
+        public WebSearchResult(
+                String markdown,
+                String provider,
+                boolean fallback,
+                int resultCount,
+                Instant searchedAt,
+                List<String> sourceUrls,
+                List<SearchSource> sources) {
+            this(markdown, provider, fallback, resultCount, searchedAt, sourceUrls, sources, "", -1, -1, -1);
+        }
+
+        public WebSearchResult withTimings(
+                long durationMs, long stableProviderDurationMs, long fallbackDurationMs) {
+            return new WebSearchResult(
+                    markdown,
+                    provider,
+                    fallback,
+                    resultCount,
+                    searchedAt,
+                    sourceUrls == null ? List.of() : sourceUrls,
+                    sources == null ? List.of() : sources,
+                    failureReason,
+                    durationMs,
+                    stableProviderDurationMs,
+                    fallbackDurationMs);
         }
 
         public boolean hasAttempt() {

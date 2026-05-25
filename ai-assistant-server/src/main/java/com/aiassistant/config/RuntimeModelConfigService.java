@@ -36,6 +36,7 @@ public class RuntimeModelConfigService {
 
     private static final Logger log = LoggerFactory.getLogger(RuntimeModelConfigService.class);
     private static final String API_KEY_ENCRYPTED_PROPERTY = "apiKeyEncrypted";
+    private static final String WEB_SEARCH_API_KEY_ENCRYPTED_PROPERTY = "webSearchApiKeyEncrypted";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final AiAssistantProperties properties;
@@ -80,6 +81,18 @@ public class RuntimeModelConfigService {
         }
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
+        }
+        if (hasText(request.getWebSearchProvider())) {
+            properties.getUrlFetch().setWebSearchProvider(request.getWebSearchProvider().trim());
+        }
+        if (hasText(request.getWebSearchApiKey())) {
+            properties.getUrlFetch().setWebSearchApiKey(request.getWebSearchApiKey().trim());
+        }
+        if (request.getWebSearchMaxResults() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchMaxResults(
+                            Math.max(1, Math.min(10, request.getWebSearchMaxResults())));
         }
         Snapshot next = snapshot();
         persistNonSecretConfig(next);
@@ -156,10 +169,19 @@ public class RuntimeModelConfigService {
             request.setModel(persisted.getProperty("model"));
             request.setAllowedModelsText(persisted.getProperty("allowedModels"));
             request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
+            request.setWebSearchProvider(persisted.getProperty("webSearchProvider"));
+            String webSearchMax = persisted.getProperty("webSearchMaxResults");
+            if (hasText(webSearchMax)) {
+                request.setWebSearchMaxResults(Integer.parseInt(webSearchMax));
+            }
             applyWithoutPersisting(request);
             restorePersistedApiKey(persisted.getProperty(API_KEY_ENCRYPTED_PROPERTY));
+            restorePersistedWebSearchApiKey(
+                    persisted.getProperty(WEB_SEARCH_API_KEY_ENCRYPTED_PROPERTY));
         } catch (IOException e) {
             log.warn("Runtime model config load skipped: {}", e.getMessage());
+        } catch (NumberFormatException e) {
+            log.warn("Runtime model config numeric field ignored: {}", e.getMessage());
         }
     }
 
@@ -179,6 +201,15 @@ public class RuntimeModelConfigService {
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
+        if (hasText(request.getWebSearchProvider())) {
+            properties.getUrlFetch().setWebSearchProvider(request.getWebSearchProvider().trim());
+        }
+        if (request.getWebSearchMaxResults() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchMaxResults(
+                            Math.max(1, Math.min(10, request.getWebSearchMaxResults())));
+        }
     }
 
     private void persistNonSecretConfig(Snapshot snapshot) {
@@ -188,8 +219,12 @@ public class RuntimeModelConfigService {
         put(persisted, "model", snapshot.model);
         put(persisted, "allowedModels", String.join(",", snapshot.allowedModels));
         put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
+        put(persisted, "webSearchProvider", snapshot.webSearchProvider);
+        put(persisted, "webSearchMaxResults", String.valueOf(snapshot.webSearchMaxResults));
         String encryptedApiKey = encryptRuntimeApiKey();
         put(persisted, API_KEY_ENCRYPTED_PROPERTY, encryptedApiKey);
+        String encryptedWebSearchApiKey = encryptRuntimeWebSearchApiKey();
+        put(persisted, WEB_SEARCH_API_KEY_ENCRYPTED_PROPERTY, encryptedWebSearchApiKey);
         try {
             Files.createDirectories(storagePath.getParent());
             try (OutputStream out = Files.newOutputStream(storagePath)) {
@@ -240,6 +275,22 @@ public class RuntimeModelConfigService {
         }
     }
 
+    private void restorePersistedWebSearchApiKey(String encrypted) {
+        if (!hasText(encrypted)) {
+            return;
+        }
+        String secret = runtimeConfigSecret();
+        if (!hasText(secret)) {
+            log.info("Encrypted runtime web search API key ignored because no runtime config secret is set");
+            return;
+        }
+        try {
+            properties.getUrlFetch().setWebSearchApiKey(decrypt(encrypted, secret));
+        } catch (GeneralSecurityException | IllegalArgumentException e) {
+            log.warn("Runtime web search API key decrypt skipped: {}", e.getMessage());
+        }
+    }
+
     private String encryptRuntimeApiKey() {
         String secret = runtimeConfigSecret();
         List<String> keys = properties.resolveApiKeys();
@@ -250,6 +301,20 @@ public class RuntimeModelConfigService {
             return encrypt(keys.get(0), secret);
         } catch (GeneralSecurityException e) {
             log.warn("Runtime API key encrypt skipped: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String encryptRuntimeWebSearchApiKey() {
+        String secret = runtimeConfigSecret();
+        String apiKey = properties.getUrlFetch().getWebSearchApiKey();
+        if (!hasText(secret) || !hasText(apiKey)) {
+            return null;
+        }
+        try {
+            return encrypt(apiKey, secret);
+        } catch (GeneralSecurityException e) {
+            log.warn("Runtime web search API key encrypt skipped: {}", e.getMessage());
             return null;
         }
     }
@@ -296,6 +361,9 @@ public class RuntimeModelConfigService {
         private List<String> allowedModels;
         private String allowedModelsText;
         private String minimaxVlmBaseUrl;
+        private String webSearchProvider;
+        private String webSearchApiKey;
+        private Integer webSearchMaxResults;
 
         public String getProvider() {
             return provider;
@@ -352,6 +420,30 @@ public class RuntimeModelConfigService {
         public void setMinimaxVlmBaseUrl(String minimaxVlmBaseUrl) {
             this.minimaxVlmBaseUrl = minimaxVlmBaseUrl;
         }
+
+        public String getWebSearchProvider() {
+            return webSearchProvider;
+        }
+
+        public void setWebSearchProvider(String webSearchProvider) {
+            this.webSearchProvider = webSearchProvider;
+        }
+
+        public String getWebSearchApiKey() {
+            return webSearchApiKey;
+        }
+
+        public void setWebSearchApiKey(String webSearchApiKey) {
+            this.webSearchApiKey = webSearchApiKey;
+        }
+
+        public Integer getWebSearchMaxResults() {
+            return webSearchMaxResults;
+        }
+
+        public void setWebSearchMaxResults(Integer webSearchMaxResults) {
+            this.webSearchMaxResults = webSearchMaxResults;
+        }
     }
 
     public static class Snapshot {
@@ -361,6 +453,9 @@ public class RuntimeModelConfigService {
         private List<String> allowedModels;
         private boolean apiKeyConfigured;
         private String minimaxVlmBaseUrl;
+        private String webSearchProvider;
+        private int webSearchMaxResults;
+        private boolean webSearchApiKeyConfigured;
 
         static Snapshot from(AiAssistantProperties properties) {
             Snapshot s = new Snapshot();
@@ -370,6 +465,9 @@ public class RuntimeModelConfigService {
             s.allowedModels = properties.listModelsForClient();
             s.apiKeyConfigured = !properties.resolveApiKeys().isEmpty();
             s.minimaxVlmBaseUrl = properties.resolveMinimaxVlmBaseUrl();
+            s.webSearchProvider = properties.getUrlFetch().getWebSearchProvider();
+            s.webSearchMaxResults = properties.getUrlFetch().getWebSearchMaxResults();
+            s.webSearchApiKeyConfigured = hasText(properties.getUrlFetch().getWebSearchApiKey());
             return s;
         }
 
@@ -382,6 +480,9 @@ public class RuntimeModelConfigService {
             out.put("allowedModels", allowedModels);
             out.put("apiKeyConfigured", apiKeyConfigured);
             out.put("minimaxVlmBaseUrl", minimaxVlmBaseUrl);
+            out.put("webSearchProvider", webSearchProvider);
+            out.put("webSearchMaxResults", webSearchMaxResults);
+            out.put("webSearchApiKeyConfigured", webSearchApiKeyConfigured);
             return out;
         }
 

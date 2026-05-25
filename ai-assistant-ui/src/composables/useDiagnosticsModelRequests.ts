@@ -45,6 +45,7 @@ export interface UseDiagnosticsModelRequestsOptions {
   diagnosticsLastChecked: Ref<string>;
   connectionConfigMessage: Ref<string>;
   providerApiKeyInput: Ref<string>;
+  webSearchApiKeyInput?: Ref<string>;
   webSearchDiagnosticsText: Ref<string>;
   applyRuntimeModelConfig: (config: RuntimeModelConfigResult) => void;
   buildRuntimeModelConfigPayload: () => RuntimeModelConfigPayload;
@@ -165,7 +166,9 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
         return;
       }
       opts.providerApiKeyInput.value = '';
+      if (opts.webSearchApiKeyInput) opts.webSearchApiKeyInput.value = '';
       await refreshChatModels();
+      await refreshWebSearchDiagnostics();
       opts.connectionConfigMessage.value = opts.t.value.connectionConfigSaved;
     } finally {
       opts.diagnosticsBusy.value = false;

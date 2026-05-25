@@ -523,6 +523,10 @@ describe('streamChat', () => {
         'X-AI-Web-Search-Result-Count': '2',
         'X-AI-Web-Search-Source-Urls':
           'https%3A%2F%2Fexample.com%2Fa,https%3A%2F%2Fexample.com%2Fb%3Fx%3D1%26y%3D2',
+        'X-AI-Web-Search-Failure': 'no_results',
+        'X-AI-Web-Search-Duration-Ms': '321',
+        'X-AI-Web-Search-Stable-Duration-Ms': '120',
+        'X-AI-Web-Search-Fallback-Duration-Ms': '201',
       }),
     );
 
@@ -550,6 +554,10 @@ describe('streamChat', () => {
       webSearchFallback: false,
       webSearchResultCount: 2,
       webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b?x=1&y=2'],
+      webSearchFailureReason: 'no_results',
+      webSearchDurationMs: 321,
+      webSearchStableDurationMs: 120,
+      webSearchFallbackDurationMs: 201,
     });
   });
 
