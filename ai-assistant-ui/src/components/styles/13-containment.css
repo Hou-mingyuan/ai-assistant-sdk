@@ -13,8 +13,10 @@
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 92px;
+  /* Keep message heights real before scrolling; intrinsic placeholders make
+     long chats appear to jump upward when offscreen bubbles materialize. */
+  content-visibility: visible;
+  contain-intrinsic-size: none;
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.ai-msg-streaming,
