@@ -2682,7 +2682,44 @@ function send() {
   } else {
     promptHistory.reset();
   }
+  if (handleLocalFastReply(prompt)) return;
   return sendRaw();
+}
+
+function handleLocalFastReply(rawPrompt: string) {
+  const text = rawPrompt.trim();
+  if (mode.value !== 'chat' || loading.value || pendingImageDataList.value.length > 0) return false;
+  if (!isLocalIdentityQuestion(text)) return false;
+  const now = Date.now();
+  const reply =
+    '你好，我是 AI 助手。可以帮你做页面分析、内容总结、翻译、文件处理和后台任务梳理。你可以直接告诉我想做什么。';
+  messages.value.push({ role: 'user', content: text, timestamp: now });
+  messages.value.push({
+    role: 'assistant',
+    content: reply,
+    timestamp: now,
+    meta: {
+      model: 'local-fast-path',
+      requestedModel: selectedChatModel.value || undefined,
+      effectiveModel: 'local-fast-path',
+      elapsedMs: 0,
+      ttftMs: 0,
+    },
+  });
+  input.value = '';
+  emit('send', { action: 'chat', text });
+  emit('response', reply);
+  setExportToast('已用本地快速回复，未调用远端模型', 1800);
+  scrollToBottom(true);
+  return true;
+}
+
+function isLocalIdentityQuestion(text: string) {
+  const normalized = text
+    .replace(/\s+/g, '')
+    .replace(/[?？。.!！]+$/g, '')
+    .toLowerCase();
+  return /^(你是|你是谁|你是什么|你能做什么|whoareyou|whatareyou|whatcanyoudo)$/.test(normalized);
 }
 function onHistoryOlder() {
   const v = promptHistory.recallOlder();
