@@ -55,6 +55,10 @@ const STREAM_FLUSH_MIN_INTERVAL_MS = 48;
 
 type ScreenshotCaptureResult = { type: 'image'; data: string } | { type: 'text'; data: string };
 
+export interface FastReplyRoutingConfig {
+  maxChars?: number;
+}
+
 export function isVisionCapableModel(model: string, extraPatterns: RegExp[] = []): boolean {
   const normalized = model.trim();
   if (!normalized) return false;
@@ -224,6 +228,8 @@ export interface UseSendStreamDeps {
   webSearchEnabled?: Ref<boolean>;
   /** Prefer a lower-latency sibling model for simple chat turns. */
   fastReplyEnabled?: Ref<boolean>;
+  /** Runtime-configured threshold for simple prompt auto-routing. */
+  fastReplyRoutingConfig?: Ref<FastReplyRoutingConfig>;
   /** Optional server-provided model capability map keyed by model id. */
   modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
@@ -461,9 +467,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
     userEntry.content = content;
   }
 
-  function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean) {
+  function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean, text: string) {
     const selected = deps.selectedChatModel.value.trim();
-    const mid = pickFastReplyModel(selected) || selected;
+    const mid = pickFastReplyModel(selected, text) || selected;
     if (mid && deps.modelChoices.value.includes(mid)) {
       payload.model = mid;
       const hasServerVisionCapability = modelHasCapability(mid, 'vision');
@@ -476,8 +482,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
     }
   }
 
-  function pickFastReplyModel(selected: string) {
+  function pickFastReplyModel(selected: string, text: string) {
     if (!deps.fastReplyEnabled?.value || deps.mode.value !== 'chat') return '';
+    if (!isLowContextPrompt(text)) return '';
     const choices = deps.modelChoices.value.filter((model) => model && model !== selected);
     return (
       choices.find((model) => /(?:^|[-_:./])m2$/i.test(model)) ||
@@ -488,7 +495,8 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
   function isLowContextPrompt(text: string) {
     const normalized = text.trim().replace(/\s+/g, '');
-    if (!normalized || normalized.length > 32) return false;
+    const maxChars = deps.fastReplyRoutingConfig?.value.maxChars ?? 32;
+    if (!normalized || normalized.length > maxChars) return false;
     return !/(分析|总结|翻译|页面|截图|文件|代码|为什么|如何|怎么|列出|报告|搜索|联网|http|https)/i.test(
       normalized,
     );
@@ -499,7 +507,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
     hasImageAttachment: boolean,
     text: string,
   ) {
-    applySelectedModel(payload, hasImageAttachment);
+    applySelectedModel(payload, hasImageAttachment, text);
     if (deps.mode.value !== 'chat') return;
     const memFrag = deps.memoryPromptFragment?.value ?? '';
     const sp = deps.chatSystemPrompt.value.trim();

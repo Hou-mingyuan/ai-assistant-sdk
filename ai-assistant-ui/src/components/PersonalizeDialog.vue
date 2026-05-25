@@ -217,6 +217,65 @@
               />
               <span>{{ t.providerConfigWarmup || 'Warm up default model after startup' }}</span>
             </label>
+            <label class="ai-personalize-model-field">
+              <span>Fast route max chars</span>
+              <input
+                :value="fastRouteMaxCharsInput"
+                type="number"
+                min="1"
+                max="200"
+                autocomplete="off"
+                @input="
+                  $emit('update:fastRouteMaxCharsInput', ($event.target as HTMLInputElement).value)
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>Slow TTFT ms</span>
+              <input
+                :value="slowTtftThresholdMsInput"
+                type="number"
+                min="100"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:slowTtftThresholdMsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>Slow total ms</span>
+              <input
+                :value="slowTotalThresholdMsInput"
+                type="number"
+                min="100"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:slowTotalThresholdMsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>Slow streak</span>
+              <input
+                :value="slowRequestWarningStreakInput"
+                type="number"
+                min="1"
+                max="10"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:slowRequestWarningStreakInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
             <button
               type="button"
               class="ai-personalize-done"
@@ -371,6 +430,10 @@ const props = defineProps<{
   webSearchMaxResultsInput?: string;
   webSearchAllowedDomainsInput?: string;
   webSearchBlockedDomainsInput?: string;
+  fastRouteMaxCharsInput?: string;
+  slowTtftThresholdMsInput?: string;
+  slowTotalThresholdMsInput?: string;
+  slowRequestWarningStreakInput?: string;
 }>();
 
 const emit = defineEmits<{
@@ -396,6 +459,10 @@ const emit = defineEmits<{
   (e: 'update:webSearchMaxResultsInput', value: string): void;
   (e: 'update:webSearchAllowedDomainsInput', value: string): void;
   (e: 'update:webSearchBlockedDomainsInput', value: string): void;
+  (e: 'update:fastRouteMaxCharsInput', value: string): void;
+  (e: 'update:slowTtftThresholdMsInput', value: string): void;
+  (e: 'update:slowTotalThresholdMsInput', value: string): void;
+  (e: 'update:slowRequestWarningStreakInput', value: string): void;
 }>();
 
 function emitAudio(patch: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>) {

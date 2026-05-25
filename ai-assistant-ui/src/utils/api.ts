@@ -36,6 +36,9 @@ export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'] & {
   webSearchStableDurationMs?: number;
   webSearchFallbackDurationMs?: number;
   webSearchSourcePreviews?: WebSearchSourcePreview[];
+  serverDispatchEpochMs?: number;
+  serverQueueMs?: number;
+  requestAction?: string;
 };
 
 export interface WebSearchSourcePreview {
@@ -53,6 +56,10 @@ export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'] & 
   webSearchAllowedDomains?: string;
   webSearchBlockedDomains?: string;
   warmupEnabled?: boolean;
+  fastRouteMaxChars?: number;
+  slowTtftThresholdMs?: number;
+  slowTotalThresholdMs?: number;
+  slowRequestWarningStreak?: number;
 };
 
 export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'] & {
@@ -62,6 +69,10 @@ export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'] 
   webSearchAllowedDomains?: string;
   webSearchBlockedDomains?: string;
   warmupEnabled?: boolean;
+  fastRouteMaxChars?: number;
+  slowTtftThresholdMs?: number;
+  slowTotalThresholdMs?: number;
+  slowRequestWarningStreak?: number;
 };
 
 export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
@@ -148,6 +159,8 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   const webSearchStableDurationMsRaw = headers.get('X-AI-Web-Search-Stable-Duration-Ms');
   const webSearchFallbackDurationMsRaw = headers.get('X-AI-Web-Search-Fallback-Duration-Ms');
   const webSearchSourcePreviewsRaw = headers.get('X-AI-Web-Search-Source-Previews');
+  const serverDispatchEpochMsRaw = headers.get('X-AI-Server-Dispatch-Epoch-Ms');
+  const serverQueueMsRaw = headers.get('X-AI-Server-Queue-Ms');
   const meta: ChatRuntimeMeta = {
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
@@ -170,6 +183,9 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
     webSearchStableDurationMs: parseOptionalNumber(webSearchStableDurationMsRaw),
     webSearchFallbackDurationMs: parseOptionalNumber(webSearchFallbackDurationMsRaw),
     webSearchSourcePreviews: parseWebSearchSourcePreviews(webSearchSourcePreviewsRaw),
+    serverDispatchEpochMs: parseOptionalNumber(serverDispatchEpochMsRaw),
+    serverQueueMs: parseOptionalNumber(serverQueueMsRaw),
+    requestAction: headers.get('X-AI-Request-Action') || undefined,
   };
   return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
 }

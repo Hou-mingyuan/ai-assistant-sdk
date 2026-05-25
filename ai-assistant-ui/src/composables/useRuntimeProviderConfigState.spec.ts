@@ -19,6 +19,10 @@ describe('useRuntimeProviderConfigState', () => {
       webSearchApiKeyConfigured: true,
       webSearchAllowedDomains: 'docs.example.com',
       webSearchBlockedDomains: 'spam.example.com',
+      fastRouteMaxChars: 64,
+      slowTtftThresholdMs: 2500,
+      slowTotalThresholdMs: 7000,
+      slowRequestWarningStreak: 3,
     });
 
     expect(state.providerInput.value).toBe('minimax');
@@ -31,6 +35,10 @@ describe('useRuntimeProviderConfigState', () => {
     expect(state.webSearchApiKeyInput.value).toBe('');
     expect(state.webSearchAllowedDomainsInput.value).toBe('docs.example.com');
     expect(state.webSearchBlockedDomainsInput.value).toBe('spam.example.com');
+    expect(state.fastRouteMaxCharsInput.value).toBe('64');
+    expect(state.slowTtftThresholdMsInput.value).toBe('2500');
+    expect(state.slowTotalThresholdMsInput.value).toBe('7000');
+    expect(state.slowRequestWarningStreakInput.value).toBe('3');
   });
 
   it('uses empty strings for missing runtime config fields', () => {
@@ -57,6 +65,10 @@ describe('useRuntimeProviderConfigState', () => {
     state.webSearchMaxResultsInput.value = '6';
     state.webSearchAllowedDomainsInput.value = 'docs.example.com';
     state.webSearchBlockedDomainsInput.value = 'spam.example.com';
+    state.fastRouteMaxCharsInput.value = '72';
+    state.slowTtftThresholdMsInput.value = '2400';
+    state.slowTotalThresholdMsInput.value = '6500';
+    state.slowRequestWarningStreakInput.value = '4';
 
     expect(state.buildRuntimeModelConfigPayload()).toEqual({
       provider: 'openai',
@@ -64,11 +76,16 @@ describe('useRuntimeProviderConfigState', () => {
       apiKey: 'sk-test',
       model: 'gpt-4o-mini',
       allowedModelsText: 'gpt-4o-mini, gpt-4o',
+      warmupEnabled: false,
       webSearchProvider: 'tavily',
       webSearchApiKey: 'tvly-test',
       webSearchMaxResults: 6,
       webSearchAllowedDomains: 'docs.example.com',
       webSearchBlockedDomains: 'spam.example.com',
+      fastRouteMaxChars: 72,
+      slowTtftThresholdMs: 2400,
+      slowTotalThresholdMs: 6500,
+      slowRequestWarningStreak: 4,
     });
   });
 

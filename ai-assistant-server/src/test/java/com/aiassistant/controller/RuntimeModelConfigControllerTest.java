@@ -39,6 +39,10 @@ class RuntimeModelConfigControllerTest {
         request.setModel("MiniMax-M2.7");
         request.setAllowedModelsText("MiniMax-M2.7, MiniMax-M2.5");
         request.setWarmupEnabled(true);
+        request.setFastRouteMaxChars(72);
+        request.setSlowTtftThresholdMs(2400);
+        request.setSlowTotalThresholdMs(6500);
+        request.setSlowRequestWarningStreak(4);
 
         var response = controller.updateRuntimeModelConfig(request);
 
@@ -51,6 +55,11 @@ class RuntimeModelConfigControllerTest {
         assertFalse(response.containsKey("apiKey"));
         assertTrue(properties.resolveApiKeys().contains("runtime-secret"));
         assertTrue(properties.isWarmupEnabled());
+        assertEquals(72, response.get("fastRouteMaxChars"));
+        assertEquals(2400, response.get("slowTtftThresholdMs"));
+        assertEquals(6500, response.get("slowTotalThresholdMs"));
+        assertEquals(4, response.get("slowRequestWarningStreak"));
+        assertEquals(72, properties.getLatency().getFastRouteMaxChars());
     }
 
     private RuntimeModelConfigController controller(AiAssistantProperties properties) {

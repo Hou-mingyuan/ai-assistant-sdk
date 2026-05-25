@@ -118,4 +118,25 @@ describe('ConnectionDiagnostics', () => {
     expect(document.body.querySelector('.ai-diagnostics-latency-chart')).toBeTruthy();
     wrapper.unmount();
   });
+
+  it('shows slow request guidance and latency benchmark results', async () => {
+    const wrapper = mountDialog({
+      slowRequestHintText:
+        'MiniMax-M2.7 has been slow twice; use fast reply or rerun with MiniMax-M2.',
+      benchmarkBusy: false,
+      benchmarkSummary: 'MiniMax-M2 avg 500ms · success 100%',
+      benchmarkRows: [{ model: 'MiniMax-M2', promptLabel: '短问', success: true, elapsedMs: 500 }],
+    });
+
+    expect(document.body.textContent).toContain('Slow request guidance');
+    expect(document.body.textContent).toContain('MiniMax-M2.7 has been slow twice');
+    expect(document.body.textContent).toContain('Model benchmark');
+    expect(document.body.textContent).toContain('MiniMax-M2 avg 500ms');
+
+    (document.body.querySelector('.ai-diagnostics-benchmark-button') as HTMLButtonElement).click();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('runBenchmark')).toBeTruthy();
+    wrapper.unmount();
+  });
 });

@@ -92,6 +92,9 @@ public class AiAssistantProperties {
     // ── Chat Limits (ai-assistant.chat.*) ─────────────────────────────
     private ChatProperties chat = new ChatProperties();
 
+    // ── Latency UX tuning (ai-assistant.latency.*) ────────────────────
+    private LatencyProperties latency = new LatencyProperties();
+
     /** 允许前端在 /chat、/stream 请求体中指定的模型 id；为空则忽略客户端 model，始终用 resolveModel()。 */
     private List<String> allowedModels;
 
@@ -178,6 +181,30 @@ public class AiAssistantProperties {
     public static class ChatProperties {
         private int maxTotalChars = 300_000;
         private int historyMaxChars = 48_000;
+    }
+
+    @Getter
+    public static class LatencyProperties {
+        private int fastRouteMaxChars = 32;
+        private int slowTtftThresholdMs = 3_000;
+        private int slowTotalThresholdMs = 8_000;
+        private int slowRequestWarningStreak = 2;
+
+        public void setFastRouteMaxChars(int fastRouteMaxChars) {
+            this.fastRouteMaxChars = Math.max(1, Math.min(200, fastRouteMaxChars));
+        }
+
+        public void setSlowTtftThresholdMs(int slowTtftThresholdMs) {
+            this.slowTtftThresholdMs = Math.max(100, slowTtftThresholdMs);
+        }
+
+        public void setSlowTotalThresholdMs(int slowTotalThresholdMs) {
+            this.slowTotalThresholdMs = Math.max(100, slowTotalThresholdMs);
+        }
+
+        public void setSlowRequestWarningStreak(int slowRequestWarningStreak) {
+            this.slowRequestWarningStreak = Math.max(1, Math.min(10, slowRequestWarningStreak));
+        }
     }
 
     /**

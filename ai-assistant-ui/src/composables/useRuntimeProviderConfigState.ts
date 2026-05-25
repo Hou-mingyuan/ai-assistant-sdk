@@ -13,6 +13,10 @@ export function useRuntimeProviderConfigState() {
   const webSearchMaxResultsInput = ref('');
   const webSearchAllowedDomainsInput = ref('');
   const webSearchBlockedDomainsInput = ref('');
+  const fastRouteMaxCharsInput = ref('');
+  const slowTtftThresholdMsInput = ref('');
+  const slowTotalThresholdMsInput = ref('');
+  const slowRequestWarningStreakInput = ref('');
 
   function applyRuntimeModelConfig(config: RuntimeModelConfigResult) {
     providerInput.value = config.provider || '';
@@ -27,10 +31,22 @@ export function useRuntimeProviderConfigState() {
     webSearchApiKeyInput.value = '';
     webSearchAllowedDomainsInput.value = config.webSearchAllowedDomains || '';
     webSearchBlockedDomainsInput.value = config.webSearchBlockedDomains || '';
+    fastRouteMaxCharsInput.value =
+      config.fastRouteMaxChars != null ? String(config.fastRouteMaxChars) : '';
+    slowTtftThresholdMsInput.value =
+      config.slowTtftThresholdMs != null ? String(config.slowTtftThresholdMs) : '';
+    slowTotalThresholdMsInput.value =
+      config.slowTotalThresholdMs != null ? String(config.slowTotalThresholdMs) : '';
+    slowRequestWarningStreakInput.value =
+      config.slowRequestWarningStreak != null ? String(config.slowRequestWarningStreak) : '';
   }
 
   function buildRuntimeModelConfigPayload() {
     const webSearchMaxResults = Number(webSearchMaxResultsInput.value);
+    const fastRouteMaxChars = Number(fastRouteMaxCharsInput.value);
+    const slowTtftThresholdMs = Number(slowTtftThresholdMsInput.value);
+    const slowTotalThresholdMs = Number(slowTotalThresholdMsInput.value);
+    const slowRequestWarningStreak = Number(slowRequestWarningStreakInput.value);
     return {
       provider: providerInput.value,
       baseUrl: providerBaseUrlInput.value,
@@ -43,6 +59,14 @@ export function useRuntimeProviderConfigState() {
       webSearchMaxResults: Number.isFinite(webSearchMaxResults) ? webSearchMaxResults : undefined,
       webSearchAllowedDomains: webSearchAllowedDomainsInput.value,
       webSearchBlockedDomains: webSearchBlockedDomainsInput.value,
+      fastRouteMaxChars: Number.isFinite(fastRouteMaxChars) ? fastRouteMaxChars : undefined,
+      slowTtftThresholdMs: Number.isFinite(slowTtftThresholdMs) ? slowTtftThresholdMs : undefined,
+      slowTotalThresholdMs: Number.isFinite(slowTotalThresholdMs)
+        ? slowTotalThresholdMs
+        : undefined,
+      slowRequestWarningStreak: Number.isFinite(slowRequestWarningStreak)
+        ? slowRequestWarningStreak
+        : undefined,
     };
   }
 
@@ -65,6 +89,10 @@ export function useRuntimeProviderConfigState() {
     webSearchMaxResultsInput,
     webSearchAllowedDomainsInput,
     webSearchBlockedDomainsInput,
+    fastRouteMaxCharsInput,
+    slowTtftThresholdMsInput,
+    slowTotalThresholdMsInput,
+    slowRequestWarningStreakInput,
     applyRuntimeModelConfig,
     buildRuntimeModelConfigPayload,
     applyDiscoveredModels,

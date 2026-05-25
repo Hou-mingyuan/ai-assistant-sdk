@@ -503,6 +503,10 @@
       :web-search-max-results-input="webSearchMaxResultsInput"
       :web-search-allowed-domains-input="webSearchAllowedDomainsInput"
       :web-search-blocked-domains-input="webSearchBlockedDomainsInput"
+      :fast-route-max-chars-input="fastRouteMaxCharsInput"
+      :slow-ttft-threshold-ms-input="slowTtftThresholdMsInput"
+      :slow-total-threshold-ms-input="slowTotalThresholdMsInput"
+      :slow-request-warning-streak-input="slowRequestWarningStreakInput"
       @update:theme="(v) => (themePalette = v as ThemePresetId)"
       @update:audio="onAudioPrefsUpdate"
       @save-provider-config="saveProviderConfig"
@@ -518,6 +522,10 @@
       @update:web-search-max-results-input="webSearchMaxResultsInput = $event"
       @update:web-search-allowed-domains-input="webSearchAllowedDomainsInput = $event"
       @update:web-search-blocked-domains-input="webSearchBlockedDomainsInput = $event"
+      @update:fast-route-max-chars-input="fastRouteMaxCharsInput = $event"
+      @update:slow-ttft-threshold-ms-input="slowTtftThresholdMsInput = $event"
+      @update:slow-total-threshold-ms-input="slowTotalThresholdMsInput = $event"
+      @update:slow-request-warning-streak-input="slowRequestWarningStreakInput = $event"
       @close="personalizeOpen = false"
     />
 
@@ -614,6 +622,10 @@
       :response-timing-summary="responseTimingSummary"
       :response-timing-history="responseTimingHistory"
       :response-timing-samples="responseTimingSamples"
+      :slow-request-hint-text="slowRequestHintText"
+      :benchmark-busy="benchmarkBusy"
+      :benchmark-summary="benchmarkSummary"
+      :benchmark-rows="benchmarkRows"
       :model-source-text="modelSourceText"
       :model-hint-text="modelHintText"
       :remedy-kind="diagnosticsRemedyKind"
@@ -631,6 +643,7 @@
       @test-config="testConnectionConfig"
       @save-config="saveConnectionConfig"
       @use-default-base-url="useDefaultBaseUrlForDiagnostics"
+      @run-benchmark="runModelBenchmark"
       @update:base-url-input="connectionBaseUrlInput = $event"
       @update:token-input="connectionTokenInput = $event"
       @update:persist-enabled="connectionPersistEnabled = $event"
@@ -741,6 +754,7 @@ import { useMultiModelChat } from '../composables/useMultiModelChat';
 import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { useAudioPreferences } from '../composables/useAudioPreferences';
 import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics';
+import { useLatencyBenchmark } from '../composables/useLatencyBenchmark';
 import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateInteraction } from '../composables/usePromptTemplateInteraction';
@@ -788,6 +802,7 @@ import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
 import { useCodeWall } from '../composables/useCodeWall';
+import { useCodeBlockActions } from '../composables/useCodeBlockActions';
 import { usePanelGeometry } from '../composables/usePanelGeometry';
 import { useMsgContextMenu } from '../composables/useMsgContextMenu';
 import { getMessages } from '../utils/i18n';
@@ -795,7 +810,10 @@ import type { Locale, I18nMessages } from '../utils/i18n';
 import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
+import { useMessageCopy } from '../composables/useMessageCopy';
 import { useMessageSelection } from '../composables/useMessageSelection';
+import { useMessageReactions } from '../composables/useMessageReactions';
+import { usePageSelectionActions } from '../composables/usePageSelectionActions';
 import { useCompareRegions } from '../composables/useCompareRegions';
 import { useSendStream } from '../composables/useSendStream';
 import {
@@ -808,6 +826,7 @@ import { useExportUi } from '../composables/useExportUi';
 import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer';
 import { useMultiSession } from '../composables/useMultiSession';
 import { useImagePasteAndDrop } from '../composables/useImagePasteAndDrop';
+import { useImageAnnotationState } from '../composables/useImageAnnotationState';
 import {
   captureScreenDataUrl,
   matchesScreenCaptureShortcut,
@@ -833,13 +852,6 @@ import {
   firstNonImageHttpUrl,
   preferHttpsImageUrlWhenPageIsSecure,
 } from '../utils/urlEmbed';
-import {
-  findCodeElementForCodeActionTarget,
-  getCodeLanguage,
-  updateCodeActionButtonLabel,
-  updateCodeCopyFailureState,
-  updateCodeFoldToggleState,
-} from '../utils/codeBlockDom';
 
 import { extractThinking, type Message } from '../types/message';
 
@@ -1070,8 +1082,11 @@ const responseTimingSummary = computed(() => {
 const modelHealthText = computed(() => {
   const latest = responseTimingSamples.value[0];
   if (!latest) return '';
-  const ttft = latest.ttftMs == null ? 'TTFT n/a' : latest.ttftMs > 3000 ? 'TTFT slow' : 'TTFT ok';
-  const total = latest.totalMs > 8000 ? 'total slow' : 'total ok';
+  const ttftThreshold = latencyNumber(slowTtftThresholdMsInput.value, 3000);
+  const totalThreshold = latencyNumber(slowTotalThresholdMsInput.value, 8000);
+  const ttft =
+    latest.ttftMs == null ? 'TTFT n/a' : latest.ttftMs > ttftThreshold ? 'TTFT slow' : 'TTFT ok';
+  const total = latest.totalMs > totalThreshold ? 'total slow' : 'total ok';
   return ['Provider ready', ttft, total].join(' · ');
 });
 const responseTimingHistory = computed(() => {
@@ -1101,6 +1116,11 @@ const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } 
 
 function formatTimingMs(ms: number) {
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+function latencyNumber(raw: string, fallback: number) {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 function toResponseTimingSample(msg: Message, index: number) {
@@ -1201,6 +1221,10 @@ const {
   webSearchMaxResultsInput,
   webSearchAllowedDomainsInput,
   webSearchBlockedDomainsInput,
+  fastRouteMaxCharsInput,
+  slowTtftThresholdMsInput,
+  slowTotalThresholdMsInput,
+  slowRequestWarningStreakInput,
   webSearchDiagnosticsText,
   webSearchStats,
   modelListMessage,
@@ -1227,6 +1251,30 @@ const {
   connectionBaseUrlStorageKey,
   connectionTokenStorageKey,
 } = assistantDiagnostics;
+
+const { benchmarkBusy, benchmarkRows, benchmarkSummary, runBenchmark } = useLatencyBenchmark();
+const fastReplyRoutingConfig = computed(() => ({
+  maxChars: latencyNumber(fastRouteMaxCharsInput.value, 32),
+}));
+const slowRequestHintText = computed(() => {
+  const streak = latencyNumber(slowRequestWarningStreakInput.value, 2);
+  const ttftThreshold = latencyNumber(slowTtftThresholdMsInput.value, 3000);
+  const totalThreshold = latencyNumber(slowTotalThresholdMsInput.value, 8000);
+  const slowSamples = responseTimingSamples.value
+    .slice(0, streak)
+    .filter(
+      (sample) =>
+        (typeof sample.ttftMs === 'number' && sample.ttftMs > ttftThreshold) ||
+        sample.totalMs > totalThreshold,
+    );
+  if (slowSamples.length < streak) return '';
+  const model = slowSamples[0].model || selectedChatModel.value || 'current model';
+  return `${model} has been slow ${slowSamples.length} times; use fast reply or run the benchmark to compare sibling models.`;
+});
+
+function runModelBenchmark() {
+  void runBenchmark(options.baseUrl || '', options.accessToken, modelChoices.value);
+}
 
 function openPersonalize() {
   personalizeOpen.value = true;
@@ -1301,33 +1349,18 @@ const {
   processFileUpload,
 });
 
-const annotationOpen = ref(false);
-const annotationImageSrc = ref('');
-const annotationReplaceIndex = ref<number | null>(null);
-
-function openAnnotationDialog(src: string, replaceIndex: number | null) {
-  if (!src) return;
-  annotationImageSrc.value = src;
-  annotationReplaceIndex.value = replaceIndex;
-  annotationOpen.value = true;
-}
-
-function openAnnotationForPendingImage(index: number) {
-  openAnnotationDialog(pendingImageDataList.value[index], index);
-}
-
-function closeAnnotationDialog() {
-  annotationOpen.value = false;
-  annotationImageSrc.value = '';
-  annotationReplaceIndex.value = null;
-}
-
-async function onAnnotationSave(dataUrl: string) {
-  const replaceIndex = annotationReplaceIndex.value;
-  if (replaceIndex == null) await setPendingImageDataUrl(dataUrl);
-  else await replacePendingImageDataUrl(replaceIndex, dataUrl);
-  closeAnnotationDialog();
-}
+const {
+  annotationOpen,
+  annotationImageSrc,
+  openAnnotationDialog,
+  openAnnotationForPendingImage,
+  closeAnnotationDialog,
+  onAnnotationSave,
+} = useImageAnnotationState({
+  pendingImageDataList,
+  setPendingImageDataUrl,
+  replacePendingImageDataUrl,
+});
 
 async function captureScreenIntoPendingImage() {
   try {
@@ -1558,6 +1591,16 @@ const {
   clearSet: onCompareClearSet,
 } = compareRegions;
 const maxCompareSides = compareRegions.maxSides;
+const { handleBodyClick } = useCodeBlockActions({
+  messages,
+  compareSet,
+  maxCompareSides,
+  markCompare: compareRegions.mark,
+  openCodeInIde: options.openCodeInIde,
+  t,
+  setToast: setExportToast,
+  pendingTimers,
+});
 
 function onCompareMark() {
   const idx = msgCtxMenu.value.index;
@@ -2023,6 +2066,17 @@ let winResizeRaf = 0;
 const fabButtonRef = ref<InstanceType<typeof FabButton> | null>(null);
 const fabRef = computed<HTMLButtonElement | undefined>(() => fabButtonRef.value?.fabRef);
 const { selection: pageSel, dismissSelection: dismissPageSel } = usePageSelection(wrapperRef);
+const { onPageSelAction } = usePageSelectionActions({
+  getSelectionText: () => pageSel.value.text,
+  dismissSelection: dismissPageSel,
+  mode,
+  input,
+  isOpen,
+  send: () => send(),
+  nextTickFn: (cb) => {
+    void nextTick(cb);
+  },
+});
 const persistFabRef = computed(() => options.persistFabPosition !== false);
 const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
 const {
@@ -2412,7 +2466,11 @@ function showAllOlderMessages() {
   nextTick(() => scrollToBottom(true));
 }
 
-const copiedIndex = ref(-1);
+const { copiedIndex, copyMessage } = useMessageCopy({
+  writeText: writeClipboardText,
+  reportError: reportAssistantError,
+  pendingTimers,
+});
 
 const editingMsgIdx = ref<number | null>(null);
 const editingText = ref('');
@@ -2444,144 +2502,13 @@ const {
   emitFeedback: (payload) => emit('feedback', payload),
 });
 
-/**
- * K24: extended reaction handler for the new MessageReactionBar.
- *
- * Distinct from setFeedback (which is the canonical thumbs-up/down +
- * `feedback` emit for analytics back-ends that already exist). setReaction
- * stores a single selected emoji + a per-emoji counter on the message itself
- * (`msg.reactions`), with toggle semantics — clicking the active emoji
- * clears it. Host can subscribe via `options.onReaction` and the parent's
- * top-level `reaction` emit.
- */
-function setReaction(globalIdx: number, emoji: string, toggled: boolean) {
-  const msg = messages.value[globalIdx];
-  if (!msg) return;
-  const prev = msg.reactions ?? {};
-  const counts: Record<string, number> = { ...(prev.counts ?? {}) };
-  if (toggled) {
-    counts[emoji] = Math.max(0, (counts[emoji] ?? 0) - 1);
-    msg.reactions = { selected: '', counts };
-  } else {
-    if (prev.selected && prev.selected !== emoji) {
-      counts[prev.selected] = Math.max(0, (counts[prev.selected] ?? 0) - 1);
-    }
-    counts[emoji] = (counts[emoji] ?? 0) + 1;
-    msg.reactions = { selected: emoji, counts };
-  }
-  try {
-    options.onReaction?.({ messageIndex: globalIdx, emoji, toggled });
-  } catch (e) {
-    /* Swallow host callback errors silently; never let analytics-side
-     * exceptions break the reaction UI. */
-    void e;
-  }
-  emit('reaction', { messageIndex: globalIdx, emoji, toggled });
-}
-
-function handleBodyClick(e: MouseEvent) {
-  const target = e.target as HTMLElement;
-  /* K46: code-block "Add to Compare" hover button. Match the button OR its
-   * inner SVG/path (clicks on the icon fragment bubble up). closest finds
-   * the actual <button>. */
-  const cmpBtn = target.closest('.ai-code-cmp-btn') as HTMLElement | null;
-  if (cmpBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    const msgIdxRaw = cmpBtn.getAttribute('data-ai-cmp-msg');
-    const msgIdx = msgIdxRaw != null ? parseInt(msgIdxRaw, 10) : -1;
-    const codeText = findCodeElementForCodeActionTarget(cmpBtn)?.textContent ?? '';
-    const m = msgIdx >= 0 ? messages.value[msgIdx] : undefined;
-    if (m && codeText.trim()) {
-      if (compareSet.value.length >= maxCompareSides) {
-        setExportToast(t.value.msgCtxCompareSetFull || 'Compare set is full (max 4)', 2400);
-        return;
-      }
-      compareRegions.mark(msgIdx, codeText);
-      /* Flash the button to confirm the add. */
-      cmpBtn.classList.add('ai-code-cmp-btn-added');
-      setTimeout(() => cmpBtn.classList.remove('ai-code-cmp-btn-added'), 1000);
-    }
-    return;
-  }
-  if (target.dataset.ide === 'true') {
-    const codeEl = findCodeElementForCodeActionTarget(target);
-    const code = codeEl?.textContent || '';
-    options.openCodeInIde?.({ code, language: getCodeLanguage(codeEl) });
-    return;
-  }
-  /* F4: fold toggle - 折叠 / 展开长代码块 */
-  if (target.dataset.foldToggle === 'true') {
-    const wrap = target.closest('.ai-code-wrap');
-    if (wrap) {
-      const isFolded = wrap.classList.toggle('ai-code-folded');
-      updateCodeFoldToggleState(
-        target,
-        isFolded,
-        t.value.codeFold || 'Fold',
-        t.value.codeUnfold || 'Unfold',
-      );
-    }
-    return;
-  }
-  if (target.dataset.copy === 'true') {
-    const code = findCodeElementForCodeActionTarget(target)?.textContent || '';
-    navigator.clipboard
-      .writeText(code)
-      .then(() => {
-        updateCodeActionButtonLabel(target, t.value.codeCopied);
-        pendingTimers.push(
-          window.setTimeout(() => {
-            updateCodeActionButtonLabel(target, t.value.copyCode);
-          }, 1500),
-        );
-      })
-      .catch(() => {
-        updateCodeCopyFailureState(target, t.value.diagnosticsCopyFailed || 'Copy failed');
-        pendingTimers.push(
-          window.setTimeout(() => {
-            updateCodeActionButtonLabel(target, t.value.copyCode);
-          }, 1500),
-        );
-      });
-  }
-}
+const { setReaction } = useMessageReactions({
+  messages,
+  onReaction: options.onReaction,
+  emitReaction: (payload) => emit('reaction', payload),
+});
 
 // Image paste / drop / pending thumbnail logic moved to useImagePasteAndDrop.
-
-async function copyMessage(text: string, globalIdx: number) {
-  try {
-    await writeClipboardText(text);
-    copiedIndex.value = globalIdx;
-    pendingTimers.push(
-      window.setTimeout(() => {
-        copiedIndex.value = -1;
-      }, 1500),
-    );
-  } catch {
-    reportAssistantError('clipboard', 'Copy failed');
-  }
-}
-
-function onPageSelAction(action: 'ask' | 'translate' | 'summarize') {
-  const text = pageSel.value.text;
-  dismissPageSel();
-  if (!text) return;
-  if (action === 'ask') {
-    mode.value = 'chat';
-  } else if (action === 'translate') {
-    mode.value = 'translate';
-  } else {
-    mode.value = 'summarize';
-  }
-  input.value = text;
-  isOpen.value = true;
-  nextTick(() => {
-    if (action !== 'ask') {
-      send();
-    }
-  });
-}
 
 /* K23: CommandPalette wiring
  * --------------------------
@@ -2717,6 +2644,7 @@ const {
   deepThinkEnabled,
   webSearchEnabled,
   fastReplyEnabled,
+  fastReplyRoutingConfig,
   modelCapabilities,
   pendingImageDataList,
   pendingImageThumbs,

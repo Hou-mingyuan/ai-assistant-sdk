@@ -82,6 +82,7 @@ public class RuntimeModelConfigService {
         if (request.getWarmupEnabled() != null) {
             properties.setWarmupEnabled(request.getWarmupEnabled());
         }
+        applyLatencyConfig(request);
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
@@ -169,6 +170,30 @@ public class RuntimeModelConfigService {
         return result;
     }
 
+    private void applyLatencyConfig(UpdateRequest request) {
+        if (request.getFastRouteMaxChars() != null) {
+            properties.getLatency().setFastRouteMaxChars(request.getFastRouteMaxChars());
+        }
+        if (request.getSlowTtftThresholdMs() != null) {
+            properties.getLatency().setSlowTtftThresholdMs(request.getSlowTtftThresholdMs());
+        }
+        if (request.getSlowTotalThresholdMs() != null) {
+            properties.getLatency().setSlowTotalThresholdMs(request.getSlowTotalThresholdMs());
+        }
+        if (request.getSlowRequestWarningStreak() != null) {
+            properties
+                    .getLatency()
+                    .setSlowRequestWarningStreak(request.getSlowRequestWarningStreak());
+        }
+    }
+
+    private static void setIntegerIfPresent(
+            String raw, java.util.function.Consumer<Integer> consumer) {
+        if (hasText(raw)) {
+            consumer.accept(Integer.parseInt(raw));
+        }
+    }
+
     private void loadPersistedConfig() {
         if (!Files.isRegularFile(storagePath)) {
             return;
@@ -185,6 +210,17 @@ public class RuntimeModelConfigService {
             if (hasText(warmupEnabled)) {
                 request.setWarmupEnabled(Boolean.parseBoolean(warmupEnabled));
             }
+            setIntegerIfPresent(
+                    persisted.getProperty("fastRouteMaxChars"), request::setFastRouteMaxChars);
+            setIntegerIfPresent(
+                    persisted.getProperty("slowTtftThresholdMs"),
+                    request::setSlowTtftThresholdMs);
+            setIntegerIfPresent(
+                    persisted.getProperty("slowTotalThresholdMs"),
+                    request::setSlowTotalThresholdMs);
+            setIntegerIfPresent(
+                    persisted.getProperty("slowRequestWarningStreak"),
+                    request::setSlowRequestWarningStreak);
             request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
             request.setWebSearchProvider(persisted.getProperty("webSearchProvider"));
             request.setWebSearchAllowedDomains(persisted.getProperty("webSearchAllowedDomains"));
@@ -220,6 +256,7 @@ public class RuntimeModelConfigService {
         if (request.getWarmupEnabled() != null) {
             properties.setWarmupEnabled(request.getWarmupEnabled());
         }
+        applyLatencyConfig(request);
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
@@ -251,6 +288,13 @@ public class RuntimeModelConfigService {
         put(persisted, "model", snapshot.model);
         put(persisted, "allowedModels", String.join(",", snapshot.allowedModels));
         put(persisted, "warmupEnabled", String.valueOf(snapshot.warmupEnabled));
+        put(persisted, "fastRouteMaxChars", String.valueOf(snapshot.fastRouteMaxChars));
+        put(persisted, "slowTtftThresholdMs", String.valueOf(snapshot.slowTtftThresholdMs));
+        put(persisted, "slowTotalThresholdMs", String.valueOf(snapshot.slowTotalThresholdMs));
+        put(
+                persisted,
+                "slowRequestWarningStreak",
+                String.valueOf(snapshot.slowRequestWarningStreak));
         put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
         put(persisted, "webSearchProvider", snapshot.webSearchProvider);
         put(persisted, "webSearchMaxResults", String.valueOf(snapshot.webSearchMaxResults));
@@ -279,6 +323,10 @@ public class RuntimeModelConfigService {
     }
 
     private static Path defaultStoragePath() {
+        String override = System.getProperty("ai.assistant.runtime.config.path");
+        if (hasText(override)) {
+            return Paths.get(override);
+        }
         return Paths.get(
                 System.getProperty("user.home"),
                 ".ai-assistant",
@@ -397,6 +445,10 @@ public class RuntimeModelConfigService {
         private List<String> allowedModels;
         private String allowedModelsText;
         private Boolean warmupEnabled;
+        private Integer fastRouteMaxChars;
+        private Integer slowTtftThresholdMs;
+        private Integer slowTotalThresholdMs;
+        private Integer slowRequestWarningStreak;
         private String minimaxVlmBaseUrl;
         private String webSearchProvider;
         private String webSearchApiKey;
@@ -460,6 +512,38 @@ public class RuntimeModelConfigService {
             this.warmupEnabled = warmupEnabled;
         }
 
+        public Integer getFastRouteMaxChars() {
+            return fastRouteMaxChars;
+        }
+
+        public void setFastRouteMaxChars(Integer fastRouteMaxChars) {
+            this.fastRouteMaxChars = fastRouteMaxChars;
+        }
+
+        public Integer getSlowTtftThresholdMs() {
+            return slowTtftThresholdMs;
+        }
+
+        public void setSlowTtftThresholdMs(Integer slowTtftThresholdMs) {
+            this.slowTtftThresholdMs = slowTtftThresholdMs;
+        }
+
+        public Integer getSlowTotalThresholdMs() {
+            return slowTotalThresholdMs;
+        }
+
+        public void setSlowTotalThresholdMs(Integer slowTotalThresholdMs) {
+            this.slowTotalThresholdMs = slowTotalThresholdMs;
+        }
+
+        public Integer getSlowRequestWarningStreak() {
+            return slowRequestWarningStreak;
+        }
+
+        public void setSlowRequestWarningStreak(Integer slowRequestWarningStreak) {
+            this.slowRequestWarningStreak = slowRequestWarningStreak;
+        }
+
         public String getMinimaxVlmBaseUrl() {
             return minimaxVlmBaseUrl;
         }
@@ -515,6 +599,10 @@ public class RuntimeModelConfigService {
         private String model;
         private List<String> allowedModels;
         private boolean warmupEnabled;
+        private int fastRouteMaxChars;
+        private int slowTtftThresholdMs;
+        private int slowTotalThresholdMs;
+        private int slowRequestWarningStreak;
         private boolean apiKeyConfigured;
         private String minimaxVlmBaseUrl;
         private String webSearchProvider;
@@ -530,6 +618,10 @@ public class RuntimeModelConfigService {
             s.model = properties.resolveModel();
             s.allowedModels = properties.listModelsForClient();
             s.warmupEnabled = properties.isWarmupEnabled();
+            s.fastRouteMaxChars = properties.getLatency().getFastRouteMaxChars();
+            s.slowTtftThresholdMs = properties.getLatency().getSlowTtftThresholdMs();
+            s.slowTotalThresholdMs = properties.getLatency().getSlowTotalThresholdMs();
+            s.slowRequestWarningStreak = properties.getLatency().getSlowRequestWarningStreak();
             s.apiKeyConfigured = !properties.resolveApiKeys().isEmpty();
             s.minimaxVlmBaseUrl = properties.resolveMinimaxVlmBaseUrl();
             s.webSearchProvider = properties.getUrlFetch().getWebSearchProvider();
@@ -548,6 +640,10 @@ public class RuntimeModelConfigService {
             out.put("model", model);
             out.put("allowedModels", allowedModels);
             out.put("warmupEnabled", warmupEnabled);
+            out.put("fastRouteMaxChars", fastRouteMaxChars);
+            out.put("slowTtftThresholdMs", slowTtftThresholdMs);
+            out.put("slowTotalThresholdMs", slowTotalThresholdMs);
+            out.put("slowRequestWarningStreak", slowRequestWarningStreak);
             out.put("apiKeyConfigured", apiKeyConfigured);
             out.put("minimaxVlmBaseUrl", minimaxVlmBaseUrl);
             out.put("webSearchProvider", webSearchProvider);

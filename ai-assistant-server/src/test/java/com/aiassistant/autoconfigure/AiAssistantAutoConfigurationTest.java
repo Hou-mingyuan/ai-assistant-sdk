@@ -54,6 +54,14 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
  */
 class AiAssistantAutoConfigurationTest {
 
+    private final String runtimeConfigPath =
+            java.nio.file.Paths.get(
+                            System.getProperty("java.io.tmpdir"),
+                            "ai-assistant-autoconfig-test-"
+                                    + java.util.UUID.randomUUID()
+                                    + ".properties")
+                    .toString();
+
     /**
      * Filter Redis and Playwright off the classpath so the nested {@link
      * AiAssistantAutoConfiguration.RedisSessionStoreAutoConfiguration} and {@link
@@ -73,13 +81,17 @@ class AiAssistantAutoConfigurationTest {
                      * SimpleMeterRegistry on the bus; the AppContextRunner does not pull it
                      * in automatically, so register a no-op meter registry to satisfy the
                      * AiAssistantMetrics + LlmService bean wiring. */
-                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withSystemProperties(
+                            "ai.assistant.runtime.config.path=" + runtimeConfigPath);
 
     private final WebApplicationContextRunner redisClasspathContextRunner =
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
                     .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
-                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withSystemProperties(
+                            "ai.assistant.runtime.config.path=" + runtimeConfigPath);
 
     private final WebApplicationContextRunner coreOnlyContextRunner =
             new WebApplicationContextRunner()
@@ -92,7 +104,9 @@ class AiAssistantAutoConfigurationTest {
                                     "org.springdoc.core.models.GroupedOpenApi",
                                     "io.opentelemetry.api.trace.Tracer",
                                     "net.logstash.logback.encoder.LogstashEncoder"))
-                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withSystemProperties(
+                            "ai.assistant.runtime.config.path=" + runtimeConfigPath);
 
     @Test
     void autoConfigurationDoesNotActivateWhenNoApiKeyConfigured() {

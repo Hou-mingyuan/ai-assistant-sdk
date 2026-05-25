@@ -30,3 +30,12 @@ test('release-check has fast and full lanes', async () => {
   assert.match(source, /--release-check-fast/)
   assert.match(source, /--release-check-full/)
 })
+
+test('local-verify lane covers frontend build and backend package', async () => {
+  const source = await readFile('scripts/project-health-check.mjs', 'utf8')
+
+  assert.match(source, /const runLocalVerify = args\.has\('--local-verify'\)/)
+  assert.match(source, /name: 'frontend build \(local verify\)'/)
+  assert.match(source, /name: 'backend service package \(local verify\)'/)
+  assert.match(source, /--local-verify/)
+})

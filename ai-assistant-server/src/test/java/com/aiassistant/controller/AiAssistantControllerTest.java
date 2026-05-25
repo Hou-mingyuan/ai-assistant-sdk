@@ -228,6 +228,24 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_returnsServerDispatchTimingHeaders() {
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("chat");
+
+        var response = controller.stream(req);
+
+        assertEquals("chat", response.getHeaders().getFirst("X-AI-Request-Action"));
+        assertNotNull(response.getHeaders().getFirst("X-AI-Server-Dispatch-Epoch-Ms"));
+        assertTrue(
+                response.getHeaders()
+                        .getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)
+                        .contains("X-AI-Server-Dispatch-Epoch-Ms"));
+    }
+
+    @Test
     void stream_returnsWebSearchRuntimeMetadataHeaders() {
         when(urlFetchService.searchWeb("current news"))
                 .thenReturn(

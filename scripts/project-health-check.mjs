@@ -6,10 +6,12 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const args = new Set(process.argv.slice(2))
+const localVerifyRuntimeConfigPath = `target/runtime-model-config-local-verify-${process.pid}.properties`
 const runReleaseCheck = args.has('--release-check')
 const runReleaseCheckFast = args.has('--release-check-fast')
 const runReleaseCheckFull = args.has('--release-check-full') || runReleaseCheck
 const runReleaseChecks = runReleaseCheckFast || runReleaseCheckFull
+const runLocalVerify = args.has('--local-verify')
 const runDocs = args.has('--docs') || args.has('--all')
 const runUiTests = args.has('--ui-test') || args.has('--all')
 const runServerTests = args.has('--server-test') || args.has('--all')
@@ -129,6 +131,41 @@ if (runE2eTests) {
     args: ['test'],
     cwd: path.join(root, 'e2e'),
   })
+}
+
+if (runLocalVerify) {
+  checks.push(
+    {
+      name: 'frontend unit tests (local verify)',
+      command: npmCommand(),
+      args: ['test'],
+      cwd: path.join(root, 'ai-assistant-ui'),
+    },
+    {
+      name: 'frontend build (local verify)',
+      command: npmCommand(),
+      args: ['run', 'build'],
+      cwd: path.join(root, 'ai-assistant-ui'),
+    },
+    {
+      name: 'backend unit tests (local verify)',
+      command: mavenCommand(),
+      args: [
+        'test',
+        '-Dspotless.check.skip=true',
+        '-Dcheckstyle.skip=true',
+        '-Djacoco.skip=true',
+        `-Dai.assistant.runtime.config.path=${localVerifyRuntimeConfigPath}`,
+      ],
+      cwd: path.join(root, 'ai-assistant-server'),
+    },
+    {
+      name: 'backend service package (local verify)',
+      command: mavenCommand(),
+      args: ['-pl', 'ai-assistant-service', '-am', '-DskipTests', 'package'],
+      cwd: root,
+    },
+  )
 }
 
 if (runBundleSize) {
@@ -274,6 +311,7 @@ if (
   !runReleaseCheck &&
   !runReleaseCheckFast &&
   !runReleaseCheckFull &&
+  !runLocalVerify &&
   !runUiTests &&
   !runServerTests &&
   !runPlaygroundBuild &&
@@ -291,7 +329,7 @@ if (
   !runOpenApiTypes
 ) {
   console.log(
-    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --release-check-fast, --release-check-full, --release-check, or --all to run more checks.',
+    'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --local-verify, --release-check-fast, --release-check-full, --release-check, or --all to run more checks.',
   )
 }
 

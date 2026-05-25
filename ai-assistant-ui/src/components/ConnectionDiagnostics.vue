@@ -148,6 +148,32 @@
               </div>
             </dd>
           </div>
+          <div v-if="slowRequestHintText">
+            <dt>Slow request guidance</dt>
+            <dd>{{ slowRequestHintText }}</dd>
+          </div>
+          <div>
+            <dt>Model benchmark</dt>
+            <dd>
+              <button
+                type="button"
+                class="ai-diagnostics-benchmark-button"
+                :disabled="busy || benchmarkBusy"
+                @click="$emit('runBenchmark')"
+              >
+                {{ benchmarkBusy ? 'Benchmarking…' : 'Run benchmark' }}
+              </button>
+              <span v-if="benchmarkSummary" class="ai-diagnostics-benchmark-summary">
+                {{ benchmarkSummary }}
+              </span>
+              <ol v-if="benchmarkRows?.length" class="ai-diagnostics-timing-history">
+                <li v-for="row in benchmarkRows" :key="`${row.model}-${row.promptLabel}`">
+                  {{ row.model }} · {{ row.promptLabel }} ·
+                  {{ row.success ? formatTiming(row.elapsedMs) : row.error || 'failed' }}
+                </li>
+              </ol>
+            </dd>
+          </div>
           <div v-if="webSearchStats && webSearchStats.attempts">
             <dt>Web search stats</dt>
             <dd>
@@ -255,6 +281,14 @@ interface ResponseTimingSample {
   ttftMs?: number;
 }
 
+interface BenchmarkRow {
+  model: string;
+  promptLabel: string;
+  success: boolean;
+  elapsedMs: number;
+  error?: string;
+}
+
 const props = defineProps<{
   uid: string;
   busy: boolean;
@@ -274,6 +308,10 @@ const props = defineProps<{
   responseTimingSummary?: string;
   responseTimingHistory?: string[];
   responseTimingSamples?: ResponseTimingSample[];
+  slowRequestHintText?: string;
+  benchmarkBusy?: boolean;
+  benchmarkSummary?: string;
+  benchmarkRows?: BenchmarkRow[];
   modelSourceText: string;
   modelHintText: string;
   remedyKind: RemedyKind;
@@ -294,6 +332,7 @@ const emit = defineEmits<{
   testConfig: [];
   saveConfig: [];
   useDefaultBaseUrl: [];
+  runBenchmark: [];
   'update:baseUrlInput': [value: string];
   'update:tokenInput': [value: string];
   'update:persistEnabled': [value: boolean];
@@ -449,5 +488,24 @@ function formatTiming(value: number) {
 
 .ai-diagnostics-latency-ttft {
   background: rgba(34, 197, 94, 0.75);
+}
+
+.ai-diagnostics-benchmark-button {
+  margin-right: 8px;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 6px;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.ai-diagnostics-benchmark-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.ai-diagnostics-benchmark-summary {
+  color: rgba(71, 85, 105, 0.9);
 }
 </style>
