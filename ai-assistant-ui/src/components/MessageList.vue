@@ -90,33 +90,18 @@
           <span></span>
         </span>
       </div>
-      <div
+      <MessageWebSearchMeta
         v-if="
           msg.role === 'assistant' &&
           isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
-          !hasVisibleContent(msg.content) &&
-          webSearchSourcePreviews(msg.meta).length > 0
+          !hasVisibleContent(msg.content)
         "
-        class="ai-web-search-preview-cards"
-      >
-        <a
-          v-for="(source, sourceIdx) in webSearchSourcePreviews(msg.meta)"
-          :key="`${displayOffset + renderedStart + idx}-early-source-preview-${sourceIdx}`"
-          class="ai-web-search-preview-card"
-          :href="source.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          @click.stop
-        >
-          <span class="ai-web-search-preview-title">{{ source.title || source.url }}</span>
-          <span v-if="source.qualityLabel" class="ai-web-search-preview-quality">
-            {{ source.qualityLabel }}
-          </span>
-          <span v-if="source.snippet" class="ai-web-search-preview-snippet">
-            {{ source.snippet }}
-          </span>
-        </a>
-      </div>
+        :meta="msg.meta"
+        :content="msg.content"
+        :message-key="`${displayOffset + renderedStart + idx}-early`"
+        :references-label="t.responseMetaWebSearchReferences || 'References'"
+        mode="early"
+      />
       <details
         v-if="
           msg.thinking &&
@@ -288,68 +273,16 @@
           "
         ></div>
         <!-- eslint-enable vue/no-v-html -->
-        <div
-          v-if="msg.role === 'assistant' && webSearchSourceUrls(msg.meta).length > 0"
-          class="ai-web-search-sources"
-        >
-          <span class="ai-web-search-sources-label">
-            {{ t.responseMetaWebSearchReferences || 'References' }}
-          </span>
-          <a
-            v-for="(url, sourceIdx) in webSearchSourceUrls(msg.meta)"
-            :key="`${displayOffset + renderedStart + idx}-inline-source-${sourceIdx}`"
-            :href="url"
-            target="_blank"
-            rel="noopener noreferrer"
-            @click.stop
-          >
-            {{ sourceIdx + 1 }}
-          </a>
-        </div>
-        <div
-          v-if="msg.role === 'assistant' && webSearchSourcePreviews(msg.meta).length > 0"
-          class="ai-web-search-preview-cards"
-        >
-          <a
-            v-for="(source, sourceIdx) in webSearchSourcePreviews(msg.meta)"
-            :key="`${displayOffset + renderedStart + idx}-source-preview-${sourceIdx}`"
-            class="ai-web-search-preview-card"
-            :href="source.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            @click.stop
-          >
-            <span class="ai-web-search-preview-title">{{ source.title || source.url }}</span>
-            <span v-if="source.qualityLabel" class="ai-web-search-preview-quality">
-              {{ source.qualityLabel }}
-            </span>
-            <button
-              v-if="source.url"
-              type="button"
-              class="ai-web-search-preview-copy"
-              @click.prevent.stop="copySourceCitation(sourceIdx, source.url)"
-            >
-              Copy [{{ sourceIdx + 1 }}]
-            </button>
-            <span v-if="source.snippet" class="ai-web-search-preview-snippet">
-              {{ source.snippet }}
-            </span>
-          </a>
-        </div>
-        <div
-          v-if="msg.role === 'assistant' && webSearchCitationWarning(msg)"
-          class="ai-web-search-citation-warning"
-          role="note"
-        >
-          <span>{{ webSearchCitationWarning(msg) }}</span>
-          <button
-            type="button"
-            class="ai-web-search-citation-regenerate"
-            @click="emit('regenerate-with-citations', displayOffset + renderedStart + idx)"
-          >
-            Regenerate with citations
-          </button>
-        </div>
+        <MessageWebSearchMeta
+          v-if="msg.role === 'assistant'"
+          :meta="msg.meta"
+          :content="msg.content"
+          :message-key="`${displayOffset + renderedStart + idx}`"
+          :references-label="t.responseMetaWebSearchReferences || 'References'"
+          @regenerate-with-citations="
+            emit('regenerate-with-citations', displayOffset + renderedStart + idx)
+          "
+        />
       </template>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
@@ -658,6 +591,7 @@ import type { PropType } from 'vue';
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
 /* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
  * under each assistant message. Lazy-imported so the chunk only loads when
  * a message is actually rendered. */
@@ -697,28 +631,6 @@ function webSearchSourcePreviews(meta: Message['meta']) {
   return (meta?.webSearchSourcePreviews || []).filter(
     (source) => source && (source.title || source.url || source.snippet),
   );
-}
-
-function webSearchCitationWarning(msg: Message) {
-  const meta = msg.meta;
-  if (!meta?.webSearchEnabled) return '';
-  const sourceCount =
-    webSearchSourceUrls(meta).length ||
-    webSearchSourcePreviews(meta).length ||
-    meta.webSearchResultCount ||
-    0;
-  if (sourceCount <= 0) return '';
-  const refs = Array.from(msg.content.matchAll(/\[(\d+)\]/g)).map((match) => Number(match[1]));
-  if (refs.length === 0) return 'Citation check: no source number cited.';
-  if (refs.some((ref) => !Number.isInteger(ref) || ref < 1 || ref > sourceCount)) {
-    return 'Citation check: referenced source number is unavailable.';
-  }
-  return '';
-}
-
-function copySourceCitation(sourceIdx: number, url?: string) {
-  if (!url || !navigator?.clipboard?.writeText) return;
-  void navigator.clipboard.writeText(`[${sourceIdx + 1}] ${url}`);
 }
 
 function hasSecondaryMeta(meta: Message['meta']): boolean {
