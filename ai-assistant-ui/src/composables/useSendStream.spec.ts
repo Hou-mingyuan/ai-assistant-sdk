@@ -369,6 +369,63 @@ describe('useSendStream local page snapshot', () => {
     );
   });
 
+  it('routes chat payloads to the faster sibling model when fast reply is enabled', async () => {
+    const messages = ref([]);
+    const input = ref('你是什么模型');
+    const loading = ref(false);
+    const streamWithFallback = vi.fn(async function* () {
+      yield '我是 MiniMax-M2。';
+    });
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref('MiniMax-M2.7'),
+      modelChoices: ref(['MiniMax-M2.7', 'MiniMax-M2']),
+      fastReplyEnabled: ref(true),
+      pendingImageDataList: ref([]),
+      pendingImageThumbs: ref([]),
+      options: { baseUrl: '/ai-assistant' },
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview: vi.fn(),
+      extractHttpUrls: () => [],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: () => undefined,
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      scrollToBottom: vi.fn(),
+      playNotificationSound: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse: vi.fn(),
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+    }).send;
+
+    await send();
+
+    expect(streamWithFallback).toHaveBeenCalledWith(
+      '/ai-assistant',
+      expect.objectContaining({ model: 'MiniMax-M2' }),
+      undefined,
+      expect.any(AbortSignal),
+      expect.any(Function),
+    );
+  });
+
   it('shows a specific empty vision result when a visual request returns no text', async () => {
     const messages = ref([]);
     const input = ref('分析当前截图里有什么');

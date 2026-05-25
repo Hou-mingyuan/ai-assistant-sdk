@@ -47,6 +47,9 @@ public class AiAssistantProperties {
     /** 非流式 /chat/completions 对瞬时错误额外重试次数（不含首次请求），0 表示不重试。 */
     private int llmMaxRetries = 2;
 
+    /** 启动完成后是否对默认模型发起一次极短请求，用于降低本地首问冷启动体感。 */
+    private boolean warmupEnabled = false;
+
     private boolean enableStats = true;
     private int fileMaxExtractedChars = 300_000;
     private String systemPrompt;

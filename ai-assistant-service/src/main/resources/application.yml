@@ -56,6 +56,7 @@ ai-assistant:
   max-tokens: ${AI_ASSISTANT_MAX_TOKENS:2048}             # default: 2048
   temperature: ${AI_ASSISTANT_TEMPERATURE:0.7}            # default: 0.7
   llm-max-retries: ${AI_ASSISTANT_LLM_MAX_RETRIES:2}      # default: 2（夹紧 0~5）
+  warmup-enabled: ${AI_ASSISTANT_WARMUP_ENABLED:false}    # default: false；本地可开启以降低首问冷启动体感
   allowed-models: ${AI_ASSISTANT_ALLOWED_MODELS:}         # default: empty；为空时忽略前端 model 字段
 
   # ── 鉴权与跨域 ───────────────────────────────────────────

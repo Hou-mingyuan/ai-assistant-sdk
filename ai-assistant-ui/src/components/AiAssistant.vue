@@ -343,11 +343,13 @@
           :page-context-block-count="options.pageContextBlocks?.length ?? 0"
           :deep-think-enabled="deepThinkEnabled"
           :web-search-enabled="webSearchEnabled"
+          :fast-reply-enabled="fastReplyEnabled"
           @send="send"
           @change-mode="onChangeMode"
           @toggle-page-context="togglePageContext"
           @toggle-deep-think="setDeepThinkEnabled"
           @toggle-web-search="setWebSearchEnabled"
+          @toggle-fast-reply="setFastReplyEnabled"
           @send-blocked-action="handleSendBlockedAction"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
@@ -606,6 +608,8 @@
       :model-status-kind="modelStatusKind"
       :web-search-diagnostics-text="webSearchDiagnosticsText"
       :web-search-stats="webSearchStats"
+      :response-timing-summary="responseTimingSummary"
+      :response-timing-history="responseTimingHistory"
       :model-source-text="modelSourceText"
       :model-hint-text="modelHintText"
       :remedy-kind="diagnosticsRemedyKind"
@@ -932,6 +936,7 @@ const input = ref('');
  */
 const deepThinkEnabled = ref(false);
 const webSearchEnabled = ref(false);
+const fastReplyEnabled = ref(false);
 
 function setDeepThinkEnabled(value: boolean) {
   deepThinkEnabled.value = value;
@@ -941,6 +946,11 @@ function setDeepThinkEnabled(value: boolean) {
 function setWebSearchEnabled(value: boolean) {
   webSearchEnabled.value = value;
   setExportToast(value ? '联网搜索已开启：回答前会先检索网页' : '联网搜索已关闭', 1800);
+}
+
+function setFastReplyEnabled(value: boolean) {
+  fastReplyEnabled.value = value;
+  setExportToast(value ? '快速回答已开启：简单问题会优先走快模型' : '快速回答已关闭', 1800);
 }
 
 /* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
@@ -1050,6 +1060,20 @@ let streamStoppedByUser = false;
 const messages = ref<Message[]>(
   pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)),
 );
+const responseTimingSummary = computed(() => {
+  return responseTimingHistory.value[0] || '';
+});
+const responseTimingHistory = computed(() => {
+  return [...messages.value]
+    .reverse()
+    .filter(
+      (msg) =>
+        msg.role === 'assistant' &&
+        (typeof msg.meta?.elapsedMs === 'number' || typeof msg.meta?.ttftMs === 'number'),
+    )
+    .slice(0, 5)
+    .map((msg) => formatResponseTiming(msg));
+});
 const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
   () => !!options.persistHistory,
@@ -1059,6 +1083,22 @@ const { trimMessagesForMemoryCap } = useMessageMemoryCap(messages, options, clea
 const MAX_RENDERED_MESSAGES = 60;
 const renderAllMessages = ref(false);
 const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } = useExportUi();
+
+function formatTimingMs(ms: number) {
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatResponseTiming(msg: Message) {
+  const meta = msg.meta;
+  if (!meta) return '';
+  const parts = [
+    meta.effectiveModel || meta.model || meta.requestedModel,
+    meta.provider,
+    typeof meta.ttftMs === 'number' ? `TTFT ${formatTimingMs(meta.ttftMs)}` : '',
+    typeof meta.elapsedMs === 'number' ? `total ${formatTimingMs(meta.elapsedMs)}` : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
 
 const exportActions = useExportActions({
   sessions: multiSessions.sessions,
@@ -2651,6 +2691,7 @@ const {
   modelChoices,
   deepThinkEnabled,
   webSearchEnabled,
+  fastReplyEnabled,
   modelCapabilities,
   pendingImageDataList,
   pendingImageThumbs,

@@ -402,4 +402,7 @@ export const zh: I18nMessages = {
   webSearchLabel: '联网搜索',
   webSearchOn: '已开启「联网搜索」：回答前会先查实时网页',
   webSearchOff: '开启「联网搜索」：让助手查实时网页（默认关闭）',
+  fastReplyLabel: '快速回答',
+  fastReplyOn: '已开启「快速回答」：简单问题优先走低延迟模型',
+  fastReplyOff: '开启「快速回答」：简单问题优先走低延迟模型',
 };

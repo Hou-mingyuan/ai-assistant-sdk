@@ -109,6 +109,19 @@
       <span class="ai-quick-toggle-icon" aria-hidden="true">🌐</span>
       <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
     </button>
+    <button
+      type="button"
+      class="ai-quick-toggle ai-quick-toggle-fastreply"
+      :class="{ active: fastReplyEnabled }"
+      :aria-pressed="fastReplyEnabled ? 'true' : 'false'"
+      :title="
+        fastReplyEnabled ? t.fastReplyOn || '快速回答 已开启' : t.fastReplyOff || '快速回答 已关闭'
+      "
+      @click="$emit('toggleFastReply', !fastReplyEnabled)"
+    >
+      <span class="ai-quick-toggle-icon" aria-hidden="true">⚡</span>
+      <span class="ai-quick-toggle-label">{{ t.fastReplyLabel || '快速回答' }}</span>
+    </button>
   </div>
   <div class="ai-footer-input-row">
     <textarea
@@ -283,6 +296,7 @@ const props = defineProps<{
   quickTogglesEnabled: boolean;
   deepThinkEnabled: boolean;
   webSearchEnabled: boolean;
+  fastReplyEnabled: boolean;
   t: I18nMessages;
 }>();
 
@@ -301,6 +315,7 @@ const emit = defineEmits<{
   toggleVoiceConversation: [];
   toggleDeepThink: [value: boolean];
   toggleWebSearch: [value: boolean];
+  toggleFastReply: [value: boolean];
   sendBlockedAction: [];
 }>();
 

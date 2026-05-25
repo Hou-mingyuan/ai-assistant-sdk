@@ -99,4 +99,17 @@ describe('ConnectionDiagnostics', () => {
     expect(document.activeElement).toBe(document.body.querySelector('.ai-token-input'));
     wrapper.unmount();
   });
+
+  it('shows the last response timing summary when available', () => {
+    const wrapper = mountDialog({
+      responseTimingSummary: 'MiniMax-M2.7 · TTFT 2.1s · total 8.9s',
+      responseTimingHistory: ['MiniMax-M2 · TTFT 1.1s · total 2.9s'],
+    });
+
+    expect(document.body.textContent).toContain('Last response timing');
+    expect(document.body.textContent).toContain('MiniMax-M2.7 · TTFT 2.1s · total 8.9s');
+    expect(document.body.textContent).toContain('Recent response timings');
+    expect(document.body.textContent).toContain('MiniMax-M2 · TTFT 1.1s · total 2.9s');
+    wrapper.unmount();
+  });
 });

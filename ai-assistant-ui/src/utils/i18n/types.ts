@@ -498,4 +498,7 @@ export interface I18nMessages {
   webSearchLabel?: string;
   webSearchOn?: string;
   webSearchOff?: string;
+  fastReplyLabel?: string;
+  fastReplyOn?: string;
+  fastReplyOff?: string;
 }

@@ -420,4 +420,7 @@ export const en: I18nMessages = {
   webSearchLabel: 'Web search',
   webSearchOn: 'Web search is ON — assistant will look things up first',
   webSearchOff: 'Turn on Web search — let the assistant look things up (off by default)',
+  fastReplyLabel: 'Fast reply',
+  fastReplyOn: 'Fast reply is ON — simple prompts prefer a low-latency model',
+  fastReplyOff: 'Turn on Fast reply — simple prompts prefer a low-latency model',
 };

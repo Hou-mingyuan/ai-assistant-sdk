@@ -412,4 +412,7 @@ export const ko: I18nMessages = {
   webSearchLabel: '웹 검색',
   webSearchOn: '「웹 검색」 ON: 답변 전에 웹을 먼저 확인합니다',
   webSearchOff: '「웹 검색」 켜기: 답변 전 웹 참조 (기본 꺼짐)',
+  fastReplyLabel: '빠른 답변',
+  fastReplyOn: '「빠른 답변」 ON: 간단한 질문은 저지연 모델을 우선 사용합니다',
+  fastReplyOff: '「빠른 답변」 켜기: 간단한 질문은 저지연 모델을 우선 사용합니다',
 };

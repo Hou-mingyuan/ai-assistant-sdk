@@ -222,6 +222,8 @@ export interface UseSendStreamDeps {
   deepThinkEnabled?: Ref<boolean>;
   /** Server-side web search mode. */
   webSearchEnabled?: Ref<boolean>;
+  /** Prefer a lower-latency sibling model for simple chat turns. */
+  fastReplyEnabled?: Ref<boolean>;
   /** Optional server-provided model capability map keyed by model id. */
   modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
@@ -460,7 +462,8 @@ export function useSendStream(deps: UseSendStreamDeps) {
   }
 
   function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean) {
-    const mid = deps.selectedChatModel.value.trim();
+    const selected = deps.selectedChatModel.value.trim();
+    const mid = pickFastReplyModel(selected) || selected;
     if (mid && deps.modelChoices.value.includes(mid)) {
       payload.model = mid;
       const hasServerVisionCapability = modelHasCapability(mid, 'vision');
@@ -471,6 +474,16 @@ export function useSendStream(deps: UseSendStreamDeps) {
         deps.notify?.(tNow().visionModelWarning.replace('{model}', mid), 4200);
       }
     }
+  }
+
+  function pickFastReplyModel(selected: string) {
+    if (!deps.fastReplyEnabled?.value || deps.mode.value !== 'chat') return '';
+    const choices = deps.modelChoices.value.filter((model) => model && model !== selected);
+    return (
+      choices.find((model) => /(?:^|[-_:./])m2$/i.test(model)) ||
+      choices.find((model) => /(?:mini|flash|lite|turbo|fast|haiku)/i.test(model)) ||
+      ''
+    );
   }
 
   function isLowContextPrompt(text: string) {

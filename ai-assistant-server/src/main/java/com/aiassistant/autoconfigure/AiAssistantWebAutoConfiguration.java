@@ -16,6 +16,7 @@ import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.service.AssistantExportService;
 import com.aiassistant.service.FileParserService;
 import com.aiassistant.service.LlmService;
+import com.aiassistant.service.LlmWarmupRunner;
 import com.aiassistant.service.SessionStore;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.spi.AssistantCapability;
@@ -86,6 +87,13 @@ public class AiAssistantWebAutoConfiguration {
             AiAssistantProperties properties,
             com.aiassistant.config.AiAssistantSecurityPostureAdvisor securityPostureAdvisor) {
         return new RuntimeConfigController(properties, securityPostureAdvisor);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public LlmWarmupRunner llmWarmupRunner(
+            AiAssistantProperties properties, LlmService llmService) {
+        return new LlmWarmupRunner(properties, llmService);
     }
 
     @Bean

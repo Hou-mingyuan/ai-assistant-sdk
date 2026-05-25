@@ -44,6 +44,9 @@ const stubI18n = {
   sendUnavailableNoBackend: 'Configure backend before sending.',
   micStart: 'Start mic',
   micStop: 'Stop mic',
+  fastReplyLabel: 'Fast reply',
+  fastReplyOn: 'Fast reply is on',
+  fastReplyOff: 'Turn on fast reply',
 } as unknown as I18nMessages;
 
 function mountInput(overrides: Partial<Record<string, unknown>> = {}) {
@@ -270,9 +273,11 @@ describe('ChatInputArea (K44)', () => {
 
       await w.find('.ai-quick-toggle-deepthink').trigger('click');
       await w.find('.ai-quick-toggle-websearch').trigger('click');
+      await w.find('.ai-quick-toggle-fastreply').trigger('click');
 
       expect(w.emitted('toggleDeepThink')?.at(-1)?.[0]).toBe(true);
       expect(w.emitted('toggleWebSearch')?.at(-1)?.[0]).toBe(true);
+      expect(w.emitted('toggleFastReply')?.at(-1)?.[0]).toBe(true);
       w.unmount();
     });
   });

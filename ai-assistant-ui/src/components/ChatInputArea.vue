@@ -176,6 +176,7 @@
       :quick-toggles-enabled="quickTogglesEnabled"
       :deep-think-enabled="deepThinkEnabled"
       :web-search-enabled="webSearchEnabled"
+      :fast-reply-enabled="fastReplyEnabled"
       :t="t"
       @update:model-value="$emit('update:modelValue', $event)"
       @update:advanced-tools-open="advancedToolsOpen = $event"
@@ -191,6 +192,7 @@
       @toggle-voice-conversation="$emit('toggleVoiceConversation')"
       @toggle-deep-think="$emit('toggleDeepThink', $event)"
       @toggle-web-search="$emit('toggleWebSearch', $event)"
+      @toggle-fast-reply="$emit('toggleFastReply', $event)"
       @send-blocked-action="$emit('sendBlockedAction')"
     >
       <template #footer-plugins>
@@ -259,6 +261,7 @@ const props = withDefaults(
     quickTogglesEnabled?: boolean;
     deepThinkEnabled?: boolean;
     webSearchEnabled?: boolean;
+    fastReplyEnabled?: boolean;
   }>(),
   {
     slashVisible: false,
@@ -271,6 +274,7 @@ const props = withDefaults(
     quickTogglesEnabled: true,
     deepThinkEnabled: false,
     webSearchEnabled: false,
+    fastReplyEnabled: false,
     modelStatusText: '',
     modelStatusKind: 'offline',
     defaultModel: '',
@@ -317,6 +321,7 @@ const emit = defineEmits<{
    */
   toggleDeepThink: [value: boolean];
   toggleWebSearch: [value: boolean];
+  toggleFastReply: [value: boolean];
   sendBlockedAction: [];
 }>();
 

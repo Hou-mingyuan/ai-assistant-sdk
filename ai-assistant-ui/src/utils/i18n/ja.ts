@@ -414,4 +414,7 @@ export const ja: I18nMessages = {
   webSearchLabel: 'ウェブ検索',
   webSearchOn: '「ウェブ検索」ON：回答前にネットを参照します',
   webSearchOff: '「ウェブ検索」をONにする：回答前にネット参照（既定はOFF）',
+  fastReplyLabel: '高速回答',
+  fastReplyOn: '「高速回答」ON：簡単な質問は低遅延モデルを優先します',
+  fastReplyOff: '「高速回答」をONにする：簡単な質問は低遅延モデルを優先します',
 };

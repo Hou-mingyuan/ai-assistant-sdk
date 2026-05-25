@@ -105,6 +105,18 @@
             <dt>{{ t.webSearchLabel }}</dt>
             <dd>{{ webSearchDiagnosticsText }}</dd>
           </div>
+          <div v-if="responseTimingSummary">
+            <dt>Last response timing</dt>
+            <dd>{{ responseTimingSummary }}</dd>
+          </div>
+          <div v-if="responseTimingHistory?.length">
+            <dt>Recent response timings</dt>
+            <dd>
+              <ol class="ai-diagnostics-timing-history">
+                <li v-for="item in responseTimingHistory" :key="item">{{ item }}</li>
+              </ol>
+            </dd>
+          </div>
           <div v-if="webSearchStats && webSearchStats.attempts">
             <dt>Web search stats</dt>
             <dd>
@@ -220,6 +232,8 @@ const props = defineProps<{
   modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
   webSearchDiagnosticsText: string;
   webSearchStats?: Record<string, number> | null;
+  responseTimingSummary?: string;
+  responseTimingHistory?: string[];
   modelSourceText: string;
   modelHintText: string;
   remedyKind: RemedyKind;
