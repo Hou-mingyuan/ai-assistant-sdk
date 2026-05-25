@@ -337,7 +337,7 @@
           <button
             type="button"
             class="ai-web-search-citation-regenerate"
-            @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
+            @click="emit('regenerate-with-citations', displayOffset + renderedStart + idx)"
           >
             Regenerate with citations
           </button>
@@ -940,6 +940,7 @@ const emit = defineEmits<{
   (e: 'start-edit', globalIdx: number): void;
   (e: 'copy-message', text: string, globalIdx: number): void;
   (e: 'regenerate-at', globalIdx: number): void;
+  (e: 'regenerate-with-citations', globalIdx: number): void;
   (e: 'set-feedback', globalIdx: number, kind: 'up' | 'down'): void;
   /**
    * K24: extended reaction system via MessageReactionBar. `toggled` is true

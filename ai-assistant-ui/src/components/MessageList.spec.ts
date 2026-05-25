@@ -353,7 +353,7 @@ describe('MessageList web search sources', () => {
 
     await wrapper.find('.ai-web-search-citation-regenerate').trigger('click');
 
-    expect(wrapper.emitted('regenerate-at')?.[0]).toEqual([0]);
+    expect(wrapper.emitted('regenerate-with-citations')?.[0]).toEqual([0]);
   });
 
   it('warns when a searched answer cites a source number that is not available', () => {

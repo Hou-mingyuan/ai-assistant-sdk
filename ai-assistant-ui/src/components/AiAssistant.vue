@@ -234,6 +234,7 @@
             @start-edit="startEdit"
             @copy-message="copyMessage"
             @regenerate-at="regenerateAt"
+            @regenerate-with-citations="regenerateWithCitations"
             @set-feedback="setFeedback"
             @set-reaction="setReaction"
             @retry-last-error="retryLastError"
@@ -2707,6 +2708,24 @@ function send() {
   }
   if (handleLocalFastReply(prompt)) return;
   return sendRaw();
+}
+
+function regenerateWithCitations(globalIdx: number) {
+  if (loading.value) return;
+  let userIdx = globalIdx - 1;
+  while (userIdx >= 0 && messages.value[userIdx].role !== 'user') {
+    userIdx--;
+  }
+  if (userIdx < 0) return;
+  const userMsg = messages.value[userIdx];
+  const cleanText = (userMsg.contentArchive ?? userMsg.content).replace(/^🖼️\s*/, '');
+  messages.value.splice(globalIdx, 1);
+  clearRenderCache();
+  webSearchEnabled.value = true;
+  input.value = `${cleanText}\n\n请基于联网搜索来源回答，并在每个关键结论后使用 [1]、[2] 这样的来源编号引用。`;
+  nextTick(() => {
+    void send();
+  });
 }
 
 function handleLocalFastReply(rawPrompt: string) {
