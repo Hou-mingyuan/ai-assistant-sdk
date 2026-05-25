@@ -129,6 +129,29 @@ describe('MessageList streaming stages', () => {
   });
 });
 
+describe('MessageList reading preview', () => {
+  it('collapses long assistant replies behind a scan-friendly preview', async () => {
+    const longReply = [
+      '# Root cause',
+      'The assistant response is intentionally long so readers should see a preview first.',
+      '- First important point',
+      '- Second important point',
+      '```ts',
+      'const value = 1;',
+      '```',
+      ...Array.from({ length: 24 }, (_, i) => `Extra detail ${i + 1}`),
+    ].join('\n');
+    const wrapper = mountList([{ role: 'assistant', content: longReply }]);
+
+    expect(wrapper.find('.ai-reading-preview').exists()).toBe(true);
+    expect(wrapper.find('.ai-bubble').exists()).toBe(false);
+    expect(wrapper.find('.ai-reading-preview').text()).toContain('Root cause');
+
+    await wrapper.find('.ai-reading-preview-toggle').trigger('click');
+    expect(wrapper.find('.ai-bubble').exists()).toBe(true);
+  });
+});
+
 function mountList(messages: Message[], overrides: Partial<Record<string, unknown>> = {}) {
   return mount(MessageList, {
     props: {

@@ -6380,6 +6380,7 @@
   padding: 0 9px;
   border-radius: 999px;
   overflow: hidden;
+  pointer-events: none;
   color: #4f46e5;
   font-size: 11.5px;
   font-weight: 750;
@@ -6401,4 +6402,64 @@
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-progress {
   background: rgba(168, 139, 250, 0.1);
   color: #c4b5fd;
+}
+
+/* Round 38 - long replies start as a scan-friendly reading preview ------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview {
+  max-width: var(--ai-response-width, min(100%, 78ch));
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #303749;
+  box-shadow: 0 10px 24px -22px rgba(36, 44, 92, 0.34);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-kicker {
+  color: #6f778a;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-toggle {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 9px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(91, 108, 255, 0.09) !important;
+  color: #4f46e5 !important;
+  font-size: 11.5px !important;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-list {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: var(--ai-response-font-size);
+  line-height: var(--ai-response-line-height);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-list li {
+  margin: 0.18em 0;
+  overflow-wrap: anywhere;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview {
+  background: rgba(255, 255, 255, 0.045);
+  color: #d7dcec;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-reading-preview-toggle {
+  background: rgba(168, 139, 250, 0.12) !important;
+  color: #c4b5fd !important;
 }

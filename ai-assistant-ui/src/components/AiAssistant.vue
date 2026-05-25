@@ -2703,6 +2703,7 @@ async function processFileUpload(file: File) {
   messages.value.push({ role: 'user', content: label, timestamp: Date.now() });
   loading.value = true;
   fileUploading.value = true;
+  setExportToast(`${t.value.uploadFile} · ${file.name} · ${t.value.replying}`, 2400);
   scrollToBottom(true);
 
   emit('send', { action, text: label });
@@ -2717,8 +2718,11 @@ async function processFileUpload(file: File) {
     const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`;
     messages.value.push({ role: 'assistant', content, timestamp: Date.now() });
     scrollToBottom(true);
-    if (res.success) emit('response', content);
-    else {
+    if (res.success) {
+      setExportToast(`${t.value.uploadFile} · ${file.name} · OK`, 1800);
+      emit('response', content);
+    } else {
+      setExportToast(`${t.value.uploadFile} · ${t.value.errorPrefix}: ${res.error}`, 3600);
       reportAssistantError('file-upload', res.error || 'Unknown error');
       emit('error', res.error || 'Unknown error');
     }
@@ -2730,6 +2734,7 @@ async function processFileUpload(file: File) {
       timestamp: Date.now(),
     });
     scrollToBottom(true);
+    setExportToast(`${t.value.uploadFile} · ${t.value.errorPrefix}: ${message}`, 3600);
     reportAssistantError('file-upload', message);
     emit('error', message || 'Unknown error');
   } finally {

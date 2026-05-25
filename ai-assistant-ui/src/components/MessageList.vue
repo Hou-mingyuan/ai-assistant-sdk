@@ -210,25 +210,58 @@
           </div>
         </details>
       </div>
-      <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
-      <div
+      <template
         v-else-if="
           !(
             isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
             !hasVisibleContent(msg.content)
           )
         "
-        class="ai-bubble"
-        @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
-        v-html="
-          renderBubble(
-            msg.content,
-            displayOffset + renderedStart + idx,
-            loading && msg.role === 'assistant' && idx === messages.length - 1,
-          )
-        "
-      ></div>
-      <!-- eslint-enable vue/no-v-html -->
+      >
+        <div
+          v-if="shouldShowReadingPreview(msg, displayOffset + renderedStart + idx)"
+          class="ai-reading-preview"
+        >
+          <div class="ai-reading-preview-head">
+            <span class="ai-reading-preview-kicker">阅读摘要</span>
+            <button
+              type="button"
+              class="ai-reading-preview-toggle"
+              :aria-expanded="
+                isReadingExpanded(displayOffset + renderedStart + idx) ? 'true' : 'false'
+              "
+              @click.stop="toggleReadingExpanded(displayOffset + renderedStart + idx)"
+            >
+              {{ isReadingExpanded(displayOffset + renderedStart + idx) ? '收起原文' : '展开原文' }}
+            </button>
+          </div>
+          <ul class="ai-reading-preview-list">
+            <li
+              v-for="(line, lineIdx) in readingPreviewLines(msg.content)"
+              :key="`${displayOffset + renderedStart + idx}-reading-${lineIdx}`"
+            >
+              {{ line }}
+            </li>
+          </ul>
+        </div>
+        <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
+        <div
+          v-if="
+            !shouldShowReadingPreview(msg, displayOffset + renderedStart + idx) ||
+            isReadingExpanded(displayOffset + renderedStart + idx)
+          "
+          class="ai-bubble"
+          @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
+          v-html="
+            renderBubble(
+              msg.content,
+              displayOffset + renderedStart + idx,
+              loading && msg.role === 'assistant' && idx === messages.length - 1,
+            )
+          "
+        ></div>
+        <!-- eslint-enable vue/no-v-html -->
+      </template>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
       </span>
@@ -533,6 +566,9 @@ function hasSecondaryMeta(meta: Message['meta']): boolean {
 }
 
 const expandedMetaDetails = ref<Set<number>>(new Set());
+const expandedReadingMessages = ref<Set<number>>(new Set());
+const READING_PREVIEW_MIN_CHARS = 900;
+const READING_PREVIEW_MIN_LINES = 10;
 
 function isMetaDetailsExpanded(globalIdx: number): boolean {
   return expandedMetaDetails.value.has(globalIdx);
@@ -546,6 +582,47 @@ function toggleMetaDetails(globalIdx: number) {
     next.add(globalIdx);
   }
   expandedMetaDetails.value = next;
+}
+
+function shouldShowReadingPreview(msg: Message, globalIdx: number): boolean {
+  if (msg.role !== 'assistant') return false;
+  if (props.isActiveStreaming(globalIdx, msg)) return false;
+  const content = msg.content || '';
+  if (content.length >= READING_PREVIEW_MIN_CHARS) return true;
+  return content.split(/\r?\n/).filter((line) => line.trim()).length >= READING_PREVIEW_MIN_LINES;
+}
+
+function isReadingExpanded(globalIdx: number): boolean {
+  return expandedReadingMessages.value.has(globalIdx);
+}
+
+function toggleReadingExpanded(globalIdx: number) {
+  const next = new Set(expandedReadingMessages.value);
+  if (next.has(globalIdx)) next.delete(globalIdx);
+  else next.add(globalIdx);
+  expandedReadingMessages.value = next;
+}
+
+function readingPreviewLines(content: string): string[] {
+  const cleaned = content
+    .replace(/```[\s\S]*?```/g, '代码块内容已收起，可展开原文查看。')
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .replace(/^#{1,6}\s*/, '')
+        .replace(/^[-*+]\s+/, '')
+        .replace(/^\d+\.\s+/, '')
+        .replace(/\*\*|__|`/g, '')
+        .trim(),
+    )
+    .filter(Boolean);
+  const unique: string[] = [];
+  for (const line of cleaned) {
+    if (unique.includes(line)) continue;
+    unique.push(line.length > 92 ? `${line.slice(0, 92)}...` : line);
+    if (unique.length >= 4) break;
+  }
+  return unique.length ? unique : ['这是一段较长回复，已先收起正文，展开后可查看完整内容。'];
 }
 
 function streamStageText(globalIdx: number, msg: Message) {
