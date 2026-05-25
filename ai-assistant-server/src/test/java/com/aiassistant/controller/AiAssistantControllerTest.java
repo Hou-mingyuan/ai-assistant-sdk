@@ -450,8 +450,11 @@ class AiAssistantControllerTest {
     @Test
     void health_deep_checksLlm() {
         when(llmService.chat("ping")).thenReturn("pong");
+        when(urlFetchService.probeWebSearchProvider())
+                .thenReturn(java.util.Map.of("status", "ok", "provider", "tavily"));
         var result = controller.health(true);
         assertEquals(true, result.get("llmReachable"));
+        assertEquals(java.util.Map.of("status", "ok", "provider", "tavily"), result.get("webSearchProbe"));
     }
 
     @Test

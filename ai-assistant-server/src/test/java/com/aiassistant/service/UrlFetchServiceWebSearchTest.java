@@ -362,6 +362,35 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void probeWebSearchProviderReturnsReachabilitySnapshot() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">Probe summary</a>
+                                    <a class="result__a" href="https://probe.example/news">
+                                      Probe result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+
+        var probe = new UrlFetchService(properties, httpClient, uri -> {}).probeWebSearchProvider();
+
+        assertThat(probe)
+                .containsEntry("provider", "duckduckgo")
+                .containsEntry("configured", true)
+                .containsEntry("status", "ok")
+                .containsEntry("resultCount", 1);
+    }
+
+    @Test
     void searchWebCapsTavilyTimeoutToKeepFallbackResponsive() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

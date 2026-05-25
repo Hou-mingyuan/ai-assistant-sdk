@@ -624,6 +624,35 @@ public class UrlFetchService {
                 "averageDurationMs", attempts == 0 ? 0 : totalMs / attempts);
     }
 
+    public Map<String, Object> probeWebSearchProvider() {
+        String provider = properties.getUrlFetch().getWebSearchProvider();
+        String normalizedProvider =
+                provider == null || provider.isBlank()
+                        ? "duckduckgo"
+                        : provider.trim().toLowerCase(Locale.ROOT);
+        boolean configured =
+                !"tavily".equals(normalizedProvider)
+                        || hasText(properties.getUrlFetch().getWebSearchApiKey());
+        if (!configured) {
+            return Map.of(
+                    "provider", normalizedProvider,
+                    "configured", false,
+                    "status", "missing_key",
+                    "resultCount", 0);
+        }
+        WebSearchResult result = searchWeb("AI assistant connectivity check");
+        String status =
+                result.hasResults()
+                        ? "ok"
+                        : hasText(result.failureReason()) ? result.failureReason() : "no_results";
+        return Map.of(
+                "provider", normalizedProvider,
+                "configured", true,
+                "status", status,
+                "resultCount", result.resultCount(),
+                "durationMs", Math.max(0, result.durationMs()));
+    }
+
     private void recordWebSearchStats(WebSearchResult result) {
         if (result == null || !result.hasAttempt()) {
             return;

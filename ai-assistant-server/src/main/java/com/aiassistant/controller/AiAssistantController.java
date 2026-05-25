@@ -361,6 +361,7 @@ public class AiAssistantController {
                     log.debug("deep health check failed: {}", e.getMessage());
                 }
                 result.put("llmReachable", llmReachable);
+                result.put("webSearchProbe", urlFetchService.probeWebSearchProvider());
             } else {
                 result.put("llmReachable", "rate-limited (1 deep check per minute)");
             }

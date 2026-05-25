@@ -293,6 +293,35 @@ describe('MessageList web search sources', () => {
     expect(cards.find('a').attributes('href')).toBe('https://example.com/a');
   });
 
+  it('renders source preview cards before the first streamed token arrives', () => {
+    const wrapper = mountList(
+      [
+        {
+          role: 'assistant',
+          content: '',
+          meta: {
+            webSearchEnabled: true,
+            webSearchSourcePreviews: [
+              {
+                title: 'Early source',
+                url: 'https://example.com/early',
+                snippet: 'Shown before content',
+                qualityLabel: 'news',
+              },
+            ],
+          },
+        },
+      ],
+      {
+        loading: true,
+        isActiveStreaming: () => true,
+      },
+    );
+
+    expect(wrapper.find('.ai-thinking-bubble').exists()).toBe(true);
+    expect(wrapper.find('.ai-web-search-preview-cards').text()).toContain('Early source');
+  });
+
   it('warns when a searched answer does not cite available source numbers', () => {
     const wrapper = mountList([
       {
@@ -307,6 +336,24 @@ describe('MessageList web search sources', () => {
     ]);
 
     expect(wrapper.find('.ai-web-search-citation-warning').exists()).toBe(true);
+  });
+
+  it('offers to regenerate a searched answer when citation check fails', async () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer without a bracket citation',
+        meta: {
+          webSearchEnabled: true,
+          webSearchResultCount: 1,
+          webSearchSourceUrls: ['https://example.com/a'],
+        },
+      },
+    ]);
+
+    await wrapper.find('.ai-web-search-citation-regenerate').trigger('click');
+
+    expect(wrapper.emitted('regenerate-at')?.[0]).toEqual([0]);
   });
 
   it('warns when a searched answer cites a source number that is not available', () => {

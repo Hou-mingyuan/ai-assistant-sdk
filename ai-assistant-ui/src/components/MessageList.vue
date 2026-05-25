@@ -90,6 +90,33 @@
           <span></span>
         </span>
       </div>
+      <div
+        v-if="
+          msg.role === 'assistant' &&
+          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+          !hasVisibleContent(msg.content) &&
+          webSearchSourcePreviews(msg.meta).length > 0
+        "
+        class="ai-web-search-preview-cards"
+      >
+        <a
+          v-for="(source, sourceIdx) in webSearchSourcePreviews(msg.meta)"
+          :key="`${displayOffset + renderedStart + idx}-early-source-preview-${sourceIdx}`"
+          class="ai-web-search-preview-card"
+          :href="source.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          @click.stop
+        >
+          <span class="ai-web-search-preview-title">{{ source.title || source.url }}</span>
+          <span v-if="source.qualityLabel" class="ai-web-search-preview-quality">
+            {{ source.qualityLabel }}
+          </span>
+          <span v-if="source.snippet" class="ai-web-search-preview-snippet">
+            {{ source.snippet }}
+          </span>
+        </a>
+      </div>
       <details
         v-if="
           msg.thinking &&
@@ -306,7 +333,14 @@
           class="ai-web-search-citation-warning"
           role="note"
         >
-          {{ webSearchCitationWarning(msg) }}
+          <span>{{ webSearchCitationWarning(msg) }}</span>
+          <button
+            type="button"
+            class="ai-web-search-citation-regenerate"
+            @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
+          >
+            Regenerate with citations
+          </button>
         </div>
       </template>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
