@@ -143,6 +143,14 @@ public class AiAssistantProperties {
         private int cacheMaxEntries = 32;
         private int previewMaxSummaryChars = 900;
         private int previewMaxImages = 10;
+        private String webSearchProvider = "duckduckgo";
+        private String webSearchApiKey;
+        private String webSearchEndpoint;
+        private int webSearchMaxResults = 5;
+
+        public void setWebSearchMaxResults(int webSearchMaxResults) {
+            this.webSearchMaxResults = Math.max(1, Math.min(webSearchMaxResults, 10));
+        }
     }
 
     @Getter
@@ -388,6 +396,38 @@ public class AiAssistantProperties {
 
     public void setUrlPreviewMaxImages(int v) {
         urlFetch.setPreviewMaxImages(v);
+    }
+
+    public String getWebSearchProvider() {
+        return urlFetch.getWebSearchProvider();
+    }
+
+    public void setWebSearchProvider(String webSearchProvider) {
+        urlFetch.setWebSearchProvider(webSearchProvider);
+    }
+
+    public String getWebSearchApiKey() {
+        return urlFetch.getWebSearchApiKey();
+    }
+
+    public void setWebSearchApiKey(String webSearchApiKey) {
+        urlFetch.setWebSearchApiKey(webSearchApiKey);
+    }
+
+    public String getWebSearchEndpoint() {
+        return urlFetch.getWebSearchEndpoint();
+    }
+
+    public void setWebSearchEndpoint(String webSearchEndpoint) {
+        urlFetch.setWebSearchEndpoint(webSearchEndpoint);
+    }
+
+    public int getWebSearchMaxResults() {
+        return urlFetch.getWebSearchMaxResults();
+    }
+
+    public void setWebSearchMaxResults(int webSearchMaxResults) {
+        urlFetch.setWebSearchMaxResults(webSearchMaxResults);
     }
 
     public int getExportMaxMessages() {

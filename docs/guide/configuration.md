@@ -109,6 +109,12 @@ app.use(AiAssistant, {
 | `url-fetch-max-bytes` | `524288` | 链接抓取的最大响应字节数。 | 公网部署建议保持有限值。 |
 | `url-fetch-timeout-seconds` | `15` | 链接抓取超时。 | 避免被慢站点拖住请求线程。 |
 | `url-fetch-max-chars-injected` | `24000` | 抓取正文注入模型的最大字符数。 | 控制外链内容带来的 Token 成本。 |
+| `web-search-provider` | `duckduckgo` | 聊天请求开启联网搜索时使用的搜索 provider，当前支持 `duckduckgo` 与 `tavily`。 | 生产稳定性要求高时设为 `tavily`，并配置 API Key；DuckDuckGo 仅适合作为无 Key 兜底。 |
+| `web-search-api-key` | 空 | 正式搜索 provider 的 API Key，Tavily 模式必填。 | 使用环境变量或密钥系统注入，不要写入仓库。 |
+| `web-search-endpoint` | 空 | 搜索 provider API 地址；Tavily 为空时默认 `https://api.tavily.com/search`。 | 只有接入代理或私有网关时需要显式配置。 |
+| `web-search-max-results` | `5` | 注入模型的搜索结果数量，范围会夹紧到 1~10。 | 一般保持 5；成本敏感或回答需要更短时降低。 |
+
+联网搜索开启后，后端会先执行搜索并把结果作为上下文注入模型。配置 `web-search-provider=tavily` 且提供 `web-search-api-key` 时优先走 Tavily；Tavily 请求失败会自动降级到 DuckDuckGo HTML 结果，避免一次外部 provider 故障直接中断对话。未配置正式 provider 时仍可临时使用 DuckDuckGo，但稳定性和可用性不适合作为生产主链路。
 
 ### 可选能力开关
 
@@ -164,6 +170,10 @@ AI_ASSISTANT_MULTIPART_MAX_REQUEST_SIZE=10MB
 | `AI_ASSISTANT_RAG_ENABLED` | `ai-assistant.rag-enabled` |
 | `AI_ASSISTANT_URL_FETCH_ENABLED` | `ai-assistant.url-fetch-enabled` |
 | `AI_ASSISTANT_URL_FETCH_SSRF_PROTECTION` | `ai-assistant.url-fetch-ssrf-protection` |
+| `AI_ASSISTANT_WEB_SEARCH_PROVIDER` | `ai-assistant.web-search-provider` |
+| `AI_ASSISTANT_WEB_SEARCH_API_KEY` | `ai-assistant.web-search-api-key` |
+| `AI_ASSISTANT_WEB_SEARCH_ENDPOINT` | `ai-assistant.web-search-endpoint` |
+| `AI_ASSISTANT_WEB_SEARCH_MAX_RESULTS` | `ai-assistant.web-search-max-results` |
 
 完整环境变量列表以根目录 `.env.example` 为准。
 

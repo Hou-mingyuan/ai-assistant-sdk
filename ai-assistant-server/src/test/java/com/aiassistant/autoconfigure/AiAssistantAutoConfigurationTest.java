@@ -118,6 +118,30 @@ class AiAssistantAutoConfigurationTest {
     }
 
     @Test
+    void bindsStableWebSearchConfigurationFromFlatStandaloneProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "ai-assistant.api-key=sk-test-search",
+                        "ai-assistant.web-search-provider=tavily",
+                        "ai-assistant.web-search-api-key=tvly-test",
+                        "ai-assistant.web-search-endpoint=https://api.tavily.com/search",
+                        "ai-assistant.web-search-max-results=7")
+                .run(
+                        context -> {
+                            AiAssistantProperties properties =
+                                    context.getBean(AiAssistantProperties.class);
+                            assertThat(properties.getUrlFetch().getWebSearchProvider())
+                                    .isEqualTo("tavily");
+                            assertThat(properties.getUrlFetch().getWebSearchApiKey())
+                                    .isEqualTo("tvly-test");
+                            assertThat(properties.getUrlFetch().getWebSearchEndpoint())
+                                    .isEqualTo("https://api.tavily.com/search");
+                            assertThat(properties.getUrlFetch().getWebSearchMaxResults())
+                                    .isEqualTo(7);
+                        });
+    }
+
+    @Test
     void autoConfigurationActivatesWithMultiApiKeysList() {
         contextRunner
                 .withPropertyValues(

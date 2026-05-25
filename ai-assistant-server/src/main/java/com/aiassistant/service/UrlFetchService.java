@@ -9,6 +9,8 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.security.DefaultSsrfPolicy;
 import com.aiassistant.security.SsrfPolicy;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -24,6 +26,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -162,6 +165,7 @@ public class UrlFetchService {
     };
 
     private static final int MAX_REDIRECTS = 5;
+    private static final ObjectMapper SEARCH_MAPPER = new ObjectMapper();
     private static final ExecutorService URL_FETCH_POOL =
             Executors.newVirtualThreadPerTaskExecutor();
 
@@ -352,16 +356,38 @@ public class UrlFetchService {
         if (query == null || query.isBlank()) {
             return "";
         }
+        String provider =
+                properties.getUrlFetch().getWebSearchProvider() == null
+                        ? "duckduckgo"
+                        : properties
+                                .getUrlFetch()
+                                .getWebSearchProvider()
+                                .trim()
+                                .toLowerCase(Locale.ROOT);
+        boolean stableProviderAttempted =
+                "tavily".equals(provider) && hasText(properties.getUrlFetch().getWebSearchApiKey());
+        if (stableProviderAttempted) {
+            String tavily = searchTavilyAsMarkdown(query);
+            if (!tavily.isBlank()) return tavily;
+        }
+        return searchDuckDuckGoAsMarkdown(query, stableProviderAttempted);
+    }
+
+    private String searchDuckDuckGoAsMarkdown(String query, boolean fallbackFromStableProvider) {
         try {
             String encoded = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
             URI uri = URI.create("https://duckduckgo.com/html/?q=" + encoded);
             byte[] body = fetchBytes(uri);
             if (body.length == 0) return "";
             String html = new String(body, sniffCharset(body, uri));
-            List<SearchHit> hits = parseDuckDuckGoResults(html, 5);
+            int maxResults =
+                    Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
+            List<SearchHit> hits = parseDuckDuckGoResults(html, maxResults);
             if (hits.isEmpty()) return "";
-            StringBuilder sb = new StringBuilder("# 联网搜索结果\n");
-            sb.append("查询：").append(query.trim()).append('\n');
+            StringBuilder sb =
+                    newSearchMarkdown(
+                            fallbackFromStableProvider ? "DuckDuckGo fallback" : "DuckDuckGo",
+                            query);
             for (int i = 0; i < hits.size(); i++) {
                 SearchHit hit = hits.get(i);
                 sb.append('\n')
@@ -381,6 +407,75 @@ public class UrlFetchService {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
             return "";
         }
+    }
+
+    private String searchTavilyAsMarkdown(String query) {
+        try {
+            String endpoint =
+                    hasText(properties.getUrlFetch().getWebSearchEndpoint())
+                            ? properties.getUrlFetch().getWebSearchEndpoint()
+                            : "https://api.tavily.com/search";
+            URI endpointUri = URI.create(endpoint);
+            if (properties.isUrlFetchSsrfProtection()) {
+                ssrfPolicy.validate(endpointUri);
+            }
+            int maxResults =
+                    Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
+            String body =
+                    SEARCH_MAPPER.writeValueAsString(
+                            Map.of(
+                                    "api_key",
+                                    properties.getUrlFetch().getWebSearchApiKey(),
+                                    "query",
+                                    query.trim(),
+                                    "search_depth",
+                                    "basic",
+                                    "max_results",
+                                    maxResults));
+            HttpRequest request =
+                    HttpRequest.newBuilder(endpointUri)
+                            .timeout(
+                                    Duration.ofSeconds(
+                                            Math.max(1, properties.getUrlFetchTimeoutSeconds())))
+                            .header("Content-Type", "application/json")
+                            .header("User-Agent", "AiAssistantWebSearch/1.0")
+                            .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                            .build();
+            HttpResponse<String> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("HTTP " + response.statusCode());
+            }
+            JsonNode root = SEARCH_MAPPER.readTree(response.body());
+            JsonNode results = root.path("results");
+            if (!results.isArray() || results.isEmpty()) return "";
+            StringBuilder sb = newSearchMarkdown("Tavily", query);
+            int index = 1;
+            for (JsonNode item : results) {
+                String title = item.path("title").asText("");
+                String url = item.path("url").asText("");
+                String content = item.path("content").asText("");
+                String publishedDate = item.path("published_date").asText("");
+                if (!hasText(title) || !hasText(url)) continue;
+                sb.append('\n').append(index++).append(". ").append(title).append('\n');
+                sb.append("   URL: ").append(url).append('\n');
+                if (hasText(publishedDate)) sb.append("   时间: ").append(publishedDate).append('\n');
+                if (hasText(content)) sb.append("   摘要: ").append(content).append('\n');
+                if (index > maxResults) break;
+            }
+            return index == 1 ? "" : sb.toString();
+        } catch (Exception e) {
+            log.debug("Tavily web search failed for query '{}': {}", query, e.getMessage());
+            return "";
+        }
+    }
+
+    private StringBuilder newSearchMarkdown(String provider, String query) {
+        StringBuilder sb = new StringBuilder("# 联网搜索结果\n");
+        sb.append("来源：").append(provider).append('\n');
+        sb.append("检索时间：").append(Instant.now()).append('\n');
+        sb.append("查询：").append(query.trim()).append('\n');
+        return sb;
     }
 
     private List<SearchHit> parseDuckDuckGoResults(String html, int limit) {
@@ -416,6 +511,10 @@ public class UrlFetchService {
         } catch (Exception ignored) {
         }
         return raw;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private UrlPreviewResponse tryHeadlessFallback(String url) {

@@ -102,6 +102,10 @@ ai-assistant:
   url-fetch-cache-max-entries: ${AI_ASSISTANT_URL_FETCH_CACHE_MAX_ENTRIES:32}                     # default: 32
   url-preview-max-summary-chars: ${AI_ASSISTANT_URL_PREVIEW_MAX_SUMMARY_CHARS:900}                # default: 900
   url-preview-max-images: ${AI_ASSISTANT_URL_PREVIEW_MAX_IMAGES:10}                               # default: 10（夹紧到 30）
+  web-search-provider: ${AI_ASSISTANT_WEB_SEARCH_PROVIDER:duckduckgo}                             # duckduckgo/tavily；生产建议 tavily
+  web-search-api-key: ${AI_ASSISTANT_WEB_SEARCH_API_KEY:}                                         # Tavily API Key
+  web-search-endpoint: ${AI_ASSISTANT_WEB_SEARCH_ENDPOINT:}                                       # default: https://api.tavily.com/search
+  web-search-max-results: ${AI_ASSISTANT_WEB_SEARCH_MAX_RESULTS:5}                                # default: 5（夹紧到 10）
 
   # ── 文件解析 / 导出 ──────────────────────────────────────
   file-max-extracted-chars: ${AI_ASSISTANT_FILE_MAX_EXTRACTED_CHARS:300000}                       # default: 300000
