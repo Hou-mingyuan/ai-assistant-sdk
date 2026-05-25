@@ -498,6 +498,8 @@
       :web-search-provider-input="webSearchProviderInput"
       :web-search-api-key-input="webSearchApiKeyInput"
       :web-search-max-results-input="webSearchMaxResultsInput"
+      :web-search-allowed-domains-input="webSearchAllowedDomainsInput"
+      :web-search-blocked-domains-input="webSearchBlockedDomainsInput"
       @update:theme="(v) => (themePalette = v as ThemePresetId)"
       @update:audio="onAudioPrefsUpdate"
       @save-provider-config="saveProviderConfig"
@@ -510,6 +512,8 @@
       @update:web-search-provider-input="webSearchProviderInput = $event"
       @update:web-search-api-key-input="webSearchApiKeyInput = $event"
       @update:web-search-max-results-input="webSearchMaxResultsInput = $event"
+      @update:web-search-allowed-domains-input="webSearchAllowedDomainsInput = $event"
+      @update:web-search-blocked-domains-input="webSearchBlockedDomainsInput = $event"
       @close="personalizeOpen = false"
     />
 
@@ -1129,6 +1133,8 @@ const {
   webSearchProviderInput,
   webSearchApiKeyInput,
   webSearchMaxResultsInput,
+  webSearchAllowedDomainsInput,
+  webSearchBlockedDomainsInput,
   webSearchDiagnosticsText,
   modelListMessage,
   diagnosticsModelEndpoint,

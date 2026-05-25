@@ -147,6 +147,8 @@ public class AiAssistantProperties {
         private String webSearchApiKey;
         private String webSearchEndpoint;
         private int webSearchMaxResults = 5;
+        private String webSearchAllowedDomains;
+        private String webSearchBlockedDomains;
 
         public void setWebSearchMaxResults(int webSearchMaxResults) {
             this.webSearchMaxResults = Math.max(1, Math.min(webSearchMaxResults, 10));

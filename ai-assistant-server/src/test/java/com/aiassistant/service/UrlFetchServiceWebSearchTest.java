@@ -362,6 +362,39 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void searchWebAppliesAllowedAndBlockedSourceDomains() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">Allowed summary</a>
+                                    <a class="result__snippet">Blocked summary</a>
+                                    <a class="result__a" href="https://docs.example.com/allowed">
+                                      Allowed result
+                                    </a>
+                                    <a class="result__a" href="https://spam.example.com/blocked">
+                                      Blocked result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+        properties.getUrlFetch().setWebSearchAllowedDomains("example.com");
+        properties.getUrlFetch().setWebSearchBlockedDomains("spam.example.com");
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("domain filter");
+
+        assertThat(result.sourceUrls()).containsExactly("https://docs.example.com/allowed");
+        assertThat(result.markdown()).contains("Allowed result").doesNotContain("Blocked result");
+    }
+
+    @Test
     void probeWebSearchProviderReturnsReachabilitySnapshot() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

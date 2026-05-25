@@ -10,6 +10,8 @@ export function useRuntimeProviderConfigState() {
   const webSearchProviderInput = ref('');
   const webSearchApiKeyInput = ref('');
   const webSearchMaxResultsInput = ref('');
+  const webSearchAllowedDomainsInput = ref('');
+  const webSearchBlockedDomainsInput = ref('');
 
   function applyRuntimeModelConfig(config: RuntimeModelConfigResult) {
     providerInput.value = config.provider || '';
@@ -21,6 +23,8 @@ export function useRuntimeProviderConfigState() {
     webSearchMaxResultsInput.value =
       config.webSearchMaxResults != null ? String(config.webSearchMaxResults) : '';
     webSearchApiKeyInput.value = '';
+    webSearchAllowedDomainsInput.value = config.webSearchAllowedDomains || '';
+    webSearchBlockedDomainsInput.value = config.webSearchBlockedDomains || '';
   }
 
   function buildRuntimeModelConfigPayload() {
@@ -34,6 +38,8 @@ export function useRuntimeProviderConfigState() {
       webSearchProvider: webSearchProviderInput.value,
       webSearchApiKey: webSearchApiKeyInput.value,
       webSearchMaxResults: Number.isFinite(webSearchMaxResults) ? webSearchMaxResults : undefined,
+      webSearchAllowedDomains: webSearchAllowedDomainsInput.value,
+      webSearchBlockedDomains: webSearchBlockedDomainsInput.value,
     };
   }
 
@@ -53,6 +59,8 @@ export function useRuntimeProviderConfigState() {
     webSearchProviderInput,
     webSearchApiKeyInput,
     webSearchMaxResultsInput,
+    webSearchAllowedDomainsInput,
+    webSearchBlockedDomainsInput,
     applyRuntimeModelConfig,
     buildRuntimeModelConfigPayload,
     applyDiscoveredModels,

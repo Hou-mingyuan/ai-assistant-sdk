@@ -94,6 +94,16 @@ public class RuntimeModelConfigService {
                     .setWebSearchMaxResults(
                             Math.max(1, Math.min(10, request.getWebSearchMaxResults())));
         }
+        if (request.getWebSearchAllowedDomains() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchAllowedDomains(request.getWebSearchAllowedDomains().trim());
+        }
+        if (request.getWebSearchBlockedDomains() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchBlockedDomains(request.getWebSearchBlockedDomains().trim());
+        }
         Snapshot next = snapshot();
         persistNonSecretConfig(next);
         log.info(
@@ -170,6 +180,8 @@ public class RuntimeModelConfigService {
             request.setAllowedModelsText(persisted.getProperty("allowedModels"));
             request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
             request.setWebSearchProvider(persisted.getProperty("webSearchProvider"));
+            request.setWebSearchAllowedDomains(persisted.getProperty("webSearchAllowedDomains"));
+            request.setWebSearchBlockedDomains(persisted.getProperty("webSearchBlockedDomains"));
             String webSearchMax = persisted.getProperty("webSearchMaxResults");
             if (hasText(webSearchMax)) {
                 request.setWebSearchMaxResults(Integer.parseInt(webSearchMax));
@@ -210,6 +222,16 @@ public class RuntimeModelConfigService {
                     .setWebSearchMaxResults(
                             Math.max(1, Math.min(10, request.getWebSearchMaxResults())));
         }
+        if (request.getWebSearchAllowedDomains() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchAllowedDomains(request.getWebSearchAllowedDomains().trim());
+        }
+        if (request.getWebSearchBlockedDomains() != null) {
+            properties
+                    .getUrlFetch()
+                    .setWebSearchBlockedDomains(request.getWebSearchBlockedDomains().trim());
+        }
     }
 
     private void persistNonSecretConfig(Snapshot snapshot) {
@@ -221,6 +243,8 @@ public class RuntimeModelConfigService {
         put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
         put(persisted, "webSearchProvider", snapshot.webSearchProvider);
         put(persisted, "webSearchMaxResults", String.valueOf(snapshot.webSearchMaxResults));
+        put(persisted, "webSearchAllowedDomains", snapshot.webSearchAllowedDomains);
+        put(persisted, "webSearchBlockedDomains", snapshot.webSearchBlockedDomains);
         String encryptedApiKey = encryptRuntimeApiKey();
         put(persisted, API_KEY_ENCRYPTED_PROPERTY, encryptedApiKey);
         String encryptedWebSearchApiKey = encryptRuntimeWebSearchApiKey();
@@ -364,6 +388,8 @@ public class RuntimeModelConfigService {
         private String webSearchProvider;
         private String webSearchApiKey;
         private Integer webSearchMaxResults;
+        private String webSearchAllowedDomains;
+        private String webSearchBlockedDomains;
 
         public String getProvider() {
             return provider;
@@ -444,6 +470,22 @@ public class RuntimeModelConfigService {
         public void setWebSearchMaxResults(Integer webSearchMaxResults) {
             this.webSearchMaxResults = webSearchMaxResults;
         }
+
+        public String getWebSearchAllowedDomains() {
+            return webSearchAllowedDomains;
+        }
+
+        public void setWebSearchAllowedDomains(String webSearchAllowedDomains) {
+            this.webSearchAllowedDomains = webSearchAllowedDomains;
+        }
+
+        public String getWebSearchBlockedDomains() {
+            return webSearchBlockedDomains;
+        }
+
+        public void setWebSearchBlockedDomains(String webSearchBlockedDomains) {
+            this.webSearchBlockedDomains = webSearchBlockedDomains;
+        }
     }
 
     public static class Snapshot {
@@ -456,6 +498,8 @@ public class RuntimeModelConfigService {
         private String webSearchProvider;
         private int webSearchMaxResults;
         private boolean webSearchApiKeyConfigured;
+        private String webSearchAllowedDomains;
+        private String webSearchBlockedDomains;
 
         static Snapshot from(AiAssistantProperties properties) {
             Snapshot s = new Snapshot();
@@ -468,6 +512,8 @@ public class RuntimeModelConfigService {
             s.webSearchProvider = properties.getUrlFetch().getWebSearchProvider();
             s.webSearchMaxResults = properties.getUrlFetch().getWebSearchMaxResults();
             s.webSearchApiKeyConfigured = hasText(properties.getUrlFetch().getWebSearchApiKey());
+            s.webSearchAllowedDomains = properties.getUrlFetch().getWebSearchAllowedDomains();
+            s.webSearchBlockedDomains = properties.getUrlFetch().getWebSearchBlockedDomains();
             return s;
         }
 
@@ -483,6 +529,8 @@ public class RuntimeModelConfigService {
             out.put("webSearchProvider", webSearchProvider);
             out.put("webSearchMaxResults", webSearchMaxResults);
             out.put("webSearchApiKeyConfigured", webSearchApiKeyConfigured);
+            out.put("webSearchAllowedDomains", webSearchAllowedDomains);
+            out.put("webSearchBlockedDomains", webSearchBlockedDomains);
             return out;
         }
 

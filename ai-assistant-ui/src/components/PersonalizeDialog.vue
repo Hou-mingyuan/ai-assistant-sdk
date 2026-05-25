@@ -264,6 +264,36 @@
                 "
               />
             </label>
+            <label class="ai-personalize-model-field">
+              <span>Allow domains</span>
+              <input
+                :value="webSearchAllowedDomainsInput"
+                type="text"
+                placeholder="docs.example.com, gov"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:webSearchAllowedDomainsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
+            <label class="ai-personalize-model-field">
+              <span>Block domains</span>
+              <input
+                :value="webSearchBlockedDomainsInput"
+                type="text"
+                placeholder="spam.example.com"
+                autocomplete="off"
+                @input="
+                  $emit(
+                    'update:webSearchBlockedDomainsInput',
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+            </label>
             <button
               type="button"
               class="ai-personalize-done"
@@ -328,6 +358,8 @@ const props = defineProps<{
   webSearchProviderInput?: string;
   webSearchApiKeyInput?: string;
   webSearchMaxResultsInput?: string;
+  webSearchAllowedDomainsInput?: string;
+  webSearchBlockedDomainsInput?: string;
 }>();
 
 const emit = defineEmits<{
@@ -350,6 +382,8 @@ const emit = defineEmits<{
   (e: 'update:webSearchProviderInput', value: string): void;
   (e: 'update:webSearchApiKeyInput', value: string): void;
   (e: 'update:webSearchMaxResultsInput', value: string): void;
+  (e: 'update:webSearchAllowedDomainsInput', value: string): void;
+  (e: 'update:webSearchBlockedDomainsInput', value: string): void;
 }>();
 
 function emitAudio(patch: Partial<Pick<PersonalizeAudioPrefs, 'voice' | 'rate' | 'autoRead'>>) {

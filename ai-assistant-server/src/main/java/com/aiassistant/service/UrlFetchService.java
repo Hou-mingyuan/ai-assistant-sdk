@@ -533,6 +533,7 @@ public class UrlFetchService {
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
                 if (!seenUrls.add(url)) continue;
+                if (!isSearchSourceDomainAllowed(url)) continue;
                 SearchQuality quality = scoreSearchSource(title, url, content);
                 sourceUrls.add(url);
                 sb.append('\n').append(index++).append(". ").append(title).append('\n');
@@ -583,6 +584,7 @@ public class UrlFetchService {
             String title = stripTags(lm.group(2)).trim();
             if (url.isBlank() || title.isBlank()) continue;
             if (!seenUrls.add(url)) continue;
+            if (!isSearchSourceDomainAllowed(url)) continue;
             String snippet = hits.size() < snippets.size() ? safeSearchSnippet(snippets.get(hits.size())) : "";
             SearchQuality quality = scoreSearchSource(title, url, snippet);
             hits.add(new SearchHit(title, url, snippet, quality.score(), quality.label()));
@@ -725,6 +727,34 @@ public class UrlFetchService {
             score -= 12;
         }
         return new SearchQuality(score, label);
+    }
+
+    private boolean isSearchSourceDomainAllowed(String url) {
+        String host = "";
+        try {
+            URI uri = URI.create(url);
+            host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+        } catch (Exception ignored) {
+        }
+        if (host.isBlank()) {
+            return false;
+        }
+        List<String> blocked = parseDomainList(properties.getUrlFetch().getWebSearchBlockedDomains());
+        if (blocked.stream().anyMatch(host::endsWith)) {
+            return false;
+        }
+        List<String> allowed = parseDomainList(properties.getUrlFetch().getWebSearchAllowedDomains());
+        return allowed.isEmpty() || allowed.stream().anyMatch(host::endsWith);
+    }
+
+    private static List<String> parseDomainList(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(raw.split(","))
+                .map(part -> part.trim().toLowerCase(Locale.ROOT))
+                .filter(part -> !part.isBlank())
+                .toList();
     }
 
     private UrlPreviewResponse tryHeadlessFallback(String url) {

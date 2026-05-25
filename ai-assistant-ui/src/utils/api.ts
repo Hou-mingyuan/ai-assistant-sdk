@@ -50,12 +50,16 @@ export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'] & 
   webSearchProvider?: string;
   webSearchMaxResults?: number;
   webSearchApiKeyConfigured?: boolean;
+  webSearchAllowedDomains?: string;
+  webSearchBlockedDomains?: string;
 };
 
 export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'] & {
   webSearchProvider?: string;
   webSearchApiKey?: string;
   webSearchMaxResults?: number;
+  webSearchAllowedDomains?: string;
+  webSearchBlockedDomains?: string;
 };
 
 export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];

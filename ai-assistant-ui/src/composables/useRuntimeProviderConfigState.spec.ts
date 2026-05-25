@@ -17,6 +17,8 @@ describe('useRuntimeProviderConfigState', () => {
       webSearchProvider: 'tavily',
       webSearchMaxResults: 8,
       webSearchApiKeyConfigured: true,
+      webSearchAllowedDomains: 'docs.example.com',
+      webSearchBlockedDomains: 'spam.example.com',
     });
 
     expect(state.providerInput.value).toBe('minimax');
@@ -27,6 +29,8 @@ describe('useRuntimeProviderConfigState', () => {
     expect(state.webSearchProviderInput.value).toBe('tavily');
     expect(state.webSearchMaxResultsInput.value).toBe('8');
     expect(state.webSearchApiKeyInput.value).toBe('');
+    expect(state.webSearchAllowedDomainsInput.value).toBe('docs.example.com');
+    expect(state.webSearchBlockedDomainsInput.value).toBe('spam.example.com');
   });
 
   it('uses empty strings for missing runtime config fields', () => {
@@ -51,6 +55,8 @@ describe('useRuntimeProviderConfigState', () => {
     state.webSearchProviderInput.value = 'tavily';
     state.webSearchApiKeyInput.value = 'tvly-test';
     state.webSearchMaxResultsInput.value = '6';
+    state.webSearchAllowedDomainsInput.value = 'docs.example.com';
+    state.webSearchBlockedDomainsInput.value = 'spam.example.com';
 
     expect(state.buildRuntimeModelConfigPayload()).toEqual({
       provider: 'openai',
@@ -61,6 +67,8 @@ describe('useRuntimeProviderConfigState', () => {
       webSearchProvider: 'tavily',
       webSearchApiKey: 'tvly-test',
       webSearchMaxResults: 6,
+      webSearchAllowedDomains: 'docs.example.com',
+      webSearchBlockedDomains: 'spam.example.com',
     });
   });
 
