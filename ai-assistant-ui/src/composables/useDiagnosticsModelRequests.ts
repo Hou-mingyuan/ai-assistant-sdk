@@ -65,10 +65,6 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
   };
 
   async function refreshChatModels() {
-    opts.modelChoices.value = [];
-    opts.modelCapabilities.value = {};
-    opts.selectedChatModel.value = '';
-    opts.defaultChatModel.value = '';
     opts.modelListStatus.value = '';
     opts.modelListError.value = '';
     if (!opts.options.baseUrl || !opts.showModelPicker.value) return;

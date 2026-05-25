@@ -147,4 +147,15 @@ describe('useDiagnosticsModelRequests', () => {
     expect(api.fetchHealth).toHaveBeenCalledWith('/ai-assistant', 'token', true);
     expect(state.webSearchDiagnosticsText.value).toBe('tavily · configured · 7 · probe ok');
   });
+
+  it('keeps the previous model picker state when model refresh fails', async () => {
+    const { requests, state, api } = makeHarness();
+    api.fetchModels.mockResolvedValueOnce({ success: false, error: 'network down' });
+
+    await requests.refreshChatModels();
+
+    expect(state.modelChoices.value).toEqual(['stale']);
+    expect(state.selectedChatModel.value).toBe('stale');
+    expect(state.modelListError.value).toBe('network down');
+  });
 });
