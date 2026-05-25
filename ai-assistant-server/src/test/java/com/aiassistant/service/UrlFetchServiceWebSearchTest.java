@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aiassistant.config.AiAssistantProperties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.ProxySelector;
@@ -162,7 +161,8 @@ class UrlFetchServiceWebSearchTest {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()
                         .queueString(500, "{\"error\":\"upstream unavailable\"}")
-                        .queueInputStream(200, "<html><body>No usable search results</body></html>");
+                        .queueInputStream(
+                                200, "<html><body>No usable search results</body></html>");
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
@@ -333,8 +333,7 @@ class UrlFetchServiceWebSearchTest {
 
         assertThat(result.sourceUrls())
                 .containsExactly(
-                        "https://docs.example.com/api/search",
-                        "https://random-blog.example/post");
+                        "https://docs.example.com/api/search", "https://random-blog.example/post");
         assertThat(result.sources()).hasSize(2);
         assertThat(result.sources().get(0).title()).isEqualTo("Official API documentation");
         assertThat(result.sources().get(0).qualityLabel()).isEqualTo("docs");
@@ -348,7 +347,8 @@ class UrlFetchServiceWebSearchTest {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()
                         .queueString(500, "{\"error\":\"upstream unavailable\"}")
-                        .queueInputStream(200, "<html><body>No usable search results</body></html>");
+                        .queueInputStream(
+                                200, "<html><body>No usable search results</body></html>");
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");

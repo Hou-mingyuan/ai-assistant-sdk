@@ -349,6 +349,7 @@ export const en: I18nMessages = {
   providerConfigDefaultModelPlaceholder: 'MiniMax-M2.5',
   providerConfigAllowedModels: 'Allowed models',
   providerConfigAllowedModelsPlaceholder: 'MiniMax-M2.5, MiniMax-M2.7',
+  providerConfigWarmup: 'Warm up default model after startup',
   providerConfigSaveAndRefresh: 'Save model config and refresh list',
   kbDropFabHint: 'Drop to add to knowledge',
   kbDropIngested: 'Added {count} file(s) to "{name}"',

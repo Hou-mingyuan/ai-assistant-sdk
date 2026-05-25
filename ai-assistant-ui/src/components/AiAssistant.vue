@@ -497,6 +497,7 @@
       :provider-api-key-input="providerApiKeyInput"
       :provider-model-input="providerModelInput"
       :provider-allowed-models-input="providerAllowedModelsInput"
+      :warmup-enabled-input="warmupEnabledInput"
       :web-search-provider-input="webSearchProviderInput"
       :web-search-api-key-input="webSearchApiKeyInput"
       :web-search-max-results-input="webSearchMaxResultsInput"
@@ -511,6 +512,7 @@
       @update:provider-api-key-input="providerApiKeyInput = $event"
       @update:provider-model-input="providerModelInput = $event"
       @update:provider-allowed-models-input="providerAllowedModelsInput = $event"
+      @update:warmup-enabled-input="warmupEnabledInput = $event"
       @update:web-search-provider-input="webSearchProviderInput = $event"
       @update:web-search-api-key-input="webSearchApiKeyInput = $event"
       @update:web-search-max-results-input="webSearchMaxResultsInput = $event"
@@ -606,10 +608,12 @@
       :selected-model="selectedChatModel"
       :model-status-text="modelStatusText"
       :model-status-kind="modelStatusKind"
+      :model-health-text="modelHealthText"
       :web-search-diagnostics-text="webSearchDiagnosticsText"
       :web-search-stats="webSearchStats"
       :response-timing-summary="responseTimingSummary"
       :response-timing-history="responseTimingHistory"
+      :response-timing-samples="responseTimingSamples"
       :model-source-text="modelSourceText"
       :model-hint-text="modelHintText"
       :remedy-kind="diagnosticsRemedyKind"
@@ -1063,7 +1067,17 @@ const messages = ref<Message[]>(
 const responseTimingSummary = computed(() => {
   return responseTimingHistory.value[0] || '';
 });
+const modelHealthText = computed(() => {
+  const latest = responseTimingSamples.value[0];
+  if (!latest) return '';
+  const ttft = latest.ttftMs == null ? 'TTFT n/a' : latest.ttftMs > 3000 ? 'TTFT slow' : 'TTFT ok';
+  const total = latest.totalMs > 8000 ? 'total slow' : 'total ok';
+  return ['Provider ready', ttft, total].join(' · ');
+});
 const responseTimingHistory = computed(() => {
+  return responseTimingSamples.value.map((sample) => sample.summary);
+});
+const responseTimingSamples = computed(() => {
   return [...messages.value]
     .reverse()
     .filter(
@@ -1072,7 +1086,8 @@ const responseTimingHistory = computed(() => {
         (typeof msg.meta?.elapsedMs === 'number' || typeof msg.meta?.ttftMs === 'number'),
     )
     .slice(0, 5)
-    .map((msg) => formatResponseTiming(msg));
+    .map((msg, index) => toResponseTimingSample(msg, index))
+    .filter((sample) => sample.summary);
 });
 const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
@@ -1088,16 +1103,25 @@ function formatTimingMs(ms: number) {
   return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
-function formatResponseTiming(msg: Message) {
+function toResponseTimingSample(msg: Message, index: number) {
   const meta = msg.meta;
-  if (!meta) return '';
+  if (!meta) {
+    return { label: `response-${index}`, summary: '', totalMs: 0 };
+  }
   const parts = [
     meta.effectiveModel || meta.model || meta.requestedModel,
     meta.provider,
     typeof meta.ttftMs === 'number' ? `TTFT ${formatTimingMs(meta.ttftMs)}` : '',
     typeof meta.elapsedMs === 'number' ? `total ${formatTimingMs(meta.elapsedMs)}` : '',
   ].filter(Boolean);
-  return parts.join(' · ');
+  const model = meta.effectiveModel || meta.model || meta.requestedModel;
+  return {
+    label: `${msg.timestamp || index}-${model || 'model'}`,
+    model,
+    ttftMs: meta.ttftMs,
+    totalMs: meta.elapsedMs ?? meta.ttftMs ?? 0,
+    summary: parts.join(' · '),
+  };
 }
 
 const exportActions = useExportActions({
@@ -1171,6 +1195,7 @@ const {
   providerApiKeyInput,
   providerModelInput,
   providerAllowedModelsInput,
+  warmupEnabledInput,
   webSearchProviderInput,
   webSearchApiKeyInput,
   webSearchMaxResultsInput,

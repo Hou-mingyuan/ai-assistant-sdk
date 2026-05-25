@@ -247,7 +247,8 @@ class AiAssistantControllerTest {
         var response = controller.stream(req);
 
         assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search"));
-        assertEquals("DuckDuckGo fallback", response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
+        assertEquals(
+                "DuckDuckGo fallback", response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
         assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search-Fallback"));
         assertEquals("1", response.getHeaders().getFirst("X-AI-Web-Search-Result-Count"));
     }
@@ -263,8 +264,7 @@ class AiAssistantControllerTest {
                                 2,
                                 Instant.parse("2026-05-25T04:00:00Z"),
                                 java.util.List.of(
-                                        "https://example.com/a",
-                                        "https://example.com/b?x=1&y=2")));
+                                        "https://example.com/a", "https://example.com/b?x=1&y=2")));
         when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn(Flux.just("chunk"));
         ChatRequest req = new ChatRequest();
@@ -337,9 +337,14 @@ class AiAssistantControllerTest {
 
         var response = controller.stream(req);
 
-        assertTrue(response.getHeaders().getFirst("X-AI-Web-Search-Source-Previews").contains("Official"));
-        assertTrue(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)
-                .contains("X-AI-Web-Search-Source-Previews"));
+        assertTrue(
+                response.getHeaders()
+                        .getFirst("X-AI-Web-Search-Source-Previews")
+                        .contains("Official"));
+        assertTrue(
+                response.getHeaders()
+                        .getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)
+                        .contains("X-AI-Web-Search-Source-Previews"));
     }
 
     @Test
@@ -363,8 +368,7 @@ class AiAssistantControllerTest {
 
         assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search"));
         assertEquals(
-                "DuckDuckGo fallback",
-                response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
+                "DuckDuckGo fallback", response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
         assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search-Fallback"));
         assertEquals("0", response.getHeaders().getFirst("X-AI-Web-Search-Result-Count"));
     }
@@ -444,7 +448,9 @@ class AiAssistantControllerTest {
         assertEquals("tavily", result.get("webSearchProvider"));
         assertEquals(true, result.get("webSearchStableProviderConfigured"));
         assertEquals(7, result.get("webSearchMaxResults"));
-        assertEquals(java.util.Map.of("attempts", 3L, "successes", 2L, "fallbacks", 1L), result.get("webSearchStats"));
+        assertEquals(
+                java.util.Map.of("attempts", 3L, "successes", 2L, "fallbacks", 1L),
+                result.get("webSearchStats"));
     }
 
     @Test
@@ -454,7 +460,9 @@ class AiAssistantControllerTest {
                 .thenReturn(java.util.Map.of("status", "ok", "provider", "tavily"));
         var result = controller.health(true);
         assertEquals(true, result.get("llmReachable"));
-        assertEquals(java.util.Map.of("status", "ok", "provider", "tavily"), result.get("webSearchProbe"));
+        assertEquals(
+                java.util.Map.of("status", "ok", "provider", "tavily"),
+                result.get("webSearchProbe"));
     }
 
     @Test

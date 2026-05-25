@@ -208,6 +208,7 @@ export interface I18nMessages {
   providerConfigDefaultModelPlaceholder?: string;
   providerConfigAllowedModels?: string;
   providerConfigAllowedModelsPlaceholder?: string;
+  providerConfigWarmup?: string;
   providerConfigSaveAndRefresh?: string;
   /** K38: drag-and-drop file onto FAB to ingest into KB. */
   kbDropFabHint?: string;

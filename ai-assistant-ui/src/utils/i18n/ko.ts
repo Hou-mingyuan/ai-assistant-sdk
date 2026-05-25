@@ -341,6 +341,7 @@ export const ko: I18nMessages = {
   providerConfigDefaultModelPlaceholder: 'MiniMax-M2.5',
   providerConfigAllowedModels: '허용 모델 목록',
   providerConfigAllowedModelsPlaceholder: 'MiniMax-M2.5, MiniMax-M2.7',
+  providerConfigWarmup: '시작 후 기본 모델 워밍업',
   providerConfigSaveAndRefresh: '모델 설정 저장 및 목록 새로고침',
   kbDropFabHint: '놓아서 지식 베이스에 추가',
   kbDropIngested: '{count}개 파일을 "{name}"에 추가',

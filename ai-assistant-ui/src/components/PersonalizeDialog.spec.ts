@@ -25,6 +25,7 @@ const t = {
   providerConfigDefaultModelPlaceholder: 'default model id',
   providerConfigAllowedModels: 'Allowed models',
   providerConfigAllowedModelsPlaceholder: 'model-a, model-b',
+  providerConfigWarmup: 'Warm up default model after startup',
   providerConfigSaveAndRefresh: 'Save model config and refresh list',
 } as unknown as I18nMessages;
 
@@ -54,7 +55,33 @@ describe('PersonalizeDialog provider configuration', () => {
     expect(inputs[1].placeholder).toBe('provider base URL');
     expect(inputs[3].placeholder).toBe('default model id');
     expect(inputs[4].placeholder).toBe('model-a, model-b');
+    expect(document.body.textContent).toContain('Warm up default model after startup');
 
+    wrapper.unmount();
+  });
+
+  it('emits warmup toggle changes', async () => {
+    const wrapper = mount(PersonalizeDialog, {
+      props: {
+        open: true,
+        modelValue: '',
+        isDark: false,
+        disabled: false,
+        maxChars: 4000,
+        t,
+        warmupEnabledInput: false,
+      },
+      attachTo: document.body,
+    });
+    const warmup = document.body.querySelector<HTMLInputElement>(
+      '.ai-personalize-model-check input',
+    )!;
+
+    warmup.checked = true;
+    warmup.dispatchEvent(new Event('change'));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('update:warmupEnabledInput')?.at(-1)).toEqual([true]);
     wrapper.unmount();
   });
 

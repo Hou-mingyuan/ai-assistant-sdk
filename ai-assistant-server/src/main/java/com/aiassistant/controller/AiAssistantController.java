@@ -241,13 +241,12 @@ public class AiAssistantController {
         }
         String value =
                 java.util.stream.Stream.of(pageContext, search.markdown())
-                .filter(s -> s != null && !s.isBlank())
-                .collect(java.util.stream.Collectors.joining("\n\n"));
+                        .filter(s -> s != null && !s.isBlank())
+                        .collect(java.util.stream.Collectors.joining("\n\n"));
         return new EffectivePageContext(value, search);
     }
 
-    private record EffectivePageContext(
-            String value, UrlFetchService.WebSearchResult webSearch) {}
+    private record EffectivePageContext(String value, UrlFetchService.WebSearchResult webSearch) {}
 
     private HttpHeaders runtimeHeaders(ChatResponse.RuntimeMeta meta) {
         HttpHeaders headers = new HttpHeaders();
@@ -262,8 +261,7 @@ public class AiAssistantController {
             addHeader(headers, "X-AI-Web-Search-Provider", meta.getWebSearchProvider());
             headers.add("X-AI-Web-Search-Fallback", String.valueOf(meta.isWebSearchFallback()));
             headers.add(
-                    "X-AI-Web-Search-Result-Count",
-                    String.valueOf(meta.getWebSearchResultCount()));
+                    "X-AI-Web-Search-Result-Count", String.valueOf(meta.getWebSearchResultCount()));
             String encodedSourceUrls = encodeWebSearchSourceUrls(meta.getWebSearchSourceUrls());
             addHeader(headers, "X-AI-Web-Search-Source-Urls", encodedSourceUrls);
             addHeader(
@@ -340,7 +338,8 @@ public class AiAssistantController {
         result.put("model", assistantProperties.resolveModel());
         String webSearchProvider = assistantProperties.getUrlFetch().getWebSearchProvider();
         result.put("webSearchProvider", webSearchProvider);
-        result.put("webSearchMaxResults", assistantProperties.getUrlFetch().getWebSearchMaxResults());
+        result.put(
+                "webSearchMaxResults", assistantProperties.getUrlFetch().getWebSearchMaxResults());
         result.put(
                 "webSearchStableProviderConfigured",
                 "tavily".equalsIgnoreCase(webSearchProvider)

@@ -332,6 +332,7 @@ export const zh: I18nMessages = {
   providerConfigDefaultModelPlaceholder: 'MiniMax-M2.5',
   providerConfigAllowedModels: '允许模型列表',
   providerConfigAllowedModelsPlaceholder: 'MiniMax-M2.5, MiniMax-M2.7',
+  providerConfigWarmup: '启动后预热默认模型',
   providerConfigSaveAndRefresh: '保存模型配置并刷新列表',
   kbDropFabHint: '松开以加入知识库',
   kbDropIngested: '已将 {count} 个文件加入「{name}」',

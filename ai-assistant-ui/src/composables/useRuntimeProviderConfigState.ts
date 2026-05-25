@@ -7,6 +7,7 @@ export function useRuntimeProviderConfigState() {
   const providerApiKeyInput = ref('');
   const providerModelInput = ref('');
   const providerAllowedModelsInput = ref('');
+  const warmupEnabledInput = ref(false);
   const webSearchProviderInput = ref('');
   const webSearchApiKeyInput = ref('');
   const webSearchMaxResultsInput = ref('');
@@ -18,6 +19,7 @@ export function useRuntimeProviderConfigState() {
     providerBaseUrlInput.value = config.baseUrl || '';
     providerModelInput.value = config.model || '';
     providerAllowedModelsInput.value = (config.allowedModels ?? []).join(', ');
+    warmupEnabledInput.value = config.warmupEnabled === true;
     providerApiKeyInput.value = '';
     webSearchProviderInput.value = config.webSearchProvider || '';
     webSearchMaxResultsInput.value =
@@ -35,6 +37,7 @@ export function useRuntimeProviderConfigState() {
       apiKey: providerApiKeyInput.value,
       model: providerModelInput.value,
       allowedModelsText: providerAllowedModelsInput.value,
+      warmupEnabled: warmupEnabledInput.value,
       webSearchProvider: webSearchProviderInput.value,
       webSearchApiKey: webSearchApiKeyInput.value,
       webSearchMaxResults: Number.isFinite(webSearchMaxResults) ? webSearchMaxResults : undefined,
@@ -56,6 +59,7 @@ export function useRuntimeProviderConfigState() {
     providerApiKeyInput,
     providerModelInput,
     providerAllowedModelsInput,
+    warmupEnabledInput,
     webSearchProviderInput,
     webSearchApiKeyInput,
     webSearchMaxResultsInput,

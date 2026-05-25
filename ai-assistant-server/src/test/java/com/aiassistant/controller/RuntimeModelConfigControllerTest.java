@@ -38,6 +38,7 @@ class RuntimeModelConfigControllerTest {
         request.setApiKey("runtime-secret");
         request.setModel("MiniMax-M2.7");
         request.setAllowedModelsText("MiniMax-M2.7, MiniMax-M2.5");
+        request.setWarmupEnabled(true);
 
         var response = controller.updateRuntimeModelConfig(request);
 
@@ -45,9 +46,11 @@ class RuntimeModelConfigControllerTest {
         assertEquals("minimax", response.get("provider"));
         assertEquals("MiniMax-M2.7", response.get("model"));
         assertEquals(List.of("MiniMax-M2.7", "MiniMax-M2.5"), response.get("allowedModels"));
+        assertEquals(true, response.get("warmupEnabled"));
         assertEquals(true, response.get("apiKeyConfigured"));
         assertFalse(response.containsKey("apiKey"));
         assertTrue(properties.resolveApiKeys().contains("runtime-secret"));
+        assertTrue(properties.isWarmupEnabled());
     }
 
     private RuntimeModelConfigController controller(AiAssistantProperties properties) {

@@ -293,8 +293,7 @@ class AiAssistantAutoConfigurationTest {
     void starterOnlyDoesNotRegisterOpenApiWhenPropertyIsEnabled() {
         contextRunner
                 .withPropertyValues(
-                        "ai-assistant.api-key=sk-test-openapi",
-                        "ai-assistant.openapi.enabled=true")
+                        "ai-assistant.api-key=sk-test-openapi", "ai-assistant.openapi.enabled=true")
                 .run(context -> assertThat(context).doesNotHaveBean(OpenAPI.class));
     }
 

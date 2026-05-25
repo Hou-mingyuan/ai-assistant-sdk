@@ -79,6 +79,9 @@ public class RuntimeModelConfigService {
         } else if (hasText(request.getAllowedModelsText())) {
             properties.setAllowedModels(parseModels(request.getAllowedModelsText()));
         }
+        if (request.getWarmupEnabled() != null) {
+            properties.setWarmupEnabled(request.getWarmupEnabled());
+        }
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
@@ -178,6 +181,10 @@ public class RuntimeModelConfigService {
             request.setBaseUrl(persisted.getProperty("baseUrl"));
             request.setModel(persisted.getProperty("model"));
             request.setAllowedModelsText(persisted.getProperty("allowedModels"));
+            String warmupEnabled = persisted.getProperty("warmupEnabled");
+            if (hasText(warmupEnabled)) {
+                request.setWarmupEnabled(Boolean.parseBoolean(warmupEnabled));
+            }
             request.setMinimaxVlmBaseUrl(persisted.getProperty("minimaxVlmBaseUrl"));
             request.setWebSearchProvider(persisted.getProperty("webSearchProvider"));
             request.setWebSearchAllowedDomains(persisted.getProperty("webSearchAllowedDomains"));
@@ -210,6 +217,9 @@ public class RuntimeModelConfigService {
         if (hasText(request.getAllowedModelsText())) {
             properties.setAllowedModels(parseModels(request.getAllowedModelsText()));
         }
+        if (request.getWarmupEnabled() != null) {
+            properties.setWarmupEnabled(request.getWarmupEnabled());
+        }
         if (hasText(request.getMinimaxVlmBaseUrl())) {
             properties.setMinimaxVlmBaseUrl(request.getMinimaxVlmBaseUrl().trim());
         }
@@ -240,6 +250,7 @@ public class RuntimeModelConfigService {
         put(persisted, "baseUrl", snapshot.baseUrl);
         put(persisted, "model", snapshot.model);
         put(persisted, "allowedModels", String.join(",", snapshot.allowedModels));
+        put(persisted, "warmupEnabled", String.valueOf(snapshot.warmupEnabled));
         put(persisted, "minimaxVlmBaseUrl", snapshot.minimaxVlmBaseUrl);
         put(persisted, "webSearchProvider", snapshot.webSearchProvider);
         put(persisted, "webSearchMaxResults", String.valueOf(snapshot.webSearchMaxResults));
@@ -305,7 +316,8 @@ public class RuntimeModelConfigService {
         }
         String secret = runtimeConfigSecret();
         if (!hasText(secret)) {
-            log.info("Encrypted runtime web search API key ignored because no runtime config secret is set");
+            log.info(
+                    "Encrypted runtime web search API key ignored because no runtime config secret is set");
             return;
         }
         try {
@@ -384,6 +396,7 @@ public class RuntimeModelConfigService {
         private String model;
         private List<String> allowedModels;
         private String allowedModelsText;
+        private Boolean warmupEnabled;
         private String minimaxVlmBaseUrl;
         private String webSearchProvider;
         private String webSearchApiKey;
@@ -437,6 +450,14 @@ public class RuntimeModelConfigService {
 
         public void setAllowedModelsText(String allowedModelsText) {
             this.allowedModelsText = allowedModelsText;
+        }
+
+        public Boolean getWarmupEnabled() {
+            return warmupEnabled;
+        }
+
+        public void setWarmupEnabled(Boolean warmupEnabled) {
+            this.warmupEnabled = warmupEnabled;
         }
 
         public String getMinimaxVlmBaseUrl() {
@@ -493,6 +514,7 @@ public class RuntimeModelConfigService {
         private String baseUrl;
         private String model;
         private List<String> allowedModels;
+        private boolean warmupEnabled;
         private boolean apiKeyConfigured;
         private String minimaxVlmBaseUrl;
         private String webSearchProvider;
@@ -507,6 +529,7 @@ public class RuntimeModelConfigService {
             s.baseUrl = properties.resolveBaseUrl();
             s.model = properties.resolveModel();
             s.allowedModels = properties.listModelsForClient();
+            s.warmupEnabled = properties.isWarmupEnabled();
             s.apiKeyConfigured = !properties.resolveApiKeys().isEmpty();
             s.minimaxVlmBaseUrl = properties.resolveMinimaxVlmBaseUrl();
             s.webSearchProvider = properties.getUrlFetch().getWebSearchProvider();
@@ -524,6 +547,7 @@ public class RuntimeModelConfigService {
             out.put("baseUrl", baseUrl);
             out.put("model", model);
             out.put("allowedModels", allowedModels);
+            out.put("warmupEnabled", warmupEnabled);
             out.put("apiKeyConfigured", apiKeyConfigured);
             out.put("minimaxVlmBaseUrl", minimaxVlmBaseUrl);
             out.put("webSearchProvider", webSearchProvider);

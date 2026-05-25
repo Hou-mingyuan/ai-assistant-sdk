@@ -43,11 +43,7 @@ class LlmWarmupRunnerTest {
         properties.setModel("MiniMax-M2.7");
         properties.setApiKey("sk-test");
         LlmService llmService = Mockito.mock(LlmService.class);
-        when(llmService.chat(
-                        LlmWarmupRunner.WARMUP_PROMPT,
-                        null,
-                        null,
-                        "MiniMax-M2.7"))
+        when(llmService.chat(LlmWarmupRunner.WARMUP_PROMPT, null, null, "MiniMax-M2.7"))
                 .thenThrow(new RuntimeException("upstream unavailable"));
 
         new LlmWarmupRunner(properties, llmService).warmupOnce();

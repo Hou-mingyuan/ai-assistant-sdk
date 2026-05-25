@@ -101,6 +101,10 @@
             <dt>{{ t.modelLabel }}</dt>
             <dd>{{ modelStatusText }}</dd>
           </div>
+          <div v-if="modelHealthText">
+            <dt>Model health</dt>
+            <dd>{{ modelHealthText }}</dd>
+          </div>
           <div>
             <dt>{{ t.webSearchLabel }}</dt>
             <dd>{{ webSearchDiagnosticsText }}</dd>
@@ -115,6 +119,33 @@
               <ol class="ai-diagnostics-timing-history">
                 <li v-for="item in responseTimingHistory" :key="item">{{ item }}</li>
               </ol>
+            </dd>
+          </div>
+          <div v-if="responseTimingSamples?.length">
+            <dt>Latency trend</dt>
+            <dd>
+              <div class="ai-diagnostics-latency-chart" aria-label="Recent response latency trend">
+                <div
+                  v-for="sample in responseTimingSamples"
+                  :key="sample.label"
+                  class="ai-diagnostics-latency-row"
+                >
+                  <span class="ai-diagnostics-latency-label">{{ sample.model || 'model' }}</span>
+                  <span class="ai-diagnostics-latency-bar">
+                    <span
+                      class="ai-diagnostics-latency-total"
+                      :style="{ width: timingPercent(sample.totalMs) }"
+                    ></span>
+                    <span
+                      class="ai-diagnostics-latency-ttft"
+                      :style="{ width: timingPercent(sample.ttftMs || 0) }"
+                    ></span>
+                  </span>
+                  <span class="ai-diagnostics-latency-value">{{
+                    formatTiming(sample.totalMs)
+                  }}</span>
+                </div>
+              </div>
             </dd>
           </div>
           <div v-if="webSearchStats && webSearchStats.attempts">
@@ -217,6 +248,13 @@ type RemedyKind =
   | 'failed'
   | 'empty';
 
+interface ResponseTimingSample {
+  label: string;
+  model?: string;
+  totalMs: number;
+  ttftMs?: number;
+}
+
 const props = defineProps<{
   uid: string;
   busy: boolean;
@@ -230,10 +268,12 @@ const props = defineProps<{
   selectedModel: string;
   modelStatusText: string;
   modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
+  modelHealthText?: string;
   webSearchDiagnosticsText: string;
   webSearchStats?: Record<string, number> | null;
   responseTimingSummary?: string;
   responseTimingHistory?: string[];
+  responseTimingSamples?: ResponseTimingSample[];
   modelSourceText: string;
   modelHintText: string;
   remedyKind: RemedyKind;
@@ -334,6 +374,18 @@ function statPercent(value: number | undefined, total: number | undefined) {
   if (!value || !total || total <= 0) return '0%';
   return `${Math.max(0, Math.min(100, Math.round((value / total) * 100)))}%`;
 }
+
+const maxTimingMs = computed(() =>
+  Math.max(1, ...((props.responseTimingSamples ?? []).map((sample) => sample.totalMs) || [1])),
+);
+
+function timingPercent(value: number) {
+  return `${Math.max(4, Math.min(100, Math.round((value / maxTimingMs.value) * 100)))}%`;
+}
+
+function formatTiming(value: number) {
+  return value < 1000 ? `${Math.round(value)}ms` : `${(value / 1000).toFixed(1)}s`;
+}
 </script>
 
 <style scoped>
@@ -353,5 +405,49 @@ function statPercent(value: number | undefined, total: number | undefined) {
 
 .ai-diagnostics-mini-chart-fallback {
   background: #f59e0b;
+}
+
+.ai-diagnostics-latency-chart {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.ai-diagnostics-latency-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) 96px auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-diagnostics-latency-label,
+.ai-diagnostics-latency-value {
+  font-size: 11px;
+  color: rgba(71, 85, 105, 0.9);
+}
+
+.ai-diagnostics-latency-bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.ai-diagnostics-latency-total,
+.ai-diagnostics-latency-ttft {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+}
+
+.ai-diagnostics-latency-total {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+.ai-diagnostics-latency-ttft {
+  background: rgba(34, 197, 94, 0.75);
 }
 </style>

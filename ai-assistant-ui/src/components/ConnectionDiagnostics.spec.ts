@@ -104,12 +104,18 @@ describe('ConnectionDiagnostics', () => {
     const wrapper = mountDialog({
       responseTimingSummary: 'MiniMax-M2.7 · TTFT 2.1s · total 8.9s',
       responseTimingHistory: ['MiniMax-M2 · TTFT 1.1s · total 2.9s'],
+      responseTimingSamples: [
+        { label: 'MiniMax-M2.7', model: 'MiniMax-M2.7', totalMs: 8900, ttftMs: 2100 },
+      ],
+      modelHealthText: 'Provider ready · TTFT slow · total slow',
     });
 
     expect(document.body.textContent).toContain('Last response timing');
     expect(document.body.textContent).toContain('MiniMax-M2.7 · TTFT 2.1s · total 8.9s');
     expect(document.body.textContent).toContain('Recent response timings');
     expect(document.body.textContent).toContain('MiniMax-M2 · TTFT 1.1s · total 2.9s');
+    expect(document.body.textContent).toContain('Provider ready · TTFT slow · total slow');
+    expect(document.body.querySelector('.ai-diagnostics-latency-chart')).toBeTruthy();
     wrapper.unmount();
   });
 });

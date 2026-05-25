@@ -207,6 +207,16 @@
                 "
               />
             </label>
+            <label class="ai-personalize-model-field ai-personalize-model-check">
+              <input
+                :checked="warmupEnabledInput"
+                type="checkbox"
+                @change="
+                  $emit('update:warmupEnabledInput', ($event.target as HTMLInputElement).checked)
+                "
+              />
+              <span>{{ t.providerConfigWarmup || 'Warm up default model after startup' }}</span>
+            </label>
             <button
               type="button"
               class="ai-personalize-done"
@@ -355,6 +365,7 @@ const props = defineProps<{
   providerApiKeyInput?: string;
   providerModelInput?: string;
   providerAllowedModelsInput?: string;
+  warmupEnabledInput?: boolean;
   webSearchProviderInput?: string;
   webSearchApiKeyInput?: string;
   webSearchMaxResultsInput?: string;
@@ -379,6 +390,7 @@ const emit = defineEmits<{
   (e: 'update:providerApiKeyInput', value: string): void;
   (e: 'update:providerModelInput', value: string): void;
   (e: 'update:providerAllowedModelsInput', value: string): void;
+  (e: 'update:warmupEnabledInput', value: boolean): void;
   (e: 'update:webSearchProviderInput', value: string): void;
   (e: 'update:webSearchApiKeyInput', value: string): void;
   (e: 'update:webSearchMaxResultsInput', value: string): void;

@@ -176,7 +176,8 @@ public class UrlFetchService {
     private final HttpClient httpClient;
     private final SsrfPolicy ssrfPolicy;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, SearchCacheEntry> searchCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, SearchCacheEntry> searchCache =
+            new ConcurrentHashMap<>();
     private final AtomicLong webSearchAttempts = new AtomicLong();
     private final AtomicLong webSearchSuccesses = new AtomicLong();
     private final AtomicLong webSearchFallbacks = new AtomicLong();
@@ -429,7 +430,8 @@ public class UrlFetchService {
                     Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
             List<SearchHit> hits = parseDuckDuckGoResults(html, maxResults);
             if (hits.isEmpty()) {
-                return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider, "no_results");
+                return WebSearchResult.emptyAttempt(
+                        provider, fallbackFromStableProvider, "no_results");
             }
             StringBuilder sb = newSearchMarkdown(provider, query);
             for (int i = 0; i < hits.size(); i++) {
@@ -541,7 +543,8 @@ public class UrlFetchService {
                 sb.append("   质量：").append(quality.label()).append('\n');
                 if (hasText(publishedDate)) sb.append("   时间: ").append(publishedDate).append('\n');
                 if (hasText(content)) sb.append("   摘要: ").append(content).append('\n');
-                sources.add(new SearchSource(title, url, content, quality.score(), quality.label()));
+                sources.add(
+                        new SearchSource(title, url, content, quality.score(), quality.label()));
                 if (index > maxResults) break;
             }
             int resultCount = index - 1;
@@ -585,7 +588,10 @@ public class UrlFetchService {
             if (url.isBlank() || title.isBlank()) continue;
             if (!seenUrls.add(canonicalSearchSourceKey(url))) continue;
             if (!isSearchSourceDomainAllowed(url)) continue;
-            String snippet = hits.size() < snippets.size() ? safeSearchSnippet(snippets.get(hits.size())) : "";
+            String snippet =
+                    hits.size() < snippets.size()
+                            ? safeSearchSnippet(snippets.get(hits.size()))
+                            : "";
             SearchQuality quality = scoreSearchSource(title, url, snippet);
             hits.add(new SearchHit(title, url, snippet, quality.score(), quality.label()));
         }
@@ -637,10 +643,14 @@ public class UrlFetchService {
                         || hasText(properties.getUrlFetch().getWebSearchApiKey());
         if (!configured) {
             return Map.of(
-                    "provider", normalizedProvider,
-                    "configured", false,
-                    "status", "missing_key",
-                    "resultCount", 0);
+                    "provider",
+                    normalizedProvider,
+                    "configured",
+                    false,
+                    "status",
+                    "missing_key",
+                    "resultCount",
+                    0);
         }
         WebSearchResult result = searchWeb("AI assistant connectivity check");
         String status =
@@ -648,11 +658,16 @@ public class UrlFetchService {
                         ? "ok"
                         : hasText(result.failureReason()) ? result.failureReason() : "no_results";
         return Map.of(
-                "provider", normalizedProvider,
-                "configured", true,
-                "status", status,
-                "resultCount", result.resultCount(),
-                "durationMs", Math.max(0, result.durationMs()));
+                "provider",
+                normalizedProvider,
+                "configured",
+                true,
+                "status",
+                status,
+                "resultCount",
+                result.resultCount(),
+                "durationMs",
+                Math.max(0, result.durationMs()));
     }
 
     private void recordWebSearchStats(WebSearchResult result) {
@@ -739,11 +754,13 @@ public class UrlFetchService {
         if (host.isBlank()) {
             return false;
         }
-        List<String> blocked = parseDomainList(properties.getUrlFetch().getWebSearchBlockedDomains());
+        List<String> blocked =
+                parseDomainList(properties.getUrlFetch().getWebSearchBlockedDomains());
         if (blocked.stream().anyMatch(host::endsWith)) {
             return false;
         }
-        List<String> allowed = parseDomainList(properties.getUrlFetch().getWebSearchAllowedDomains());
+        List<String> allowed =
+                parseDomainList(properties.getUrlFetch().getWebSearchAllowedDomains());
         return allowed.isEmpty() || allowed.stream().anyMatch(host::endsWith);
     }
 
@@ -1316,7 +1333,8 @@ public class UrlFetchService {
         }
 
         public static WebSearchResult empty() {
-            return new WebSearchResult("", "", false, 0, null, List.of(), List.of(), "", -1, -1, -1);
+            return new WebSearchResult(
+                    "", "", false, 0, null, List.of(), List.of(), "", -1, -1, -1);
         }
 
         public static WebSearchResult emptyAttempt(String provider, boolean fallback) {
@@ -1326,7 +1344,17 @@ public class UrlFetchService {
         public static WebSearchResult emptyAttempt(
                 String provider, boolean fallback, String failureReason) {
             return new WebSearchResult(
-                    "", provider, fallback, 0, Instant.now(), List.of(), List.of(), failureReason, -1, -1, -1);
+                    "",
+                    provider,
+                    fallback,
+                    0,
+                    Instant.now(),
+                    List.of(),
+                    List.of(),
+                    failureReason,
+                    -1,
+                    -1,
+                    -1);
         }
 
         public WebSearchResult(
@@ -1347,7 +1375,18 @@ public class UrlFetchService {
                 Instant searchedAt,
                 List<String> sourceUrls,
                 List<SearchSource> sources) {
-            this(markdown, provider, fallback, resultCount, searchedAt, sourceUrls, sources, "", -1, -1, -1);
+            this(
+                    markdown,
+                    provider,
+                    fallback,
+                    resultCount,
+                    searchedAt,
+                    sourceUrls,
+                    sources,
+                    "",
+                    -1,
+                    -1,
+                    -1);
         }
 
         public WebSearchResult withTimings(

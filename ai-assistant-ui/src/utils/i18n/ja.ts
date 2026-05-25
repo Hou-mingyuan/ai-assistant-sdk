@@ -344,6 +344,7 @@ export const ja: I18nMessages = {
   providerConfigDefaultModelPlaceholder: 'MiniMax-M2.5',
   providerConfigAllowedModels: '許可モデル一覧',
   providerConfigAllowedModelsPlaceholder: 'MiniMax-M2.5, MiniMax-M2.7',
+  providerConfigWarmup: '起動後にデフォルトモデルをウォームアップ',
   providerConfigSaveAndRefresh: 'モデル設定を保存して一覧を更新',
   kbDropFabHint: 'ドロップして知識ベースに追加',
   kbDropIngested: '{count} 件のファイルを「{name}」に追加しました',
