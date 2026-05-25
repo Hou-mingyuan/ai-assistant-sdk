@@ -11,6 +11,7 @@ import {
   type RuntimeModelConfigResult,
 } from '../utils/api';
 import { modelListStatusFromError, type ModelListStatus } from './useConnectionDiagnosticsState';
+import { refreshWebSearchDiagnostics as refreshWebSearchDiagnosticsRequest } from './useDiagnosticsWebSearch';
 
 interface DiagnosticsRequestApi {
   fetchModels: typeof fetchModels;
@@ -124,29 +125,12 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
   }
 
   async function refreshWebSearchDiagnostics() {
-    opts.webSearchDiagnosticsText.value = '—';
-    if (!opts.options.baseUrl) return;
-    try {
-      const health = await api.fetchHealth(opts.options.baseUrl, opts.options.accessToken, true);
-      if (!health.success) return;
-      const provider = health.webSearchProvider || 'duckduckgo';
-      const configured = health.webSearchStableProviderConfigured ? 'configured' : 'fallback';
-      const max = health.webSearchMaxResults ?? 5;
-      const stats = health.webSearchStats;
-      if (opts.webSearchStats) opts.webSearchStats.value = stats ?? null;
-      const statText = stats?.attempts
-        ? ` · ${stats.successes ?? 0}/${stats.attempts} ok · ${stats.averageDurationMs ?? 0}ms avg`
-        : '';
-      const probeText =
-        typeof health.webSearchProbe === 'string'
-          ? ` · probe ${health.webSearchProbe}`
-          : health.webSearchProbe?.status
-            ? ` · probe ${health.webSearchProbe.status}`
-            : '';
-      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}${statText}${probeText}`;
-    } catch {
-      opts.webSearchDiagnosticsText.value = 'unavailable';
-    }
+    await refreshWebSearchDiagnosticsRequest({
+      options: opts.options,
+      webSearchDiagnosticsText: opts.webSearchDiagnosticsText,
+      webSearchStats: opts.webSearchStats,
+      fetchHealth: api.fetchHealth,
+    });
   }
 
   async function runModelDiagnostics() {
