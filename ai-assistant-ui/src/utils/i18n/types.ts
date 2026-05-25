@@ -351,6 +351,7 @@ export interface I18nMessages {
   streamStageConnecting?: string;
   streamStageWaitingFirstToken?: string;
   streamStageGenerating?: string;
+  streamStageSearchingWeb?: string;
   /** Assistant response metadata labels. */
   responseMetaEffectiveModel?: string;
   responseMetaVision?: string;
@@ -365,6 +366,7 @@ export interface I18nMessages {
   responseMetaWebSearchResult?: string;
   responseMetaWebSearchResults?: string;
   responseMetaWebSearchSource?: string;
+  responseMetaWebSearchReferences?: string;
   /** Labels for the collapsible "more details" toggle that hides secondary meta pills by default. */
   responseMetaMoreLabel?: string;
   responseMetaHideLabel?: string;

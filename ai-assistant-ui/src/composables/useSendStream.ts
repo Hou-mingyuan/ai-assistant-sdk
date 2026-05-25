@@ -661,6 +661,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       meta: {
         model: requestModel,
         requestedModel: requestModel,
+        webSearchEnabled: payload.webSearch === true ? true : undefined,
       },
     };
     deps.messages.value.push(assistantMsg);

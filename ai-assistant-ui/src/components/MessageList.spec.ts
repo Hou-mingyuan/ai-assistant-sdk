@@ -221,6 +221,51 @@ describe('MessageList streaming stages', () => {
     expect(wrapper.findAll('.ai-bubble')).toHaveLength(0);
     expect(wrapper.findAll('.ai-stream-progress')).toHaveLength(0);
   });
+
+  it('shows web-search stage while a web search request is waiting for content', () => {
+    const wrapper = mountList(
+      [
+        {
+          role: 'assistant',
+          content: '',
+          meta: {
+            webSearchEnabled: true,
+          },
+        },
+      ],
+      {
+        loading: true,
+        isActiveStreaming: () => true,
+        streamStartedAt: 1000,
+        streamingNowMs: 1400,
+      },
+    );
+
+    expect(wrapper.find('.ai-thinking-text').text()).toContain('Searching web');
+  });
+});
+
+describe('MessageList web search sources', () => {
+  it('renders source links directly under completed assistant replies', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer',
+        meta: {
+          webSearchEnabled: true,
+          webSearchSourceUrls: ['https://example.com/a', 'https://example.com/b'],
+        },
+      },
+    ]);
+
+    const sources = wrapper.find('.ai-web-search-sources');
+    expect(sources.exists()).toBe(true);
+    expect(sources.text()).toContain('References');
+    expect(sources.findAll('a').map((link) => link.attributes('href'))).toEqual([
+      'https://example.com/a',
+      'https://example.com/b',
+    ]);
+  });
 });
 
 describe('MessageList reading preview', () => {

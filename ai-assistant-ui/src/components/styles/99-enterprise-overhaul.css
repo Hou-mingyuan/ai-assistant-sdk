@@ -790,6 +790,30 @@
   gap: 5px;
 }
 
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-web-search-sources {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0 0;
+  color: #7b85a0;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-web-search-sources a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(91, 108, 255, 0.08);
+  color: #5b6cff;
+  text-decoration: none;
+}
+
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-meta-dot {
   width: 6px;
   height: 6px;

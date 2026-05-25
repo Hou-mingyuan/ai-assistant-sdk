@@ -261,6 +261,24 @@
           "
         ></div>
         <!-- eslint-enable vue/no-v-html -->
+        <div
+          v-if="msg.role === 'assistant' && webSearchSourceUrls(msg.meta).length > 0"
+          class="ai-web-search-sources"
+        >
+          <span class="ai-web-search-sources-label">
+            {{ t.responseMetaWebSearchReferences || 'References' }}
+          </span>
+          <a
+            v-for="(url, sourceIdx) in webSearchSourceUrls(msg.meta)"
+            :key="`${displayOffset + renderedStart + idx}-inline-source-${sourceIdx}`"
+            :href="url"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click.stop
+          >
+            {{ sourceIdx + 1 }}
+          </a>
+        </div>
       </template>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
@@ -665,6 +683,9 @@ function readingPreviewLines(content: string): string[] {
 
 function streamStageText(globalIdx: number, msg: Message) {
   if (!props.isActiveStreaming(globalIdx, msg)) return props.t.replying;
+  if (msg.meta?.webSearchEnabled && !props.hasVisibleContent(msg.content)) {
+    return props.t.streamStageSearchingWeb || 'Searching web…';
+  }
   if (props.firstTokenAt != null || props.hasVisibleContent(msg.content)) {
     return props.t.streamStageGenerating || props.t.replying;
   }
