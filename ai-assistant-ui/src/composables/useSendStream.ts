@@ -218,6 +218,8 @@ export interface UseSendStreamDeps {
   selectedChatModel: Ref<string>;
   /** Allowed-model whitelist; used to validate `selectedChatModel`. */
   modelChoices: Ref<string[]>;
+  /** Prompt-level deep-thinking mode. */
+  deepThinkEnabled?: Ref<boolean>;
   /** Optional server-provided model capability map keyed by model id. */
   modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
@@ -486,7 +488,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
     if (deps.mode.value !== 'chat') return;
     const memFrag = deps.memoryPromptFragment?.value ?? '';
     const sp = deps.chatSystemPrompt.value.trim();
-    const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
+    const deepThinkPrompt = deps.deepThinkEnabled?.value
+      ? '用户已开启深度思考：回答前先梳理关键约束，必要时给出更审慎的推理和权衡；如果问题很简单，保持简洁。'
+      : '';
+    const combinedSp = [memFrag, sp, deepThinkPrompt].filter(Boolean).join('\n');
     if (combinedSp) payload.systemPrompt = combinedSp;
     if (deps.messages.value.length > 1 && !isLowContextPrompt(text)) {
       payload.history = deps.messages.value

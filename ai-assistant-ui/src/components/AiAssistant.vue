@@ -345,8 +345,8 @@
           @send="send"
           @change-mode="onChangeMode"
           @toggle-page-context="togglePageContext"
-          @toggle-deep-think="(v) => (deepThinkEnabled = v)"
-          @toggle-web-search="(v) => (webSearchEnabled = v)"
+          @toggle-deep-think="setDeepThinkEnabled"
+          @toggle-web-search="setWebSearchEnabled"
           @send-blocked-action="handleSendBlockedAction"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
@@ -919,6 +919,20 @@ const input = ref('');
  */
 const deepThinkEnabled = ref(false);
 const webSearchEnabled = ref(false);
+
+function setDeepThinkEnabled(value: boolean) {
+  deepThinkEnabled.value = value;
+  setExportToast(value ? '深度思考已开启：回答会更审慎但可能更慢' : '深度思考已关闭', 1800);
+}
+
+function setWebSearchEnabled(value: boolean) {
+  if (value) {
+    webSearchEnabled.value = false;
+    setExportToast('联网搜索暂未接入后端检索，已保持关闭', 2600);
+    return;
+  }
+  webSearchEnabled.value = false;
+}
 
 /* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
  * 全部抽到 useEmptyStateContent composable（4 语言 i18n 静态数据 ~330 行）。
@@ -2619,6 +2633,7 @@ const {
   chatSystemPrompt,
   selectedChatModel,
   modelChoices,
+  deepThinkEnabled,
   modelCapabilities,
   pendingImageDataList,
   pendingImageThumbs,
