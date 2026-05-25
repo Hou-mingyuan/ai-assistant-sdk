@@ -241,6 +241,33 @@ class UrlFetchServiceWebSearchTest {
         assertThat(result.markdown()).doesNotContain("TAIL_SHOULD_NOT_APPEAR");
     }
 
+    @Test
+    void searchWebCapsTavilyTimeoutToKeepFallbackResponsive() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueString(
+                                200,
+                                """
+                                {
+                                  "results": [
+                                    {
+                                      "title": "Stable result",
+                                      "url": "https://example.com/stable",
+                                      "content": "Fresh indexed summary"
+                                    }
+                                  ]
+                                }
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("tavily");
+        properties.getUrlFetch().setWebSearchApiKey("tvly-test");
+        properties.getUrlFetch().setTimeoutSeconds(15);
+
+        new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("AI news");
+
+        assertThat(httpClient.requests().get(0).timeout()).contains(Duration.ofSeconds(8));
+    }
+
     private static final class RecordingHttpClient extends HttpClient {
         private final Queue<ResponseSpec> responses = new ArrayDeque<>();
         private final List<HttpRequest> requests = new ArrayList<>();

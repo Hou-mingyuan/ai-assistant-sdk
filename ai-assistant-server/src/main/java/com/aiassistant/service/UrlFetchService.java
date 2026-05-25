@@ -166,6 +166,7 @@ public class UrlFetchService {
 
     private static final int MAX_REDIRECTS = 5;
     private static final int WEB_SEARCH_QUERY_MAX_CHARS = 180;
+    private static final int WEB_SEARCH_STABLE_PROVIDER_TIMEOUT_SECONDS = 8;
     private static final ObjectMapper SEARCH_MAPPER = new ObjectMapper();
     private static final ExecutorService URL_FETCH_POOL =
             Executors.newVirtualThreadPerTaskExecutor();
@@ -477,7 +478,12 @@ public class UrlFetchService {
                     HttpRequest.newBuilder(endpointUri)
                             .timeout(
                                     Duration.ofSeconds(
-                                            Math.max(1, properties.getUrlFetchTimeoutSeconds())))
+                                            Math.min(
+                                                    WEB_SEARCH_STABLE_PROVIDER_TIMEOUT_SECONDS,
+                                                    Math.max(
+                                                            1,
+                                                            properties
+                                                                    .getUrlFetchTimeoutSeconds()))))
                             .header("Content-Type", "application/json")
                             .header("User-Agent", "AiAssistantWebSearch/1.0")
                             .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))

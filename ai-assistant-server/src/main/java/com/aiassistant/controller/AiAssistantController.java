@@ -297,6 +297,14 @@ public class AiAssistantController {
         result.put("status", "running");
         result.put("provider", assistantProperties.getProvider());
         result.put("model", assistantProperties.resolveModel());
+        String webSearchProvider = assistantProperties.getUrlFetch().getWebSearchProvider();
+        result.put("webSearchProvider", webSearchProvider);
+        result.put("webSearchMaxResults", assistantProperties.getUrlFetch().getWebSearchMaxResults());
+        result.put(
+                "webSearchStableProviderConfigured",
+                "tavily".equalsIgnoreCase(webSearchProvider)
+                        && assistantProperties.getUrlFetch().getWebSearchApiKey() != null
+                        && !assistantProperties.getUrlFetch().getWebSearchApiKey().isBlank());
         if (deep) {
             long now = System.currentTimeMillis();
             long prev = lastDeepHealthMs.get();

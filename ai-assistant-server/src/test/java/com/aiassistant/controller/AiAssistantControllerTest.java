@@ -368,6 +368,19 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void health_reportsWebSearchConfiguration() {
+        props.getUrlFetch().setWebSearchProvider("tavily");
+        props.getUrlFetch().setWebSearchApiKey("tvly-test");
+        props.getUrlFetch().setWebSearchMaxResults(7);
+
+        var result = controller.health(false);
+
+        assertEquals("tavily", result.get("webSearchProvider"));
+        assertEquals(true, result.get("webSearchStableProviderConfigured"));
+        assertEquals(7, result.get("webSearchMaxResults"));
+    }
+
+    @Test
     void health_deep_checksLlm() {
         when(llmService.chat("ping")).thenReturn("pong");
         var result = controller.health(true);
