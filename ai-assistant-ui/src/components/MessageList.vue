@@ -323,6 +323,14 @@
             <span v-if="source.qualityLabel" class="ai-web-search-preview-quality">
               {{ source.qualityLabel }}
             </span>
+            <button
+              v-if="source.url"
+              type="button"
+              class="ai-web-search-preview-copy"
+              @click.prevent.stop="copySourceCitation(sourceIdx, source.url)"
+            >
+              Copy [{{ sourceIdx + 1 }}]
+            </button>
             <span v-if="source.snippet" class="ai-web-search-preview-snippet">
               {{ source.snippet }}
             </span>
@@ -706,6 +714,11 @@ function webSearchCitationWarning(msg: Message) {
     return 'Citation check: referenced source number is unavailable.';
   }
   return '';
+}
+
+function copySourceCitation(sourceIdx: number, url?: string) {
+  if (!url || !navigator?.clipboard?.writeText) return;
+  void navigator.clipboard.writeText(`[${sourceIdx + 1}] ${url}`);
 }
 
 function hasSecondaryMeta(meta: Message['meta']): boolean {

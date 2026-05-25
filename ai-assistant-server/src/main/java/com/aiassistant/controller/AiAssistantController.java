@@ -352,6 +352,7 @@ public class AiAssistantController {
             long prev = lastDeepHealthMs.get();
             if (now - prev < 60_000) {
                 result.put("llmReachable", "rate-limited (1 deep check per minute)");
+                result.put("webSearchProbe", "rate-limited (1 deep check per minute)");
             } else if (lastDeepHealthMs.compareAndSet(prev, now)) {
                 boolean llmReachable = false;
                 try {
@@ -364,6 +365,7 @@ public class AiAssistantController {
                 result.put("webSearchProbe", urlFetchService.probeWebSearchProvider());
             } else {
                 result.put("llmReachable", "rate-limited (1 deep check per minute)");
+                result.put("webSearchProbe", "rate-limited (1 deep check per minute)");
             }
         }
         return result;

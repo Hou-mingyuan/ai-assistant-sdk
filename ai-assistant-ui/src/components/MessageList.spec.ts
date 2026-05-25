@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import MessageList from './MessageList.vue';
 import { getMessages } from '../utils/i18n';
@@ -291,6 +291,32 @@ describe('MessageList web search sources', () => {
     expect(cards.text()).toContain('Official docs');
     expect(cards.text()).toContain('docs');
     expect(cards.find('a').attributes('href')).toBe('https://example.com/a');
+  });
+
+  it('copies a numbered source citation from preview cards', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer [1]',
+        meta: {
+          webSearchEnabled: true,
+          webSearchSourcePreviews: [
+            {
+              title: 'Official docs',
+              url: 'https://example.com/a',
+              snippet: 'Preview summary',
+              qualityLabel: 'docs',
+            },
+          ],
+        },
+      },
+    ]);
+
+    await wrapper.find('.ai-web-search-preview-copy').trigger('click');
+
+    expect(writeText).toHaveBeenCalledWith('[1] https://example.com/a');
   });
 
   it('renders source preview cards before the first streamed token arrives', () => {

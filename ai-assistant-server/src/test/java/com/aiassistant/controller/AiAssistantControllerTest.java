@@ -458,6 +458,16 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void health_deepReportsWebSearchProbeRateLimit() {
+        when(llmService.chat("ping")).thenReturn("pong");
+        controller.health(true);
+
+        var result = controller.health(true);
+
+        assertEquals("rate-limited (1 deep check per minute)", result.get("webSearchProbe"));
+    }
+
+    @Test
     void models_returnsModelsList() {
         props.setAllowedModels(java.util.List.of("gpt-4", "gpt-3.5-turbo"));
         var response = controller.listModels();
