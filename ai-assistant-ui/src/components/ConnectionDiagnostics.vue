@@ -105,6 +105,29 @@
             <dt>{{ t.webSearchLabel }}</dt>
             <dd>{{ webSearchDiagnosticsText }}</dd>
           </div>
+          <div v-if="webSearchStats && webSearchStats.attempts">
+            <dt>Web search stats</dt>
+            <dd>
+              <div
+                class="ai-diagnostics-mini-chart"
+                aria-label="Web search success and fallback rates"
+              >
+                <span
+                  class="ai-diagnostics-mini-chart-ok"
+                  :style="{ width: statPercent(webSearchStats.successes, webSearchStats.attempts) }"
+                ></span>
+                <span
+                  class="ai-diagnostics-mini-chart-fallback"
+                  :style="{ width: statPercent(webSearchStats.fallbacks, webSearchStats.attempts) }"
+                ></span>
+              </div>
+              <span>
+                {{ webSearchStats.successes || 0 }}/{{ webSearchStats.attempts }} ok ·
+                {{ webSearchStats.fallbacks || 0 }} fallback ·
+                {{ webSearchStats.averageDurationMs || 0 }}ms avg
+              </span>
+            </dd>
+          </div>
           <div>
             <dt>{{ t.diagnosticsAvailableModels }}</dt>
             <dd>{{ modelCount }}</dd>
@@ -196,6 +219,7 @@ const props = defineProps<{
   modelStatusText: string;
   modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
   webSearchDiagnosticsText: string;
+  webSearchStats?: Record<string, number> | null;
   modelSourceText: string;
   modelHintText: string;
   remedyKind: RemedyKind;
@@ -291,4 +315,29 @@ function runSecondaryRemedy() {
   }
   emit('refresh');
 }
+
+function statPercent(value: number | undefined, total: number | undefined) {
+  if (!value || !total || total <= 0) return '0%';
+  return `${Math.max(0, Math.min(100, Math.round((value / total) * 100)))}%`;
+}
 </script>
+
+<style scoped>
+.ai-diagnostics-mini-chart {
+  display: flex;
+  width: 120px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  margin-bottom: 4px;
+}
+
+.ai-diagnostics-mini-chart-ok {
+  background: #22c55e;
+}
+
+.ai-diagnostics-mini-chart-fallback {
+  background: #f59e0b;
+}
+</style>

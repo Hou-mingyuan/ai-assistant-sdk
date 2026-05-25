@@ -47,6 +47,7 @@ export interface UseDiagnosticsModelRequestsOptions {
   providerApiKeyInput: Ref<string>;
   webSearchApiKeyInput?: Ref<string>;
   webSearchDiagnosticsText: Ref<string>;
+  webSearchStats?: Ref<Record<string, number> | null>;
   applyRuntimeModelConfig: (config: RuntimeModelConfigResult) => void;
   buildRuntimeModelConfigPayload: () => RuntimeModelConfigPayload;
   applyDiscoveredModels: (models: string[]) => void;
@@ -132,6 +133,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
       const configured = health.webSearchStableProviderConfigured ? 'configured' : 'fallback';
       const max = health.webSearchMaxResults ?? 5;
       const stats = health.webSearchStats;
+      if (opts.webSearchStats) opts.webSearchStats.value = stats ?? null;
       const statText = stats?.attempts
         ? ` · ${stats.successes ?? 0}/${stats.attempts} ok · ${stats.averageDurationMs ?? 0}ms avg`
         : '';

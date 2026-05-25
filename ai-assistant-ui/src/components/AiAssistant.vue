@@ -605,6 +605,7 @@
       :model-status-text="modelStatusText"
       :model-status-kind="modelStatusKind"
       :web-search-diagnostics-text="webSearchDiagnosticsText"
+      :web-search-stats="webSearchStats"
       :model-source-text="modelSourceText"
       :model-hint-text="modelHintText"
       :remedy-kind="diagnosticsRemedyKind"
@@ -1136,6 +1137,7 @@ const {
   webSearchAllowedDomainsInput,
   webSearchBlockedDomainsInput,
   webSearchDiagnosticsText,
+  webSearchStats,
   modelListMessage,
   diagnosticsModelEndpoint,
   diagnosticsTokenText,

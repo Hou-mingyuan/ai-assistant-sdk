@@ -60,6 +60,8 @@ function mountDialog(overrides: Partial<Record<string, unknown>> = {}) {
       selectedModel: '',
       modelStatusText: 'Not configured',
       modelStatusKind: 'offline' as const,
+      webSearchDiagnosticsText: 'duckduckgo · fallback · 5',
+      webSearchStats: null,
       modelSourceText: 'No backend base URL',
       modelHintText: 'Configure backend first.',
       remedyKind: 'noBaseUrl' as const,

@@ -32,6 +32,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
   const modelListError = ref('');
   const modelListStatus = ref<ModelListStatus>('');
   const webSearchDiagnosticsText = ref('—');
+  const webSearchStats = ref<Record<string, number> | null>(null);
   const providerConfig = useRuntimeProviderConfigState();
   const {
     providerInput,
@@ -134,6 +135,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     providerApiKeyInput,
     webSearchApiKeyInput,
     webSearchDiagnosticsText,
+    webSearchStats,
     applyRuntimeModelConfig,
     buildRuntimeModelConfigPayload,
     applyDiscoveredModels,
@@ -197,6 +199,7 @@ export function useAssistantDiagnostics(opts: UseAssistantDiagnosticsOptions) {
     webSearchBlockedDomainsInput,
     modelListStatus,
     webSearchDiagnosticsText,
+    webSearchStats,
     modelListMessage,
     diagnosticsModelEndpoint,
     diagnosticsTokenText,
