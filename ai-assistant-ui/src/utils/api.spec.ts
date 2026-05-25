@@ -517,6 +517,10 @@ describe('streamChat', () => {
         'X-AI-Fallback': 'true',
         'X-AI-Vision-Input-Count': '1',
         'X-AI-Vision-Route': 'minimax-vlm',
+        'X-AI-Web-Search': 'true',
+        'X-AI-Web-Search-Provider': 'Tavily',
+        'X-AI-Web-Search-Fallback': 'false',
+        'X-AI-Web-Search-Result-Count': '2',
       }),
     );
 
@@ -539,6 +543,10 @@ describe('streamChat', () => {
       fallback: true,
       visionInputCount: 1,
       visionRoute: 'minimax-vlm',
+      webSearchEnabled: true,
+      webSearchProvider: 'Tavily',
+      webSearchFallback: false,
+      webSearchResultCount: 2,
     });
   });
 

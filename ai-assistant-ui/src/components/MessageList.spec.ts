@@ -88,6 +88,48 @@ describe('MessageList assistant metadata', () => {
     expect(meta.text()).toContain('Vision route minimax-vlm');
   });
 
+  it('renders web search provider and result count in response metadata', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer',
+        timestamp: Date.now(),
+        meta: {
+          webSearchEnabled: true,
+          webSearchProvider: 'Tavily',
+          webSearchFallback: false,
+          webSearchResultCount: 2,
+        },
+      },
+    ]);
+
+    const meta = wrapper.find('.ai-msg-meta');
+    expect(meta.text()).toContain('Web Tavily');
+    expect(meta.text()).toContain('2 results');
+    expect(meta.text()).not.toContain('Search fallback');
+  });
+
+  it('renders web search fallback state when provider degraded', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer',
+        timestamp: Date.now(),
+        meta: {
+          webSearchEnabled: true,
+          webSearchProvider: 'DuckDuckGo fallback',
+          webSearchFallback: true,
+          webSearchResultCount: 1,
+        },
+      },
+    ]);
+
+    const meta = wrapper.find('.ai-msg-meta');
+    expect(meta.text()).toContain('Web DuckDuckGo fallback');
+    expect(meta.text()).toContain('1 result');
+    expect(meta.text()).toContain('Search fallback');
+  });
+
   it('omits the details toggle when no secondary meta is present', () => {
     const wrapper = mountList([
       {

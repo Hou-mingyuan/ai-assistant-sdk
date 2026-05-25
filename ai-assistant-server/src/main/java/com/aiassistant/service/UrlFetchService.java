@@ -353,8 +353,12 @@ public class UrlFetchService {
      * chat continues normally.
      */
     public String searchWebAsMarkdown(String query) {
+        return searchWeb(query).markdown();
+    }
+
+    public WebSearchResult searchWeb(String query) {
         if (query == null || query.isBlank()) {
-            return "";
+            return WebSearchResult.empty();
         }
         String provider =
                 properties.getUrlFetch().getWebSearchProvider() == null
@@ -367,27 +371,26 @@ public class UrlFetchService {
         boolean stableProviderAttempted =
                 "tavily".equals(provider) && hasText(properties.getUrlFetch().getWebSearchApiKey());
         if (stableProviderAttempted) {
-            String tavily = searchTavilyAsMarkdown(query);
-            if (!tavily.isBlank()) return tavily;
+            WebSearchResult tavily = searchTavily(query);
+            if (tavily.hasResults()) return tavily;
         }
-        return searchDuckDuckGoAsMarkdown(query, stableProviderAttempted);
+        return searchDuckDuckGo(query, stableProviderAttempted);
     }
 
-    private String searchDuckDuckGoAsMarkdown(String query, boolean fallbackFromStableProvider) {
+    private WebSearchResult searchDuckDuckGo(String query, boolean fallbackFromStableProvider) {
         try {
             String encoded = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
             URI uri = URI.create("https://duckduckgo.com/html/?q=" + encoded);
             byte[] body = fetchBytes(uri);
-            if (body.length == 0) return "";
+            if (body.length == 0) return WebSearchResult.empty();
             String html = new String(body, sniffCharset(body, uri));
             int maxResults =
                     Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
             List<SearchHit> hits = parseDuckDuckGoResults(html, maxResults);
-            if (hits.isEmpty()) return "";
+            if (hits.isEmpty()) return WebSearchResult.empty();
+            String provider = fallbackFromStableProvider ? "DuckDuckGo fallback" : "DuckDuckGo";
             StringBuilder sb =
-                    newSearchMarkdown(
-                            fallbackFromStableProvider ? "DuckDuckGo fallback" : "DuckDuckGo",
-                            query);
+                    newSearchMarkdown(provider, query);
             for (int i = 0; i < hits.size(); i++) {
                 SearchHit hit = hits.get(i);
                 sb.append('\n')
@@ -402,14 +405,15 @@ public class UrlFetchService {
                     sb.append("   摘要: ").append(hit.snippet()).append('\n');
                 }
             }
-            return sb.toString();
+            return new WebSearchResult(
+                    sb.toString(), provider, fallbackFromStableProvider, hits.size(), Instant.now());
         } catch (Exception e) {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
-            return "";
+            return WebSearchResult.empty();
         }
     }
 
-    private String searchTavilyAsMarkdown(String query) {
+    private WebSearchResult searchTavily(String query) {
         try {
             String endpoint =
                     hasText(properties.getUrlFetch().getWebSearchEndpoint())
@@ -448,7 +452,7 @@ public class UrlFetchService {
             }
             JsonNode root = SEARCH_MAPPER.readTree(response.body());
             JsonNode results = root.path("results");
-            if (!results.isArray() || results.isEmpty()) return "";
+            if (!results.isArray() || results.isEmpty()) return WebSearchResult.empty();
             StringBuilder sb = newSearchMarkdown("Tavily", query);
             int index = 1;
             for (JsonNode item : results) {
@@ -463,10 +467,13 @@ public class UrlFetchService {
                 if (hasText(content)) sb.append("   摘要: ").append(content).append('\n');
                 if (index > maxResults) break;
             }
-            return index == 1 ? "" : sb.toString();
+            int resultCount = index - 1;
+            return resultCount == 0
+                    ? WebSearchResult.empty()
+                    : new WebSearchResult(sb.toString(), "Tavily", false, resultCount, Instant.now());
         } catch (Exception e) {
             log.debug("Tavily web search failed for query '{}': {}", query, e.getMessage());
-            return "";
+            return WebSearchResult.empty();
         }
     }
 
@@ -976,6 +983,17 @@ public class UrlFetchService {
     }
 
     private record SearchHit(String title, String url, String snippet) {}
+
+    public record WebSearchResult(
+            String markdown, String provider, boolean fallback, int resultCount, Instant searchedAt) {
+        public static WebSearchResult empty() {
+            return new WebSearchResult("", "", false, 0, null);
+        }
+
+        public boolean hasResults() {
+            return markdown != null && !markdown.isBlank() && resultCount > 0;
+        }
+    }
 
     private record CacheEntry(String text, Instant expires) {}
 }

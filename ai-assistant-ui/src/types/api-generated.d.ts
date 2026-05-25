@@ -1729,6 +1729,10 @@ export interface components {
             fallback?: boolean;
             visionInputCount?: number;
             visionRoute?: string;
+            webSearchEnabled?: boolean;
+            webSearchProvider?: string;
+            webSearchFallback?: boolean;
+            webSearchResultCount?: number;
         };
         ModelsListResponse: {
             success: boolean;

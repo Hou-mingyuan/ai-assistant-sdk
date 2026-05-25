@@ -78,6 +78,10 @@ export interface Message {
     fallback?: boolean;
     visionInputCount?: number;
     visionRoute?: string;
+    webSearchEnabled?: boolean;
+    webSearchProvider?: string;
+    webSearchFallback?: boolean;
+    webSearchResultCount?: number;
     elapsedMs?: number;
     ttftMs?: number;
     retried?: boolean;

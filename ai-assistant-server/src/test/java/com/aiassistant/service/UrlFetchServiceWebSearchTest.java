@@ -53,11 +53,13 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
         properties.getUrlFetch().setWebSearchMaxResults(3);
 
-        String markdown =
-                new UrlFetchService(properties, httpClient, uri -> {})
-                        .searchWebAsMarkdown("AI news");
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("AI news");
 
-        assertThat(markdown)
+        assertThat(result.provider()).isEqualTo("Tavily");
+        assertThat(result.fallback()).isFalse();
+        assertThat(result.resultCount()).isEqualTo(1);
+        assertThat(result.markdown())
                 .contains("# 联网搜索结果")
                 .contains("来源：Tavily")
                 .contains("检索时间：")
@@ -90,11 +92,13 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
 
-        String markdown =
-                new UrlFetchService(properties, httpClient, uri -> {})
-                        .searchWebAsMarkdown("current topic");
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("current topic");
 
-        assertThat(markdown)
+        assertThat(result.provider()).isEqualTo("DuckDuckGo fallback");
+        assertThat(result.fallback()).isTrue();
+        assertThat(result.resultCount()).isEqualTo(1);
+        assertThat(result.markdown())
                 .contains("来源：DuckDuckGo fallback")
                 .contains("查询：current topic")
                 .contains("Fallback result")
@@ -126,7 +130,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
         properties.getUrlFetch().setWebSearchEndpoint("http://blocked.search/search");
 
-        String markdown =
+        UrlFetchService.WebSearchResult result =
                 new UrlFetchService(
                                 properties,
                                 httpClient,
@@ -135,9 +139,12 @@ class UrlFetchServiceWebSearchTest {
                                         throw new IllegalArgumentException("blocked endpoint");
                                     }
                                 })
-                        .searchWebAsMarkdown("current topic");
+                        .searchWeb("current topic");
 
-        assertThat(markdown)
+        assertThat(result.provider()).isEqualTo("DuckDuckGo fallback");
+        assertThat(result.fallback()).isTrue();
+        assertThat(result.resultCount()).isEqualTo(1);
+        assertThat(result.markdown())
                 .contains("来源：DuckDuckGo fallback")
                 .contains("Safe fallback result")
                 .contains("https://fallback.example/safe")

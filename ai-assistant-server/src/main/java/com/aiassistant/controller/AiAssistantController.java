@@ -87,7 +87,8 @@ public class AiAssistantController {
                         .body(ChatResponse.fail("INPUT_TOO_LARGE", tooLarge));
             }
             String action = request.getAction() == null ? "chat" : request.getAction();
-            ChatResponse.RuntimeMeta meta = runtimeMeta(request, action);
+            EffectivePageContext pageContext = effectivePageContext(request, action);
+            ChatResponse.RuntimeMeta meta = runtimeMeta(request, action, pageContext.webSearch());
             String result =
                     switch (action) {
                         case "translate" ->
@@ -107,7 +108,7 @@ public class AiAssistantController {
                                         request.getModel(),
                                         request.resolveImageDataList(),
                                         request.getSessionId(),
-                                        effectivePageContext(request));
+                                        pageContext.value());
                     };
             usageStats.recordCall(action);
             return ResponseEntity.ok(ChatResponse.ok(result, meta));
@@ -152,7 +153,8 @@ public class AiAssistantController {
                     .body(Flux.just("[VALIDATION_ERROR] " + tooLarge));
         }
         String action = request.getAction() == null ? "chat" : request.getAction();
-        ChatResponse.RuntimeMeta meta = runtimeMeta(request, action);
+        EffectivePageContext pageContext = effectivePageContext(request, action);
+        ChatResponse.RuntimeMeta meta = runtimeMeta(request, action, pageContext.webSearch());
         usageStats.recordCall("stream_" + action);
         Flux<String> flux =
                 switch (action) {
@@ -173,7 +175,7 @@ public class AiAssistantController {
                                     request.getModel(),
                                     request.resolveImageDataList(),
                                     request.getSessionId(),
-                                    effectivePageContext(request));
+                                    pageContext.value());
                 };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -181,7 +183,8 @@ public class AiAssistantController {
                 .body(fluxWithFriendlyErrors(flux));
     }
 
-    private ChatResponse.RuntimeMeta runtimeMeta(ChatRequest request, String action) {
+    private ChatResponse.RuntimeMeta runtimeMeta(
+            ChatRequest request, String action, UrlFetchService.WebSearchResult webSearch) {
         ChatResponse.RuntimeMeta meta = new ChatResponse.RuntimeMeta();
         meta.setProvider(assistantProperties.getProvider());
         String requestedModel =
@@ -204,22 +207,33 @@ public class AiAssistantController {
                             ? "minimax-vlm"
                             : "openai-compatible-vision");
         }
+        if (webSearch != null && webSearch.hasResults()) {
+            meta.setWebSearchEnabled(true);
+            meta.setWebSearchProvider(webSearch.provider());
+            meta.setWebSearchFallback(webSearch.fallback());
+            meta.setWebSearchResultCount(webSearch.resultCount());
+        }
         return meta;
     }
 
-    private String effectivePageContext(ChatRequest request) {
+    private EffectivePageContext effectivePageContext(ChatRequest request, String action) {
         String pageContext = request.getPageContext();
-        if (!request.isWebSearch()) {
-            return pageContext;
+        if (!"chat".equals(action) || !request.isWebSearch()) {
+            return new EffectivePageContext(pageContext, null);
         }
-        String searchContext = urlFetchService.searchWebAsMarkdown(request.getText());
-        if (searchContext == null || searchContext.isBlank()) {
-            return pageContext;
+        UrlFetchService.WebSearchResult search = urlFetchService.searchWeb(request.getText());
+        if (search == null || !search.hasResults()) {
+            return new EffectivePageContext(pageContext, null);
         }
-        return java.util.stream.Stream.of(pageContext, searchContext)
+        String value =
+                java.util.stream.Stream.of(pageContext, search.markdown())
                 .filter(s -> s != null && !s.isBlank())
                 .collect(java.util.stream.Collectors.joining("\n\n"));
+        return new EffectivePageContext(value, search);
     }
+
+    private record EffectivePageContext(
+            String value, UrlFetchService.WebSearchResult webSearch) {}
 
     private HttpHeaders runtimeHeaders(ChatResponse.RuntimeMeta meta) {
         HttpHeaders headers = new HttpHeaders();
@@ -229,9 +243,17 @@ public class AiAssistantController {
         headers.add("X-AI-Fallback", String.valueOf(meta.isFallback()));
         headers.add("X-AI-Vision-Input-Count", String.valueOf(meta.getVisionInputCount()));
         addHeader(headers, "X-AI-Vision-Route", meta.getVisionRoute());
+        if (meta.isWebSearchEnabled()) {
+            headers.add("X-AI-Web-Search", "true");
+            addHeader(headers, "X-AI-Web-Search-Provider", meta.getWebSearchProvider());
+            headers.add("X-AI-Web-Search-Fallback", String.valueOf(meta.isWebSearchFallback()));
+            headers.add(
+                    "X-AI-Web-Search-Result-Count",
+                    String.valueOf(meta.getWebSearchResultCount()));
+        }
         headers.add(
                 HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route");
+                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count");
         return headers;
     }
 

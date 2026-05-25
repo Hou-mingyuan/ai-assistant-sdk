@@ -360,6 +360,10 @@ export interface I18nMessages {
   responseMetaElapsed?: string;
   responseMetaTtft?: string;
   responseMetaRetried?: string;
+  responseMetaWebSearch?: string;
+  responseMetaWebSearchFallback?: string;
+  responseMetaWebSearchResult?: string;
+  responseMetaWebSearchResults?: string;
   /** Labels for the collapsible "more details" toggle that hides secondary meta pills by default. */
   responseMetaMoreLabel?: string;
   responseMetaHideLabel?: string;

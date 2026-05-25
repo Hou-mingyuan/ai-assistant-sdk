@@ -96,6 +96,7 @@ function parseSseDataEvent(event: string): string | undefined {
 function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   if (!headers) return undefined;
   const visionInputCountRaw = headers.get('X-AI-Vision-Input-Count');
+  const webSearchResultCountRaw = headers.get('X-AI-Web-Search-Result-Count');
   const meta: ChatRuntimeMeta = {
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
@@ -103,6 +104,15 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
     fallback: headers.get('X-AI-Fallback') === 'true' ? true : undefined,
     visionInputCount: visionInputCountRaw ? Number(visionInputCountRaw) : undefined,
     visionRoute: headers.get('X-AI-Vision-Route') || undefined,
+    webSearchEnabled: headers.get('X-AI-Web-Search') === 'true' ? true : undefined,
+    webSearchProvider: headers.get('X-AI-Web-Search-Provider') || undefined,
+    webSearchFallback:
+      headers.get('X-AI-Web-Search-Fallback') === 'true'
+        ? true
+        : headers.get('X-AI-Web-Search-Fallback') === 'false'
+          ? false
+          : undefined,
+    webSearchResultCount: webSearchResultCountRaw ? Number(webSearchResultCountRaw) : undefined,
   };
   return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
 }

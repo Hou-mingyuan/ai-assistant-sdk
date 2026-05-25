@@ -83,6 +83,10 @@ public class ChatResponse {
         private boolean fallback;
         private int visionInputCount;
         private String visionRoute;
+        private boolean webSearchEnabled;
+        private String webSearchProvider;
+        private boolean webSearchFallback;
+        private int webSearchResultCount;
 
         public String getRequestedModel() {
             return requestedModel;
@@ -130,6 +134,38 @@ public class ChatResponse {
 
         public void setVisionRoute(String visionRoute) {
             this.visionRoute = visionRoute;
+        }
+
+        public boolean isWebSearchEnabled() {
+            return webSearchEnabled;
+        }
+
+        public void setWebSearchEnabled(boolean webSearchEnabled) {
+            this.webSearchEnabled = webSearchEnabled;
+        }
+
+        public String getWebSearchProvider() {
+            return webSearchProvider;
+        }
+
+        public void setWebSearchProvider(String webSearchProvider) {
+            this.webSearchProvider = webSearchProvider;
+        }
+
+        public boolean isWebSearchFallback() {
+            return webSearchFallback;
+        }
+
+        public void setWebSearchFallback(boolean webSearchFallback) {
+            this.webSearchFallback = webSearchFallback;
+        }
+
+        public int getWebSearchResultCount() {
+            return webSearchResultCount;
+        }
+
+        public void setWebSearchResultCount(int webSearchResultCount) {
+            this.webSearchResultCount = webSearchResultCount;
         }
     }
 }

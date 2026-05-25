@@ -452,6 +452,15 @@
         <span v-if="msg.meta.fallback" class="ai-msg-meta-pill">
           {{ t.responseMetaFallback || 'Model switched' }}
         </span>
+        <span v-if="msg.meta.webSearchEnabled" class="ai-msg-meta-pill">
+          {{ t.responseMetaWebSearch || 'Web' }} {{ webSearchProviderLabel(msg.meta) }}
+        </span>
+        <span v-if="msg.meta.webSearchResultCount != null" class="ai-msg-meta-pill">
+          {{ webSearchResultLabel(msg.meta.webSearchResultCount) }}
+        </span>
+        <span v-if="msg.meta.webSearchFallback" class="ai-msg-meta-pill">
+          {{ t.responseMetaWebSearchFallback || 'Search fallback' }}
+        </span>
         <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
           {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
         </span>
@@ -553,6 +562,19 @@ function runtimeModelLabel(msg: Message) {
   if (!effective) return '';
   const selected = msg.meta?.model?.trim() || msg.meta?.requestedModel?.trim();
   return selected && selected === effective ? '' : effective;
+}
+
+function webSearchProviderLabel(meta: Message['meta']) {
+  return meta?.webSearchProvider?.trim() || '';
+}
+
+function webSearchResultLabel(count: number) {
+  const safeCount = Number.isFinite(count) && count >= 0 ? count : 0;
+  const unit =
+    safeCount === 1
+      ? props.t.responseMetaWebSearchResult || 'result'
+      : props.t.responseMetaWebSearchResults || 'results';
+  return `${safeCount} ${unit}`;
 }
 
 function hasSecondaryMeta(meta: Message['meta']): boolean {

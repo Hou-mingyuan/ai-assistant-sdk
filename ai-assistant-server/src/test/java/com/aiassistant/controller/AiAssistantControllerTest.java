@@ -10,6 +10,7 @@ import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,6 +81,46 @@ class AiAssistantControllerTest {
         assertFalse(meta.isFallback());
         assertEquals(1, meta.getVisionInputCount());
         assertEquals("minimax-vlm", meta.getVisionRoute());
+    }
+
+    @Test
+    void chat_returnsWebSearchRuntimeMetadataAndInjectsSearchContext() {
+        when(urlFetchService.searchWeb("latest LNG"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "# 联网搜索结果\n来源：Tavily\n1. Result",
+                                "Tavily",
+                                false,
+                                1,
+                                Instant.parse("2026-05-25T04:00:00Z")));
+        when(llmService.chat(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn("answer");
+        ChatRequest req = new ChatRequest();
+        req.setText("latest LNG");
+        req.setAction("chat");
+        req.setWebSearch(true);
+        req.setPageContext("existing page");
+
+        var response = controller.chat(req);
+
+        assertEquals(200, response.getStatusCode().value());
+        var meta = response.getBody().getMeta();
+        assertTrue(meta.isWebSearchEnabled());
+        assertEquals("Tavily", meta.getWebSearchProvider());
+        assertFalse(meta.isWebSearchFallback());
+        assertEquals(1, meta.getWebSearchResultCount());
+        verify(llmService)
+                .chat(
+                        eq("latest LNG"),
+                        any(),
+                        any(),
+                        any(),
+                        any(List.class),
+                        any(),
+                        argThat(
+                                context ->
+                                        context.contains("existing page")
+                                                && context.contains("# 联网搜索结果")));
     }
 
     @Test
@@ -183,6 +224,31 @@ class AiAssistantControllerTest {
         assertEquals("false", response.getHeaders().getFirst("X-AI-Fallback"));
         assertEquals("1", response.getHeaders().getFirst("X-AI-Vision-Input-Count"));
         assertEquals("minimax-vlm", response.getHeaders().getFirst("X-AI-Vision-Route"));
+    }
+
+    @Test
+    void stream_returnsWebSearchRuntimeMetadataHeaders() {
+        when(urlFetchService.searchWeb("current news"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "# 联网搜索结果\n来源：DuckDuckGo fallback\n1. Result",
+                                "DuckDuckGo fallback",
+                                true,
+                                1,
+                                Instant.parse("2026-05-25T04:00:00Z")));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("current news");
+        req.setAction("chat");
+        req.setWebSearch(true);
+
+        var response = controller.stream(req);
+
+        assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search"));
+        assertEquals("DuckDuckGo fallback", response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
+        assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search-Fallback"));
+        assertEquals("1", response.getHeaders().getFirst("X-AI-Web-Search-Result-Count"));
     }
 
     @Test
