@@ -127,7 +127,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
     opts.webSearchDiagnosticsText.value = '—';
     if (!opts.options.baseUrl) return;
     try {
-      const health = await api.fetchHealth(opts.options.baseUrl, opts.options.accessToken);
+      const health = await api.fetchHealth(opts.options.baseUrl, opts.options.accessToken, true);
       if (!health.success) return;
       const provider = health.webSearchProvider || 'duckduckgo';
       const configured = health.webSearchStableProviderConfigured ? 'configured' : 'fallback';
@@ -137,7 +137,13 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
       const statText = stats?.attempts
         ? ` · ${stats.successes ?? 0}/${stats.attempts} ok · ${stats.averageDurationMs ?? 0}ms avg`
         : '';
-      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}${statText}`;
+      const probeText =
+        typeof health.webSearchProbe === 'string'
+          ? ` · probe ${health.webSearchProbe}`
+          : health.webSearchProbe?.status
+            ? ` · probe ${health.webSearchProbe.status}`
+            : '';
+      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}${statText}${probeText}`;
     } catch {
       opts.webSearchDiagnosticsText.value = 'unavailable';
     }

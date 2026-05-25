@@ -77,6 +77,9 @@ export interface HealthResult {
     providerFailures?: number;
     averageDurationMs?: number;
   };
+  webSearchProbe?:
+    | string
+    | { status?: string; provider?: string; resultCount?: number; durationMs?: number };
 }
 
 export type ExportRequestPayload = JsonRequestBody<'/export', 'post'>;
@@ -398,8 +401,12 @@ export async function fetchModels(
   }
 }
 
-export async function fetchHealth(baseUrl: string, token?: string): Promise<HealthResult> {
-  const res = await fetch(apiUrl(baseUrl, '/health'), {
+export async function fetchHealth(
+  baseUrl: string,
+  token?: string,
+  deep = false,
+): Promise<HealthResult> {
+  const res = await fetch(apiUrl(baseUrl, deep ? '/health?deep=true' : '/health'), {
     method: 'GET',
     headers: buildHeaders(token),
   });

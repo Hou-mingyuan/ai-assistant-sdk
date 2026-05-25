@@ -40,6 +40,7 @@ function makeHarness() {
     webSearchProvider: 'tavily',
     webSearchStableProviderConfigured: true,
     webSearchMaxResults: 7,
+    webSearchProbe: { status: 'ok', provider: 'tavily', resultCount: 1, durationMs: 42 },
   }));
 
   const requests = useDiagnosticsModelRequests({
@@ -143,7 +144,7 @@ describe('useDiagnosticsModelRequests', () => {
 
     await requests.runModelDiagnostics();
 
-    expect(api.fetchHealth).toHaveBeenCalledWith('/ai-assistant', 'token');
-    expect(state.webSearchDiagnosticsText.value).toBe('tavily · configured · 7');
+    expect(api.fetchHealth).toHaveBeenCalledWith('/ai-assistant', 'token', true);
+    expect(state.webSearchDiagnosticsText.value).toBe('tavily · configured · 7 · probe ok');
   });
 });
