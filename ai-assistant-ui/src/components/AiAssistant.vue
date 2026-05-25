@@ -926,12 +926,8 @@ function setDeepThinkEnabled(value: boolean) {
 }
 
 function setWebSearchEnabled(value: boolean) {
-  if (value) {
-    webSearchEnabled.value = false;
-    setExportToast('联网搜索暂未接入后端检索，已保持关闭', 2600);
-    return;
-  }
-  webSearchEnabled.value = false;
+  webSearchEnabled.value = value;
+  setExportToast(value ? '联网搜索已开启：回答前会先检索网页' : '联网搜索已关闭', 1800);
 }
 
 /* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
@@ -2634,6 +2630,7 @@ const {
   selectedChatModel,
   modelChoices,
   deepThinkEnabled,
+  webSearchEnabled,
   modelCapabilities,
   pendingImageDataList,
   pendingImageThumbs,

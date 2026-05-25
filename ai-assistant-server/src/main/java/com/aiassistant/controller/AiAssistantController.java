@@ -107,7 +107,7 @@ public class AiAssistantController {
                                         request.getModel(),
                                         request.resolveImageDataList(),
                                         request.getSessionId(),
-                                        request.getPageContext());
+                                        effectivePageContext(request));
                     };
             usageStats.recordCall(action);
             return ResponseEntity.ok(ChatResponse.ok(result, meta));
@@ -173,7 +173,7 @@ public class AiAssistantController {
                                     request.getModel(),
                                     request.resolveImageDataList(),
                                     request.getSessionId(),
-                                    request.getPageContext());
+                                    effectivePageContext(request));
                 };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -205,6 +205,20 @@ public class AiAssistantController {
                             : "openai-compatible-vision");
         }
         return meta;
+    }
+
+    private String effectivePageContext(ChatRequest request) {
+        String pageContext = request.getPageContext();
+        if (!request.isWebSearch()) {
+            return pageContext;
+        }
+        String searchContext = urlFetchService.searchWebAsMarkdown(request.getText());
+        if (searchContext == null || searchContext.isBlank()) {
+            return pageContext;
+        }
+        return java.util.stream.Stream.of(pageContext, searchContext)
+                .filter(s -> s != null && !s.isBlank())
+                .collect(java.util.stream.Collectors.joining("\n\n"));
     }
 
     private HttpHeaders runtimeHeaders(ChatResponse.RuntimeMeta meta) {

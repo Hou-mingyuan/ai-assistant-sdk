@@ -11,6 +11,7 @@ import com.aiassistant.security.DefaultSsrfPolicy;
 import com.aiassistant.security.SsrfPolicy;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -50,6 +51,14 @@ public class UrlFetchService {
 
     private static final Pattern URL_IN_TEXT =
             Pattern.compile("https?://[^\\s<>\"()\\[\\]{}]+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DDG_RESULT_LINK =
+            Pattern.compile(
+                    "<a[^>]+class=[\"'][^\"']*result__a[^\"']*[\"'][^>]+href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern DDG_SNIPPET =
+            Pattern.compile(
+                    "<a[^>]+class=[\"'][^\"']*result__snippet[^\"']*[\"'][^>]*>(.*?)</a>",
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private static final Pattern META_OG_TITLE =
             Pattern.compile(
@@ -330,6 +339,83 @@ public class UrlFetchService {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Lightweight web search backed by DuckDuckGo HTML results.
+     *
+     * <p>This intentionally returns concise markdown for prompt injection rather than a large raw
+     * HTML payload. If the public search page is unreachable, callers receive an empty string and
+     * chat continues normally.
+     */
+    public String searchWebAsMarkdown(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        try {
+            String encoded = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
+            URI uri = URI.create("https://duckduckgo.com/html/?q=" + encoded);
+            byte[] body = fetchBytes(uri);
+            if (body.length == 0) return "";
+            String html = new String(body, sniffCharset(body, uri));
+            List<SearchHit> hits = parseDuckDuckGoResults(html, 5);
+            if (hits.isEmpty()) return "";
+            StringBuilder sb = new StringBuilder("# 联网搜索结果\n");
+            sb.append("查询：").append(query.trim()).append('\n');
+            for (int i = 0; i < hits.size(); i++) {
+                SearchHit hit = hits.get(i);
+                sb.append('\n')
+                        .append(i + 1)
+                        .append(". ")
+                        .append(hit.title())
+                        .append('\n')
+                        .append("   URL: ")
+                        .append(hit.url())
+                        .append('\n');
+                if (!hit.snippet().isBlank()) {
+                    sb.append("   摘要: ").append(hit.snippet()).append('\n');
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            log.debug("Web search failed for query '{}': {}", query, e.getMessage());
+            return "";
+        }
+    }
+
+    private List<SearchHit> parseDuckDuckGoResults(String html, int limit) {
+        List<String> snippets = new ArrayList<>();
+        Matcher sm = DDG_SNIPPET.matcher(html);
+        while (sm.find() && snippets.size() < limit) {
+            snippets.add(stripTags(sm.group(1)).trim());
+        }
+        List<SearchHit> hits = new ArrayList<>();
+        Matcher lm = DDG_RESULT_LINK.matcher(html);
+        while (lm.find() && hits.size() < limit) {
+            String url = normalizeDuckDuckGoUrl(stripTags(lm.group(1)).trim());
+            String title = stripTags(lm.group(2)).trim();
+            if (url.isBlank() || title.isBlank()) continue;
+            String snippet = hits.size() < snippets.size() ? snippets.get(hits.size()) : "";
+            hits.add(new SearchHit(title, url, snippet));
+        }
+        return hits;
+    }
+
+    private String normalizeDuckDuckGoUrl(String raw) {
+        try {
+            URI uri = URI.create(raw);
+            String query = uri.getRawQuery();
+            if (query != null) {
+                for (String part : query.split("&")) {
+                    if (part.startsWith("uddg=")) {
+                        return java.net.URLDecoder.decode(
+                                part.substring("uddg=".length()), StandardCharsets.UTF_8);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return raw;
     }
 
     private UrlPreviewResponse tryHeadlessFallback(String url) {
@@ -789,6 +875,8 @@ public class UrlFetchService {
         }
         fetchCache.put(uri.toString(), new CacheEntry(text, Instant.now().plusSeconds(ttl)));
     }
+
+    private record SearchHit(String title, String url, String snippet) {}
 
     private record CacheEntry(String text, Instant expires) {}
 }

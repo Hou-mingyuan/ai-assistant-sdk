@@ -1707,6 +1707,7 @@ export interface components {
             imageData?: string;
             imageDataList?: string[];
             pageContext?: string;
+            webSearch?: boolean;
             sessionId?: string;
         };
         MessageItem: {

@@ -220,6 +220,8 @@ export interface UseSendStreamDeps {
   modelChoices: Ref<string[]>;
   /** Prompt-level deep-thinking mode. */
   deepThinkEnabled?: Ref<boolean>;
+  /** Server-side web search mode. */
+  webSearchEnabled?: Ref<boolean>;
   /** Optional server-provided model capability map keyed by model id. */
   modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
@@ -639,6 +641,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
       payload.imageDataList = imageDataListForPayload;
     }
     applyChatModePayloadOptions(payload, imageDataListForPayload.length > 0, text);
+    if (deps.mode.value === 'chat' && deps.webSearchEnabled?.value) {
+      payload.webSearch = true;
+    }
     applyPageContextPayloadOptions(payload, text, imageDataListForPayload.length > 0);
 
     const sid = deps.activeSessionId.value;

@@ -47,6 +47,9 @@ public class ChatRequest {
     @Size(max = 20_000, message = "pageContext exceeds 20000 characters")
     private String pageContext;
 
+    /** 开启后端联网搜索，搜索结果会作为页面上下文注入模型。 */
+    private boolean webSearch;
+
     @Size(max = 128, message = "sessionId exceeds 128 characters")
     @Pattern(
             regexp = "^[A-Za-z0-9_.:/-]{0,128}$",
@@ -134,6 +137,14 @@ public class ChatRequest {
 
     public void setPageContext(String pageContext) {
         this.pageContext = pageContext;
+    }
+
+    public boolean isWebSearch() {
+        return webSearch;
+    }
+
+    public void setWebSearch(boolean webSearch) {
+        this.webSearch = webSearch;
     }
 
     public String getSessionId() {
