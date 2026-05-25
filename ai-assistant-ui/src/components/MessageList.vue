@@ -230,32 +230,13 @@
           )
         "
       >
-        <div
+        <MessageReadingPreview
           v-if="shouldShowReadingPreview(msg, displayOffset + renderedStart + idx)"
-          class="ai-reading-preview"
-        >
-          <div class="ai-reading-preview-head">
-            <span class="ai-reading-preview-kicker">阅读摘要</span>
-            <button
-              type="button"
-              class="ai-reading-preview-toggle"
-              :aria-expanded="
-                isReadingExpanded(displayOffset + renderedStart + idx) ? 'true' : 'false'
-              "
-              @click.stop="toggleReadingExpanded(displayOffset + renderedStart + idx)"
-            >
-              {{ isReadingExpanded(displayOffset + renderedStart + idx) ? '收起原文' : '展开原文' }}
-            </button>
-          </div>
-          <ul class="ai-reading-preview-list">
-            <li
-              v-for="(line, lineIdx) in readingPreviewLines(msg.content)"
-              :key="`${displayOffset + renderedStart + idx}-reading-${lineIdx}`"
-            >
-              {{ line }}
-            </li>
-          </ul>
-        </div>
+          :content="msg.content"
+          :expanded="isReadingExpanded(displayOffset + renderedStart + idx)"
+          :message-key="`${displayOffset + renderedStart + idx}`"
+          @toggle="toggleReadingExpanded(displayOffset + renderedStart + idx)"
+        />
         <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
         <div
           v-if="
@@ -591,6 +572,7 @@ import type { PropType } from 'vue';
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+import MessageReadingPreview from './MessageReadingPreview.vue';
 import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
 /* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
  * under each assistant message. Lazy-imported so the chunk only loads when
@@ -684,28 +666,6 @@ function toggleReadingExpanded(globalIdx: number) {
   if (next.has(globalIdx)) next.delete(globalIdx);
   else next.add(globalIdx);
   expandedReadingMessages.value = next;
-}
-
-function readingPreviewLines(content: string): string[] {
-  const cleaned = content
-    .replace(/```[\s\S]*?```/g, '代码块内容已收起，可展开原文查看。')
-    .split(/\r?\n/)
-    .map((line) =>
-      line
-        .replace(/^#{1,6}\s*/, '')
-        .replace(/^[-*+]\s+/, '')
-        .replace(/^\d+\.\s+/, '')
-        .replace(/\*\*|__|`/g, '')
-        .trim(),
-    )
-    .filter(Boolean);
-  const unique: string[] = [];
-  for (const line of cleaned) {
-    if (unique.includes(line)) continue;
-    unique.push(line.length > 92 ? `${line.slice(0, 92)}...` : line);
-    if (unique.length >= 4) break;
-  }
-  return unique.length ? unique : ['这是一段较长回复，已先收起正文，展开后可查看完整内容。'];
 }
 
 function streamStageText(globalIdx: number, msg: Message) {
