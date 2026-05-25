@@ -207,7 +207,7 @@ public class AiAssistantController {
                             ? "minimax-vlm"
                             : "openai-compatible-vision");
         }
-        if (webSearch != null && webSearch.hasResults()) {
+        if (webSearch != null && webSearch.hasAttempt()) {
             meta.setWebSearchEnabled(true);
             meta.setWebSearchProvider(webSearch.provider());
             meta.setWebSearchFallback(webSearch.fallback());
@@ -222,8 +222,11 @@ public class AiAssistantController {
             return new EffectivePageContext(pageContext, null);
         }
         UrlFetchService.WebSearchResult search = urlFetchService.searchWeb(request.getText());
-        if (search == null || !search.hasResults()) {
+        if (search == null || !search.hasAttempt()) {
             return new EffectivePageContext(pageContext, null);
+        }
+        if (!search.hasResults()) {
+            return new EffectivePageContext(pageContext, search);
         }
         String value =
                 java.util.stream.Stream.of(pageContext, search.markdown())

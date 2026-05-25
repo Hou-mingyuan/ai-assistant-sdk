@@ -130,6 +130,27 @@ describe('MessageList assistant metadata', () => {
     expect(meta.text()).toContain('Search fallback');
   });
 
+  it('renders zero-result web search attempts instead of hiding the search state', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'answer without search context',
+        timestamp: Date.now(),
+        meta: {
+          webSearchEnabled: true,
+          webSearchProvider: 'DuckDuckGo fallback',
+          webSearchFallback: true,
+          webSearchResultCount: 0,
+        },
+      },
+    ]);
+
+    const meta = wrapper.find('.ai-msg-meta');
+    expect(meta.text()).toContain('Web DuckDuckGo fallback');
+    expect(meta.text()).toContain('0 results');
+    expect(meta.text()).toContain('Search fallback');
+  });
+
   it('omits the details toggle when no secondary meta is present', () => {
     const wrapper = mountList([
       {

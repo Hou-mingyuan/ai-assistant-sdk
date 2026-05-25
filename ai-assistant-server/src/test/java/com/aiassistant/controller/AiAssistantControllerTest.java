@@ -252,6 +252,33 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_reportsWebSearchAttemptEvenWhenNoResultsAreFound() {
+        when(urlFetchService.searchWeb("rare topic"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "",
+                                "DuckDuckGo fallback",
+                                true,
+                                0,
+                                Instant.parse("2026-05-25T04:00:00Z")));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("rare topic");
+        req.setAction("chat");
+        req.setWebSearch(true);
+
+        var response = controller.stream(req);
+
+        assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search"));
+        assertEquals(
+                "DuckDuckGo fallback",
+                response.getHeaders().getFirst("X-AI-Web-Search-Provider"));
+        assertEquals("true", response.getHeaders().getFirst("X-AI-Web-Search-Fallback"));
+        assertEquals("0", response.getHeaders().getFirst("X-AI-Web-Search-Result-Count"));
+    }
+
+    @Test
     void stream_returnsFriendlyErrorChunkWhenLlmStreamFails() {
         when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
                 .thenReturn(Flux.error(new RuntimeException("HTTP 429 upstream rate limit")));

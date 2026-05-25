@@ -378,17 +378,21 @@ public class UrlFetchService {
     }
 
     private WebSearchResult searchDuckDuckGo(String query, boolean fallbackFromStableProvider) {
+        String provider = fallbackFromStableProvider ? "DuckDuckGo fallback" : "DuckDuckGo";
         try {
             String encoded = URLEncoder.encode(query.trim(), StandardCharsets.UTF_8);
             URI uri = URI.create("https://duckduckgo.com/html/?q=" + encoded);
             byte[] body = fetchBytes(uri);
-            if (body.length == 0) return WebSearchResult.empty();
+            if (body.length == 0) {
+                return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
+            }
             String html = new String(body, sniffCharset(body, uri));
             int maxResults =
                     Math.max(1, Math.min(10, properties.getUrlFetch().getWebSearchMaxResults()));
             List<SearchHit> hits = parseDuckDuckGoResults(html, maxResults);
-            if (hits.isEmpty()) return WebSearchResult.empty();
-            String provider = fallbackFromStableProvider ? "DuckDuckGo fallback" : "DuckDuckGo";
+            if (hits.isEmpty()) {
+                return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
+            }
             StringBuilder sb =
                     newSearchMarkdown(provider, query);
             for (int i = 0; i < hits.size(); i++) {
@@ -409,7 +413,7 @@ public class UrlFetchService {
                     sb.toString(), provider, fallbackFromStableProvider, hits.size(), Instant.now());
         } catch (Exception e) {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
-            return WebSearchResult.empty();
+            return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
         }
     }
 
@@ -452,7 +456,9 @@ public class UrlFetchService {
             }
             JsonNode root = SEARCH_MAPPER.readTree(response.body());
             JsonNode results = root.path("results");
-            if (!results.isArray() || results.isEmpty()) return WebSearchResult.empty();
+            if (!results.isArray() || results.isEmpty()) {
+                return WebSearchResult.emptyAttempt("Tavily", false);
+            }
             StringBuilder sb = newSearchMarkdown("Tavily", query);
             int index = 1;
             for (JsonNode item : results) {
@@ -473,7 +479,7 @@ public class UrlFetchService {
                     : new WebSearchResult(sb.toString(), "Tavily", false, resultCount, Instant.now());
         } catch (Exception e) {
             log.debug("Tavily web search failed for query '{}': {}", query, e.getMessage());
-            return WebSearchResult.empty();
+            return WebSearchResult.emptyAttempt("Tavily", false);
         }
     }
 
@@ -988,6 +994,14 @@ public class UrlFetchService {
             String markdown, String provider, boolean fallback, int resultCount, Instant searchedAt) {
         public static WebSearchResult empty() {
             return new WebSearchResult("", "", false, 0, null);
+        }
+
+        public static WebSearchResult emptyAttempt(String provider, boolean fallback) {
+            return new WebSearchResult("", provider, fallback, 0, Instant.now());
+        }
+
+        public boolean hasAttempt() {
+            return provider != null && !provider.isBlank();
         }
 
         public boolean hasResults() {

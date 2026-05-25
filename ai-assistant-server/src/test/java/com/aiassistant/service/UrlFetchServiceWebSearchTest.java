@@ -154,6 +154,27 @@ class UrlFetchServiceWebSearchTest {
         assertThat(httpClient.requests().get(0).uri().getHost()).isEqualTo("duckduckgo.com");
     }
 
+    @Test
+    void searchWebReturnsAttemptMetadataWhenFallbackFindsNoResults() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueString(500, "{\"error\":\"upstream unavailable\"}")
+                        .queueInputStream(200, "<html><body>No usable search results</body></html>");
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("tavily");
+        properties.getUrlFetch().setWebSearchApiKey("tvly-test");
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("rare topic");
+
+        assertThat(result.hasAttempt()).isTrue();
+        assertThat(result.hasResults()).isFalse();
+        assertThat(result.provider()).isEqualTo("DuckDuckGo fallback");
+        assertThat(result.fallback()).isTrue();
+        assertThat(result.resultCount()).isZero();
+        assertThat(result.markdown()).isEmpty();
+    }
+
     private static final class RecordingHttpClient extends HttpClient {
         private final Queue<ResponseSpec> responses = new ArrayDeque<>();
         private final List<HttpRequest> requests = new ArrayList<>();
