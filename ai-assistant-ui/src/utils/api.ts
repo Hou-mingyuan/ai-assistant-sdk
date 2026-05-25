@@ -38,6 +38,13 @@ export type RuntimeModelConfigPayload = ApiSchemas['RuntimeModelConfigPayload'];
 
 export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
 
+export interface HealthResult {
+  success?: boolean;
+  webSearchProvider?: string;
+  webSearchStableProviderConfigured?: boolean;
+  webSearchMaxResults?: number;
+}
+
 export type ExportRequestPayload = JsonRequestBody<'/export', 'post'>;
 
 export type FileUploadResponse = JsonResponse<'/file/summarize', 'post'>;
@@ -318,6 +325,17 @@ export async function fetchModels(
   } finally {
     modelsInFlight.delete(cacheKey);
   }
+}
+
+export async function fetchHealth(baseUrl: string, token?: string): Promise<HealthResult> {
+  const res = await fetch(apiUrl(baseUrl, '/health'), {
+    method: 'GET',
+    headers: buildHeaders(token),
+  });
+  if (!res.ok) {
+    return { success: false };
+  }
+  return res.json();
 }
 
 export async function fetchRuntimeModelConfig(

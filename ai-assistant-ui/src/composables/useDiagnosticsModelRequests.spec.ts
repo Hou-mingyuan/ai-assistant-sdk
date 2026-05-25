@@ -19,6 +19,7 @@ function makeHarness() {
   const diagnosticsLastChecked = ref('');
   const connectionConfigMessage = ref('');
   const providerApiKeyInput = ref('secret');
+  const webSearchDiagnosticsText = ref('—');
   const fetchModels = vi.fn(async () => ({
     success: true,
     models: ['deepseek-chat', 'deepseek-reasoner'],
@@ -33,6 +34,12 @@ function makeHarness() {
   const discoverRuntimeProviderModels = vi.fn(async () => ({
     success: true,
     models: ['discovered-a', 'discovered-b'],
+  }));
+  const fetchHealth = vi.fn(async () => ({
+    success: true,
+    webSearchProvider: 'tavily',
+    webSearchStableProviderConfigured: true,
+    webSearchMaxResults: 7,
   }));
 
   const requests = useDiagnosticsModelRequests({
@@ -57,6 +64,7 @@ function makeHarness() {
     diagnosticsLastChecked,
     connectionConfigMessage,
     providerApiKeyInput,
+    webSearchDiagnosticsText,
     applyRuntimeModelConfig: vi.fn(),
     buildRuntimeModelConfigPayload: () => ({ provider: 'deepseek' }),
     applyDiscoveredModels: vi.fn(),
@@ -65,6 +73,7 @@ function makeHarness() {
       fetchRuntimeModelConfig,
       saveRuntimeModelConfig,
       discoverRuntimeProviderModels,
+      fetchHealth,
     },
   });
 
@@ -81,12 +90,14 @@ function makeHarness() {
       diagnosticsLastChecked,
       connectionConfigMessage,
       providerApiKeyInput,
+      webSearchDiagnosticsText,
     },
     api: {
       fetchModels,
       fetchRuntimeModelConfig,
       saveRuntimeModelConfig,
       discoverRuntimeProviderModels,
+      fetchHealth,
     },
   };
 }
@@ -125,5 +136,14 @@ describe('useDiagnosticsModelRequests', () => {
     expect(state.connectionConfigMessage.value).toBe('saved');
     expect(state.diagnosticsBusy.value).toBe(false);
     expect(state.diagnosticsLastChecked.value).not.toBe('');
+  });
+
+  it('runModelDiagnostics refreshes web search diagnostics from health', async () => {
+    const { requests, state, api } = makeHarness();
+
+    await requests.runModelDiagnostics();
+
+    expect(api.fetchHealth).toHaveBeenCalledWith('/ai-assistant', 'token');
+    expect(state.webSearchDiagnosticsText.value).toBe('tavily · configured · 7');
   });
 });

@@ -3,6 +3,7 @@ import type { AiAssistantOptions } from '../index';
 import type { I18nMessages } from '../utils/i18n';
 import {
   discoverRuntimeProviderModels,
+  fetchHealth,
   fetchModels,
   fetchRuntimeModelConfig,
   saveRuntimeModelConfig,
@@ -16,6 +17,7 @@ interface DiagnosticsRequestApi {
   fetchRuntimeModelConfig: typeof fetchRuntimeModelConfig;
   saveRuntimeModelConfig: typeof saveRuntimeModelConfig;
   discoverRuntimeProviderModels: typeof discoverRuntimeProviderModels;
+  fetchHealth: typeof fetchHealth;
 }
 
 export interface UseDiagnosticsModelRequestsOptions {
@@ -43,6 +45,7 @@ export interface UseDiagnosticsModelRequestsOptions {
   diagnosticsLastChecked: Ref<string>;
   connectionConfigMessage: Ref<string>;
   providerApiKeyInput: Ref<string>;
+  webSearchDiagnosticsText: Ref<string>;
   applyRuntimeModelConfig: (config: RuntimeModelConfigResult) => void;
   buildRuntimeModelConfigPayload: () => RuntimeModelConfigPayload;
   applyDiscoveredModels: (models: string[]) => void;
@@ -55,6 +58,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
     fetchRuntimeModelConfig,
     saveRuntimeModelConfig,
     discoverRuntimeProviderModels,
+    fetchHealth,
   };
 
   async function refreshChatModels() {
@@ -117,11 +121,27 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
     opts.applyRuntimeModelConfig(cfg);
   }
 
+  async function refreshWebSearchDiagnostics() {
+    opts.webSearchDiagnosticsText.value = '—';
+    if (!opts.options.baseUrl) return;
+    try {
+      const health = await api.fetchHealth(opts.options.baseUrl, opts.options.accessToken);
+      if (!health.success) return;
+      const provider = health.webSearchProvider || 'duckduckgo';
+      const configured = health.webSearchStableProviderConfigured ? 'configured' : 'fallback';
+      const max = health.webSearchMaxResults ?? 5;
+      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}`;
+    } catch {
+      opts.webSearchDiagnosticsText.value = 'unavailable';
+    }
+  }
+
   async function runModelDiagnostics() {
     opts.diagnosticsBusy.value = true;
     try {
       await refreshRuntimeModelConfig();
       await refreshChatModels();
+      await refreshWebSearchDiagnostics();
     } finally {
       opts.diagnosticsLastChecked.value = new Date().toLocaleString();
       opts.diagnosticsBusy.value = false;
@@ -180,6 +200,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
     refreshRuntimeModelConfig,
     refreshChatModels,
     runModelDiagnostics,
+    refreshWebSearchDiagnostics,
     saveProviderConfig,
     discoverProviderModels,
   };

@@ -102,6 +102,10 @@
             <dd>{{ modelStatusText }}</dd>
           </div>
           <div>
+            <dt>{{ t.webSearchLabel }}</dt>
+            <dd>{{ webSearchDiagnosticsText }}</dd>
+          </div>
+          <div>
             <dt>{{ t.diagnosticsAvailableModels }}</dt>
             <dd>{{ modelCount }}</dd>
           </div>
@@ -191,6 +195,7 @@ const props = defineProps<{
   selectedModel: string;
   modelStatusText: string;
   modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
+  webSearchDiagnosticsText: string;
   modelSourceText: string;
   modelHintText: string;
   remedyKind: RemedyKind;

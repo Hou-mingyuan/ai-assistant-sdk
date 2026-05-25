@@ -593,6 +593,7 @@
       :selected-model="selectedChatModel"
       :model-status-text="modelStatusText"
       :model-status-kind="modelStatusKind"
+      :web-search-diagnostics-text="webSearchDiagnosticsText"
       :model-source-text="modelSourceText"
       :model-hint-text="modelHintText"
       :remedy-kind="diagnosticsRemedyKind"
@@ -1118,6 +1119,7 @@ const {
   providerApiKeyInput,
   providerModelInput,
   providerAllowedModelsInput,
+  webSearchDiagnosticsText,
   modelListMessage,
   diagnosticsModelEndpoint,
   diagnosticsTokenText,
