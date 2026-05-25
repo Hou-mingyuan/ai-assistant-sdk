@@ -377,7 +377,7 @@ export const zh: I18nMessages = {
   formFillPasteBannerDismiss: '忽略',
   formFillTableSummary: '表格模式 · {dataRows} 行 × {cols} 列 → 填入 {formRows} 行',
   formFillTableTruncated: '有 {n} 行未填（页面表单行数不够，配 onAddRow 自动加行）',
-  skillStripLabel: '快捷技能',
+  skillStripLabel: '快捷模板',
   markdownBold: '加粗（Ctrl+B）',
   markdownItalic: '斜体（Ctrl+I）',
   markdownCode: '行内代码',

@@ -957,11 +957,13 @@ function focusInput() {
 
 function applyEmptySkill(skill: EmptySkillChip) {
   input.value = skill.prompt;
+  setExportToast(`已填入「${skill.label}」模板，补充内容后发送`, 2200);
   focusInput();
 }
 
 function applyEmptyStarter(starter: EmptyStarterCard) {
   input.value = starter.prompt;
+  setExportToast(`已填入「${starter.title}」任务，补充内容后发送`, 2200);
   focusInput();
 }
 
