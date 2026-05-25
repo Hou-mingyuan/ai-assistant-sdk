@@ -102,52 +102,17 @@
         :references-label="t.responseMetaWebSearchReferences || 'References'"
         mode="early"
       />
-      <details
-        v-if="
-          msg.thinking &&
-          msg.role === 'assistant' &&
-          !isActiveStreaming(displayOffset + renderedStart + idx, msg)
+      <MessageThinkingBlocks
+        v-if="msg.role === 'assistant'"
+        :thinking="msg.thinking"
+        :active-streaming="isActiveStreaming(displayOffset + renderedStart + idx, msg)"
+        :has-visible-content="hasVisibleContent(msg.content)"
+        :thinking-label="t.thinkingLabel || '思考过程'"
+        :thinking-live-label="t.thinkingLive || '正在思考…'"
+        :render-bubble="
+          (content, isLast) => renderBubble(content, displayOffset + renderedStart + idx, isLast)
         "
-        class="ai-thinking-details"
-      >
-        <summary class="ai-thinking-summary">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-            class="ai-thinking-icon"
-          >
-            <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-            />
-          </svg>
-          {{ t.thinkingLabel || '思考过程' }}
-        </summary>
-        <!-- eslint-disable vue/no-v-html -->
-        <div
-          class="ai-thinking-content"
-          v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, false)"
-        ></div>
-        <!-- eslint-enable vue/no-v-html -->
-      </details>
-      <div
-        v-if="
-          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
-          msg.thinking &&
-          !hasVisibleContent(msg.content)
-        "
-        class="ai-thinking-live"
-      >
-        <span class="ai-thinking-live-label">{{ t.thinkingLive || '正在思考…' }}</span>
-        <!-- eslint-disable vue/no-v-html -->
-        <div
-          class="ai-thinking-content"
-          v-html="renderBubble(msg.thinking, displayOffset + renderedStart + idx, true)"
-        ></div>
-        <!-- eslint-enable vue/no-v-html -->
-      </div>
+      />
       <!-- Agent steps display -->
       <div v-if="msg.agentSteps && msg.agentSteps.length > 0" class="ai-agent-steps">
         <div
@@ -531,6 +496,7 @@ import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
 import MessageReadingPreview from './MessageReadingPreview.vue';
+import MessageThinkingBlocks from './MessageThinkingBlocks.vue';
 import MessageToolCalls from './MessageToolCalls.vue';
 import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
 /* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)

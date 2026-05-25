@@ -14,9 +14,9 @@
       {{ sourceIdx + 1 }}
     </a>
   </div>
-  <div v-if="sourcePreviews.length > 0" class="ai-web-search-preview-cards">
+  <div v-if="visiblePreviews.length > 0" class="ai-web-search-preview-cards">
     <a
-      v-for="(source, sourceIdx) in sourcePreviews"
+      v-for="(source, sourceIdx) in visiblePreviews"
       :key="`${messageKey}-source-preview-${sourceIdx}`"
       class="ai-web-search-preview-card"
       :href="source.url"
@@ -35,6 +35,22 @@
         @click.prevent.stop="copySourceCitation(sourceIdx, source.url)"
       >
         Copy [{{ sourceIdx + 1 }}]
+      </button>
+      <button
+        v-if="source.url"
+        type="button"
+        class="ai-web-search-preview-pin"
+        @click.prevent.stop="togglePinned(source.url)"
+      >
+        {{ pinnedUrls.has(source.url) ? 'Unpin' : 'Pin' }}
+      </button>
+      <button
+        v-if="source.url"
+        type="button"
+        class="ai-web-search-preview-hide"
+        @click.prevent.stop="hideSource(source.url)"
+      >
+        Hide
       </button>
       <span v-if="source.snippet" class="ai-web-search-preview-snippet">
         {{ source.snippet }}
@@ -58,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Message } from '../types/message';
 
 const props = withDefaults(
@@ -89,6 +105,18 @@ const sourcePreviews = computed(() =>
   ),
 );
 
+const pinnedUrls = ref<Set<string>>(new Set());
+const hiddenUrls = ref<Set<string>>(new Set());
+
+const visiblePreviews = computed(() => {
+  const pinned = pinnedUrls.value;
+  const hidden = hiddenUrls.value;
+  return sourcePreviews.value
+    .filter((source) => !source.url || !hidden.has(source.url))
+    .slice()
+    .sort((a, b) => Number(pinned.has(b.url || '')) - Number(pinned.has(a.url || '')));
+});
+
 const citationWarning = computed(() => {
   const meta = props.meta;
   if (!meta?.webSearchEnabled) return '';
@@ -106,5 +134,20 @@ const citationWarning = computed(() => {
 function copySourceCitation(sourceIdx: number, url?: string) {
   if (!url || !navigator?.clipboard?.writeText) return;
   void navigator.clipboard.writeText(`[${sourceIdx + 1}] ${url}`);
+}
+
+function togglePinned(url?: string) {
+  if (!url) return;
+  const next = new Set(pinnedUrls.value);
+  if (next.has(url)) next.delete(url);
+  else next.add(url);
+  pinnedUrls.value = next;
+}
+
+function hideSource(url?: string) {
+  if (!url) return;
+  const next = new Set(hiddenUrls.value);
+  next.add(url);
+  hiddenUrls.value = next;
 }
 </script>
