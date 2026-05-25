@@ -242,6 +242,38 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void searchWebDeduplicatesSourcesAndAsksModelToCiteResultNumbers() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">First summary</a>
+                                    <a class="result__snippet">Duplicate summary</a>
+                                    <a class="result__a" href="https://dup.example/news?id=1">
+                                      First result
+                                    </a>
+                                    <a class="result__a" href="https://dup.example/news?id=1">
+                                      Duplicate result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("duplicate query");
+
+        assertThat(result.resultCount()).isEqualTo(1);
+        assertThat(result.sourceUrls()).containsExactly("https://dup.example/news?id=1");
+        assertThat(result.markdown()).contains("回答中如使用搜索信息，请用 [1] 这样的编号引用来源。");
+    }
+
+    @Test
     void searchWebCapsTavilyTimeoutToKeepFallbackResponsive() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

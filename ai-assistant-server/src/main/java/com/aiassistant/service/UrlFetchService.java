@@ -501,12 +501,14 @@ public class UrlFetchService {
             StringBuilder sb = newSearchMarkdown("Tavily", query);
             int index = 1;
             List<String> sourceUrls = new ArrayList<>();
+            Set<String> seenUrls = new LinkedHashSet<>();
             for (JsonNode item : results) {
                 String title = item.path("title").asText("");
                 String url = item.path("url").asText("");
                 String content = item.path("content").asText("");
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
+                if (!seenUrls.add(url)) continue;
                 sourceUrls.add(url);
                 sb.append('\n').append(index++).append(". ").append(title).append('\n');
                 sb.append("   URL: ").append(url).append('\n');
@@ -530,6 +532,7 @@ public class UrlFetchService {
         sb.append("来源：").append(provider).append('\n');
         sb.append("检索时间：").append(Instant.now()).append('\n');
         sb.append("查询：").append(query.trim()).append('\n');
+        sb.append("引用要求：回答中如使用搜索信息，请用 [1] 这样的编号引用来源。\n");
         return sb;
     }
 
@@ -540,11 +543,13 @@ public class UrlFetchService {
             snippets.add(stripTags(sm.group(1)).trim());
         }
         List<SearchHit> hits = new ArrayList<>();
+        Set<String> seenUrls = new LinkedHashSet<>();
         Matcher lm = DDG_RESULT_LINK.matcher(html);
         while (lm.find() && hits.size() < limit) {
             String url = normalizeDuckDuckGoUrl(stripTags(lm.group(1)).trim());
             String title = stripTags(lm.group(2)).trim();
             if (url.isBlank() || title.isBlank()) continue;
+            if (!seenUrls.add(url)) continue;
             String snippet = hits.size() < snippets.size() ? snippets.get(hits.size()) : "";
             hits.add(new SearchHit(title, url, snippet));
         }
