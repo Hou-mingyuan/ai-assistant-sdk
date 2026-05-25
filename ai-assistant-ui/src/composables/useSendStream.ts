@@ -469,18 +469,33 @@ export function useSendStream(deps: UseSendStreamDeps) {
     }
   }
 
-  function applyChatModePayloadOptions(payload: ChatPayload, hasImageAttachment: boolean) {
+  function isLowContextPrompt(text: string) {
+    const normalized = text.trim().replace(/\s+/g, '');
+    if (!normalized || normalized.length > 32) return false;
+    return !/(分析|总结|翻译|页面|截图|文件|代码|为什么|如何|怎么|列出|报告|搜索|联网|http|https)/i.test(
+      normalized,
+    );
+  }
+
+  function applyChatModePayloadOptions(
+    payload: ChatPayload,
+    hasImageAttachment: boolean,
+    text: string,
+  ) {
     applySelectedModel(payload, hasImageAttachment);
     if (deps.mode.value !== 'chat') return;
     const memFrag = deps.memoryPromptFragment?.value ?? '';
     const sp = deps.chatSystemPrompt.value.trim();
     const combinedSp = [memFrag, sp].filter(Boolean).join('\n');
     if (combinedSp) payload.systemPrompt = combinedSp;
-    if (deps.messages.value.length > 1) {
-      payload.history = deps.messages.value.slice(0, -1).map((m) => ({
-        role: m.role,
-        content: m.contentArchive ?? m.content,
-      }));
+    if (deps.messages.value.length > 1 && !isLowContextPrompt(text)) {
+      payload.history = deps.messages.value
+        .slice(0, -1)
+        .slice(-12)
+        .map((m) => ({
+          role: m.role,
+          content: m.contentArchive ?? m.content,
+        }));
     }
   }
 
@@ -497,6 +512,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
   ) {
     const pageContextEnabled = deps.pageContextEnabled?.value ?? true;
     if (!pageContextEnabled) return;
+    if (!hasImageInput && isLowContextPrompt(text)) return;
     const minChars = deps.options.pageContextMinUserChars ?? 0;
     if (text.length < minChars) return;
     let ctx = '';
@@ -617,7 +633,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
       payload.imageData = imageDataListForPayload[0];
       payload.imageDataList = imageDataListForPayload;
     }
-    applyChatModePayloadOptions(payload, imageDataListForPayload.length > 0);
+    applyChatModePayloadOptions(payload, imageDataListForPayload.length > 0, text);
     applyPageContextPayloadOptions(payload, text, imageDataListForPayload.length > 0);
 
     const sid = deps.activeSessionId.value;
