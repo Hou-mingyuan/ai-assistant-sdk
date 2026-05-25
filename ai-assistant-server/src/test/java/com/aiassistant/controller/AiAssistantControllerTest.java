@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import reactor.core.publisher.Flux;
 
 class AiAssistantControllerTest {
@@ -310,6 +311,38 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void stream_returnsWebSearchSourcePreviewHeader() {
+        when(urlFetchService.searchWeb("current news"))
+                .thenReturn(
+                        new UrlFetchService.WebSearchResult(
+                                "# 联网搜索结果\n来源：Tavily\n1. Result",
+                                "Tavily",
+                                false,
+                                1,
+                                Instant.parse("2026-05-25T04:00:00Z"),
+                                java.util.List.of("https://example.com/a"),
+                                java.util.List.of(
+                                        new UrlFetchService.SearchSource(
+                                                "Official docs",
+                                                "https://example.com/a",
+                                                "Preview summary",
+                                                95,
+                                                "docs"))));
+        when(llmService.chatStream(anyString(), any(), any(), any(), any(List.class), any(), any()))
+                .thenReturn(Flux.just("chunk"));
+        ChatRequest req = new ChatRequest();
+        req.setText("current news");
+        req.setAction("chat");
+        req.setWebSearch(true);
+
+        var response = controller.stream(req);
+
+        assertTrue(response.getHeaders().getFirst("X-AI-Web-Search-Source-Previews").contains("Official"));
+        assertTrue(response.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS)
+                .contains("X-AI-Web-Search-Source-Previews"));
+    }
+
+    @Test
     void stream_reportsWebSearchAttemptEvenWhenNoResultsAreFound() {
         when(urlFetchService.searchWeb("rare topic"))
                 .thenReturn(
@@ -403,12 +436,15 @@ class AiAssistantControllerTest {
         props.getUrlFetch().setWebSearchProvider("tavily");
         props.getUrlFetch().setWebSearchApiKey("tvly-test");
         props.getUrlFetch().setWebSearchMaxResults(7);
+        when(urlFetchService.webSearchStats())
+                .thenReturn(java.util.Map.of("attempts", 3L, "successes", 2L, "fallbacks", 1L));
 
         var result = controller.health(false);
 
         assertEquals("tavily", result.get("webSearchProvider"));
         assertEquals(true, result.get("webSearchStableProviderConfigured"));
         assertEquals(7, result.get("webSearchMaxResults"));
+        assertEquals(java.util.Map.of("attempts", 3L, "successes", 2L, "fallbacks", 1L), result.get("webSearchStats"));
     }
 
     @Test

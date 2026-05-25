@@ -332,6 +332,36 @@ class UrlFetchServiceWebSearchTest {
     }
 
     @Test
+    void searchWebRedactsSecretLikeSnippetsAndTracksStats() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">token=sk-secret should not leak</a>
+                                    <a class="result__a" href="https://docs.example.com/secret">
+                                      Secret handling
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+
+        UrlFetchService service = new UrlFetchService(properties, httpClient, uri -> {});
+        UrlFetchService.WebSearchResult result = service.searchWeb("secret handling");
+
+        assertThat(result.markdown()).doesNotContain("sk-secret").contains("[redacted]");
+        assertThat(result.sources().get(0).snippet()).doesNotContain("sk-secret");
+        assertThat(service.webSearchStats())
+                .containsEntry("attempts", 1L)
+                .containsEntry("successes", 1L);
+    }
+
+    @Test
     void searchWebCapsTavilyTimeoutToKeepFallbackResponsive() {
         RecordingHttpClient httpClient =
                 new RecordingHttpClient()

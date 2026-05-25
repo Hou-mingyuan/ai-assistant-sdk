@@ -267,6 +267,32 @@ describe('MessageList web search sources', () => {
     ]);
   });
 
+  it('renders web search source preview cards with quality labels', () => {
+    const wrapper = mountList([
+      {
+        role: 'assistant',
+        content: 'fresh answer [1]',
+        meta: {
+          webSearchEnabled: true,
+          webSearchSourcePreviews: [
+            {
+              title: 'Official docs',
+              url: 'https://example.com/a',
+              snippet: 'Preview summary',
+              qualityLabel: 'docs',
+            },
+          ],
+        },
+      },
+    ]);
+
+    const cards = wrapper.find('.ai-web-search-preview-cards');
+    expect(cards.exists()).toBe(true);
+    expect(cards.text()).toContain('Official docs');
+    expect(cards.text()).toContain('docs');
+    expect(cards.find('a').attributes('href')).toBe('https://example.com/a');
+  });
+
   it('warns when a searched answer does not cite available source numbers', () => {
     const wrapper = mountList([
       {

@@ -35,7 +35,16 @@ export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'] & {
   webSearchDurationMs?: number;
   webSearchStableDurationMs?: number;
   webSearchFallbackDurationMs?: number;
+  webSearchSourcePreviews?: WebSearchSourcePreview[];
 };
+
+export interface WebSearchSourcePreview {
+  title?: string;
+  url?: string;
+  snippet?: string;
+  qualityScore?: number;
+  qualityLabel?: string;
+}
 
 export type RuntimeModelConfigResult = ApiSchemas['RuntimeModelConfigResult'] & {
   webSearchProvider?: string;
@@ -56,6 +65,14 @@ export interface HealthResult {
   webSearchProvider?: string;
   webSearchStableProviderConfigured?: boolean;
   webSearchMaxResults?: number;
+  webSearchStats?: {
+    attempts?: number;
+    successes?: number;
+    fallbacks?: number;
+    noResults?: number;
+    providerFailures?: number;
+    averageDurationMs?: number;
+  };
 }
 
 export type ExportRequestPayload = JsonRequestBody<'/export', 'post'>;
@@ -121,6 +138,7 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   const webSearchDurationMsRaw = headers.get('X-AI-Web-Search-Duration-Ms');
   const webSearchStableDurationMsRaw = headers.get('X-AI-Web-Search-Stable-Duration-Ms');
   const webSearchFallbackDurationMsRaw = headers.get('X-AI-Web-Search-Fallback-Duration-Ms');
+  const webSearchSourcePreviewsRaw = headers.get('X-AI-Web-Search-Source-Previews');
   const meta: ChatRuntimeMeta = {
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
@@ -142,6 +160,7 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
     webSearchDurationMs: parseOptionalNumber(webSearchDurationMsRaw),
     webSearchStableDurationMs: parseOptionalNumber(webSearchStableDurationMsRaw),
     webSearchFallbackDurationMs: parseOptionalNumber(webSearchFallbackDurationMsRaw),
+    webSearchSourcePreviews: parseWebSearchSourcePreviews(webSearchSourcePreviewsRaw),
   };
   return Object.values(meta).some((value) => value !== undefined) ? meta : undefined;
 }
@@ -150,6 +169,28 @@ function parseOptionalNumber(raw?: string | null): number | undefined {
   if (!raw) return undefined;
   const value = Number(raw);
   return Number.isFinite(value) ? value : undefined;
+}
+
+function parseWebSearchSourcePreviews(raw?: string | null): WebSearchSourcePreview[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const decoded = decodeURIComponent(raw);
+    const parsed = JSON.parse(decoded);
+    if (!Array.isArray(parsed)) return undefined;
+    const previews = parsed
+      .filter((item): item is Record<string, unknown> => item != null && typeof item === 'object')
+      .map((item) => ({
+        title: typeof item.title === 'string' ? item.title : undefined,
+        url: typeof item.url === 'string' ? item.url : undefined,
+        snippet: typeof item.snippet === 'string' ? item.snippet : undefined,
+        qualityScore: typeof item.qualityScore === 'number' ? item.qualityScore : undefined,
+        qualityLabel: typeof item.qualityLabel === 'string' ? item.qualityLabel : undefined,
+      }))
+      .filter((item) => item.title || item.url || item.snippet);
+    return previews.length ? previews : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseEncodedHeaderList(raw?: string | null): string[] | undefined {

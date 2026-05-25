@@ -10,6 +10,7 @@ import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.stats.UsageStats;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,7 @@ public class AiAssistantController {
 
     private static final Logger log = LoggerFactory.getLogger(AiAssistantController.class);
     private static final int MAX_WEB_SEARCH_SOURCE_URL_HEADERS = 3;
+    private static final ObjectMapper HEADER_JSON = new ObjectMapper();
     private static final String VISION_PROBE_IMAGE =
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
 
@@ -216,6 +218,7 @@ public class AiAssistantController {
             meta.setWebSearchFallback(webSearch.fallback());
             meta.setWebSearchResultCount(webSearch.resultCount());
             meta.setWebSearchSourceUrls(webSearch.sourceUrls());
+            meta.setWebSearchSourcePreviews(webSearch.sources());
             meta.setWebSearchFailureReason(webSearch.failureReason());
             meta.setWebSearchDurationMs(webSearch.durationMs());
             meta.setWebSearchStableDurationMs(webSearch.stableProviderDurationMs());
@@ -263,6 +266,10 @@ public class AiAssistantController {
                     String.valueOf(meta.getWebSearchResultCount()));
             String encodedSourceUrls = encodeWebSearchSourceUrls(meta.getWebSearchSourceUrls());
             addHeader(headers, "X-AI-Web-Search-Source-Urls", encodedSourceUrls);
+            addHeader(
+                    headers,
+                    "X-AI-Web-Search-Source-Previews",
+                    encodeWebSearchSourcePreviews(meta.getWebSearchSourcePreviews()));
             addHeader(headers, "X-AI-Web-Search-Failure", meta.getWebSearchFailureReason());
             addNonNegativeLongHeader(
                     headers, "X-AI-Web-Search-Duration-Ms", meta.getWebSearchDurationMs());
@@ -277,7 +284,7 @@ public class AiAssistantController {
         }
         headers.add(
                 HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count, X-AI-Web-Search-Source-Urls, X-AI-Web-Search-Failure, X-AI-Web-Search-Duration-Ms, X-AI-Web-Search-Stable-Duration-Ms, X-AI-Web-Search-Fallback-Duration-Ms");
+                "X-AI-Requested-Model, X-AI-Effective-Model, X-AI-Provider, X-AI-Fallback, X-AI-Vision-Input-Count, X-AI-Vision-Route, X-AI-Web-Search, X-AI-Web-Search-Provider, X-AI-Web-Search-Fallback, X-AI-Web-Search-Result-Count, X-AI-Web-Search-Source-Urls, X-AI-Web-Search-Source-Previews, X-AI-Web-Search-Failure, X-AI-Web-Search-Duration-Ms, X-AI-Web-Search-Stable-Duration-Ms, X-AI-Web-Search-Fallback-Duration-Ms");
         return headers;
     }
 
@@ -290,6 +297,19 @@ public class AiAssistantController {
                 .limit(MAX_WEB_SEARCH_SOURCE_URL_HEADERS)
                 .map(url -> URLEncoder.encode(url, StandardCharsets.UTF_8))
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private static String encodeWebSearchSourcePreviews(
+            List<UrlFetchService.SearchSource> sources) {
+        if (sources == null || sources.isEmpty()) {
+            return null;
+        }
+        try {
+            String json = HEADER_JSON.writeValueAsString(sources.stream().limit(3).toList());
+            return URLEncoder.encode(json, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static void addHeader(HttpHeaders headers, String name, String value) {
@@ -326,6 +346,7 @@ public class AiAssistantController {
                 "tavily".equalsIgnoreCase(webSearchProvider)
                         && assistantProperties.getUrlFetch().getWebSearchApiKey() != null
                         && !assistantProperties.getUrlFetch().getWebSearchApiKey().isBlank());
+        result.put("webSearchStats", urlFetchService.webSearchStats());
         if (deep) {
             long now = System.currentTimeMillis();
             long prev = lastDeepHealthMs.get();

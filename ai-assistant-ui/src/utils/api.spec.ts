@@ -527,6 +527,16 @@ describe('streamChat', () => {
         'X-AI-Web-Search-Duration-Ms': '321',
         'X-AI-Web-Search-Stable-Duration-Ms': '120',
         'X-AI-Web-Search-Fallback-Duration-Ms': '201',
+        'X-AI-Web-Search-Source-Previews': encodeURIComponent(
+          JSON.stringify([
+            {
+              title: 'Official docs',
+              url: 'https://example.com/a',
+              snippet: 'Preview summary',
+              qualityLabel: 'docs',
+            },
+          ]),
+        ),
       }),
     );
 
@@ -558,6 +568,14 @@ describe('streamChat', () => {
       webSearchDurationMs: 321,
       webSearchStableDurationMs: 120,
       webSearchFallbackDurationMs: 201,
+      webSearchSourcePreviews: [
+        {
+          title: 'Official docs',
+          url: 'https://example.com/a',
+          snippet: 'Preview summary',
+          qualityLabel: 'docs',
+        },
+      ],
     });
   });
 

@@ -131,7 +131,11 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
       const provider = health.webSearchProvider || 'duckduckgo';
       const configured = health.webSearchStableProviderConfigured ? 'configured' : 'fallback';
       const max = health.webSearchMaxResults ?? 5;
-      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}`;
+      const stats = health.webSearchStats;
+      const statText = stats?.attempts
+        ? ` · ${stats.successes ?? 0}/${stats.attempts} ok · ${stats.averageDurationMs ?? 0}ms avg`
+        : '';
+      opts.webSearchDiagnosticsText.value = `${provider} · ${configured} · ${max}${statText}`;
     } catch {
       opts.webSearchDiagnosticsText.value = 'unavailable';
     }

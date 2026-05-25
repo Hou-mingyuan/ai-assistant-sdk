@@ -280,6 +280,28 @@
           </a>
         </div>
         <div
+          v-if="msg.role === 'assistant' && webSearchSourcePreviews(msg.meta).length > 0"
+          class="ai-web-search-preview-cards"
+        >
+          <a
+            v-for="(source, sourceIdx) in webSearchSourcePreviews(msg.meta)"
+            :key="`${displayOffset + renderedStart + idx}-source-preview-${sourceIdx}`"
+            class="ai-web-search-preview-card"
+            :href="source.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            @click.stop
+          >
+            <span class="ai-web-search-preview-title">{{ source.title || source.url }}</span>
+            <span v-if="source.qualityLabel" class="ai-web-search-preview-quality">
+              {{ source.qualityLabel }}
+            </span>
+            <span v-if="source.snippet" class="ai-web-search-preview-snippet">
+              {{ source.snippet }}
+            </span>
+          </a>
+        </div>
+        <div
           v-if="msg.role === 'assistant' && webSearchCitationWarning(msg)"
           class="ai-web-search-citation-warning"
           role="note"
@@ -629,10 +651,20 @@ function webSearchSourceUrls(meta: Message['meta']) {
   return (meta?.webSearchSourceUrls || []).filter((url) => typeof url === 'string' && url.trim());
 }
 
+function webSearchSourcePreviews(meta: Message['meta']) {
+  return (meta?.webSearchSourcePreviews || []).filter(
+    (source) => source && (source.title || source.url || source.snippet),
+  );
+}
+
 function webSearchCitationWarning(msg: Message) {
   const meta = msg.meta;
   if (!meta?.webSearchEnabled) return '';
-  const sourceCount = webSearchSourceUrls(meta).length || meta.webSearchResultCount || 0;
+  const sourceCount =
+    webSearchSourceUrls(meta).length ||
+    webSearchSourcePreviews(meta).length ||
+    meta.webSearchResultCount ||
+    0;
   if (sourceCount <= 0) return '';
   const refs = Array.from(msg.content.matchAll(/\[(\d+)\]/g)).map((match) => Number(match[1]));
   if (refs.length === 0) return 'Citation check: no source number cited.';
@@ -652,6 +684,7 @@ function hasSecondaryMeta(meta: Message['meta']): boolean {
     typeof meta.webSearchDurationMs === 'number' ||
     typeof meta.webSearchStableDurationMs === 'number' ||
     typeof meta.webSearchFallbackDurationMs === 'number' ||
+    webSearchSourcePreviews(meta).length > 0 ||
     webSearchSourceUrls(meta).length > 0
   );
 }

@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -176,6 +177,12 @@ public class UrlFetchService {
     private final SsrfPolicy ssrfPolicy;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, SearchCacheEntry> searchCache = new ConcurrentHashMap<>();
+    private final AtomicLong webSearchAttempts = new AtomicLong();
+    private final AtomicLong webSearchSuccesses = new AtomicLong();
+    private final AtomicLong webSearchFallbacks = new AtomicLong();
+    private final AtomicLong webSearchNoResults = new AtomicLong();
+    private final AtomicLong webSearchProviderFailures = new AtomicLong();
+    private final AtomicLong webSearchTotalDurationMs = new AtomicLong();
     private volatile HeadlessFetcher headlessFetchService;
 
     public UrlFetchService(AiAssistantProperties properties) {
@@ -394,6 +401,7 @@ public class UrlFetchService {
                 tavily =
                         tavily.withTimings(
                                 elapsedMs(started), stableDurationMs, fallbackDurationMs);
+                recordWebSearchStats(tavily);
                 putCachedSearch(cacheKey, tavily);
                 return tavily;
             }
@@ -402,6 +410,7 @@ public class UrlFetchService {
         result = searchDuckDuckGo(normalizedQuery, stableProviderAttempted);
         fallbackDurationMs = elapsedMs(fallbackStarted);
         result = result.withTimings(elapsedMs(started), stableDurationMs, fallbackDurationMs);
+        recordWebSearchStats(result);
         putCachedSearch(cacheKey, result);
         return result;
     }
@@ -520,6 +529,7 @@ public class UrlFetchService {
                 String title = item.path("title").asText("");
                 String url = item.path("url").asText("");
                 String content = item.path("content").asText("");
+                content = safeSearchSnippet(content);
                 String publishedDate = item.path("published_date").asText("");
                 if (!hasText(title) || !hasText(url)) continue;
                 if (!seenUrls.add(url)) continue;
@@ -573,7 +583,7 @@ public class UrlFetchService {
             String title = stripTags(lm.group(2)).trim();
             if (url.isBlank() || title.isBlank()) continue;
             if (!seenUrls.add(url)) continue;
-            String snippet = hits.size() < snippets.size() ? snippets.get(hits.size()) : "";
+            String snippet = hits.size() < snippets.size() ? safeSearchSnippet(snippets.get(hits.size())) : "";
             SearchQuality quality = scoreSearchSource(title, url, snippet);
             hits.add(new SearchHit(title, url, snippet, quality.score(), quality.label()));
         }
@@ -600,6 +610,50 @@ public class UrlFetchService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    public Map<String, Object> webSearchStats() {
+        long attempts = webSearchAttempts.get();
+        long totalMs = webSearchTotalDurationMs.get();
+        return Map.of(
+                "attempts", attempts,
+                "successes", webSearchSuccesses.get(),
+                "fallbacks", webSearchFallbacks.get(),
+                "noResults", webSearchNoResults.get(),
+                "providerFailures", webSearchProviderFailures.get(),
+                "averageDurationMs", attempts == 0 ? 0 : totalMs / attempts);
+    }
+
+    private void recordWebSearchStats(WebSearchResult result) {
+        if (result == null || !result.hasAttempt()) {
+            return;
+        }
+        webSearchAttempts.incrementAndGet();
+        if (result.hasResults()) {
+            webSearchSuccesses.incrementAndGet();
+        }
+        if (result.fallback()) {
+            webSearchFallbacks.incrementAndGet();
+        }
+        if ("no_results".equals(result.failureReason())) {
+            webSearchNoResults.incrementAndGet();
+        } else if ("provider_failed".equals(result.failureReason())) {
+            webSearchProviderFailures.incrementAndGet();
+        }
+        if (result.durationMs() >= 0) {
+            webSearchTotalDurationMs.addAndGet(result.durationMs());
+        }
+    }
+
+    private static String safeSearchSnippet(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String redacted =
+                raw.replaceAll(
+                        "(?i)(api[_-]?key|token|secret|password)\\s*[:=]\\s*[^\\s,;]+",
+                        "$1=[redacted]");
+        return redacted.length() > 240 ? redacted.substring(0, 240).trim() + "…" : redacted;
     }
 
     private static long elapsedMs(long startedNanos) {

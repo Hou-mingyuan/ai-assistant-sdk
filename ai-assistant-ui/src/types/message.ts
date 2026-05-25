@@ -83,6 +83,13 @@ export interface Message {
     webSearchFallback?: boolean;
     webSearchResultCount?: number;
     webSearchSourceUrls?: string[];
+    webSearchSourcePreviews?: {
+      title?: string;
+      url?: string;
+      snippet?: string;
+      qualityScore?: number;
+      qualityLabel?: string;
+    }[];
     webSearchFailureReason?: string;
     webSearchDurationMs?: number;
     webSearchStableDurationMs?: number;
