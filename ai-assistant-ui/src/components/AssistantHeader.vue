@@ -3,6 +3,7 @@
     class="ai-header"
     :class="{ 'ai-header-dragging': panelDragging }"
     @pointerdown="emit('pointerdown-header', $event)"
+    @dblclick="onHeaderDblclick"
   >
     <span :id="`${uid}-title`" class="ai-title" :title="t.title">
       {{ t.title }}
@@ -28,6 +29,43 @@
         >
           <path d="M12 5v14" />
           <path d="M5 12h14" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        class="ai-panel-expand"
+        :class="{ 'ai-panel-expand-active': panelExpanded }"
+        :title="panelExpanded ? t.shrinkPanel : t.expandPanel"
+        :aria-label="panelExpanded ? t.shrinkPanel : t.expandPanel"
+        :aria-pressed="panelExpanded ? 'true' : 'false'"
+        @click.stop="emit('toggle-panel-expand')"
+      >
+        <svg
+          v-if="!panelExpanded"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="5" y="5" width="14" height="14" rx="2.5" />
+        </svg>
+        <svg
+          v-else
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="4" y="9" width="11" height="11" rx="2.25" />
+          <rect x="9" y="4" width="11" height="11" rx="2.25" />
         </svg>
       </button>
       <div class="ai-header-settings-wrap">
@@ -67,45 +105,6 @@
         >
           <div class="ai-header-settings-section" role="group" :aria-label="commonSectionLabel">
             <div class="ai-header-settings-section-title">{{ commonSectionLabel }}</div>
-            <button
-              type="button"
-              role="menuitem"
-              class="ai-header-settings-item ai-header-panel-toggle"
-              :aria-pressed="panelExpanded ? 'true' : 'false'"
-              @click="
-                settingsMenuOpen = false;
-                emit('toggle-panel-expand');
-              "
-            >
-              <svg
-                v-if="!panelExpanded"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="5" y="5" width="14" height="14" rx="2.5" />
-              </svg>
-              <svg
-                v-else
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="4" y="9" width="11" height="11" rx="2.25" />
-                <rect x="9" y="4" width="11" height="11" rx="2.25" />
-              </svg>
-              <span>{{ panelExpanded ? t.shrinkPanel : t.expandPanel }}</span>
-            </button>
             <button
               v-if="mode === 'chat' && showSystemPromptUi"
               type="button"
@@ -415,6 +414,12 @@ function onClickOutsideSettings(event: MouseEvent) {
   const t = event.target as HTMLElement | null;
   if (t && t.closest('.ai-header-settings-wrap')) return;
   settingsMenuOpen.value = false;
+}
+
+function onHeaderDblclick(event: MouseEvent) {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest('button, a, input, textarea, select, [role="menuitem"]')) return;
+  emit('toggle-panel-expand');
 }
 
 function getSettingsMenuItems() {

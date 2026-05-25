@@ -1099,7 +1099,7 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer,
 .ai-assistant-wrapper [class*='ai-footer'] {
   background: var(--ai-color-bg-canvas) !important;
-  border-top: 1px solid var(--ai-color-divider) !important;
+  border-top: 0 !important;
   padding: var(--ai-space-3) !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea {
@@ -5648,6 +5648,13 @@
   border-radius: 20px !important;
 }
 
+/* Round 32 — remove the composer card edge so the input area blends into the panel. */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row {
   gap: 2px !important;
   padding: 0 2px 2px !important;
@@ -6137,4 +6144,261 @@
   .ai-empty-task-panel
   .ai-empty-capabilities {
   margin-top: 0 !important;
+}
+
+/* Round 34 - keep key window controls directly reachable ---------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  border: 1px solid rgba(91, 108, 255, 0.08) !important;
+  border-radius: 12px !important;
+  background: rgba(248, 250, 255, 0.72) !important;
+  color: #667085 !important;
+  box-shadow: none !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand-active {
+  background: rgba(91, 108, 255, 0.09) !important;
+  color: #4f46e5 !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: #a7b0c6 !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-panel-expand-active {
+  background: rgba(168, 139, 250, 0.12) !important;
+  color: #c4b5fd !important;
+}
+
+/* Round 35 - calmer response typography and safer content wrapping ------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user {
+  font-size: 12.5px !important;
+  line-height: 1.58 !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant {
+  max-width: min(100%, 78ch) !important;
+  padding: 9px 12px !important;
+}
+
+.ai-assistant-wrapper.panel-expanded.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-msg-assistant
+  .ai-bubble,
+.ai-assistant-wrapper.panel-expanded.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-bubble-assistant {
+  max-width: min(78ch, calc(100% - 52px)) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user {
+  max-width: min(72%, 56ch) !important;
+  padding: 8px 11px !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble p {
+  margin: 0 0 0.56em;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h1,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h2,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h3,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h4 {
+  margin: 0.72em 0 0.36em;
+  color: #1f2433;
+  font-weight: 750;
+  line-height: 1.32;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h1 {
+  font-size: 15px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h2 {
+  font-size: 14px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h3,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h4 {
+  font-size: 13px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble ul,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble ol {
+  margin: 0.34em 0 0.62em;
+  padding-left: 1.18em;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble li {
+  margin: 0.16em 0;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble th,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble td {
+  padding: 7px 9px;
+  font-size: 12px;
+  line-height: 1.46;
+  white-space: normal;
+  vertical-align: top;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble pre {
+  max-width: 100%;
+  padding: 10px 12px !important;
+  overflow-x: auto;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble a {
+  overflow-wrap: anywhere;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea {
+  font-size: 12.5px !important;
+  line-height: 20px !important;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h1,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h2,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h3,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h4 {
+  color: #e3e6f1;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
+  font-size: 12.5px !important;
+  line-height: 1.58 !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble {
+  max-width: min(100%, 78ch) !important;
+  padding: 9px 12px !important;
+}
+
+.ai-assistant-wrapper.panel-expanded.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-msg.assistant
+  .ai-bubble {
+  max-width: min(78ch, calc(100% - 52px)) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
+  max-width: min(72%, 56ch) !important;
+  padding: 8px 11px !important;
+}
+
+/* Round 36 - adaptive reading scale for compact vs fullscreen panels ----- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper {
+  --ai-response-font-size: clamp(12.25px, calc(11px + 0.35cqw), 13.35px);
+  --ai-response-line-height: 1.58;
+  --ai-response-code-size: clamp(11.75px, calc(10.75px + 0.28cqw), 12.6px);
+  --ai-response-heading-1: clamp(15px, calc(13px + 0.55cqw), 16.5px);
+  --ai-response-heading-2: clamp(14px, calc(12.4px + 0.46cqw), 15.4px);
+  --ai-response-heading-3: clamp(13px, calc(11.8px + 0.36cqw), 14.2px);
+  --ai-response-pad-y: 8px;
+  --ai-response-pad-x: 11px;
+  --ai-response-width: min(100%, 78ch);
+}
+
+.ai-assistant-wrapper.panel-expanded.ai-assistant-wrapper.ai-assistant-wrapper {
+  --ai-response-font-size: clamp(13.25px, calc(11.8px + 0.25cqw), 14px);
+  --ai-response-line-height: 1.64;
+  --ai-response-code-size: clamp(12.25px, calc(11.2px + 0.2cqw), 13px);
+  --ai-response-heading-1: clamp(16px, calc(13.8px + 0.42cqw), 18px);
+  --ai-response-heading-2: clamp(14.5px, calc(12.9px + 0.34cqw), 16px);
+  --ai-response-heading-3: clamp(13.5px, calc(12.1px + 0.28cqw), 15px);
+  --ai-response-pad-y: 10px;
+  --ai-response-pad-x: 13px;
+  --ai-response-width: min(82ch, calc(100% - 52px));
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-user .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-user {
+  font-size: var(--ai-response-font-size) !important;
+  line-height: var(--ai-response-line-height) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-bubble,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble-assistant {
+  max-width: var(--ai-response-width) !important;
+  padding: var(--ai-response-pad-y) var(--ai-response-pad-x) !important;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h1 {
+  font-size: var(--ai-response-heading-1);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h2 {
+  font-size: var(--ai-response-heading-2);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h3,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble h4 {
+  font-size: var(--ai-response-heading-3);
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble pre,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble th,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble td {
+  font-size: var(--ai-response-code-size) !important;
+}
+
+.ai-assistant-wrapper.panel-expanded.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-textarea {
+  font-size: 13.5px !important;
+  line-height: 21px !important;
+}
+
+/* Round 37 - upload status should explain what is happening -------------- */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-progress {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  color: #4f46e5;
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  opacity: 0.28;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-progress-label {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-upload-progress {
+  background: rgba(168, 139, 250, 0.1);
+  color: #c4b5fd;
 }

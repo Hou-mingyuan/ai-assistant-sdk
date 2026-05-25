@@ -8,6 +8,7 @@ export interface UseAssistantKeyboardOptions {
   panelRef: Ref<HTMLElement | undefined>;
   wrapperRef: Ref<HTMLElement | undefined>;
   isOpen: Ref<boolean>;
+  panelExpanded: Ref<boolean>;
   fabHidden: Ref<boolean>;
   mode: Ref<'translate' | 'summarize' | 'chat'>;
   keyboardHelpOpen: Ref<boolean>;
@@ -157,6 +158,11 @@ export function useAssistantKeyboard(opts: UseAssistantKeyboardOptions) {
     }
     if (document.querySelector('.ai-header-settings-menu')) {
       e.preventDefault();
+      return;
+    }
+    if (opts.isOpen.value && opts.panelExpanded.value) {
+      e.preventDefault();
+      opts.panelExpanded.value = false;
       return;
     }
     if (opts.isOpen.value) {

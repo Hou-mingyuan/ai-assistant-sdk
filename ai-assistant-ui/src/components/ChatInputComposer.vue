@@ -257,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { SlashCommand } from '../composables/useSlashCommands';
 import type { I18nMessages } from '../utils/i18n';
 
@@ -308,7 +308,10 @@ const recallActive = ref(false);
 const chatImageInputRef = ref<HTMLInputElement>();
 const textareaRef = ref<HTMLTextAreaElement>();
 const COMPOSER_MIN_HEIGHT = 34;
-const COMPOSER_MAX_HEIGHT = 78;
+const COMPOSER_MAX_HEIGHT_COMPACT = 78;
+const COMPOSER_MAX_HEIGHT_WIDE = 126;
+const COMPOSER_MAX_HEIGHT_EXPANDED = 150;
+let textareaResizeObserver: ResizeObserver | null = null;
 
 const sendDisabled = computed(
   () => !props.modelValue.trim() || props.loading || !!props.sendBlockedReason,
@@ -390,9 +393,32 @@ function syncTextareaHeight(el = textareaRef.value) {
   el.style.height =
     Math.min(
       Math.max(el.scrollHeight || COMPOSER_MIN_HEIGHT, COMPOSER_MIN_HEIGHT),
-      COMPOSER_MAX_HEIGHT,
+      getComposerMaxHeight(el),
     ) + 'px';
 }
+
+function getComposerMaxHeight(el: HTMLTextAreaElement) {
+  const wrapper = el.closest('.ai-assistant-wrapper') as HTMLElement | null;
+  if (wrapper?.classList.contains('panel-expanded')) return COMPOSER_MAX_HEIGHT_EXPANDED;
+  const width = wrapper?.getBoundingClientRect().width ?? 480;
+  const widthBonus = Math.max(0, width - 480) * 0.14;
+  return Math.min(COMPOSER_MAX_HEIGHT_WIDE, COMPOSER_MAX_HEIGHT_COMPACT + widthBonus);
+}
+
+onMounted(() => {
+  void nextTick(() => {
+    syncTextareaHeight();
+    const wrapper = textareaRef.value?.closest('.ai-assistant-wrapper');
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    textareaResizeObserver = new ResizeObserver(() => syncTextareaHeight());
+    textareaResizeObserver.observe(wrapper);
+  });
+});
+
+onBeforeUnmount(() => {
+  textareaResizeObserver?.disconnect();
+  textareaResizeObserver = null;
+});
 
 watch(
   () => props.modelValue,

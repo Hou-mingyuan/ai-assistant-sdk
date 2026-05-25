@@ -52,13 +52,19 @@ function mountHeader(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 describe('AssistantHeader action hierarchy', () => {
-  it('keeps only primary controls in the header and moves panel expand into the menu', async () => {
+  it('keeps fullscreen as a direct header control', async () => {
     const wrapper = mountHeader();
 
     expect(wrapper.find('.ai-new-session').exists()).toBe(true);
+    expect(wrapper.find('.ai-panel-expand').exists()).toBe(true);
     expect(wrapper.find('.ai-header-settings').exists()).toBe(true);
     expect(wrapper.find('.ai-close').exists()).toBe(true);
-    expect(wrapper.find('.ai-expand').exists()).toBe(false);
+
+    await wrapper.find('.ai-panel-expand').trigger('click');
+    expect(wrapper.emitted('toggle-panel-expand')).toBeTruthy();
+
+    await wrapper.find('.ai-title').trigger('dblclick');
+    expect(wrapper.emitted('toggle-panel-expand')).toHaveLength(2);
 
     await wrapper.find('.ai-header-settings').trigger('click');
     await wrapper.vm.$nextTick();
@@ -67,10 +73,7 @@ describe('AssistantHeader action hierarchy', () => {
     expect(menuText).toContain('Common');
     expect(menuText).toContain('Export');
     expect(menuText).toContain('Manage');
-    expect(menuText).toContain('Fullscreen');
-
-    await wrapper.find('.ai-header-panel-toggle').trigger('click');
-    expect(wrapper.emitted('toggle-panel-expand')).toBeTruthy();
+    expect(menuText).not.toContain('Fullscreen');
 
     wrapper.unmount();
   });

@@ -179,6 +179,7 @@
             aria-label="Uploading"
           >
             <div class="ai-upload-progress-bar"></div>
+            <span class="ai-upload-progress-label">{{ t.uploadFile }} · {{ t.replying }}</span>
           </div>
           <!-- Refactor (T1)：空状态抽到 ChatEmptyState.vue + useEmptyStateContent composable -->
           <ChatEmptyState
@@ -2795,6 +2796,7 @@ const { trapFocus, onEscKeydown } = useAssistantKeyboard({
   panelRef,
   wrapperRef,
   isOpen,
+  panelExpanded,
   fabHidden,
   mode,
   keyboardHelpOpen,
