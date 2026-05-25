@@ -58,7 +58,7 @@
       </button>
     </div>
     <div class="ai-context-center" role="status" aria-live="polite">
-      <span class="ai-context-center-title">{{ t.pageContextOn || 'Context' }}</span>
+      <span class="ai-context-center-title">状态</span>
       <span class="ai-context-chip">{{ contextModeLabel }}</span>
       <span class="ai-context-chip">{{ contextModelLabel }}</span>
       <button
