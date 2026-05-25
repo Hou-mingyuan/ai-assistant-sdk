@@ -173,6 +173,7 @@ public class UrlFetchService {
     private final HttpClient httpClient;
     private final SsrfPolicy ssrfPolicy;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, SearchCacheEntry> searchCache = new ConcurrentHashMap<>();
     private volatile HeadlessFetcher headlessFetchService;
 
     public UrlFetchService(AiAssistantProperties properties) {
@@ -360,6 +361,7 @@ public class UrlFetchService {
         if (query == null || query.isBlank()) {
             return WebSearchResult.empty();
         }
+        String normalizedQuery = query.trim();
         String provider =
                 properties.getUrlFetch().getWebSearchProvider() == null
                         ? "duckduckgo"
@@ -368,13 +370,24 @@ public class UrlFetchService {
                                 .getWebSearchProvider()
                                 .trim()
                                 .toLowerCase(Locale.ROOT);
+        String cacheKey = searchCacheKey(provider, normalizedQuery);
+        WebSearchResult cached = getCachedSearch(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
         boolean stableProviderAttempted =
                 "tavily".equals(provider) && hasText(properties.getUrlFetch().getWebSearchApiKey());
+        WebSearchResult result;
         if (stableProviderAttempted) {
-            WebSearchResult tavily = searchTavily(query);
-            if (tavily.hasResults()) return tavily;
+            WebSearchResult tavily = searchTavily(normalizedQuery);
+            if (tavily.hasResults()) {
+                putCachedSearch(cacheKey, tavily);
+                return tavily;
+            }
         }
-        return searchDuckDuckGo(query, stableProviderAttempted);
+        result = searchDuckDuckGo(normalizedQuery, stableProviderAttempted);
+        putCachedSearch(cacheKey, result);
+        return result;
     }
 
     private WebSearchResult searchDuckDuckGo(String query, boolean fallbackFromStableProvider) {
@@ -996,6 +1009,53 @@ public class UrlFetchService {
         fetchCache.put(uri.toString(), new CacheEntry(text, Instant.now().plusSeconds(ttl)));
     }
 
+    private String searchCacheKey(String provider, String query) {
+        return String.join(
+                "|",
+                provider == null ? "" : provider,
+                String.valueOf(properties.getUrlFetch().getWebSearchMaxResults()),
+                properties.getUrlFetch().getWebSearchEndpoint() == null
+                        ? ""
+                        : properties.getUrlFetch().getWebSearchEndpoint(),
+                query);
+    }
+
+    private WebSearchResult getCachedSearch(String key) {
+        int ttl = properties.getUrlFetchCacheTtlSeconds();
+        if (ttl <= 0) {
+            return null;
+        }
+        SearchCacheEntry entry = searchCache.get(key);
+        if (entry == null) {
+            return null;
+        }
+        if (Instant.now().isAfter(entry.expires())) {
+            searchCache.remove(key);
+            return null;
+        }
+        return entry.result();
+    }
+
+    private synchronized void putCachedSearch(String key, WebSearchResult result) {
+        int ttl = properties.getUrlFetchCacheTtlSeconds();
+        if (ttl <= 0 || result == null || !result.hasAttempt()) {
+            return;
+        }
+        int maxEntries = Math.max(4, properties.getUrlFetchCacheMaxEntries());
+        if (searchCache.size() >= maxEntries) {
+            Instant now = Instant.now();
+            searchCache.entrySet().removeIf(e -> now.isAfter(e.getValue().expires()));
+        }
+        if (searchCache.size() >= maxEntries) {
+            var it = searchCache.entrySet().iterator();
+            if (it.hasNext()) {
+                it.next();
+                it.remove();
+            }
+        }
+        searchCache.put(key, new SearchCacheEntry(result, Instant.now().plusSeconds(ttl)));
+    }
+
     private record SearchHit(String title, String url, String snippet) {}
 
     public record WebSearchResult(
@@ -1032,4 +1092,6 @@ public class UrlFetchService {
     }
 
     private record CacheEntry(String text, Instant expires) {}
+
+    private record SearchCacheEntry(WebSearchResult result, Instant expires) {}
 }

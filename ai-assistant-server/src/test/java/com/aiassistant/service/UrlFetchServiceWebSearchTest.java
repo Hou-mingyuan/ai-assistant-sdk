@@ -177,6 +177,35 @@ class UrlFetchServiceWebSearchTest {
         assertThat(result.markdown()).isEmpty();
     }
 
+    @Test
+    void searchWebReusesCachedResultForRepeatedQuery() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">Cached summary</a>
+                                    <a class="result__a" href="https://cached.example/news">
+                                      Cached result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(60);
+
+        UrlFetchService service = new UrlFetchService(properties, httpClient, uri -> {});
+        UrlFetchService.WebSearchResult first = service.searchWeb("repeat query");
+        UrlFetchService.WebSearchResult second = service.searchWeb("repeat query");
+
+        assertThat(second.markdown()).isEqualTo(first.markdown());
+        assertThat(second.sourceUrls()).containsExactly("https://cached.example/news");
+        assertThat(httpClient.requests()).hasSize(1);
+    }
+
     private static final class RecordingHttpClient extends HttpClient {
         private final Queue<ResponseSpec> responses = new ArrayDeque<>();
         private final List<HttpRequest> requests = new ArrayList<>();
