@@ -165,6 +165,7 @@ public class UrlFetchService {
     };
 
     private static final int MAX_REDIRECTS = 5;
+    private static final int WEB_SEARCH_QUERY_MAX_CHARS = 180;
     private static final ObjectMapper SEARCH_MAPPER = new ObjectMapper();
     private static final ExecutorService URL_FETCH_POOL =
             Executors.newVirtualThreadPerTaskExecutor();
@@ -361,7 +362,10 @@ public class UrlFetchService {
         if (query == null || query.isBlank()) {
             return WebSearchResult.empty();
         }
-        String normalizedQuery = query.trim();
+        String normalizedQuery = normalizeWebSearchQuery(query);
+        if (normalizedQuery.isBlank()) {
+            return WebSearchResult.empty();
+        }
         String provider =
                 properties.getUrlFetch().getWebSearchProvider() == null
                         ? "duckduckgo"
@@ -433,6 +437,17 @@ public class UrlFetchService {
             log.debug("Web search failed for query '{}': {}", query, e.getMessage());
             return WebSearchResult.emptyAttempt(provider, fallbackFromStableProvider);
         }
+    }
+
+    private String normalizeWebSearchQuery(String query) {
+        if (query == null) {
+            return "";
+        }
+        String normalized = query.trim().replaceAll("\\s+", " ");
+        if (normalized.length() <= WEB_SEARCH_QUERY_MAX_CHARS) {
+            return normalized;
+        }
+        return normalized.substring(0, WEB_SEARCH_QUERY_MAX_CHARS).trim();
     }
 
     private WebSearchResult searchTavily(String query) {

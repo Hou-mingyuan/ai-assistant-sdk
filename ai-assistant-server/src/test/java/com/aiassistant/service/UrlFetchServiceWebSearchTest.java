@@ -10,6 +10,7 @@ import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.ProxySelector;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
@@ -204,6 +205,40 @@ class UrlFetchServiceWebSearchTest {
         assertThat(second.markdown()).isEqualTo(first.markdown());
         assertThat(second.sourceUrls()).containsExactly("https://cached.example/news");
         assertThat(httpClient.requests()).hasSize(1);
+    }
+
+    @Test
+    void searchWebNormalizesOverlongQueryBeforeCallingProvider() {
+        RecordingHttpClient httpClient =
+                new RecordingHttpClient()
+                        .queueInputStream(
+                                200,
+                                """
+                                <html>
+                                  <body>
+                                    <a class="result__snippet">Normalized summary</a>
+                                    <a class="result__a" href="https://normalized.example/news">
+                                      Normalized result
+                                    </a>
+                                  </body>
+                                </html>
+                                """);
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.getUrlFetch().setWebSearchProvider("duckduckgo");
+        properties.getUrlFetch().setCacheTtlSeconds(0);
+        String longQuery =
+                ("LNG market update with many pasted details and repeated context ".repeat(8))
+                        + "TAIL_SHOULD_NOT_APPEAR";
+
+        UrlFetchService.WebSearchResult result =
+                new UrlFetchService(properties, httpClient, uri -> {}).searchWeb(longQuery);
+
+        String rawQuery = httpClient.requests().get(0).uri().getRawQuery();
+        String decodedQuery =
+                URLDecoder.decode(rawQuery.substring("q=".length()), StandardCharsets.UTF_8);
+        assertThat(decodedQuery.length()).isLessThanOrEqualTo(180);
+        assertThat(decodedQuery).doesNotContain("TAIL_SHOULD_NOT_APPEAR");
+        assertThat(result.markdown()).doesNotContain("TAIL_SHOULD_NOT_APPEAR");
     }
 
     private static final class RecordingHttpClient extends HttpClient {
