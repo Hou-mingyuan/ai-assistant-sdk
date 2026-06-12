@@ -1163,6 +1163,9 @@
           },
           "sessionId": {
             "type": "string"
+          },
+          "webSearch": {
+            "type": "boolean"
           }
         }
       },
@@ -1220,6 +1223,24 @@
           },
           "visionRoute": {
             "type": "string"
+          },
+          "webSearchEnabled": {
+            "type": "boolean"
+          },
+          "webSearchProvider": {
+            "type": "string"
+          },
+          "webSearchFallback": {
+            "type": "boolean"
+          },
+          "webSearchResultCount": {
+            "type": "integer"
+          },
+          "webSearchSourceUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

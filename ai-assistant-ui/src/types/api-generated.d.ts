@@ -1707,8 +1707,8 @@ export interface components {
             imageData?: string;
             imageDataList?: string[];
             pageContext?: string;
-            webSearch?: boolean;
             sessionId?: string;
+            webSearch?: boolean;
         };
         MessageItem: {
             /** @enum {string} */
