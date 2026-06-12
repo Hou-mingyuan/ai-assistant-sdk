@@ -65,10 +65,15 @@ export default defineConfig({
         emptyOutDir: !preserveDist,
         minify: 'terser',
         rollupOptions: {
-          external: ['html2canvas'],
+          /* `mermaid` is an OPTIONAL peer (see lib build below): keep it out of
+             the self-contained Web Component bundle as well. `ArtifactCanvas`
+             loads it via dynamic `import('mermaid')` only when the host provides
+             it; otherwise it falls back to showing the diagram source. Bundling
+             it here previously inflated the WC artifact by ~850 KB gzip. */
+          external: ['html2canvas', 'mermaid'],
           output: {
             exports: 'named',
-            globals: { html2canvas: 'html2canvas' },
+            globals: { html2canvas: 'html2canvas', mermaid: 'mermaid' },
           },
         },
       }
