@@ -213,8 +213,7 @@ public class RuntimeModelConfigService {
             setIntegerIfPresent(
                     persisted.getProperty("fastRouteMaxChars"), request::setFastRouteMaxChars);
             setIntegerIfPresent(
-                    persisted.getProperty("slowTtftThresholdMs"),
-                    request::setSlowTtftThresholdMs);
+                    persisted.getProperty("slowTtftThresholdMs"), request::setSlowTtftThresholdMs);
             setIntegerIfPresent(
                     persisted.getProperty("slowTotalThresholdMs"),
                     request::setSlowTotalThresholdMs);
