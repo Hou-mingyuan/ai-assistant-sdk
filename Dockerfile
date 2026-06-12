@@ -9,6 +9,9 @@ ARG http_proxy
 ARG https_proxy
 ARG no_proxy
 ARG MAVEN_OPTS
+# Extra Maven CLI args for the package step, e.g. MAVEN_ARGS=-Predis to build a Redis-capable
+# image for multi-replica deployments. Empty by default (footprint unchanged).
+ARG MAVEN_ARGS=""
 
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
@@ -20,6 +23,7 @@ ENV MAVEN_OPTS="${MAVEN_OPTS} -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wa
 
 COPY pom.xml pom.xml
 COPY ai-assistant-server/pom.xml ai-assistant-server/pom.xml
+COPY ai-assistant-observability-support/pom.xml ai-assistant-observability-support/pom.xml
 COPY ai-assistant-client/pom.xml ai-assistant-client/pom.xml
 COPY ai-assistant-service/pom.xml ai-assistant-service/pom.xml
 
@@ -32,11 +36,12 @@ RUN --mount=type=cache,target=/root/.m2 \
         dependency:go-offline || true
 
 COPY ai-assistant-server/src ai-assistant-server/src
+COPY ai-assistant-observability-support/src ai-assistant-observability-support/src
 COPY ai-assistant-client/src ai-assistant-client/src
 COPY ai-assistant-service/src ai-assistant-service/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -q -DskipTests \
+    mvn -q -DskipTests ${MAVEN_ARGS} \
         -Dspotless.check.skip=true \
         -Dcheckstyle.skip=true \
         -Djacoco.skip=true \

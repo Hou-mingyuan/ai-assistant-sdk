@@ -17,3 +17,8 @@
 !ai-assistant-service/pom.xml
 !ai-assistant-service/src/
 !ai-assistant-service/src/**
+
+!ai-assistant-observability-support/
+!ai-assistant-observability-support/pom.xml
+!ai-assistant-observability-support/src/
+!ai-assistant-observability-support/src/**

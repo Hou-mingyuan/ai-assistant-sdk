@@ -5,11 +5,17 @@ on:
     branches: [main]
     paths:
       - "helm/**"
+      - "Dockerfile"
+      - ".github/ci/**"
+      - "ai-assistant-service/pom.xml"
       - ".github/workflows/helm.yml"
   pull_request:
     branches: [main]
     paths:
       - "helm/**"
+      - "Dockerfile"
+      - ".github/ci/**"
+      - "ai-assistant-service/pom.xml"
       - ".github/workflows/helm.yml"
   workflow_dispatch:
 
@@ -46,3 +52,61 @@ jobs:
             --set ingress.enabled=true \
             --set autoscaling.enabled=true \
             --set secrets.apiKey=ci-placeholder
+
+      - name: Render with Redis wiring guard (exercises test hook + NOTES)
+        run: |
+          helm template ai-assistant helm/ai-assistant \
+            --set redis.enabled=true \
+            --set secrets.apiKey=ci-placeholder \
+            --set secrets.accessToken=ci-token
+
+  test:
+    name: helm test (real Redis wiring guard)
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+
+      - name: Build Redis-capable service image
+        run: |
+          docker build -t ai-assistant-service:redis-ci \
+            --build-arg MAVEN_ARGS=-Predis \
+            .
+
+      - name: Load image into kind
+        run: kind load docker-image ai-assistant-service:redis-ci --name chart-testing
+
+      - name: Deploy Redis
+        run: |
+          kubectl apply -f .github/ci/redis.yaml
+          kubectl rollout status deploy/redis --timeout=120s
+
+      - name: Install chart with Redis enabled
+        run: |
+          helm install ai-assistant helm/ai-assistant \
+            --set image.repository=ai-assistant-service \
+            --set image.tag=redis-ci \
+            --set image.pullPolicy=Never \
+            --set redis.enabled=true \
+            --set redis.host=redis \
+            --set redis.port=6379 \
+            --set secrets.apiKey=ci-placeholder \
+            --set secrets.accessToken=ci-token \
+            --wait --timeout 240s
+
+      - name: Run helm test (asserts distributed storage is actually wired)
+        run: helm test ai-assistant --logs
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get pods -A -o wide || true
+          kubectl describe pods -l app=ai-assistant || true
+          kubectl logs -l app=ai-assistant --tail=300 || true

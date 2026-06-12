@@ -32,6 +32,8 @@ const runLineEndings = args.has('--line-endings') || args.has('--all')
 /* K60: Starter 依赖足迹策略检查：防止 optional 能力退化为默认依赖 */
 const runDependencyFootprint =
   args.has('--dependency-footprint') || runReleaseChecks || args.has('--all')
+/* P1: CSS !important budget ratchet — freeze the override-layer debt increment */
+const runCssBudget = args.has('--css-budget') || runReleaseChecks || args.has('--all')
 const runSupportDependencyReport =
   args.has('--support-dependency-report') || runReleaseChecks || args.has('--all')
 /* K61: 包体归因报告：基于 bundle-size baseline 输出 main / wc / chunk 构成 */
@@ -266,6 +268,15 @@ if (runDependencyFootprint) {
   })
 }
 
+if (runCssBudget) {
+  checks.push({
+    name: 'css !important budget check',
+    command: process.execPath,
+    args: [path.join(root, 'scripts/css-budget-check.mjs')],
+    cwd: root,
+  })
+}
+
 if (runSupportDependencyReport) {
   checks.push({
     name: 'support dependency boundary report',
@@ -326,7 +337,8 @@ if (
   !runSupportDependencyReport &&
   !runBundleComposition &&
   !runScriptTests &&
-  !runOpenApiTypes
+  !runOpenApiTypes &&
+  !runCssBudget
 ) {
   console.log(
     'Tip: add --docs, --ui-test, --server-test, --playground-build, --e2e, --bundle, --coverage, --multi-replica, --prod-config, --ssrf, --line-endings, --dependency-footprint, --support-dependency-report, --bundle-composition, --script-test, --openapi-types, --openapi-refresh, --local-verify, --release-check-fast, --release-check-full, --release-check, or --all to run more checks.',

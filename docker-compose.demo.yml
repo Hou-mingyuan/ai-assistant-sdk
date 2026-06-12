@@ -1,0 +1,48 @@
+# 本地可点 demo：一个 compose 项目里跑两个容器，在 Docker Desktop 里显示为
+# 「ai-assistant-demo」分组，可整体启停。
+#   - ai-assistant : 后端 AI 服务（由根 Dockerfile 本地构建），仅在内部网络暴露 8080
+#   - web          : 前端 playground（nginx 托管静态产物），对外发布在 http://localhost:8081
+# 后端读取同目录 .env 里的 AI_ASSISTANT_API_KEY / PROVIDER / BASE_URL / MODEL，聊天可真用。
+name: ai-assistant-demo
+
+services:
+  ai-assistant:
+    image: ai-assistant-service:local
+    build:
+      # 从最新源码做多阶段 Maven 构建（根 Dockerfile 已补齐 observability 模块）
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${AI_ASSISTANT_IMAGE_VERSION:-1.0.1}
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-}
+      - AI_ASSISTANT_API_KEY=${AI_ASSISTANT_API_KEY:-}
+      - AI_ASSISTANT_PROVIDER=${AI_ASSISTANT_PROVIDER:-openai}
+      - AI_ASSISTANT_BASE_URL=${AI_ASSISTANT_BASE_URL:-}
+      - AI_ASSISTANT_MODEL=${AI_ASSISTANT_MODEL:-}
+      - AI_ASSISTANT_CONTEXT_PATH=/ai-assistant
+      - AI_ASSISTANT_ALLOWED_ORIGINS=*
+      - AI_ASSISTANT_RATE_LIMIT=60
+      - AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED=false
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- \"http://localhost:8080/ai-assistant/health\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    mem_limit: ${AI_ASSISTANT_MEMORY_LIMIT:-768m}
+    restart: unless-stopped
+
+  web:
+    image: ai-assistant-web:local
+    build:
+      context: ./ai-assistant-vue-playground
+    ports:
+      - "${AI_ASSISTANT_WEB_PORT:-3000}:80"
+    depends_on:
+      - ai-assistant
+    restart: unless-stopped

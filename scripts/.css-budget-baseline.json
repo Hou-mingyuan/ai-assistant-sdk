@@ -1,0 +1,22 @@
+{
+  "total": 1787,
+  "perFile": {
+    "00-enterprise-tokens.css": 0,
+    "00-fonts.css": 0,
+    "01-shell.css": 13,
+    "02-header-messages.css": 3,
+    "03-input-popups.css": 5,
+    "04-features.css": 6,
+    "05-overlays-resize.css": 6,
+    "06-page-feedback.css": 0,
+    "07-voice-thinking.css": 17,
+    "08-late-additions.css": 2,
+    "09-modern-overhaul.css": 433,
+    "10-polish-wave-6.css": 6,
+    "11-refinement-and-performance.css": 6,
+    "12-extreme-performance.css": 8,
+    "13-containment.css": 0,
+    "14-adaptive-effects.css": 9,
+    "99-enterprise-overhaul.css": 1273
+  }
+}

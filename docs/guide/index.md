@@ -78,6 +78,7 @@ Q1: 已有 Spring Boot 业务后端？
 | --- | --- |
 | 第一次接入 | [独立服务部署](./standalone-service) → [前端连接独立服务](./frontend-standalone) |
 | 想配置 K8s | [Kubernetes 指南](./kubernetes) |
+| 副本数 > 1 / 多副本上线 | [多副本上线 Runbook](./multi-replica-runbook) |
 | 准备上线 | [部署路径检查清单](./deployment-checklists) → [生产上线清单](./production-checklist) |
 
 无论哪条路径，前端组件能力可参考 [前端集成配方](./frontend-recipes)；联调遇到问题时查看 [排障手册](./troubleshooting)。
@@ -107,6 +108,7 @@ Q1: 已有 Spring Boot 业务后端？
 | Docker / Compose 独立服务 | [Standalone Service](./standalone-service) |
 | Starter 与独立服务部署选择 | [Deployment Checklists](./deployment-checklists) |
 | Kubernetes / Helm | [Kubernetes](./kubernetes) |
+| 多副本部署上线（Redis 接线 / 故障演练 / 回滚） | [Multi-Replica Runbook](./multi-replica-runbook) |
 | REST API | [API Overview](../api/) |
 
 ## 核心特性

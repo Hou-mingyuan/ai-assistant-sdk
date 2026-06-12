@@ -56,6 +56,7 @@ export default defineConfig({
             { text: 'Standalone Service', link: '/guide/standalone-service' },
             { text: 'Deployment Checklists', link: '/guide/deployment-checklists' },
             { text: 'Kubernetes', link: '/guide/kubernetes' },
+            { text: 'Multi-Replica Runbook', link: '/guide/multi-replica-runbook' },
           ],
         },
         {

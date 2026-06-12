@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 > 由 `scripts/generate-changelog.mjs` 从 git log 自动生成。
 > 采用 [Conventional Commits](https://www.conventionalcommits.org/) 类型分组。

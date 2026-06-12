@@ -1,0 +1,6 @@
+{
+  "//": "Editor-level nudge against CSS debt. The hard CI gate is scripts/css-budget-check.mjs (an !important ratchet). Run with: npx stylelint \"ai-assistant-ui/src/components/styles/**/*.css\" (installs stylelint on demand). Kept self-contained (no shareable-config extends) so it works without extra devDependencies.",
+  "rules": {
+    "declaration-no-important": [true, { "severity": "warning" }]
+  }
+}
