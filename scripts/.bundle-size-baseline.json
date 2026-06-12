@@ -1,29 +1,29 @@
 {
-  "updatedAt": "2026-05-22T06:00:24.429Z",
+  "updatedAt": "2026-06-12T15:10:15.968Z",
   "files": {
     "ai-assistant-wc.umd.cjs": {
-      "size": 751853,
-      "gzip": 239950
+      "size": 832804,
+      "gzip": 263160
     },
-    "AiAssistant-C1YJpYRA.js": {
-      "size": 837893,
-      "gzip": 188249
+    "AiAssistant-DTN92aXP.js": {
+      "size": 963521,
+      "gzip": 216841
     },
-    "useAiAssistant-DmYNn_eX.js": {
-      "size": 791829,
-      "gzip": 175260
+    "useAiAssistant-DRba1NJK.js": {
+      "size": 917341,
+      "gzip": 203864
     },
-    "useAiAssistant-DsK1jYxZ.cjs": {
-      "size": 443584,
-      "gzip": 133273
+    "useAiAssistant-BbF1m_as.cjs": {
+      "size": 524615,
+      "gzip": 155282
     },
     "vue.runtime.esm-bundler-CW-klj5x.js": {
       "size": 398625,
       "gzip": 92320
     },
     "style.css": {
-      "size": 381966,
-      "gzip": 56186
+      "size": 413411,
+      "gzip": 60543
     },
     "assets/markdownHljs.worker-DAQDAbJF.js": {
       "size": 81794,
@@ -38,12 +38,12 @@
       "gzip": 10084
     },
     "ai-assistant.mjs": {
-      "size": 22103,
-      "gzip": 7057
+      "size": 22038,
+      "gzip": 7036
     },
     "ai-assistant.umd.cjs": {
-      "size": 15102,
-      "gzip": 5742
+      "size": 15062,
+      "gzip": 5714
     },
     "swift-CKDkzyDD.js": {
       "size": 18504,
@@ -53,10 +53,6 @@
       "size": 18382,
       "gzip": 5152
     },
-    "CompareRegionsDialog-DK_ftwJ5.js": {
-      "size": 20682,
-      "gzip": 4491
-    },
     "SessionsDrawer-AXr9hbxD.js": {
       "size": 17984,
       "gzip": 4329
@@ -65,13 +61,33 @@
       "size": 13232,
       "gzip": 4289
     },
+    "PersonalizeDialog-c1xIXsnA.js": {
+      "size": 26233,
+      "gzip": 4107
+    },
+    "PersonalizeDialog-0owgxdaN.js": {
+      "size": 26426,
+      "gzip": 4074
+    },
     "php-DzEOxdOo.js": {
       "size": 13728,
       "gzip": 3986
     },
-    "CompareRegionsDialog-Chvmw7Z7.js": {
-      "size": 17528,
-      "gzip": 3726
+    "ConnectionDiagnostics-CCJS6Ywc.js": {
+      "size": 22641,
+      "gzip": 3859
+    },
+    "ConnectionDiagnostics-lg96oS8p.js": {
+      "size": 22870,
+      "gzip": 3834
+    },
+    "CompareRegionsDialog-BO1V2t8A.js": {
+      "size": 17476,
+      "gzip": 3761
+    },
+    "CompareRegionsDialog-DVPO4OIe.js": {
+      "size": 17531,
+      "gzip": 3730
     },
     "cpp-DsR3fX9_.js": {
       "size": 11495,
@@ -80,6 +96,10 @@
     "swift-CVCNXozJ.cjs": {
       "size": 8106,
       "gzip": 3487
+    },
+    "PersonalizeDialog-By46j4Jy.cjs": {
+      "size": 14811,
+      "gzip": 3468
     },
     "FormAutoFillDialog-BoLvLrtB.js": {
       "size": 15115,
@@ -93,29 +113,25 @@
       "size": 15179,
       "gzip": 3357
     },
-    "PersonalizeDialog-DBmuPDse.js": {
-      "size": 17077,
-      "gzip": 3295
+    "ConnectionDiagnostics-sF7ILyg9.cjs": {
+      "size": 13975,
+      "gzip": 3235
     },
-    "PersonalizeDialog-BeD1Diih.js": {
-      "size": 17168,
-      "gzip": 3264
-    },
-    "PromptTemplateDialog-Cyl8jvEQ.js": {
+    "PromptTemplateDialog-D3TN4hG5.js": {
       "size": 15408,
-      "gzip": 3051
+      "gzip": 3050
     },
-    "PromptTemplateDialog-Bj6n_ke8.js": {
+    "PromptTemplateDialog-Dn2eL1w4.js": {
       "size": 15448,
-      "gzip": 3021
+      "gzip": 3022
     },
     "sql-Dy1sTxfw.js": {
       "size": 10767,
       "gzip": 2986
     },
-    "CompareRegionsDialog-D9Brqxdl.cjs": {
-      "size": 9649,
-      "gzip": 2937
+    "CompareRegionsDialog-BViBX4Kr.cjs": {
+      "size": 9652,
+      "gzip": 2939
     },
     "useMcpStream-B3i80pcM.js": {
       "size": 8971,
@@ -136,10 +152,6 @@
     "c-CLZggNyB.js": {
       "size": 7733,
       "gzip": 2713
-    },
-    "PersonalizeDialog-D6iWBTlx.cjs": {
-      "size": 9675,
-      "gzip": 2705
     },
     "FormAutoFillDialog-DlLC2xUH.cjs": {
       "size": 8207,
@@ -169,25 +181,17 @@
       "size": 10381,
       "gzip": 2475
     },
-    "ConnectionDiagnostics-Cpl7GAZ8.js": {
-      "size": 14237,
-      "gzip": 2465
-    },
     "MultiModelCompare-M61qjnP7.js": {
       "size": 10406,
       "gzip": 2444
-    },
-    "ConnectionDiagnostics-ArMQCD2q.js": {
-      "size": 14376,
-      "gzip": 2430
     },
     "sql-CIIFkDWc.cjs": {
       "size": 6509,
       "gzip": 2394
     },
-    "PromptTemplateDialog-CuxtJ0vx.cjs": {
+    "PromptTemplateDialog-Dp8FE1j9.cjs": {
       "size": 8258,
-      "gzip": 2334
+      "gzip": 2333
     },
     "AssistantInlineOverlays-BFciw9O2.cjs": {
       "size": 7775,
@@ -212,10 +216,6 @@
     "KeyboardShortcutsDialog-B1WuTpEu.js": {
       "size": 7935,
       "gzip": 2074
-    },
-    "ConnectionDiagnostics-D3KnuRYc.cjs": {
-      "size": 8724,
-      "gzip": 2058
     },
     "useMcpStream-DlLiAtlI.cjs": {
       "size": 4527,
@@ -283,7 +283,7 @@
     },
     "ai-assistant-wc.mjs": {
       "size": 3413,
-      "gzip": 1272
+      "gzip": 1273
     },
     "java-2tSfCXoV.cjs": {
       "size": 2675,
@@ -341,17 +341,13 @@
       "size": 2129,
       "gzip": 904
     },
-    "useLineDiff-CgU9hisp.js": {
-      "size": 3335,
-      "gzip": 902
-    },
     "useCrossSessionSearch-2m7zj7Fv.cjs": {
       "size": 1578,
       "gzip": 873
     },
     "core.umd.cjs": {
       "size": 1631,
-      "gzip": 872
+      "gzip": 870
     },
     "yaml-zRfk8pDS.cjs": {
       "size": 1901,
@@ -376,10 +372,6 @@
     "AssistantBottomTransients-BhdSR7o-.js": {
       "size": 2110,
       "gzip": 714
-    },
-    "useLineDiff-DcSD17Gi.cjs": {
-      "size": 1793,
-      "gzip": 688
     },
     "AssistantBottomTransients-D7uQQrvn.js": {
       "size": 2076,
@@ -449,15 +441,15 @@
   "groups": {
     "wc": {
       "files": 4,
-      "gzip": 521791
+      "gzip": 573594
     },
     "chunks": {
-      "files": 94,
-      "gzip": 536364
+      "files": 92,
+      "gzip": 591020
     },
     "main": {
       "files": 3,
-      "gzip": 68985
+      "gzip": 73293
     },
     "secondary": {
       "files": 10,
