@@ -29,11 +29,12 @@ class AiAssistantClientTest {
 
     @Test
     void chatReadsResultFieldAndSendsTokenHeader() throws Exception {
-        startServer(exchange -> {
-            assertEquals("/ai-assistant/chat", exchange.getRequestURI().getPath());
-            assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
-            respond(exchange, 200, "{\"success\":true,\"result\":\"hello\"}");
-        });
+        startServer(
+                exchange -> {
+                    assertEquals("/ai-assistant/chat", exchange.getRequestURI().getPath());
+                    assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
+                    respond(exchange, 200, "{\"success\":true,\"result\":\"hello\"}");
+                });
 
         AiAssistantClient client = client();
 
@@ -42,14 +43,17 @@ class AiAssistantClientTest {
 
     @Test
     void chatThrowsApiExceptionForLogicalErrorResponse() throws Exception {
-        startServer(exchange -> respond(exchange, 200,
-                "{\"success\":false,\"errorCode\":\"LLM_UNAVAILABLE\",\"error\":\"downstream unavailable\"}"));
+        startServer(
+                exchange ->
+                        respond(
+                                exchange,
+                                200,
+                                "{\"success\":false,\"errorCode\":\"LLM_UNAVAILABLE\",\"error\":\"downstream unavailable\"}"));
 
         AiAssistantClient client = client();
 
-        AiAssistantClient.ApiException ex = assertThrows(
-                AiAssistantClient.ApiException.class,
-                () -> client.chat("hi"));
+        AiAssistantClient.ApiException ex =
+                assertThrows(AiAssistantClient.ApiException.class, () -> client.chat("hi"));
         assertEquals(200, ex.statusCode());
         assertEquals("LLM_UNAVAILABLE", ex.errorCode());
         assertTrue(ex.getMessage().contains("downstream unavailable"));
@@ -57,95 +61,117 @@ class AiAssistantClientTest {
 
     @Test
     void chatThrowsApiExceptionForHttpErrorResponse() throws Exception {
-        startServer(exchange -> respond(exchange, 401,
-                "{\"success\":false,\"error\":\"Unauthorized\"}"));
+        startServer(
+                exchange ->
+                        respond(exchange, 401, "{\"success\":false,\"error\":\"Unauthorized\"}"));
 
         AiAssistantClient client = client();
 
-        AiAssistantClient.ApiException ex = assertThrows(
-                AiAssistantClient.ApiException.class,
-                () -> client.chat("hi"));
+        AiAssistantClient.ApiException ex =
+                assertThrows(AiAssistantClient.ApiException.class, () -> client.chat("hi"));
         assertEquals(401, ex.statusCode());
         assertTrue(ex.getMessage().contains("Unauthorized"));
     }
 
     @Test
     void blankTokenDoesNotSendTokenHeader() throws Exception {
-        startServer(exchange -> {
-            assertNull(exchange.getRequestHeaders().getFirst("X-AI-Token"));
-            respond(exchange, 200, "{\"success\":true,\"result\":\"hello\"}");
-        });
+        startServer(
+                exchange -> {
+                    assertNull(exchange.getRequestHeaders().getFirst("X-AI-Token"));
+                    respond(exchange, 200, "{\"success\":true,\"result\":\"hello\"}");
+                });
 
-        AiAssistantClient client = AiAssistantClient.builder()
-                .baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/ai-assistant")
-                .token("   ")
-                .timeout(Duration.ofSeconds(5))
-                .build();
+        AiAssistantClient client =
+                AiAssistantClient.builder()
+                        .baseUrl(
+                                "http://127.0.0.1:"
+                                        + server.getAddress().getPort()
+                                        + "/ai-assistant")
+                        .token("   ")
+                        .timeout(Duration.ofSeconds(5))
+                        .build();
 
         assertEquals("hello", client.chat("hi"));
     }
 
     @Test
     void builderRejectsBlankBaseUrl() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AiAssistantClient.builder().baseUrl("   ").build());
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().baseUrl("   ").build());
 
         assertTrue(ex.getMessage().contains("baseUrl"));
     }
 
     @Test
     void builderRejectsUnsupportedBaseUrlScheme() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AiAssistantClient.builder().baseUrl("file:///tmp/assistant").build());
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().baseUrl("file:///tmp/assistant").build());
 
         assertTrue(ex.getMessage().contains("http or https"));
     }
 
     @Test
     void builderRejectsMissingBaseUrlHost() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AiAssistantClient.builder().baseUrl("http:///ai-assistant").build());
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().baseUrl("http:///ai-assistant").build());
 
         assertTrue(ex.getMessage().contains("host"));
     }
 
     @Test
     void builderRejectsNullTimeout() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AiAssistantClient.builder().timeout(null).build());
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().timeout(null).build());
 
         assertTrue(ex.getMessage().contains("timeout"));
     }
 
     @Test
     void builderRejectsNonPositiveTimeout() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AiAssistantClient.builder().timeout(Duration.ZERO).build());
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().timeout(Duration.ZERO).build());
 
         assertTrue(ex.getMessage().contains("positive"));
     }
 
     @Test
     void chatStreamRejectsNullConsumerBeforeSendingRequest() {
-        AiAssistantClient client = AiAssistantClient.builder()
-                .baseUrl("http://127.0.0.1:1/ai-assistant")
-                .timeout(Duration.ofSeconds(5))
-                .build();
+        AiAssistantClient client =
+                AiAssistantClient.builder()
+                        .baseUrl("http://127.0.0.1:1/ai-assistant")
+                        .timeout(Duration.ofSeconds(5))
+                        .build();
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> client.chatStream("hi", null));
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> client.chatStream("hi", null));
 
         assertTrue(ex.getMessage().contains("onChunk"));
     }
 
     @Test
     void chatStreamPreservesSseLeadingSpaceAfterSingleSpecSeparator() throws Exception {
-        startServer("/ai-assistant/stream", exchange -> {
-            assertEquals("/ai-assistant/stream", exchange.getRequestURI().getPath());
-            assertEquals("text/event-stream", exchange.getRequestHeaders().getFirst("Accept"));
-            respond(exchange, 200, "data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n",
-                    "text/event-stream;charset=UTF-8");
-        });
+        startServer(
+                "/ai-assistant/stream",
+                exchange -> {
+                    assertEquals("/ai-assistant/stream", exchange.getRequestURI().getPath());
+                    assertEquals(
+                            "text/event-stream", exchange.getRequestHeaders().getFirst("Accept"));
+                    respond(
+                            exchange,
+                            200,
+                            "data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n",
+                            "text/event-stream;charset=UTF-8");
+                });
 
         AiAssistantClient client = client();
         List<String> chunks = new ArrayList<>();
@@ -158,16 +184,24 @@ class AiAssistantClientTest {
 
     @Test
     void chatStreamSendsTokenAndRuntimeModelPayload() throws Exception {
-        startServer("/ai-assistant/stream", exchange -> {
-            assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
-            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue(body.contains("\"action\":\"chat\""));
-            assertTrue(body.contains("\"text\":\"hi\""));
-            assertTrue(body.contains("\"systemPrompt\":\"system\""));
-            assertTrue(body.contains("\"model\":\"MiniMax-M2.7\""));
-            respond(exchange, 200, "data: ok\n\ndata: [DONE]\n\n",
-                    "text/event-stream;charset=UTF-8");
-        });
+        startServer(
+                "/ai-assistant/stream",
+                exchange -> {
+                    assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
+                    String body =
+                            new String(
+                                    exchange.getRequestBody().readAllBytes(),
+                                    StandardCharsets.UTF_8);
+                    assertTrue(body.contains("\"action\":\"chat\""));
+                    assertTrue(body.contains("\"text\":\"hi\""));
+                    assertTrue(body.contains("\"systemPrompt\":\"system\""));
+                    assertTrue(body.contains("\"model\":\"MiniMax-M2.7\""));
+                    respond(
+                            exchange,
+                            200,
+                            "data: ok\n\ndata: [DONE]\n\n",
+                            "text/event-stream;charset=UTF-8");
+                });
 
         AiAssistantClient client = client();
         List<String> chunks = new ArrayList<>();
@@ -191,13 +225,15 @@ class AiAssistantClientTest {
 
     private void startServer(String path, Handler handler) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext(path, exchange -> {
-            try {
-                handler.handle(exchange);
-            } finally {
-                exchange.close();
-            }
-        });
+        server.createContext(
+                path,
+                exchange -> {
+                    try {
+                        handler.handle(exchange);
+                    } finally {
+                        exchange.close();
+                    }
+                });
         server.start();
     }
 

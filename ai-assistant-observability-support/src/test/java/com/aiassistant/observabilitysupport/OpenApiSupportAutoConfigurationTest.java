@@ -20,8 +20,7 @@ class OpenApiSupportAutoConfigurationTest {
     void registersOpenApiBeanWhenExplicitlyEnabled() {
         contextRunner
                 .withPropertyValues(
-                        "ai-assistant.openapi.enabled=true",
-                        "ai-assistant.context-path=/custom-ai")
+                        "ai-assistant.openapi.enabled=true", "ai-assistant.context-path=/custom-ai")
                 .run(
                         context -> {
                             assertThat(context).hasSingleBean(OpenAPI.class);

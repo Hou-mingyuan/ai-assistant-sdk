@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 
 /**
  * Java client SDK for AI Assistant.
+ *
  * <pre>{@code
  * var client = AiAssistantClient.builder()
  *     .baseUrl("http://localhost:8080/ai-assistant")
@@ -39,9 +40,7 @@ public class AiAssistantClient {
         this.token = normalizeToken(builder.token);
         this.timeout = validateTimeout(builder.timeout);
         this.mapper = new ObjectMapper();
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+        this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     }
 
     public static Builder builder() {
@@ -64,8 +63,10 @@ public class AiAssistantClient {
     }
 
     public String translate(String text, String targetLang) throws Exception {
-        JsonNode resp = post("/chat", Map.of("text", text, "action", "translate",
-                "targetLang", targetLang));
+        JsonNode resp =
+                post(
+                        "/chat",
+                        Map.of("text", text, "action", "translate", "targetLang", targetLang));
         return readResult(resp);
     }
 
@@ -78,8 +79,8 @@ public class AiAssistantClient {
         chatStream(text, null, null, onChunk);
     }
 
-    public void chatStream(String text, String systemPrompt, String model,
-                           Consumer<String> onChunk) throws Exception {
+    public void chatStream(String text, String systemPrompt, String model, Consumer<String> onChunk)
+            throws Exception {
         if (onChunk == null) {
             throw new IllegalArgumentException("onChunk is required");
         }
@@ -90,25 +91,29 @@ public class AiAssistantClient {
         if (systemPrompt != null) body.put("systemPrompt", systemPrompt);
         if (model != null) body.put("model", model);
 
-        HttpRequest request = buildRequest("/stream", body)
-                .header("Accept", "text/event-stream")
-                .build();
+        HttpRequest request =
+                buildRequest("/stream", body).header("Accept", "text/event-stream").build();
 
-        HttpResponse<java.io.InputStream> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofInputStream());
+        HttpResponse<java.io.InputStream> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() >= 400) {
             String errorBody;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
+            try (BufferedReader reader =
+                    new BufferedReader(
+                            new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
                 errorBody = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
             }
-            throw new ApiException(response.statusCode(), null,
-                    extractErrorMessage(errorBody, "AI Assistant stream API error " + response.statusCode()),
+            throw new ApiException(
+                    response.statusCode(),
+                    null,
+                    extractErrorMessage(
+                            errorBody, "AI Assistant stream API error " + response.statusCode()),
                     errorBody);
         }
 
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("data:")) {
@@ -122,19 +127,20 @@ public class AiAssistantClient {
 
     public List<Map<String, Object>> listCapabilities() throws Exception {
         HttpRequest request = buildGet("/capabilities");
-        HttpResponse<String> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() >= 400) {
             throw apiException(response.statusCode(), response.body());
         }
-        return mapper.readValue(response.body(),
+        return mapper.readValue(
+                response.body(),
                 mapper.getTypeFactory().constructCollectionType(List.class, Map.class));
     }
 
     private JsonNode post(String path, Object body) throws Exception {
         HttpRequest request = buildRequest(path, body).build();
-        HttpResponse<String> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response =
+                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() >= 400) {
             throw apiException(response.statusCode(), response.body());
         }
@@ -153,8 +159,8 @@ public class AiAssistantClient {
         try {
             return apiException(statusCode, body, mapper.readTree(body));
         } catch (Exception ignored) {
-            return new ApiException(statusCode, null,
-                    "AI Assistant API error " + statusCode + ": " + body, body);
+            return new ApiException(
+                    statusCode, null, "AI Assistant API error " + statusCode + ": " + body, body);
         }
     }
 
@@ -225,11 +231,12 @@ public class AiAssistantClient {
     }
 
     private HttpRequest.Builder buildRequest(String path, Object body) throws Exception {
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
-                .header("Content-Type", "application/json")
-                .timeout(timeout)
-                .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)));
+        HttpRequest.Builder builder =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl + path))
+                        .header("Content-Type", "application/json")
+                        .timeout(timeout)
+                        .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)));
         if (token != null) {
             builder.header("X-AI-Token", token);
         }
@@ -237,10 +244,8 @@ public class AiAssistantClient {
     }
 
     private HttpRequest buildGet(String path) {
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
-                .timeout(timeout)
-                .GET();
+        HttpRequest.Builder builder =
+                HttpRequest.newBuilder().uri(URI.create(baseUrl + path)).timeout(timeout).GET();
         if (token != null) {
             builder.header("X-AI-Token", token);
         }
@@ -252,9 +257,20 @@ public class AiAssistantClient {
         private String token;
         private Duration timeout = Duration.ofSeconds(60);
 
-        public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
-        public Builder token(String token) { this.token = token; return this; }
-        public Builder timeout(Duration timeout) { this.timeout = timeout; return this; }
+        public Builder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
+        }
+
+        public Builder token(String token) {
+            this.token = token;
+            return this;
+        }
+
+        public Builder timeout(Duration timeout) {
+            this.timeout = timeout;
+            return this;
+        }
 
         public AiAssistantClient build() {
             return new AiAssistantClient(this);
@@ -273,8 +289,16 @@ public class AiAssistantClient {
             this.responseBody = responseBody;
         }
 
-        public int statusCode() { return statusCode; }
-        public String errorCode() { return errorCode; }
-        public String responseBody() { return responseBody; }
+        public int statusCode() {
+            return statusCode;
+        }
+
+        public String errorCode() {
+            return errorCode;
+        }
+
+        public String responseBody() {
+            return responseBody;
+        }
     }
 }
