@@ -1,6 +1,7 @@
 package com.aiassistant.spi;
 
 import com.aiassistant.memory.ConversationMemory;
+import com.aiassistant.util.ThrottledWarnLogger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -14,6 +15,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 /**
  * Redis-backed ConversationMemoryProvider with local write-through cache. TTL defaults to 24 hours
  * per session.
+ *
+ * <p>Fail-open: a Redis outage never throws to the caller. Reads return a transient empty memory
+ * that is <em>not</em> cached, so the session automatically reloads real history once Redis
+ * recovers; writes/queries degrade quietly. Degradation warnings are throttled to avoid log floods.
  */
 public class RedisConversationMemoryProvider implements ConversationMemoryProvider {
 
@@ -27,6 +32,7 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
     private final Duration ttl;
     private final int maxShortTermMessages;
     private final Map<String, ConversationMemory> cache = new ConcurrentHashMap<>();
+    private final ThrottledWarnLogger warnLog = new ThrottledWarnLogger(log, 30_000);
 
     public RedisConversationMemoryProvider(StringRedisTemplate redis, int maxShortTermMessages) {
         this(redis, maxShortTermMessages, DEFAULT_TTL);
@@ -42,20 +48,40 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
 
     @Override
     public ConversationMemory getMemory(String sessionId) {
-        return cache.computeIfAbsent(sessionId, this::loadFromRedis);
+        ConversationMemory cached = cache.get(sessionId);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            return cache.computeIfAbsent(sessionId, this::loadFromRedis);
+        } catch (RuntimeException e) {
+            // Fail-open: return a transient (uncached) memory so the request proceeds and the
+            // session reloads from Redis once it is reachable again.
+            warnRedisFailure("load", e);
+            return new ConversationMemory(maxShortTermMessages);
+        }
     }
 
     @Override
     public void removeMemory(String sessionId) {
         cache.remove(sessionId);
-        redis.delete(KEY_PREFIX + sessionId + ":messages");
-        redis.delete(KEY_PREFIX + sessionId + ":facts");
+        try {
+            redis.delete(KEY_PREFIX + sessionId + ":messages");
+            redis.delete(KEY_PREFIX + sessionId + ":facts");
+        } catch (RuntimeException e) {
+            warnRedisFailure("remove", e);
+        }
     }
 
     @Override
     public boolean hasMemory(String sessionId) {
         if (cache.containsKey(sessionId)) return true;
-        return Boolean.TRUE.equals(redis.hasKey(KEY_PREFIX + sessionId + ":messages"));
+        try {
+            return Boolean.TRUE.equals(redis.hasKey(KEY_PREFIX + sessionId + ":messages"));
+        } catch (RuntimeException e) {
+            warnRedisFailure("has", e);
+            return false;
+        }
     }
 
     public void flush(String sessionId) {
@@ -68,10 +94,15 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
         cache.forEach(this::persistToRedis);
     }
 
+    /**
+     * Loads a session's memory from Redis. Redis I/O failures propagate (handled by {@link
+     * #getMemory} as fail-open); only malformed payloads are swallowed into an empty memory.
+     */
     private ConversationMemory loadFromRedis(String sessionId) {
         ConversationMemory memory = new ConversationMemory(maxShortTermMessages);
+        String messagesJson = redis.opsForValue().get(KEY_PREFIX + sessionId + ":messages");
+        String factsJson = redis.opsForValue().get(KEY_PREFIX + sessionId + ":facts");
         try {
-            String messagesJson = redis.opsForValue().get(KEY_PREFIX + sessionId + ":messages");
             if (messagesJson != null) {
                 List<Map<String, String>> entries =
                         objectMapper.readValue(messagesJson, new TypeReference<>() {});
@@ -83,8 +114,6 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
                     }
                 }
             }
-
-            String factsJson = redis.opsForValue().get(KEY_PREFIX + sessionId + ":facts");
             if (factsJson != null) {
                 List<String> facts = objectMapper.readValue(factsJson, new TypeReference<>() {});
                 for (String fact : facts) {
@@ -92,7 +121,10 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to load conversation memory from Redis for session {}", sessionId, e);
+            log.warn(
+                    "Malformed conversation memory payload for session {}: {}",
+                    sessionId,
+                    e.getMessage());
         }
         return memory;
     }
@@ -109,8 +141,21 @@ public class RedisConversationMemoryProvider implements ConversationMemoryProvid
             String factsKey = KEY_PREFIX + sessionId + ":facts";
             redis.opsForValue()
                     .set(factsKey, objectMapper.writeValueAsString(memory.getLongTermFacts()), ttl);
+        } catch (RuntimeException e) {
+            warnRedisFailure("persist", e);
         } catch (Exception e) {
-            log.warn("Failed to persist conversation memory to Redis for session {}", sessionId, e);
+            log.warn(
+                    "Failed to serialize conversation memory for session {}: {}",
+                    sessionId,
+                    e.getMessage());
         }
+    }
+
+    /** Throttled (see {@link ThrottledWarnLogger}) degradation warning to avoid log floods. */
+    private void warnRedisFailure(String op, Exception e) {
+        warnLog.warn(
+                "Redis conversation memory '{}' failed, degrading gracefully: {}",
+                op,
+                e.getMessage());
     }
 }

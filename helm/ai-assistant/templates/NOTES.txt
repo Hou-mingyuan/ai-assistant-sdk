@@ -1,0 +1,26 @@
+AI Assistant Service "{{ .Release.Name }}" has been deployed.
+
+Service:  {{ .Release.Name }}-ai-assistant:{{ .Values.service.port }}
+Health:   {{ default "/ai-assistant" .Values.env.AI_ASSISTANT_CONTEXT_PATH }}/health
+Replicas: {{ if .Values.autoscaling.enabled }}autoscaling {{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }}{{ else }}{{ .Values.replicaCount }}{{ end }}
+
+{{- if .Values.redis.enabled }}
+
+⚠  Redis is ENABLED (redis.enabled=true).
+   Distributed rate-limit / session / conversation-memory / token-quota only work when the
+   container image bundles `spring-boot-starter-data-redis`. That dependency is OPTIONAL in the
+   starter and is NOT present in the published `ai-assistant-service` image, so a stock image will
+   SILENTLY fall back to per-replica in-memory state (quota becomes quota * replicas, sessions and
+   memory stop being shared across replicas).
+
+   Verify the wiring is real after install:
+
+     helm test {{ .Release.Name }}
+
+   The bundled test fails fast if the service fell back to in-memory storage.
+{{- else }}
+
+ℹ  Redis is disabled (redis.enabled=false): storage is per-replica in-memory.
+   Safe for a single replica only. For replicaCount > 1 or autoscaling, enable Redis AND use an
+   image built with `spring-boot-starter-data-redis`, then run `helm test {{ .Release.Name }}`.
+{{- end }}

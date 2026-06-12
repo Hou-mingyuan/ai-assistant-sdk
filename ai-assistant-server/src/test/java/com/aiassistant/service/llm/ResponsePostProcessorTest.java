@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.aiassistant.config.TenantContext;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.OpenAiResponseParser;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -51,7 +52,7 @@ class ResponsePostProcessorTest {
 
     @Test
     void extractAndRecordRecordsUsageWhenTrackerPresent() {
-        TokenUsageTracker tracker = new TokenUsageTracker();
+        TokenUsageTracker tracker = new InMemoryTokenUsageTracker();
         ResponsePostProcessor pp = new ResponsePostProcessor(null, tracker, PARSER);
         int[] counts =
                 pp.extractAndRecord(
@@ -68,7 +69,7 @@ class ResponsePostProcessorTest {
 
     @Test
     void extractAndRecordSkipsTrackerWhenUsageIsZero() {
-        TokenUsageTracker tracker = new TokenUsageTracker();
+        TokenUsageTracker tracker = new InMemoryTokenUsageTracker();
         ResponsePostProcessor pp = new ResponsePostProcessor(null, tracker, PARSER);
         int[] counts = pp.extractAndRecord("{\"choices\":[]}", "gpt-x");
         assertEquals(0, counts[0]);
@@ -85,7 +86,7 @@ class ResponsePostProcessorTest {
 
     @Test
     void filterStreamMasksChunksAndAccumulatesEstimatedCompletionTokens() {
-        TokenUsageTracker tracker = new TokenUsageTracker();
+        TokenUsageTracker tracker = new InMemoryTokenUsageTracker();
         ResponsePostProcessor pp = new ResponsePostProcessor(new ContentFilter(), tracker, PARSER);
 
         List<String> out =

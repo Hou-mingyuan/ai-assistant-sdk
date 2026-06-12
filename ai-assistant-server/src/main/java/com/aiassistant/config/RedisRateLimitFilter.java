@@ -1,5 +1,6 @@
 package com.aiassistant.config;
 
+import com.aiassistant.util.ThrottledWarnLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,6 +8,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.LongSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
@@ -29,27 +34,52 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
  */
 public class RedisRateLimitFilter implements Filter {
 
+    /**
+     * Sliding-window log via a per-client ZSET: drop entries older than the window, count what
+     * remains, and only admit (ZADD) when below the limit. Unlike a fixed-window counter this caps
+     * requests in ANY trailing 60s window, so it cannot be bypassed by bursting across the window
+     * boundary. Atomic and cross-replica consistent because every step runs in one Lua call.
+     *
+     * <p>KEYS[1]=zset key; ARGV = now(ms), window(ms), limit, member(unique), ttl(ms).
+     */
     private static final String LUA_SCRIPT =
-            "local key = KEYS[1] "
-                    + "local limit = tonumber(ARGV[1]) "
+            "local now = tonumber(ARGV[1]) "
                     + "local window = tonumber(ARGV[2]) "
-                    + "local current = redis.call('INCR', key) "
-                    + "if current == 1 then redis.call('EXPIRE', key, window) end "
-                    + "if current > limit then return 0 end "
+                    + "local limit = tonumber(ARGV[3]) "
+                    + "redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - window) "
+                    + "local count = redis.call('ZCARD', KEYS[1]) "
+                    + "if count >= limit then return 0 end "
+                    + "redis.call('ZADD', KEYS[1], now, ARGV[4]) "
+                    + "redis.call('PEXPIRE', KEYS[1], tonumber(ARGV[5])) "
                     + "return 1";
+
+    private static final long WINDOW_MS = 60_000;
+
+    private static final Logger log = LoggerFactory.getLogger(RedisRateLimitFilter.class);
 
     private final String contextPath;
     private final AiAssistantProperties properties;
     private final StringRedisTemplate redis;
     private final DefaultRedisScript<Long> script;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ThrottledWarnLogger warnLog = new ThrottledWarnLogger(log, 30_000);
+    private final LongSupplier clock;
 
     public RedisRateLimitFilter(
             AiAssistantProperties properties, StringRedisTemplate redisTemplate) {
+        this(properties, redisTemplate, System::currentTimeMillis);
+    }
+
+    /** Test seam: inject a deterministic clock to exercise sliding-window boundaries. */
+    RedisRateLimitFilter(
+            AiAssistantProperties properties,
+            StringRedisTemplate redisTemplate,
+            LongSupplier clock) {
         this.contextPath = properties.getContextPath();
         this.properties = properties;
         this.redis = redisTemplate;
         this.script = new DefaultRedisScript<>(LUA_SCRIPT, Long.class);
+        this.clock = clock;
     }
 
     @Override
@@ -78,8 +108,28 @@ public class RedisRateLimitFilter implements Filter {
             return;
         }
         String clientKey = "ai-rl:" + getClientKey(request) + ":" + action;
-        Long allowed =
-                redis.execute(script, List.of(clientKey), String.valueOf(effectiveLimit), "60");
+        long now = clock.getAsLong();
+        String member = now + "-" + ThreadLocalRandom.current().nextLong();
+        Long allowed;
+        try {
+            allowed =
+                    redis.execute(
+                            script,
+                            List.of(clientKey),
+                            String.valueOf(now),
+                            String.valueOf(WINDOW_MS),
+                            String.valueOf(effectiveLimit),
+                            member,
+                            String.valueOf(WINDOW_MS));
+        } catch (RuntimeException e) {
+            // Fail-open: a Redis outage must not block all traffic. Allow the request and warn
+            // (throttled). The upstream gateway / API limiter remains the hard ceiling.
+            warnLog.warn(
+                    "Redis rate limiter unavailable, failing open (allowing requests): {}",
+                    e.getMessage());
+            chain.doFilter(req, res);
+            return;
+        }
         if (allowed == null || allowed == 0) {
             HttpServletResponse response = (HttpServletResponse) res;
             response.setStatus(429);

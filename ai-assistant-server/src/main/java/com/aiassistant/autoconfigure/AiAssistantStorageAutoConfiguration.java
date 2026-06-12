@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * 存储装配：SessionStore（Redis 优先 → 内存兜底）、ConversationMemoryProvider（Redis &gt; JDBC &gt; InMemory）、
- * TokenUsageTracker、Webhook delivery。
+ * TokenUsageTracker（Redis 优先 → 内存兜底）、Webhook delivery。
  *
  * <p>Refactor (T2)：从 {@link AiAssistantAutoConfiguration} 拆出。
  */
@@ -40,10 +40,22 @@ public class AiAssistantStorageAutoConfiguration {
                 cfg.getMaxSessionsPerUser(), cfg.getMaxUsers(), cfg.getMaxMessagesPerSession());
     }
 
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.data.redis.core.StringRedisTemplate")
+    @ConditionalOnBean(org.springframework.data.redis.core.StringRedisTemplate.class)
+    static class RedisTokenUsageAutoConfiguration {
+        @Bean
+        @ConditionalOnMissingBean(TokenUsageTracker.class)
+        public TokenUsageTracker redisTokenUsageTracker(
+                org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+            return new com.aiassistant.stats.RedisTokenUsageTracker(redisTemplate);
+        }
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public TokenUsageTracker tokenUsageTracker() {
-        return new TokenUsageTracker();
+        return new com.aiassistant.stats.InMemoryTokenUsageTracker();
     }
 
     @Configuration(proxyBeanMethods = false)

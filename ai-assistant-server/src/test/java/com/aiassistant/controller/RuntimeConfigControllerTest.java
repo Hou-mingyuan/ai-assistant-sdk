@@ -3,9 +3,16 @@ package com.aiassistant.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.AiAssistantSecurityPostureAdvisor;
+import com.aiassistant.service.InMemorySessionStore;
+import com.aiassistant.service.SessionStore;
+import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.spi.InMemoryConversationMemoryProvider;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
+import com.aiassistant.stats.TokenUsageTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +36,10 @@ class RuntimeConfigControllerTest {
         assertEquals("openai", service.get("provider"));
         assertEquals(false, security.get("accessTokenConfigured"));
         assertEquals("wildcard", security.get("allowedOriginsMode"));
+
+        Map<?, ?> storage = (Map<?, ?>) result.get("storage");
+        assertEquals("in-memory", storage.get("sessionStore"));
+        assertEquals(false, storage.get("distributed"));
         assertTrue(
                 ((List<?>) security.get("securityWarnings"))
                         .contains(
@@ -84,8 +95,28 @@ class RuntimeConfigControllerTest {
         assertEquals(30, limits.get("rateLimitPerMinute"));
     }
 
+    @Test
+    void storage_reportsDistributedForNonInMemoryBackends() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        RuntimeConfigController controller =
+                new RuntimeConfigController(
+                        properties,
+                        new AiAssistantSecurityPostureAdvisor(properties),
+                        mock(SessionStore.class),
+                        mock(TokenUsageTracker.class),
+                        mock(ConversationMemoryProvider.class));
+
+        Map<?, ?> storage = (Map<?, ?>) controller.runtimeConfig().get("storage");
+
+        assertTrue((Boolean) storage.get("distributed"));
+    }
+
     private RuntimeConfigController controller(AiAssistantProperties properties) {
         return new RuntimeConfigController(
-                properties, new AiAssistantSecurityPostureAdvisor(properties));
+                properties,
+                new AiAssistantSecurityPostureAdvisor(properties),
+                new InMemorySessionStore(),
+                new InMemoryTokenUsageTracker(),
+                new InMemoryConversationMemoryProvider());
     }
 }

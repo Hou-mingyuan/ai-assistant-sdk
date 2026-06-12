@@ -99,7 +99,8 @@ public class SseStreamController {
                                         ServerSentEvent.<String>builder()
                                                 .id(String.valueOf(eventCounter.incrementAndGet()))
                                                 .event("message")
-                                                .data(chunk)
+                                                // 按 SSE 规范补一个分隔空格，保留 token 自带前导空格
+                                                .data(SseFormatter.specData(chunk))
                                                 .build())
                         .concatWith(
                                 Flux.just(

@@ -170,6 +170,13 @@
             <version>4.12.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- Testcontainers: real-Redis cross-replica E2E. Version managed by spring-boot BOM.
+             Tests auto-skip when Docker is unavailable (@Testcontainers(disabledWithoutDocker)). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -273,10 +280,16 @@
                         <goals><goal>check</goal></goals>
                         <configuration>
                             <!-- T3 coverage recovery wave (2026-05-18 起持续):
-                                 Current clean full-suite baseline (2026-05-19): 0.51 line /
-                                 0.39 branch. Keep the gate just below measured reality so CI
-                                 still blocks regressions while the Wave 4/5 recovery work raises
-                                 the floor again.
+                                 2026-06-12 更新②：McpServerController + UrlFetchService + export
+                                 导出子系统补测共 +40 用例（全量 753 测试），并修复 2 个 PDF 导出
+                                 生产 bug（空不可变 map clear、暗色 setNonStrokingColor 0..255 越界）。
+                                 实测升至 0.6781 line / 0.5365 branch，门禁由 0.55/0.40 上调到
+                                 0.65/0.50（≈实测下方 3%，沿用「门禁略低于实测」惯例，已超 Wave 4 目标）。
+                                 2026-06-12 更新①：Redis 多副本一致性（配额/会话/记忆/限流）补测后
+                                 实测 0.5836 line / 0.4318 branch，门禁随之上调到 0.55/0.40（仍略低
+                                 于实测，CI 继续拦回退）。历史基线 (2026-05-19): 0.51 line / 0.39
+                                 branch。 Keep the gate just below measured reality so CI still blocks
+                                 regressions while the Wave 4/5 recovery work raises the floor again.
 
                                  Wave 1 (0.50/0.35 ✅):
                                    - ProviderDefaultsTest（16 家 provider × 2 表，~70 assertion）
@@ -301,9 +314,11 @@
                                  FormAutoFill backend）将覆盖率从 ~0.65/0.55 降到 0.48/0.35。
 
                                  后续路线：
-                                   - Wave 4 (0.60/0.45): OpenAPI auto-config 覆盖 +
-                                     AssistantExportService PDF/XLSX/DOCX 单元测试。
-                                   - Wave 5 (0.70/0.60): 全量 contract base 测试。
+                                   - Wave 4 (0.60/0.45 ✅ 2026-06-12 达成并超过，门禁已锁 0.65/0.50):
+                                     export PDF/XLSX/ImageSniff/HttpUrls 单元测试 + McpServerController
+                                     + UrlFetchService 补测。
+                                   - Wave 5 (0.70/0.60): 全量 contract base 测试（line 距 0.70 仅差
+                                     ~2%，branch 距 0.60 还需 ~6%）。
 
                                  见 findings.md Round-6 risk #5.5。 -->
                             <excludes>
@@ -324,12 +339,12 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.50</minimum>
+                                            <minimum>0.65</minimum>
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.38</minimum>
+                                            <minimum>0.50</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

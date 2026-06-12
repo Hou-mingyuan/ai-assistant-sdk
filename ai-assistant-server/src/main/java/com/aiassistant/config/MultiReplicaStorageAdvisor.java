@@ -6,6 +6,7 @@ import com.aiassistant.service.InMemorySessionStore;
 import com.aiassistant.service.SessionStore;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.spi.InMemoryConversationMemoryProvider;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
 import com.aiassistant.stats.TokenUsageTracker;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,9 +82,9 @@ public class MultiReplicaStorageAdvisor {
         if (sessionStore instanceof InMemorySessionStore) {
             warnings.add(MULTI_REPLICA_INMEMORY_SESSION_STORE);
         }
-        // TokenUsageTracker has only an in-memory implementation today; once a replaceable
-        // interface exists we can refine this check to detect that interface specifically.
-        if (tokenUsageTracker != null) {
+        // Only the in-memory implementation is per-replica; a shared backend
+        // (RedisTokenUsageTracker or a custom bean) is consistent and must not warn.
+        if (tokenUsageTracker instanceof InMemoryTokenUsageTracker) {
             warnings.add(MULTI_REPLICA_INMEMORY_TOKEN_USAGE);
         }
         if (conversationMemoryProvider instanceof InMemoryConversationMemoryProvider) {

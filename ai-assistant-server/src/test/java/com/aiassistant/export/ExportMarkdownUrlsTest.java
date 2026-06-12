@@ -29,4 +29,38 @@ class ExportMarkdownUrlsTest {
 
         assertTrue(urls.isEmpty());
     }
+
+    @Test
+    void noArgOverloadCollectsAllImages() {
+        Set<String> urls = new LinkedHashSet<>();
+
+        ExportMarkdownUrls.collectMarkdownImageUrls(
+                "![a](https://example.com/1.png) text ![b](https://example.com/2.png)", urls);
+
+        assertEquals(Set.of("https://example.com/1.png", "https://example.com/2.png"), urls);
+    }
+
+    @Test
+    void collectIgnoresNullTextNullDestAndEmptyText() {
+        Set<String> urls = new LinkedHashSet<>();
+
+        ExportMarkdownUrls.collectMarkdownImageUrls(null, urls, 5);
+        ExportMarkdownUrls.collectMarkdownImageUrls("", urls, 5);
+        ExportMarkdownUrls.collectMarkdownImageUrls("![](https://example.com/1.png)", null, 5);
+
+        assertTrue(urls.isEmpty());
+    }
+
+    @Test
+    void stripInlineMdForPdf_unwrapsBoldAndCode() {
+        assertEquals(
+                "bold and code here",
+                ExportMarkdownUrls.stripInlineMdForPdf("**bold** and `code` here"));
+    }
+
+    @Test
+    void stripInlineMdForPdf_nullOrEmptyReturnsEmpty() {
+        assertEquals("", ExportMarkdownUrls.stripInlineMdForPdf(null));
+        assertEquals("", ExportMarkdownUrls.stripInlineMdForPdf(""));
+    }
 }

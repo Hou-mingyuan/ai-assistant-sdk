@@ -8,7 +8,7 @@ class TokenUsageTrackerTest {
 
     @Test
     void recordAndSnapshot() {
-        var tracker = new TokenUsageTracker();
+        var tracker = new InMemoryTokenUsageTracker();
         tracker.recordUsage("tenant1", "gpt-4", 100, 50);
         tracker.recordUsage("tenant1", "gpt-4", 200, 100);
 
@@ -21,7 +21,7 @@ class TokenUsageTrackerTest {
 
     @Test
     void quotaEnforcement() {
-        var tracker = new TokenUsageTracker();
+        var tracker = new InMemoryTokenUsageTracker();
         tracker.setQuota("t1", 500);
         assertFalse(tracker.isQuotaExceeded("t1"));
         assertEquals(500, tracker.remainingQuota("t1"));
@@ -33,7 +33,7 @@ class TokenUsageTrackerTest {
 
     @Test
     void noQuota_neverExceeded() {
-        var tracker = new TokenUsageTracker();
+        var tracker = new InMemoryTokenUsageTracker();
         tracker.recordUsage("t2", "model", 1_000_000, 1_000_000);
         assertFalse(tracker.isQuotaExceeded("t2"));
         assertEquals(Long.MAX_VALUE, tracker.remainingQuota("t2"));
@@ -41,7 +41,7 @@ class TokenUsageTrackerTest {
 
     @Test
     void globalSnapshot_aggregatesAllTenants() {
-        var tracker = new TokenUsageTracker();
+        var tracker = new InMemoryTokenUsageTracker();
         tracker.recordUsage("a", "m1", 10, 5);
         tracker.recordUsage("b", "m2", 20, 10);
 
@@ -51,7 +51,7 @@ class TokenUsageTrackerTest {
 
     @Test
     void emptyTenant_returnsZero() {
-        var tracker = new TokenUsageTracker();
+        var tracker = new InMemoryTokenUsageTracker();
         var snap = tracker.getSnapshot("nonexistent");
         assertEquals(0, snap.get("totalTokens"));
     }

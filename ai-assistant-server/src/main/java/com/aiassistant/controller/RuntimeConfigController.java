@@ -2,6 +2,9 @@ package com.aiassistant.controller;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.AiAssistantSecurityPostureAdvisor;
+import com.aiassistant.service.SessionStore;
+import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.stats.TokenUsageTracker;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -21,12 +24,21 @@ public class RuntimeConfigController {
 
     private final AiAssistantProperties properties;
     private final AiAssistantSecurityPostureAdvisor securityPostureAdvisor;
+    private final SessionStore sessionStore;
+    private final TokenUsageTracker tokenUsageTracker;
+    private final ConversationMemoryProvider conversationMemoryProvider;
 
     public RuntimeConfigController(
             AiAssistantProperties properties,
-            AiAssistantSecurityPostureAdvisor securityPostureAdvisor) {
+            AiAssistantSecurityPostureAdvisor securityPostureAdvisor,
+            SessionStore sessionStore,
+            TokenUsageTracker tokenUsageTracker,
+            ConversationMemoryProvider conversationMemoryProvider) {
         this.properties = properties;
         this.securityPostureAdvisor = securityPostureAdvisor;
+        this.sessionStore = sessionStore;
+        this.tokenUsageTracker = tokenUsageTracker;
+        this.conversationMemoryProvider = conversationMemoryProvider;
     }
 
     @GetMapping("/runtime/config")
@@ -37,7 +49,45 @@ public class RuntimeConfigController {
         result.put("security", security());
         result.put("features", features());
         result.put("limits", limits());
+        result.put("storage", storage());
         return result;
+    }
+
+    /**
+     * Reports the resolved storage backends so operators (and the Helm {@code helm test} hook) can
+     * confirm a multi-replica deployment is actually using shared Redis storage rather than
+     * silently falling back to per-replica in-memory state (which happens when the image lacks
+     * Spring Data Redis). Backend type is derived from the bean's simple class name to avoid a hard
+     * reference to any optional Redis class.
+     */
+    private Map<String, Object> storage() {
+        Map<String, Object> storage = new LinkedHashMap<>();
+        storage.put("sessionStore", backendName(sessionStore));
+        storage.put("conversationMemory", backendName(conversationMemoryProvider));
+        storage.put("tokenUsage", backendName(tokenUsageTracker));
+        // Distributed = every stateful backend is something other than the in-memory default. This
+        // recognises custom shared stores (any non-InMemory* bean), not just the bundled Redis
+        // ones.
+        storage.put(
+                "distributed",
+                isDistributed(sessionStore)
+                        && isDistributed(conversationMemoryProvider)
+                        && isDistributed(tokenUsageTracker));
+        return storage;
+    }
+
+    private static String backendName(Object bean) {
+        if (bean == null) return "none";
+        String name = bean.getClass().getSimpleName();
+        if (name.startsWith("InMemory")) return "in-memory";
+        if (name.startsWith("Redis")) return "redis";
+        if (name.startsWith("Jdbc")) return "jdbc";
+        return name;
+    }
+
+    /** A backend is cross-replica capable when it is present and not the in-memory default. */
+    private static boolean isDistributed(Object bean) {
+        return bean != null && !bean.getClass().getSimpleName().startsWith("InMemory");
     }
 
     private Map<String, Object> service() {

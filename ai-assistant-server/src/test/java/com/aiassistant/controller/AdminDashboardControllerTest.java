@@ -6,6 +6,7 @@ import com.aiassistant.plugin.PluginRegistry;
 import com.aiassistant.prompt.PromptTemplateRegistry;
 import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
 import com.aiassistant.tool.ToolDefinition;
@@ -30,7 +31,7 @@ class AdminDashboardControllerTest {
     @BeforeEach
     void setUp() {
         usageStats = new UsageStats();
-        tokenTracker = new TokenUsageTracker();
+        tokenTracker = new InMemoryTokenUsageTracker();
         promptRegistry = new PromptTemplateRegistry();
 
         ToolDefinition dummyTool =

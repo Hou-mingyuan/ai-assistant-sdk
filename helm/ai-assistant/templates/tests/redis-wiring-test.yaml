@@ -1,0 +1,45 @@
+{{- if .Values.redis.enabled }}
+# Guards against the most common multi-replica misconfiguration: redis.enabled=true but the
+# container image does NOT bundle spring-boot-starter-data-redis (it is optional in the starter
+# and absent from the published ai-assistant-service image). In that case the service silently
+# falls back to per-replica in-memory storage. This `helm test` hook calls the service's
+# /runtime/config endpoint and fails if distributed storage is not actually active.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-redis-wiring-test
+  labels:
+    app: ai-assistant
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: redis-wiring-test
+      image: curlimages/curl:8.10.1
+      env:
+        - name: AI_ASSISTANT_ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-secret
+              key: access-token
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          URL="http://{{ .Release.Name }}-ai-assistant:{{ .Values.service.port }}{{ default "/ai-assistant" .Values.env.AI_ASSISTANT_CONTEXT_PATH }}/runtime/config"
+          echo "Verifying Redis wiring via ${URL}"
+          BODY="$(curl -fsS -H "X-AI-Token: ${AI_ASSISTANT_ACCESS_TOKEN}" "${URL}")"
+          echo "${BODY}"
+          if echo "${BODY}" | grep -q '"distributed":true'; then
+            echo "OK: distributed (Redis-backed) storage is active."
+            exit 0
+          fi
+          echo "ERROR: redis.enabled=true but the service reports non-distributed storage."
+          echo "The image is almost certainly missing spring-boot-starter-data-redis"
+          echo "(optional in the starter, absent from the published ai-assistant-service image)."
+          echo "Rebuild a custom image that includes the dependency, then redeploy."
+          exit 1
+{{- end }}

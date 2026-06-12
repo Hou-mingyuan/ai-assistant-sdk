@@ -83,4 +83,29 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            Builds a Redis-capable standalone image so multi-replica deployments get distributed
+            rate-limit / session / conversation-memory / token-quota out of the box. The dependency
+            is OPTIONAL in the starter and intentionally excluded from the default image footprint;
+            activate it explicitly with the Maven profile:
+
+                mvn -Predis package
+
+            The Docker image build wires it through the MAVEN_ARGS build argument
+            (MAVEN_ARGS=-Predis). The Helm chart helm-test hook asserts that a redis.enabled
+            deployment is actually running distributed storage, so this profile makes that guard
+            pass in CI.
+        -->
+        <profile>
+            <id>redis</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-data-redis</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

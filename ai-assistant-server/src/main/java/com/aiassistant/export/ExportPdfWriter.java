@@ -83,7 +83,11 @@ public class ExportPdfWriter {
         try {
             write(messages, out, dark, imageCache);
         } finally {
-            imageCache.clear();
+            // prefetchImages 可能返回不可变的 Map.of()（未嵌图 / 无图片 URL），对其调用
+            // clear() 会抛 UnsupportedOperationException；仅清理真正持有字节的可变缓存。
+            if (!imageCache.isEmpty()) {
+                imageCache.clear();
+            }
         }
     }
 
@@ -148,10 +152,12 @@ public class ExportPdfWriter {
 
         private void paintPageBackground() throws Exception {
             if (!dark) return;
-            cs.setNonStrokingColor(30, 41, 59);
+            // PDFBox 3.x 移除了 0..255 的 int RGB 重载，必须传 0..1 归一化分量，
+            // 否则会落到 float 重载并因越界抛 IllegalArgumentException。
+            cs.setNonStrokingColor(30 / 255f, 41 / 255f, 59 / 255f);
             cs.addRect(0, 0, pageW, pageH);
             cs.fill();
-            cs.setNonStrokingColor(226, 232, 240);
+            cs.setNonStrokingColor(226 / 255f, 232 / 255f, 240 / 255f);
         }
 
         void newPage() throws Exception {

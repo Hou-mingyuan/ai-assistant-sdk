@@ -85,8 +85,16 @@ public class AiAssistantWebAutoConfiguration {
     @ConditionalOnMissingBean
     public RuntimeConfigController runtimeConfigController(
             AiAssistantProperties properties,
-            com.aiassistant.config.AiAssistantSecurityPostureAdvisor securityPostureAdvisor) {
-        return new RuntimeConfigController(properties, securityPostureAdvisor);
+            com.aiassistant.config.AiAssistantSecurityPostureAdvisor securityPostureAdvisor,
+            com.aiassistant.service.SessionStore sessionStore,
+            com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
+            com.aiassistant.spi.ConversationMemoryProvider conversationMemoryProvider) {
+        return new RuntimeConfigController(
+                properties,
+                securityPostureAdvisor,
+                sessionStore,
+                tokenUsageTracker,
+                conversationMemoryProvider);
     }
 
     @Bean

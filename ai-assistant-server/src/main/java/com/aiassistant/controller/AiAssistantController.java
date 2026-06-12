@@ -137,8 +137,11 @@ public class AiAssistantController {
             description =
                     "`/stream` is the compatibility streaming endpoint used by the official UI "
                             + "and Java client. It returns unnamed SSE data frames where each "
-                            + "`data:` value is a partial LLM token. Use `/sse` when consumers "
-                            + "need typed `message` / `done` / `error` events.")
+                            + "`data: ` value is a partial LLM token, emitted spec-compliantly "
+                            + "with a single separator space after the colon so native "
+                            + "EventSource / standard SSE clients keep token leading spaces. "
+                            + "Use `/sse` when consumers need typed "
+                            + "`message` / `done` / `error` events.")
     @io.swagger.v3.oas.annotations.responses.ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "200",
@@ -155,7 +158,7 @@ public class AiAssistantController {
         if (tooLarge != null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .contentType(MediaType.TEXT_EVENT_STREAM)
-                    .body(Flux.just("[VALIDATION_ERROR] " + tooLarge));
+                    .body(Flux.just("[VALIDATION_ERROR] " + tooLarge).map(SseFormatter::specData));
         }
         String action = request.getAction() == null ? "chat" : request.getAction();
         long dispatchEpochMs = System.currentTimeMillis();
@@ -186,7 +189,7 @@ public class AiAssistantController {
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
                 .headers(runtimeHeaders(meta, action, dispatchEpochMs))
-                .body(fluxWithFriendlyErrors(flux));
+                .body(fluxWithFriendlyErrors(flux).map(SseFormatter::specData));
     }
 
     private ChatResponse.RuntimeMeta runtimeMeta(

@@ -1,6 +1,7 @@
 package com.aiassistant.service;
 
 import com.aiassistant.model.SessionData;
+import com.aiassistant.util.ThrottledWarnLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
@@ -39,6 +40,7 @@ public class RedisSessionStore implements SessionStore {
 
     private final StringRedisTemplate redis;
     private final ObjectMapper mapper;
+    private final ThrottledWarnLogger warnLog = new ThrottledWarnLogger(log, 30_000);
 
     public RedisSessionStore(StringRedisTemplate redisTemplate) {
         this.redis = redisTemplate;
@@ -48,58 +50,94 @@ public class RedisSessionStore implements SessionStore {
 
     @Override
     public SessionData create(String userId, SessionData input) {
-        String key = KEY_PREFIX + userId;
-        Map<Object, Object> all = redis.opsForHash().entries(key);
-        if (all.size() >= MAX_SESSIONS_PER_USER) {
-            evictOldest(key, all);
-        }
         String id = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        Instant now = Instant.now();
         input.setId(id);
-        input.setCreatedAt(Instant.now());
-        input.setUpdatedAt(Instant.now());
-        redis.opsForHash().put(key, id, toJson(input));
-        redis.expire(key, SESSION_TTL);
-        return input;
+        input.setCreatedAt(now);
+        input.setUpdatedAt(now);
+        try {
+            String key = KEY_PREFIX + userId;
+            Map<Object, Object> all = redis.opsForHash().entries(key);
+            if (all.size() >= MAX_SESSIONS_PER_USER) {
+                evictOldest(key, all);
+            }
+            redis.opsForHash().put(key, id, toJson(input));
+            redis.expire(key, SESSION_TTL);
+            return input;
+        } catch (RuntimeException e) {
+            // Fail-closed: unlike the read paths, a write that did not persist must NOT look
+            // successful. Surfacing the failure prevents silent session loss — the caller can retry
+            // or fail the request rather than receive a session that was never stored.
+            warnRedisFailure("create", e);
+            throw new SessionStoreUnavailableException(
+                    "Session store unavailable; session was not created", e);
+        }
     }
 
     @Override
     public SessionData get(String userId, String sessionId) {
-        Object raw = redis.opsForHash().get(KEY_PREFIX + userId, sessionId);
-        return raw != null ? fromJson(raw.toString()) : null;
+        try {
+            Object raw = redis.opsForHash().get(KEY_PREFIX + userId, sessionId);
+            return raw != null ? fromJson(raw.toString()) : null;
+        } catch (RuntimeException e) {
+            warnRedisFailure("get", e);
+            return null;
+        }
     }
 
     @Override
     public List<SessionData> list(String userId) {
-        Map<Object, Object> all = redis.opsForHash().entries(KEY_PREFIX + userId);
-        if (all.isEmpty()) return List.of();
-        List<SessionData> out = new ArrayList<>();
-        for (Object v : all.values()) {
-            SessionData s = fromJson(v.toString());
-            if (s != null) out.add(s);
+        try {
+            Map<Object, Object> all = redis.opsForHash().entries(KEY_PREFIX + userId);
+            if (all.isEmpty()) return List.of();
+            List<SessionData> out = new ArrayList<>();
+            for (Object v : all.values()) {
+                SessionData s = fromJson(v.toString());
+                if (s != null) out.add(s);
+            }
+            out.sort(Comparator.comparing(SessionData::getUpdatedAt).reversed());
+            return out;
+        } catch (RuntimeException e) {
+            warnRedisFailure("list", e);
+            return List.of();
         }
-        out.sort(Comparator.comparing(SessionData::getUpdatedAt).reversed());
-        return out;
     }
 
     @Override
     public SessionData update(String userId, String sessionId, SessionData input) {
-        String key = KEY_PREFIX + userId;
-        Object raw = redis.opsForHash().get(key, sessionId);
-        if (raw == null) return null;
-        SessionData existing = fromJson(raw.toString());
-        if (existing == null) return null;
-        if (input.getTitle() != null) existing.setTitle(input.getTitle());
-        if (input.getMessages() != null) existing.setMessages(input.getMessages());
-        existing.setUpdatedAt(Instant.now());
-        redis.opsForHash().put(key, sessionId, toJson(existing));
-        redis.expire(key, SESSION_TTL);
-        return existing;
+        try {
+            String key = KEY_PREFIX + userId;
+            Object raw = redis.opsForHash().get(key, sessionId);
+            if (raw == null) return null;
+            SessionData existing = fromJson(raw.toString());
+            if (existing == null) return null;
+            if (input.getTitle() != null) existing.setTitle(input.getTitle());
+            if (input.getMessages() != null) existing.setMessages(input.getMessages());
+            existing.setUpdatedAt(Instant.now());
+            redis.opsForHash().put(key, sessionId, toJson(existing));
+            redis.expire(key, SESSION_TTL);
+            return existing;
+        } catch (RuntimeException e) {
+            warnRedisFailure("update", e);
+            return null;
+        }
     }
 
     @Override
     public boolean delete(String userId, String sessionId) {
-        Long removed = redis.opsForHash().delete(KEY_PREFIX + userId, sessionId);
-        return removed != null && removed > 0;
+        try {
+            Long removed = redis.opsForHash().delete(KEY_PREFIX + userId, sessionId);
+            return removed != null && removed > 0;
+        } catch (RuntimeException e) {
+            warnRedisFailure("delete", e);
+            return false;
+        }
+    }
+
+    /** Throttled (see {@link ThrottledWarnLogger}) degradation warning to avoid log floods. */
+    private void warnRedisFailure(String op, Exception e) {
+        warnLog.warn(
+                "Redis session store '{}' failed, degrading gracefully: {}", op, e.getMessage());
     }
 
     private void evictOldest(String key, Map<Object, Object> all) {

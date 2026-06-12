@@ -46,10 +46,12 @@ class SseStreamControllerTest {
         assertNotNull(events);
         assertEquals(3, events.size());
         assertEquals("message", events.get(0).event());
-        assertEquals("hello", events.get(0).data());
+        // message 内容帧按 SSE 规范补一个分隔空格：消费端剥掉这一个空格后还原为原始 token，
+        // token 自带的前导空格（如 " world"）会再多一个分隔空格变成 "  world"。
+        assertEquals(" hello", events.get(0).data());
         assertEquals("1", events.get(0).id());
         assertEquals("message", events.get(1).event());
-        assertEquals(" world", events.get(1).data());
+        assertEquals("  world", events.get(1).data());
         assertEquals("2", events.get(1).id());
         assertEquals("done", events.get(2).event());
         assertEquals("[DONE]", events.get(2).data());

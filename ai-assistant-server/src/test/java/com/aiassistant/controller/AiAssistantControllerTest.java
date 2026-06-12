@@ -201,7 +201,8 @@ class AiAssistantControllerTest {
         var chunks = response.getBody().collectList().block();
         assertNotNull(chunks);
         assertEquals(2, chunks.size());
-        assertEquals("chunk1", chunks.get(0));
+        // 内容帧按 SSE 规范补一个分隔空格，规范消费端剥掉这一个空格后还原为原始 token
+        assertEquals(" chunk1", chunks.get(0));
     }
 
     @Test
@@ -404,7 +405,8 @@ class AiAssistantControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(chunks);
-        assertEquals(List.of("[RATE_LIMITED] HTTP 429 upstream rate limit"), chunks);
+        // 友好错误哨兵同样补规范分隔空格，前端/客户端剥一个空格后得到原始 [RATE_LIMITED] 文案
+        assertEquals(List.of(" [RATE_LIMITED] HTTP 429 upstream rate limit"), chunks);
     }
 
     @Test
@@ -422,7 +424,8 @@ class AiAssistantControllerTest {
                 response.getHeaders().getContentType());
         assertNotNull(chunks);
         assertEquals(1, chunks.size());
-        assertTrue(chunks.get(0).startsWith("[VALIDATION_ERROR] "));
+        // 校验错误帧带规范分隔空格前缀（消费端剥一个空格后即 [VALIDATION_ERROR] 开头）
+        assertTrue(chunks.get(0).startsWith(" [VALIDATION_ERROR] "));
     }
 
     @Test

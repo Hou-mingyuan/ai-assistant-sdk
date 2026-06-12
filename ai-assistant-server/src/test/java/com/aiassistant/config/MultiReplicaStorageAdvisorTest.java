@@ -9,7 +9,7 @@ import com.aiassistant.rag.VectorStore;
 import com.aiassistant.service.InMemorySessionStore;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.spi.InMemoryConversationMemoryProvider;
-import com.aiassistant.stats.TokenUsageTracker;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class MultiReplicaStorageAdvisorTest {
                 advisor.warningCodes(
                         new InMemoryVectorStore(),
                         new InMemorySessionStore(),
-                        new TokenUsageTracker(),
+                        new InMemoryTokenUsageTracker(),
                         new InMemoryConversationMemoryProvider());
 
         assertTrue(warnings.isEmpty());
@@ -37,7 +37,7 @@ class MultiReplicaStorageAdvisorTest {
                 advisor.warningCodes(
                         new InMemoryVectorStore(),
                         new InMemorySessionStore(),
-                        new TokenUsageTracker(),
+                        new InMemoryTokenUsageTracker(),
                         new InMemoryConversationMemoryProvider());
 
         assertEquals(

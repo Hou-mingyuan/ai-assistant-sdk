@@ -14,6 +14,7 @@ import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.stats.InMemoryTokenUsageTracker;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayDeque;
@@ -249,7 +250,7 @@ class LlmServiceTest {
     void chatReservesAndReleasesTokenQuota() throws Exception {
         AiAssistantProperties properties = baseProperties();
         properties.setMaxTokens(50);
-        TokenUsageTracker tracker = new TokenUsageTracker();
+        TokenUsageTracker tracker = new InMemoryTokenUsageTracker();
         tracker.setQuota("default", 100);
         CapturingChatClient client = new CapturingChatClient();
         client.enqueueRaw(
@@ -267,7 +268,7 @@ class LlmServiceTest {
     @Test
     void chatStreamFiltersOutputAndRecordsEstimatedCompletionTokens() throws Exception {
         AiAssistantProperties properties = baseProperties();
-        TokenUsageTracker tracker = new TokenUsageTracker();
+        TokenUsageTracker tracker = new InMemoryTokenUsageTracker();
         CapturingChatClient client = new CapturingChatClient();
         client.enqueueStream(List.of("phone ", "13800138000"));
         LlmService service =
