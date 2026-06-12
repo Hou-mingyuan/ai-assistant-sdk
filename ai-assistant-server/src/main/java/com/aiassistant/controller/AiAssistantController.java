@@ -8,7 +8,9 @@ import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.model.ModelsListResponse;
 import com.aiassistant.model.UrlPreviewResponse;
 import com.aiassistant.service.LlmService;
+import com.aiassistant.service.SearchSource;
 import com.aiassistant.service.UrlFetchService;
+import com.aiassistant.service.WebSearchResult;
 import com.aiassistant.stats.UsageStats;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
@@ -193,7 +195,7 @@ public class AiAssistantController {
     }
 
     private ChatResponse.RuntimeMeta runtimeMeta(
-            ChatRequest request, String action, UrlFetchService.WebSearchResult webSearch) {
+            ChatRequest request, String action, WebSearchResult webSearch) {
         ChatResponse.RuntimeMeta meta = new ChatResponse.RuntimeMeta();
         meta.setProvider(assistantProperties.getProvider());
         String requestedModel =
@@ -236,7 +238,7 @@ public class AiAssistantController {
         if (!"chat".equals(action) || !request.isWebSearch()) {
             return new EffectivePageContext(pageContext, null);
         }
-        UrlFetchService.WebSearchResult search = urlFetchService.searchWeb(request.getText());
+        WebSearchResult search = urlFetchService.searchWeb(request.getText());
         if (search == null || !search.hasAttempt()) {
             return new EffectivePageContext(pageContext, null);
         }
@@ -250,7 +252,7 @@ public class AiAssistantController {
         return new EffectivePageContext(value, search);
     }
 
-    private record EffectivePageContext(String value, UrlFetchService.WebSearchResult webSearch) {}
+    private record EffectivePageContext(String value, WebSearchResult webSearch) {}
 
     private HttpHeaders runtimeHeaders(
             ChatResponse.RuntimeMeta meta, String action, long dispatchEpochMs) {
@@ -304,8 +306,7 @@ public class AiAssistantController {
                 .collect(java.util.stream.Collectors.joining(","));
     }
 
-    private static String encodeWebSearchSourcePreviews(
-            List<UrlFetchService.SearchSource> sources) {
+    private static String encodeWebSearchSourcePreviews(List<SearchSource> sources) {
         if (sources == null || sources.isEmpty()) {
             return null;
         }

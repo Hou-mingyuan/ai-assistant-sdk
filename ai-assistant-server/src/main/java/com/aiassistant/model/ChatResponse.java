@@ -1,6 +1,6 @@
 package com.aiassistant.model;
 
-import com.aiassistant.service.UrlFetchService;
+import com.aiassistant.service.SearchSource;
 import java.util.List;
 
 /** 统一 API 响应体：{@code success}=true 时结果在 {@code result}，否则错误信息在 {@code error}。 */
@@ -91,7 +91,7 @@ public class ChatResponse {
         private boolean webSearchFallback;
         private int webSearchResultCount;
         private List<String> webSearchSourceUrls;
-        private List<UrlFetchService.SearchSource> webSearchSourcePreviews;
+        private List<SearchSource> webSearchSourcePreviews;
         private String webSearchFailureReason;
         private long webSearchDurationMs = -1;
         private long webSearchStableDurationMs = -1;
@@ -185,12 +185,11 @@ public class ChatResponse {
             this.webSearchSourceUrls = webSearchSourceUrls;
         }
 
-        public List<UrlFetchService.SearchSource> getWebSearchSourcePreviews() {
+        public List<SearchSource> getWebSearchSourcePreviews() {
             return webSearchSourcePreviews;
         }
 
-        public void setWebSearchSourcePreviews(
-                List<UrlFetchService.SearchSource> webSearchSourcePreviews) {
+        public void setWebSearchSourcePreviews(List<SearchSource> webSearchSourcePreviews) {
             this.webSearchSourcePreviews = webSearchSourcePreviews;
         }
 

@@ -53,7 +53,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
         properties.getUrlFetch().setWebSearchMaxResults(3);
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("AI news");
 
         assertThat(result.provider()).isEqualTo("Tavily");
@@ -93,7 +93,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("current topic");
 
         assertThat(result.provider()).isEqualTo("DuckDuckGo fallback");
@@ -132,7 +132,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
         properties.getUrlFetch().setWebSearchEndpoint("http://blocked.search/search");
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(
                                 properties,
                                 httpClient,
@@ -167,7 +167,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("rare topic");
 
         assertThat(result.hasAttempt()).isTrue();
@@ -199,8 +199,8 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setCacheTtlSeconds(60);
 
         UrlFetchService service = new UrlFetchService(properties, httpClient, uri -> {});
-        UrlFetchService.WebSearchResult first = service.searchWeb("repeat query");
-        UrlFetchService.WebSearchResult second = service.searchWeb("repeat query");
+        WebSearchResult first = service.searchWeb("repeat query");
+        WebSearchResult second = service.searchWeb("repeat query");
 
         assertThat(second.markdown()).isEqualTo(first.markdown());
         assertThat(second.sourceUrls()).containsExactly("https://cached.example/news");
@@ -230,7 +230,7 @@ class UrlFetchServiceWebSearchTest {
                 ("LNG market update with many pasted details and repeated context ".repeat(8))
                         + "TAIL_SHOULD_NOT_APPEAR";
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb(longQuery);
 
         String rawQuery = httpClient.requests().get(0).uri().getRawQuery();
@@ -265,7 +265,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("duckduckgo");
         properties.getUrlFetch().setCacheTtlSeconds(0);
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("duplicate query");
 
         assertThat(result.resultCount()).isEqualTo(1);
@@ -297,7 +297,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("duckduckgo");
         properties.getUrlFetch().setCacheTtlSeconds(0);
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("duplicate query");
 
         assertThat(result.resultCount()).isEqualTo(1);
@@ -328,7 +328,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("duckduckgo");
         properties.getUrlFetch().setCacheTtlSeconds(0);
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("api docs");
 
         assertThat(result.sourceUrls())
@@ -353,7 +353,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchProvider("tavily");
         properties.getUrlFetch().setWebSearchApiKey("tvly-test");
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("rare topic");
 
         assertThat(result.failureReason()).isEqualTo("no_results");
@@ -383,7 +383,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setCacheTtlSeconds(0);
 
         UrlFetchService service = new UrlFetchService(properties, httpClient, uri -> {});
-        UrlFetchService.WebSearchResult result = service.searchWeb("secret handling");
+        WebSearchResult result = service.searchWeb("secret handling");
 
         assertThat(result.markdown()).doesNotContain("sk-secret").contains("[redacted]");
         assertThat(result.sources().get(0).snippet()).doesNotContain("sk-secret");
@@ -418,7 +418,7 @@ class UrlFetchServiceWebSearchTest {
         properties.getUrlFetch().setWebSearchAllowedDomains("example.com");
         properties.getUrlFetch().setWebSearchBlockedDomains("spam.example.com");
 
-        UrlFetchService.WebSearchResult result =
+        WebSearchResult result =
                 new UrlFetchService(properties, httpClient, uri -> {}).searchWeb("domain filter");
 
         assertThat(result.sourceUrls()).containsExactly("https://docs.example.com/allowed");

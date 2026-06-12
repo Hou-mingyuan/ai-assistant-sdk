@@ -8,7 +8,9 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.model.ModelCapabilityRegistry;
 import com.aiassistant.service.LlmService;
+import com.aiassistant.service.SearchSource;
 import com.aiassistant.service.UrlFetchService;
+import com.aiassistant.service.WebSearchResult;
 import com.aiassistant.stats.UsageStats;
 import java.time.Instant;
 import java.util.List;
@@ -88,7 +90,7 @@ class AiAssistantControllerTest {
     void chat_returnsWebSearchRuntimeMetadataAndInjectsSearchContext() {
         when(urlFetchService.searchWeb("latest LNG"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "# 联网搜索结果\n来源：Tavily\n1. Result",
                                 "Tavily",
                                 false,
@@ -250,7 +252,7 @@ class AiAssistantControllerTest {
     void stream_returnsWebSearchRuntimeMetadataHeaders() {
         when(urlFetchService.searchWeb("current news"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "# 联网搜索结果\n来源：DuckDuckGo fallback\n1. Result",
                                 "DuckDuckGo fallback",
                                 true,
@@ -276,7 +278,7 @@ class AiAssistantControllerTest {
     void stream_returnsTopWebSearchSourceUrlsHeader() {
         when(urlFetchService.searchWeb("current news"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "# 联网搜索结果\n来源：Tavily\n1. Result",
                                 "Tavily",
                                 false,
@@ -302,7 +304,7 @@ class AiAssistantControllerTest {
     void stream_returnsWebSearchFailureAndTimingHeaders() {
         when(urlFetchService.searchWeb("rare topic"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "",
                                 "DuckDuckGo fallback",
                                 true,
@@ -333,7 +335,7 @@ class AiAssistantControllerTest {
     void stream_returnsWebSearchSourcePreviewHeader() {
         when(urlFetchService.searchWeb("current news"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "# 联网搜索结果\n来源：Tavily\n1. Result",
                                 "Tavily",
                                 false,
@@ -341,7 +343,7 @@ class AiAssistantControllerTest {
                                 Instant.parse("2026-05-25T04:00:00Z"),
                                 java.util.List.of("https://example.com/a"),
                                 java.util.List.of(
-                                        new UrlFetchService.SearchSource(
+                                        new SearchSource(
                                                 "Official docs",
                                                 "https://example.com/a",
                                                 "Preview summary",
@@ -370,7 +372,7 @@ class AiAssistantControllerTest {
     void stream_reportsWebSearchAttemptEvenWhenNoResultsAreFound() {
         when(urlFetchService.searchWeb("rare topic"))
                 .thenReturn(
-                        new UrlFetchService.WebSearchResult(
+                        new WebSearchResult(
                                 "",
                                 "DuckDuckGo fallback",
                                 true,
