@@ -368,6 +368,11 @@ export interface I18nMessages {
   responseMetaWebSearchResults?: string;
   responseMetaWebSearchSource?: string;
   responseMetaWebSearchReferences?: string;
+  /** Source citation card actions (Perplexity-style hover icon row). */
+  citationCopy?: string;
+  citationPin?: string;
+  citationUnpin?: string;
+  citationHide?: string;
   /** Labels for the collapsible "more details" toggle that hides secondary meta pills by default. */
   responseMetaMoreLabel?: string;
   responseMetaHideLabel?: string;

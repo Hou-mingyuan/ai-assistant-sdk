@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 09-modern-overhaul.css
  * ----------------------
  * 增量式视觉升级层（"modern + 玻璃质感"）。在所有原有样式之后引入，
@@ -886,10 +886,6 @@
     transform: scale(1.18);
   }
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-dots span {
-  background: var(--ai-gradient-2) !important;
-}
-
 /* #22 主色保持 modern indigo→violet→pink（已生效，此处仅强化暗色对比） */
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark {
   --primary: #0891b2 !important;

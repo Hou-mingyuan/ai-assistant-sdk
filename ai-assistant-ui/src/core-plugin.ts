@@ -9,6 +9,8 @@ export interface AiAssistantOptions {
   primaryColor?: string;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   theme?: 'light' | 'dark' | 'auto';
+  /** 阅读主题：限宽正文 + 衬线标题 + 暖白表面 + 升字号（默认关闭）。 */
+  readingMode?: boolean;
   persistHistory?: boolean;
   persistFabPosition?: boolean;
   locale?: 'en' | 'zh' | 'ja' | 'ko';

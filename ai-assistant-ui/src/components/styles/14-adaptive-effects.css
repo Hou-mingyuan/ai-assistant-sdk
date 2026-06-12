@@ -1,0 +1,138 @@
+/* ============================================================================
+ * 14-adaptive-effects.css
+ * ---------------------------------------------------------------------------
+ * 自适应视觉降级（加载在最后，确保能压住 09 / 99 的 !important 毛玻璃与 all 过渡）。
+ *
+ * 解决三件事：
+ *   1. prefers-reduced-transparency: reduce → 去毛玻璃 + 表面转不透明（系统级）
+ *   2. .ai-reduce-effects 手动开关 → 低端设备/宿主主动降级（不依赖系统设置）
+ *   3. transition: all 收敛 → 只过渡非布局属性，避免 all 监视宽高触发 reflow
+ *
+ * 设计取舍：
+ *   - 去掉 backdrop-filter 后，浮层若仍半透明会糊在宿主内容上不可读，所以同时把
+ *     容器表面提为不透明 token（--ai-color-bg-elevated，自动跟随明/暗主题），
+ *     并补边框 + 阴影维持层次。FAB / 按钮等品牌色元素不动背景。
+ *   - 遮罩层（overlay scrim）只去模糊、保留半透明，不强制不透明。
+ *   - transition 收敛只改 transition-property 长属性，各元素自身的时长/缓动保留。
+ * ============================================================================
+ */
+
+/* ---------------------------------------------------------------------------
+ * 1 + 2. 透明度降级：系统偏好 reduce 或宿主加 .ai-reduce-effects 时生效
+ * ------------------------------------------------------------------------- */
+
+/* 1a. 去毛玻璃（整棵小助手子树都覆盖，包含 Teleport 出去的 overlay / toast） */
+@media (prefers-reduced-transparency: reduce) {
+  .ai-assistant-wrapper,
+  .ai-assistant-wrapper *,
+  .ai-personalize-overlay,
+  .ai-personalize-overlay *,
+  .ai-form-fill-overlay,
+  .ai-form-fill-overlay *,
+  .ai-form-fill-toast {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+.ai-assistant-wrapper.ai-reduce-effects,
+.ai-assistant-wrapper.ai-reduce-effects *,
+.ai-reduce-effects.ai-personalize-overlay,
+.ai-reduce-effects.ai-personalize-overlay *,
+.ai-reduce-effects.ai-form-fill-overlay,
+.ai-reduce-effects.ai-form-fill-overlay *,
+.ai-reduce-effects.ai-form-fill-toast {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 1b. 浮层容器转不透明（去模糊后保证可读性）。FAB / 按钮 / 遮罩不在此列。 */
+@media (prefers-reduced-transparency: reduce) {
+  .ai-panel,
+  .ai-modal,
+  .ai-popover,
+  .ai-menu,
+  .ai-command-palette,
+  .ai-sessions-drawer,
+  .ai-personalize-dialog,
+  .ai-prompt-tpl-dialog,
+  .ai-keyboard-shortcuts-dialog,
+  .ai-compare-dialog,
+  .ai-form-fill-dialog,
+  .ai-form-fill-toast {
+    background-color: var(--ai-color-bg-elevated) !important;
+    background-image: none !important;
+    border: 1px solid var(--ai-color-border);
+    box-shadow: var(--ai-shadow-md);
+  }
+}
+
+.ai-reduce-effects .ai-panel,
+.ai-reduce-effects .ai-modal,
+.ai-reduce-effects .ai-popover,
+.ai-reduce-effects .ai-menu,
+.ai-reduce-effects .ai-command-palette,
+.ai-reduce-effects .ai-sessions-drawer,
+.ai-reduce-effects .ai-personalize-dialog,
+.ai-reduce-effects .ai-prompt-tpl-dialog,
+.ai-reduce-effects .ai-keyboard-shortcuts-dialog,
+.ai-reduce-effects .ai-compare-dialog,
+.ai-reduce-effects .ai-form-fill-dialog,
+.ai-reduce-effects.ai-form-fill-toast {
+  background-color: var(--ai-color-bg-elevated) !important;
+  background-image: none !important;
+  border: 1px solid var(--ai-color-border);
+  box-shadow: var(--ai-shadow-md);
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. transition: all 收敛
+ * ---------------------------------------------------------------------------
+ * 只对"装饰类"元素生效（按钮 / 标签 / 气泡 / 列表项 / 图标 / 头像 / 链接等），
+ * 不触碰面板 / 抽屉 / 弹层等可能用 height/max-height 做展开折叠的容器，避免把
+ * 折叠动画变成瞬切。只覆盖 transition-property，保留各元素原本的时长与缓动。
+ * 安全属性集：排除 width/height/inset/margin/padding 等会触发 layout 的属性。
+ * ------------------------------------------------------------------------- */
+.ai-assistant-wrapper .ai-bubble,
+.ai-assistant-wrapper .ai-msg .ai-avatar,
+.ai-assistant-wrapper .ai-fab,
+.ai-assistant-wrapper button,
+.ai-assistant-wrapper a,
+.ai-assistant-wrapper .ai-btn,
+.ai-assistant-wrapper .ai-chip,
+.ai-assistant-wrapper .ai-tab,
+.ai-assistant-wrapper .ai-page-nav-tab,
+.ai-assistant-wrapper .ai-quick-actions button,
+.ai-assistant-wrapper .ai-mode-bar button,
+.ai-assistant-wrapper .ai-session-item,
+.ai-assistant-wrapper .ai-prompt-tpl-item,
+.ai-assistant-wrapper .ai-list-item,
+.ai-assistant-wrapper .ai-icon-btn,
+.ai-assistant-wrapper .ai-badge,
+.ai-personalize-overlay button,
+.ai-form-fill-overlay button {
+  transition-property:
+    transform, opacity, color, background-color, border-color, box-shadow, filter !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * 阅读主题（opt-in：options.readingMode → .ai-reading）
+ * 限宽正文 + 衬线标题 + 暖白表面 + 升字号。放在最后加载，确保压住 09/99。
+ * 衬线走系统字体栈，不引入 webfont；暖白表面仅在浅色生效。
+ * ------------------------------------------------------------------------- */
+.ai-assistant-wrapper.ai-reading {
+  --ai-font-serif: 'Georgia', 'Songti SC', 'Noto Serif', 'Times New Roman', serif;
+}
+.ai-assistant-wrapper.ai-reading:not(.ai-dark) {
+  /* 暖白阅读表面（浅色专用），仍是 token 定义，不是组件硬编码 */
+  --ai-color-assistant-bubble: #faf9f7;
+}
+.ai-assistant-wrapper.ai-reading .ai-msg.assistant .ai-bubble {
+  max-width: 68ch;
+  font-size: 15px;
+  line-height: var(--ai-leading-loose, 1.72);
+}
+.ai-assistant-wrapper.ai-reading .ai-msg.assistant .ai-bubble :is(h1, h2, h3) {
+  font-family: var(--ai-font-serif);
+  letter-spacing: -0.01em;
+}

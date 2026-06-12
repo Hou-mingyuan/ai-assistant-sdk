@@ -6,6 +6,7 @@
       effectivePositionClass,
       panelOpenFabAlignClass,
       themeClass,
+      readingClass,
       edgeDockClass,
       {
         'panel-mounted': panelMountedForLayout,
@@ -64,6 +65,14 @@
           />
         </div>
         <canvas ref="codeWallCanvasRef" class="ai-code-wall-canvas" aria-hidden="true"></canvas>
+        <!-- Artifacts/Canvas 覆盖层：打开 artifact 时滑入盖住聊天区 -->
+        <ArtifactCanvas
+          v-if="artifactPanelOpen"
+          :artifact="currentArtifact"
+          :versions="currentArtifactVersions"
+          @close="closeArtifact"
+          @resend="onArtifactResend"
+        />
         <!-- Header：中间 ai-header-spacer 穿透命中顶边缩放手柄 -->
         <AssistantHeader
           :uid="uid"
@@ -99,6 +108,10 @@
         />
 
         <div class="ai-sr-only" aria-live="polite" aria-atomic="true">{{ a11yStatusText }}</div>
+        <!-- A11y：流式结束后把助手正文播报给屏读用户（与状态区分离，避免互相打断） -->
+        <div class="ai-sr-only" aria-live="polite" aria-atomic="true">
+          {{ a11yReplyAnnouncement }}
+        </div>
 
         <SessionTabs
           :sessions="multiSessions.sessions.value"
@@ -707,6 +720,8 @@
       @dismiss="onFormAutoFillToastDismiss"
     />
 
+    <CitationHoverCard :state="citationCard" :dark="isDark" />
+
     <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
     <CommandPalette
       v-if="cmdPalette.open.value"
@@ -722,6 +737,7 @@ import {
   ref,
   computed,
   inject,
+  provide,
   reactive,
   nextTick,
   watch,
@@ -742,6 +758,10 @@ import ChatSearchBar from './ChatSearchBar.vue';
 import ChatEmptyState from './ChatEmptyState.vue';
 import KbPickerDialog from './KbPickerDialog.vue';
 import FormFillToast from './FormFillToast.vue';
+import CitationHoverCard from './CitationHoverCard.vue';
+import ArtifactCanvas from './ArtifactCanvas.vue';
+import { useArtifacts, ARTIFACTS_KEY } from '../composables/useArtifacts';
+import { useCitationHover } from '../composables/useCitationHover';
 import { useVoiceInput } from '../composables/useVoiceInput';
 import {
   appendVoiceTranscript,
@@ -906,6 +926,19 @@ function reportAssistantError(source: string, message: string) {
 }
 
 const t = computed(() => getMessages((options.locale || 'en') as Locale));
+
+/* Artifacts/Canvas：provide 给子组件 ArtifactCard（inject 后打开），本组件渲染 ArtifactCanvas 覆盖层 */
+const artifactsController = useArtifacts();
+provide(ARTIFACTS_KEY, artifactsController);
+const currentArtifact = artifactsController.current;
+const currentArtifactVersions = artifactsController.currentVersions;
+const artifactPanelOpen = artifactsController.isOpen;
+const closeArtifact = artifactsController.closeArtifact;
+/* 编辑后重发：Canvas 给出新提示词 -> 关闭画布并走正常发送管线（handler 在 send 定义后注入） */
+function onArtifactResend(text: string) {
+  artifactsController.closeArtifact();
+  artifactsController.resend(text);
+}
 
 let _rtfCache: { locale: string; rtf: Intl.RelativeTimeFormat } | null = null;
 function getRtf(locale: string) {
@@ -1304,6 +1337,8 @@ const {
 } = msgCtxComposable;
 
 const bodyRef = ref<HTMLElement>();
+/* 阅读/引用 v2.1：悬停正文 [n] 角标时，在 body 上 Teleport 一张样式来源卡。 */
+const { citationCard } = useCitationHover(bodyRef);
 
 /* Refactor (T1-Wave3)：showScrollToBottomBtn / scrollToBottomClick / 滚动 listener
  * 抽到 useScrollAndVirtual；与下面 C10 虚拟滚动接入合并。 */
@@ -1634,6 +1669,43 @@ watch(loading, (now, prev) => {
     messageIndex: idx,
     voice: audioPreferences.voice.value || undefined,
     rate: audioPreferences.rate.value,
+  });
+});
+
+/**
+ * A11y 正文播报：与 K37 的 TTS 朗读相互独立。
+ * TTS 受 audioAutoRead 偏好门控、面向有声朗读；这里只在流式结束后更新一个 polite
+ * live region，让读屏软件读出完整答复。先清空再赋值是为了强制读屏重复播报（即使
+ * 两次内容相同）。正文先做轻量 Markdown 去标记，过长截断，剩余部分用户可定位气泡阅读。
+ */
+const a11yReplyAnnouncement = ref('');
+watch(loading, (now, prev) => {
+  if (prev !== true || now !== false) return;
+  // 互斥门控：若 K37 的 TTS 自动朗读会发声（autoRead 或语音会话开启 + 浏览器支持），
+  // 则不再更新这个 live region，避免读屏软件与 Web Speech 双路语音重叠播报。
+  // TTS 不可用或未开启时才走 live region，保证读屏用户仍能听到答复。
+  if ((audioPreferences.autoRead.value || voiceConversationActive.value) && tts.supported.value) {
+    return;
+  }
+  const idx = messages.value.length - 1;
+  if (idx < 0) return;
+  const last = messages.value[idx];
+  if (!last || last.role !== 'assistant') return;
+  const raw = (last.contentArchive ?? last.content ?? '').trim();
+  if (!raw) return;
+  const plain = raw
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[#>*_~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return;
+  const capped = plain.length > 1500 ? plain.slice(0, 1500) + '…' : plain;
+  a11yReplyAnnouncement.value = '';
+  void nextTick(() => {
+    a11yReplyAnnouncement.value = capped;
   });
 });
 
@@ -2056,6 +2128,7 @@ const themePaletteVars = computed<Record<string, string>>(() => {
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
 
 const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
+const readingClass = computed(() => (options.readingMode ? 'ai-reading' : ''));
 
 const DRAG_CLICK_PX = 8;
 const DOCK_BREAK_PX = 10;
@@ -2712,6 +2785,19 @@ function send() {
   return sendRaw();
 }
 
+/* Artifacts：编辑后重发 -> 灌入输入框并走 chat 发送；每轮回复完成后归并 artifact 版本 */
+artifactsController.setResendHandler((text: string) => {
+  if (loading.value) return;
+  mode.value = 'chat';
+  input.value = text;
+  void send();
+});
+watch(loading, (val, prev) => {
+  if (prev && !val) {
+    for (const m of messages.value) artifactsController.registerArtifacts(m.artifacts);
+  }
+});
+
 function regenerateWithCitations(globalIdx: number) {
   if (loading.value) return;
   let userIdx = globalIdx - 1;
@@ -3010,3 +3096,5 @@ onUnmounted(() => {
 <style src="./styles/12-extreme-performance.css"></style>
 <style src="./styles/13-containment.css"></style>
 <style src="./styles/99-enterprise-overhaul.css"></style>
+<style src="./styles/14-adaptive-effects.css"></style>
+<style src="./styles/15-artifacts.css"></style>

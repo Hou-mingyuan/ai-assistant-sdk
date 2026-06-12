@@ -462,13 +462,11 @@ describe('streamChat', () => {
     expect(chunks).toEqual(['hello\nworld']);
   });
 
-  it('preserves leading whitespace beyond the single SSE separator space', async () => {
-    /* `data: Hello` and `data:  world` are two SSE events. Only the first
-     * space after `data:` is the separator (per the EventSource spec); the
-     * second event's leading space is part of the payload. The previous
-     * implementation called `.trim()` on the joined payload which silently
-     * collapsed `Hello` + ` world` into `Helloworld` — this regression test
-     * locks the fix in place. */
+  it('preserves token leading spaces (server emits spec data: <token> with one separator space)', async () => {
+    /* 规范后端按 SSE 标准发 `data: <token>`，冒号后补**一个**分隔空格；token 自带的前导空格会再多
+     * 一个分隔空格（如 ` world` → `data:  world`）。parseSseDataEvent 用 `/^data:\s?/` 只剥掉这一个
+     * 分隔空格，原样保留 token 自带空格，否则相邻 token 会粘连成 `Helloworld`，并破坏
+     * `<artifact id=...>` 标签与英文/代码（中文无空格故此前未暴露）。本用例锁定该规范契约。 */
     mockFetch.mockResolvedValueOnce(
       streamResponse(['data: Hello\n\ndata:  world\n\ndata: [DONE]\n\n']),
     );

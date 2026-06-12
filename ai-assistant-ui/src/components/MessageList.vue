@@ -84,11 +84,6 @@
         <span class="ai-thinking-text">
           {{ streamStageText(displayOffset + renderedStart + idx, msg) }}
         </span>
-        <span class="ai-thinking-dots" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
       </div>
       <MessageWebSearchMeta
         v-if="
@@ -100,8 +95,22 @@
         :content="msg.content"
         :message-key="`${displayOffset + renderedStart + idx}-early`"
         :references-label="t.responseMetaWebSearchReferences || 'References'"
+        :t="t"
         mode="early"
       />
+      <!-- 首 token 前的骨架屏：缓解等待空白；屏读由上方 thinking-bubble 播报，故 aria-hidden -->
+      <div
+        v-if="
+          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
+          !hasVisibleContent(msg.content)
+        "
+        class="ai-skeleton"
+        aria-hidden="true"
+      >
+        <span class="ai-skeleton-line"></span>
+        <span class="ai-skeleton-line"></span>
+        <span class="ai-skeleton-line ai-skeleton-line-sm"></span>
+      </div>
       <MessageThinkingBlocks
         v-if="msg.role === 'assistant'"
         :thinking="msg.thinking"
@@ -113,23 +122,11 @@
           (content, isLast) => renderBubble(content, displayOffset + renderedStart + idx, isLast)
         "
       />
-      <!-- Agent steps display -->
-      <div v-if="msg.agentSteps && msg.agentSteps.length > 0" class="ai-agent-steps">
-        <div
-          v-for="step in msg.agentSteps"
-          :key="step.id"
-          class="ai-agent-step"
-          :class="'ai-step-' + step.status"
-        >
-          <span class="ai-agent-step-icon">
-            <template v-if="step.status === 'done'">✓</template>
-            <template v-else-if="step.status === 'running'">⟳</template>
-            <template v-else-if="step.status === 'error'">✗</template>
-            <template v-else>○</template>
-          </span>
-          <span class="ai-agent-step-label">{{ step.label }}</span>
-        </div>
-      </div>
+      <!-- Agent / Deep Research steps -->
+      <ResearchTimeline
+        v-if="msg.agentSteps && msg.agentSteps.length > 0"
+        :steps="msg.agentSteps"
+      />
       <div v-if="msg.role === 'user' && messageImageThumbs(msg).length > 0" class="ai-user-images">
         <img
           v-for="(thumb, imageIdx) in messageImageThumbs(msg)"
@@ -169,8 +166,8 @@
           class="ai-bubble"
           @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
           v-html="
-            renderBubble(
-              msg.content,
+            citeBubble(
+              msg,
               displayOffset + renderedStart + idx,
               loading && msg.role === 'assistant' && idx === messages.length - 1,
             )
@@ -183,11 +180,19 @@
           :content="msg.content"
           :message-key="`${displayOffset + renderedStart + idx}`"
           :references-label="t.responseMetaWebSearchReferences || 'References'"
+          :t="t"
           @regenerate-with-citations="
             emit('regenerate-with-citations', displayOffset + renderedStart + idx)
           "
         />
       </template>
+      <!-- Artifacts/Canvas 卡片：点击在侧边画布打开 -->
+      <div
+        v-if="msg.role === 'assistant' && msg.artifacts && msg.artifacts.length > 0"
+        class="ai-artifact-cards"
+      >
+        <ArtifactCard v-for="a in msg.artifacts" :key="a.id" :artifact="a" />
+      </div>
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
       </span>
@@ -499,6 +504,9 @@ import MessageReadingPreview from './MessageReadingPreview.vue';
 import MessageThinkingBlocks from './MessageThinkingBlocks.vue';
 import MessageToolCalls from './MessageToolCalls.vue';
 import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
+import ResearchTimeline from './ResearchTimeline.vue';
+import ArtifactCard from './ArtifactCard.vue';
+import { linkifyCitations } from '../utils/citations';
 /* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
  * under each assistant message. Lazy-imported so the chunk only loads when
  * a message is actually rendered. */
@@ -538,6 +546,24 @@ function webSearchSourcePreviews(meta: Message['meta']) {
   return (meta?.webSearchSourcePreviews || []).filter(
     (source) => source && (source.title || source.url || source.snippet),
   );
+}
+
+/** Per-message ordered source list for inline `[n]` citation linkifying. */
+function citationSources(msg: Message) {
+  const previews = webSearchSourcePreviews(msg.meta);
+  if (previews.length > 0) {
+    return previews.map((p) => ({ url: p.url, title: p.title, snippet: p.snippet }));
+  }
+  return webSearchSourceUrls(msg.meta).map((url) => ({ url }));
+}
+
+/** Render an assistant bubble and turn its `[n]` markers into clickable citation
+ * chips when the message carries web-search sources. Other roles render as-is. */
+function citeBubble(msg: Message, globalIdx: number, isLast: boolean): string {
+  const html = props.renderBubble(msg.content, globalIdx, isLast);
+  if (msg.role !== 'assistant') return html;
+  const sources = citationSources(msg);
+  return sources.length > 0 ? linkifyCitations(html, sources) : html;
 }
 
 function hasSecondaryMeta(meta: Message['meta']): boolean {

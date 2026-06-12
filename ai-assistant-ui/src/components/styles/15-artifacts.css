@@ -1,0 +1,611 @@
+/* Artifacts/Canvas (P0)
+ * 内联卡片 + 面板内覆盖式 Canvas。颜色优先用项目 token，带兜底值保证脱离 token 也可读。 */
+
+/* ---------- 聊天流内联卡片 ---------- */
+.ai-artifact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+
+.ai-artifact-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ai-c-border, #e5e7eb);
+  border-radius: 10px;
+  background: var(--ai-c-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease;
+}
+
+.ai-artifact-card:hover:not(:disabled) {
+  border-color: var(--ai-c-primary, #6366f1);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.14);
+}
+
+.ai-artifact-card:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.ai-artifact-card.is-streaming {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.ai-artifact-card-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex: none;
+}
+
+.ai-artifact-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ai-artifact-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ai-c-text, #1f2328);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-artifact-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ai-c-text-muted, #6b7280);
+}
+
+.ai-artifact-card-type {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+.ai-artifact-card-open {
+  color: var(--ai-c-primary, #6366f1);
+}
+
+/* ---------- 面板内 Canvas 覆盖层 ---------- */
+.ai-artifact-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--ai-c-surface, #fff);
+  border-radius: inherit;
+  overflow: hidden;
+  animation: ai-artifact-slide-in 0.18s ease;
+}
+
+/* 提升特异度，覆盖 01-shell.css 里 `.ai-panel > :not(...)` 把直接子元素设为
+ * position:relative 的规则（否则画布会变成占位块而非覆盖层）。 */
+.ai-panel > .ai-artifact-canvas.ai-artifact-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+}
+
+@keyframes ai-artifact-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ai-artifact-canvas-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ai-c-border, #e5e7eb);
+  flex: none;
+}
+
+.ai-artifact-canvas-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ai-artifact-canvas-type {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: #fff;
+  background: var(--ai-c-primary, #6366f1);
+  flex: none;
+}
+
+.ai-artifact-canvas-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ai-c-text, #1f2328);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-artifact-canvas-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.ai-artifact-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--ai-c-border, #e5e7eb);
+  border-radius: 7px;
+  background: var(--ai-c-surface, #fff);
+  color: var(--ai-c-text, #1f2328);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ai-artifact-btn:hover {
+  background: var(--ai-c-surface-2, #f3f4f6);
+}
+
+.ai-artifact-btn-close {
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.ai-artifact-canvas-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ai-artifact-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.ai-artifact-code {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+  color: var(--ai-c-text, #1f2328);
+}
+
+.ai-artifact-md {
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ai-c-text, #1f2328);
+  word-break: break-word;
+}
+
+.ai-artifact-md h1,
+.ai-artifact-md h2,
+.ai-artifact-md h3 {
+  margin: 1em 0 0.5em;
+  line-height: 1.3;
+}
+
+.ai-artifact-md pre {
+  background: var(--ai-c-surface-2, #f6f8fa);
+  padding: 12px;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.ai-artifact-md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.ai-artifact-md :not(pre) > code {
+  background: var(--ai-c-surface-2, #f6f8fa);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.ai-artifact-md table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.ai-artifact-md th,
+.ai-artifact-md td {
+  border: 1px solid var(--ai-c-border, #e5e7eb);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+/* ---------- P1：按钮态 / 版本 / diff / 编辑 / mermaid ---------- */
+.ai-artifact-btn.is-active {
+  border-color: var(--ai-c-primary, #6366f1);
+  color: var(--ai-c-primary, #6366f1);
+}
+
+.ai-artifact-btn-primary {
+  background: var(--ai-c-primary, #6366f1);
+  border-color: var(--ai-c-primary, #6366f1);
+  color: #fff;
+}
+
+.ai-artifact-btn-primary:hover {
+  filter: brightness(1.05);
+  background: var(--ai-c-primary, #6366f1);
+}
+
+.ai-artifact-versions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ai-c-border, #e5e7eb);
+  flex: none;
+  overflow-x: auto;
+}
+
+.ai-artifact-versions-label {
+  font-size: 11px;
+  color: var(--ai-c-text-muted, #6b7280);
+  flex: none;
+}
+
+.ai-artifact-version-pill {
+  font-size: 11px;
+  padding: 2px 9px;
+  border: 1px solid var(--ai-c-border, #e5e7eb);
+  border-radius: 999px;
+  background: var(--ai-c-surface, #fff);
+  color: var(--ai-c-text, #1f2328);
+  cursor: pointer;
+  flex: none;
+}
+
+.ai-artifact-version-pill.is-active {
+  background: var(--ai-c-primary, #6366f1);
+  border-color: var(--ai-c-primary, #6366f1);
+  color: #fff;
+}
+
+/* 编辑模式 */
+.ai-artifact-edit {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ai-artifact-edit-area {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: 0;
+  padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ai-c-text, #1f2328);
+  background: var(--ai-c-surface, #fff);
+  outline: none;
+}
+
+.ai-artifact-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--ai-c-border, #e5e7eb);
+  flex: none;
+}
+
+/* 版本 diff（行级 side-by-side） */
+.ai-artifact-diff {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ai-artifact-diff-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+}
+
+.ai-artifact-diff-col {
+  margin: 0;
+  padding: 1px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ai-artifact-diff-row.is-add .is-right {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.ai-artifact-diff-row.is-add .is-left {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.ai-artifact-diff-row.is-remove .is-left {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.ai-artifact-diff-row.is-remove .is-right {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.ai-artifact-diff-row.is-change .is-left {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.ai-artifact-diff-row.is-change .is-right {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+/* mermaid */
+.ai-artifact-mermaid {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
+
+.ai-artifact-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.ai-artifact-mermaid-err {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.ai-artifact-mermaid-loading {
+  color: var(--ai-c-text-muted, #6b7280);
+  font-size: 13px;
+}
+
+/* ---------- P2：运行 / 实时预览（React / Vue / 可运行 JS） ---------- */
+.ai-artifact-runner-host,
+.ai-artifact-runner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ai-artifact-runner-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ai-c-border, #e5e7eb);
+  background: var(--ai-c-surface-2, #f6f8fa);
+}
+
+.ai-artifact-runner-kind {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ai-c-text, #1f2328);
+}
+
+.ai-artifact-runner-loading {
+  font-size: 11px;
+  color: var(--ai-c-text-muted, #6b7280);
+}
+
+.ai-artifact-runner-spacer {
+  flex: 1 1 auto;
+}
+
+/* 运行报错友好横幅 */
+.ai-artifact-runner-error {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-bottom: 1px solid rgba(185, 28, 28, 0.25);
+  color: #b91c1c;
+}
+
+.ai-artifact-runner-error-icon {
+  flex: none;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.ai-artifact-runner-error-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ai-artifact-runner-error-title {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ai-artifact-runner-error-msg {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.9;
+}
+
+.ai-artifact-runner-error-link {
+  flex: none;
+  border: 1px solid rgba(185, 28, 28, 0.4);
+  background: #fff;
+  color: #b91c1c;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ai-artifact-runner-error-link:hover {
+  background: #fff5f5;
+}
+
+.ai-artifact-runner-error-close {
+  flex: none;
+  border: 0;
+  background: none;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.ai-artifact-runner-frame-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #fff;
+}
+
+.ai-artifact-runner-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+  display: block;
+}
+
+.ai-artifact-console {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 44%;
+  border-top: 1px solid var(--ai-c-border, #e5e7eb);
+  background: var(--ai-c-surface, #fff);
+}
+
+.ai-artifact-console.is-collapsed {
+  max-height: none;
+}
+
+.ai-artifact-console-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  background: var(--ai-c-surface-2, #f6f8fa);
+}
+
+.ai-artifact-console-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ai-c-text, #1f2328);
+}
+
+.ai-artifact-console-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ai-c-border, #e5e7eb);
+  color: var(--ai-c-text-muted, #6b7280);
+}
+
+.ai-artifact-console-errcount {
+  font-size: 10px;
+  color: #b91c1c;
+}
+
+.ai-artifact-console-clear {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ai-c-text-muted, #6b7280);
+}
+
+.ai-artifact-console-clear:hover {
+  color: var(--ai-c-text, #1f2328);
+}
+
+.ai-artifact-console-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 10px 8px;
+}
+
+.ai-artifact-console-empty {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--ai-c-text-muted, #6b7280);
+}
+
+.ai-artifact-console-line {
+  margin: 0;
+  padding: 2px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  color: var(--ai-c-text, #1f2328);
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+}
+
+.ai-artifact-console-line.is-error {
+  color: #b91c1c;
+}
+
+.ai-artifact-console-line.is-warn {
+  color: #b45309;
+}
+
+.ai-artifact-console-line.is-debug {
+  color: var(--ai-c-text-muted, #6b7280);
+}

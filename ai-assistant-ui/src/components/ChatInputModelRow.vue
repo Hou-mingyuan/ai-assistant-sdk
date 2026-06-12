@@ -48,7 +48,10 @@
         :aria-expanded="modelPickerOpen ? 'true' : 'false'"
         @click="modelPickerOpen = !modelPickerOpen"
       >
-        <span class="ai-model-picker-current">{{ selectedModel || modelListMessage }}</span>
+        <span class="ai-model-picker-current">
+          <span v-if="modelLoading" class="ai-skeleton-chip" aria-hidden="true"></span>
+          <template v-else>{{ selectedModel || modelListMessage }}</template>
+        </span>
         <span
           v-if="selectedModel && selectedModel === effectiveDefaultModel"
           class="ai-model-default-badge"
@@ -172,6 +175,8 @@ const modelPickerOpen = ref(false);
 const modelSearch = ref('');
 
 const effectiveDefaultModel = computed(() => props.defaultModel || props.modelChoices[0] || '');
+/* 模型列表拉取中且尚未选定时，模型选择器显示骨架 chip 代替纯文案 */
+const modelLoading = computed(() => props.modelStatusKind === 'checking' && !props.selectedModel);
 const filteredModelChoices = computed(() => {
   const q = modelSearch.value.trim().toLowerCase();
   if (!q) return props.modelChoices;

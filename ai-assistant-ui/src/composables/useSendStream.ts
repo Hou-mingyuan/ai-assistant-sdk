@@ -29,7 +29,10 @@ import {
   extractThinking,
   extractToolCalls,
   extractAgentSteps,
+  extractArtifacts,
+  promoteLargeCodeBlocks,
 } from '../types/message';
+import { ARTIFACT_SYSTEM_PROMPT } from '../utils/artifactPrompt';
 import { isAbortCancellationMessage } from './useChatHistoryPersistence';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
 import { captureScreenshot } from '../utils/pageScreenshot';
@@ -197,8 +200,9 @@ export function hasVisibleAssistantContent(message: string, t: I18nMessages): bo
   const sanitized = sanitizeAssistantContent(message || '', t);
   const { content: afterThink } = extractThinking(sanitized);
   const { content: afterTools } = extractToolCalls(afterThink);
-  const { content } = extractAgentSteps(afterTools);
-  return content.trim().length > 0;
+  const { content: afterSteps } = extractAgentSteps(afterTools);
+  const { content, artifacts } = extractArtifacts(afterSteps);
+  return content.trim().length > 0 || artifacts.length > 0;
 }
 
 export interface UseSendStreamDeps {
@@ -345,13 +349,15 @@ export function useSendStream(deps: UseSendStreamDeps) {
       const sanitized = sanitizeAssistantContent(pending, tNow());
       const { thinking, content: afterThink } = extractThinking(sanitized);
       const { content: afterTools, toolCalls } = extractToolCalls(afterThink);
-      const { content, steps } = extractAgentSteps(afterTools);
+      const { content: afterSteps, steps } = extractAgentSteps(afterTools);
+      const { content, artifacts } = extractArtifacts(afterSteps);
       deps.messages.value[msgIndex] = {
         role: 'assistant',
         content,
         thinking: thinking || prev?.thinking,
         toolCalls: toolCalls.length > 0 ? toolCalls : prev?.toolCalls,
         agentSteps: steps.length > 0 ? steps : prev?.agentSteps,
+        artifacts: artifacts.length > 0 ? artifacts : prev?.artifacts,
         timestamp: prev?.timestamp,
         contentArchive: prev?.contentArchive,
         feedback: prev?.feedback,
@@ -389,7 +395,21 @@ export function useSendStream(deps: UseSendStreamDeps) {
       pending = sanitizeAssistantContent(pending, tNow());
       const { thinking, content: afterThinkFinal } = extractThinking(pending);
       const { content: afterToolsFinal, toolCalls } = extractToolCalls(afterThinkFinal);
-      const { content, steps } = extractAgentSteps(afterToolsFinal);
+      const { content: afterStepsFinal, steps } = extractAgentSteps(afterToolsFinal);
+      const extracted = extractArtifacts(afterStepsFinal);
+      let content = extracted.content;
+      let artifacts = extracted.artifacts;
+      // 启发式保底：模型没按协议吐标签时，把大段围栏代码块提升为 artifact（仅收尾做一次）
+      if (artifacts.length === 0) {
+        const promoted = promoteLargeCodeBlocks(content);
+        if (promoted.artifacts.length > 0) {
+          content = promoted.content;
+          artifacts = promoted.artifacts;
+        }
+      }
+      artifacts.forEach((a) => {
+        a.status = 'done';
+      });
       const prevDone = deps.messages.value[msgIndex];
       const finalToolCalls = toolCalls.length > 0 ? toolCalls : prevDone?.toolCalls;
       if (finalToolCalls)
@@ -401,12 +421,14 @@ export function useSendStream(deps: UseSendStreamDeps) {
         finalSteps.forEach((s) => {
           if (s.status === 'running') s.status = 'done';
         });
+      const finalArtifacts = artifacts.length > 0 ? artifacts : prevDone?.artifacts;
       deps.messages.value[msgIndex] = {
         role: 'assistant',
         content,
         thinking: thinking || prevDone?.thinking,
         toolCalls: finalToolCalls,
         agentSteps: finalSteps,
+        artifacts: finalArtifacts,
         timestamp: prevDone?.timestamp,
         contentArchive: prevDone?.contentArchive,
         feedback: prevDone?.feedback,
@@ -514,7 +536,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
     const deepThinkPrompt = deps.deepThinkEnabled?.value
       ? '用户已开启深度思考：回答前先梳理关键约束，必要时给出更审慎的推理和权衡；如果问题很简单，保持简洁。'
       : '';
-    const combinedSp = [memFrag, sp, deepThinkPrompt].filter(Boolean).join('\n');
+    // Artifacts 协议（默认开启，可用 options.artifactsEnabled=false 关闭）
+    const artifactPrompt = deps.options.artifactsEnabled === false ? '' : ARTIFACT_SYSTEM_PROMPT;
+    const combinedSp = [memFrag, sp, deepThinkPrompt, artifactPrompt].filter(Boolean).join('\n');
     if (combinedSp) payload.systemPrompt = combinedSp;
     if (deps.messages.value.length > 1 && !isLowContextPrompt(text)) {
       payload.history = deps.messages.value

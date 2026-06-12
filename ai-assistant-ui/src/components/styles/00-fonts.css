@@ -1,12 +1,56 @@
 /**
- * Enterprise-grade font stack for the assistant UI.
+ * Font loading strategy for the assistant UI.
  *
- * Geist Sans      — distinct, modern body / UI face (variable, from Vercel)
- * JetBrains Mono  — code blocks, numeric counters, tabular monospace
- * Noto Sans SC    — CJK fallback that pairs cleanly with Geist x-height
+ * DEFAULT = zero network. The `--ai-font-*` tokens in `00-enterprise-tokens.css`
+ * already lead with installed system faces (PingFang SC / Microsoft YaHei UI /
+ * Hiragino, then system-ui), so out of the box the widget renders instantly with
+ * no external request and works on intranet / offline / mainland-China networks
+ * where `fonts.googleapis.com` is unreachable.
  *
- * Loaded via Google Fonts subset; consumers can ship their own copy and
- * override the same `--ai-font-*` tokens in their host page if they need
- * fully offline operation.
+ * The previous remote `@import url('https://fonts.googleapis.com/...')` was
+ * removed on purpose: a remote `@import` is render-blocking and serialized
+ * (download this CSS -> discover fonts -> download fonts), and `Noto Sans SC`
+ * pulls megabytes of CJK glyphs. That hurt first paint and could hang the panel
+ * behind a blocked font request.
+ *
+ * WANT THE BRANDED FACES (Geist / JetBrains Mono / Noto Sans SC)?
+ * Self-host them — do NOT reintroduce a remote `@import`. Two opt-in paths:
+ *
+ *  1) Drop subsetted `.woff2` files next to this file and uncomment the
+ *     `@font-face` template below. The token stacks already reference these
+ *     family names, so once the faces resolve they take effect automatically.
+ *
+ *  2) Or override the tokens from your host page after mounting the widget:
+ *       .ai-assistant-wrapper {
+ *         --ai-font-display: 'Your Brand', system-ui, sans-serif;
+ *         --ai-font-mono: 'Your Mono', ui-monospace, monospace;
+ *       }
+ *
+ * Use `font-display: swap` (shown) for fast text with a later swap, or
+ * `font-display: optional` to avoid any layout shift on slow networks.
  */
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+/* --- OPT-IN SELF-HOSTED WEBFONTS (disabled by default) ---------------------
+@font-face {
+  font-family: 'Geist';
+  src: url('./fonts/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/JetBrainsMono-Variable.woff2') format('woff2-variations');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('./fonts/NotoSansSC-subset.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+4E00-9FFF, U+3000-303F, U+FF00-FFEF;
+}
+--------------------------------------------------------------------------- */

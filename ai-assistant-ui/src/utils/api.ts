@@ -135,11 +135,10 @@ function apiUrl(baseUrl: string, path: string): string {
 }
 
 function parseSseDataEvent(event: string): string | undefined {
-  /* Per SSE spec only the *first* whitespace after `data:` is the separator
-   * and must be stripped; trailing data spaces are part of the payload. We
-   * intentionally avoid a closing `.trim()` so chunks like `data:  world`
-   * keep the leading space and concatenate to the previous chunk as
-   * `Hello world` rather than `Helloworld`. */
+  /* 服务端按 SSE 规范发 `data: <token>`，冒号后补**一个**分隔空格。按规范，消费端需剥掉 `data:`
+   * 之后的**第一个**前导空格（且仅一个）；token 自带的前导空格（如 ` id=`、` import`）此时会多一个
+   * 分隔空格（变成 `data:  id=`），剥一个后恰好原样还原。故用 `/^data:\s?/`（`\s?` 只吃这一个分隔
+   * 空格），既兼容原生 EventSource，又避免相邻 token 粘连（`<artifactid=`、`importReact`）。 */
   const data = event
     .split('\n')
     .filter((line) => line.startsWith('data:'))

@@ -673,3 +673,331 @@
 .ai-assistant-wrapper.ai-dark .ai-code-wrap.ai-code-lineno pre code::before {
   color: rgba(234, 255, 238, 0.4);
 }
+
+/* ============================================================================
+ * 首屏等待骨架屏（首 token 前的等待态）
+ * ---------------------------------------------------------------------------
+ * 与 .ai-thinking-bubble 一起出现，给"内容正在生成"的视觉预期，缓解 TTFT 空白。
+ * aria-hidden：屏读播报由 .ai-thinking-bubble 的 role=status 负责，骨架不重复。
+ * reduced-motion 下 shimmer 由 12-extreme-performance.css 第 18 节统一压成静态。
+ * ============================================================================ */
+.ai-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px 2px;
+  max-width: 320px;
+}
+.ai-skeleton-line {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--ai-color-surface, rgba(15, 23, 42, 0.04)) 25%,
+    var(--ai-color-surface-strong, rgba(15, 23, 42, 0.08)) 37%,
+    var(--ai-color-surface, rgba(15, 23, 42, 0.04)) 63%
+  );
+  background-size: 400% 100%;
+  animation: ai-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.ai-skeleton-line:nth-child(2) {
+  width: 92%;
+}
+.ai-skeleton-line.ai-skeleton-line-sm {
+  width: 60%;
+}
+@keyframes ai-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+/* \u5185\u8054\u9aa8\u67b6 chip\uff1a\u7528\u4e8e\u6a21\u578b\u9009\u62e9\u5668\u7b49\u5c0f\u5757\u52a0\u8f7d\u6001\uff08\u6a21\u578b\u5217\u8868\u62c9\u53d6\u4e2d\uff09 */
+.ai-skeleton-chip {
+  display: inline-block;
+  width: 84px;
+  height: 12px;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--ai-color-surface, rgba(15, 23, 42, 0.04)) 25%,
+    var(--ai-color-surface-strong, rgba(15, 23, 42, 0.08)) 37%,
+    var(--ai-color-surface, rgba(15, 23, 42, 0.04)) 63%
+  );
+  background-size: 400% 100%;
+  animation: ai-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ============================================================================
+ * Deep Research 时间线（ResearchTimeline.vue）
+ * 复用 .ai-agent-steps / .ai-agent-step 行样式，仅补进度头与每步 chip。
+ * ============================================================================ */
+.ai-research-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--ai-color-text-tertiary, #94a3b8);
+}
+.ai-research-spark {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ai-color-primary, #4f46e5);
+  flex: 0 0 auto;
+}
+.ai-research-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ai-research-elapsed {
+  font-variant-numeric: tabular-nums;
+}
+.ai-research-progress-track {
+  flex: 1;
+  min-width: 40px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--ai-color-surface, rgba(15, 23, 42, 0.04));
+  overflow: hidden;
+}
+.ai-research-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ai-color-primary, #4f46e5);
+  transition: width 0.3s ease;
+}
+.ai-research-step {
+  flex-wrap: wrap;
+}
+.ai-research-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  background: var(--ai-color-surface, rgba(15, 23, 42, 0.04));
+  color: var(--ai-color-text-secondary, #475569);
+}
+.ai-research-chip-tool {
+  font-family: var(--ai-font-mono, ui-monospace, monospace);
+}
+
+/* ============================================================================
+ * 来源卡片（MessageWebSearchMeta.vue）Perplexity 风格：域名 + 首字母块 + hover 图标行
+ * 这些类此前无样式，从零定义；走 token + 兜底，不引入 important 强制。
+ * ============================================================================ */
+.ai-web-search-preview-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ai-web-search-preview-card {
+  position: relative;
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--ai-radius-base, 12px);
+  border: 1px solid var(--ai-color-border, rgba(15, 23, 42, 0.08));
+  background: var(--ai-color-bg-elevated, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.ai-web-search-preview-card:hover {
+  border-color: var(--ai-color-border-strong, rgba(15, 23, 42, 0.14));
+  box-shadow: var(--ai-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+  transform: translateY(-1px);
+}
+.ai-src-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-src-favicon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ai-color-text-inverse, #fff);
+  background: var(--ai-color-primary, #4f46e5);
+}
+.ai-src-index {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ai-color-text-tertiary, #94a3b8);
+}
+.ai-src-headtext {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ai-web-search-preview-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-color-text-primary, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-src-domain {
+  font-size: 10px;
+  color: var(--ai-color-text-tertiary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ai-web-search-preview-quality {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--ai-color-text-tertiary, #94a3b8);
+}
+.ai-web-search-preview-snippet {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: var(--ai-leading-base, 1.5);
+  color: var(--ai-color-text-secondary, #475569);
+}
+.ai-src-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.ai-web-search-preview-card:hover .ai-src-actions,
+.ai-web-search-preview-card:focus-within .ai-src-actions {
+  opacity: 1;
+}
+.ai-src-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ai-color-text-secondary, #475569);
+  background: var(--ai-color-surface, rgba(15, 23, 42, 0.04));
+}
+.ai-src-action:hover {
+  color: var(--ai-color-text-primary, #0f172a);
+  background: var(--ai-color-surface-strong, rgba(15, 23, 42, 0.07));
+}
+.ai-src-action-on {
+  color: var(--ai-color-primary, #4f46e5);
+}
+
+/* 正文内联引用角标（citations.ts 生成）。hover 走原生 title 提示，不受气泡
+ * contain:paint 裁切影响；富样式悬浮卡留待 v2.1（需 Teleport 逃出 containment）。 */
+.ai-cite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  margin: 0 1px;
+  vertical-align: super;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  color: var(--ai-color-primary, #4f46e5);
+  background: var(--ai-color-primary-soft, rgba(79, 70, 229, 0.12));
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.ai-cite:hover {
+  color: var(--ai-color-text-inverse, #fff);
+  background: var(--ai-color-primary, #4f46e5);
+}
+.ai-cite-plain {
+  cursor: default;
+}
+
+/* 引用悬浮迷你卡（v2.1，CitationHoverCard.vue → Teleport 到 body）。
+ * 因为脱离了 .ai-assistant-wrapper 的 token 作用域，这里用字面色值 + 暗色变体，
+ * 而不是 var(--ai-*)（teleport 后 token 解析不到）。无 !important。 */
+.ai-cite-card {
+  position: fixed;
+  z-index: 2147483647;
+  width: 260px;
+  max-width: 80vw;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.22);
+  pointer-events: none;
+  font-family: 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
+}
+.ai-cite-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.ai-cite-card-domain {
+  font-size: 10px;
+  color: #94a3b8;
+}
+.ai-cite-card-snippet {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #475569;
+}
+.ai-cite-card.ai-dark {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #14151c;
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.6);
+}
+.ai-cite-card.ai-dark .ai-cite-card-title {
+  color: #f5f5f7;
+}
+.ai-cite-card.ai-dark .ai-cite-card-domain {
+  color: #6b6b73;
+}
+.ai-cite-card.ai-dark .ai-cite-card-snippet {
+  color: #a3a3a8;
+}

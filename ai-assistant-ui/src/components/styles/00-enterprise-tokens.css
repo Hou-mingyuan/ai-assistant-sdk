@@ -68,41 +68,90 @@
   --ai-dur-base: 220ms;
   --ai-dur-slow: 360ms;
 
-  /* ===== Color (light by default) ===== */
-  --ai-color-bg-base: #ffffff;
-  --ai-color-bg-elevated: #ffffff;
-  --ai-color-bg-canvas: #f7f7f9;
-  --ai-color-bg-hover: #f0f1f5;
-  --ai-color-bg-active: #e7e8ee;
-  --ai-color-surface: rgba(15, 23, 42, 0.04);
-  --ai-color-surface-strong: rgba(15, 23, 42, 0.07);
+  /* ===== Tier 1: color primitives (raw palette, theme-agnostic) =====
+   * P2 token system. The semantic tokens below alias these. Every value here is
+   * byte-identical to the previous literal, so introducing this indirection is a
+   * zero-visual-change refactor; future re-skins只需改这一层或语义层的指向。 */
+  --ai-c-white: #ffffff;
+  --ai-c-gray-50: #f7f7f9;
+  --ai-c-gray-75: #f4f5f9;
+  --ai-c-gray-100: #f0f1f5;
+  --ai-c-gray-200: #e7e8ee;
+  --ai-c-slate-400: #94a3b8;
+  --ai-c-slate-600: #475569;
+  --ai-c-slate-900: #0f172a;
+  --ai-c-slate-a04: rgba(15, 23, 42, 0.04);
+  --ai-c-slate-a06: rgba(15, 23, 42, 0.06);
+  --ai-c-slate-a07: rgba(15, 23, 42, 0.07);
+  --ai-c-slate-a08: rgba(15, 23, 42, 0.08);
+  --ai-c-slate-a14: rgba(15, 23, 42, 0.14);
+  --ai-c-slate-a24: rgba(15, 23, 42, 0.24);
+  --ai-c-indigo-600: #4f46e5;
+  --ai-c-indigo-700: #4338ca;
+  --ai-c-indigo-a06: rgba(79, 70, 229, 0.06);
+  --ai-c-indigo-a12: rgba(79, 70, 229, 0.12);
+  --ai-c-indigo-a32: rgba(79, 70, 229, 0.32);
+  --ai-c-violet-600: #7c3aed;
+  --ai-c-violet-50: #f0eaff;
+  --ai-c-cyan-500: #06b6d4;
+  --ai-c-emerald-500: #10b981;
+  --ai-c-amber-500: #f59e0b;
+  --ai-c-red-500: #ef4444;
+  --ai-c-blue-500: #3b82f6;
+  /* dark-side neutrals + brand alphas (consumed by the .ai-dark semantics) */
+  --ai-c-ink-50: #f5f5f7;
+  --ai-c-ink-300: #a3a3a8;
+  --ai-c-ink-500: #6b6b73;
+  --ai-c-ink-700: #25262f;
+  --ai-c-ink-800: #1c1d26;
+  --ai-c-ink-850: #14151c;
+  --ai-c-ink-900: #0e0f15;
+  --ai-c-ink-950: #0a0b10;
+  --ai-c-ink-980: #0a0a0c;
+  --ai-c-white-a04: rgba(255, 255, 255, 0.04);
+  --ai-c-white-a06: rgba(255, 255, 255, 0.06);
+  --ai-c-white-a08: rgba(255, 255, 255, 0.08);
+  --ai-c-white-a14: rgba(255, 255, 255, 0.14);
+  --ai-c-white-a22: rgba(255, 255, 255, 0.22);
+  --ai-c-brand-a08: rgba(91, 108, 255, 0.08);
+  --ai-c-brand-a18: rgba(91, 108, 255, 0.18);
+  --ai-c-brand-a45: rgba(91, 108, 255, 0.45);
 
-  --ai-color-border: rgba(15, 23, 42, 0.08);
-  --ai-color-border-strong: rgba(15, 23, 42, 0.14);
-  --ai-color-border-emphasis: rgba(15, 23, 42, 0.24);
-  --ai-color-divider: rgba(15, 23, 42, 0.06);
+  /* ===== Tier 2: semantic color tokens (light) — alias primitives ===== */
+  --ai-color-bg-base: var(--ai-c-white);
+  --ai-color-bg-elevated: var(--ai-c-white);
+  --ai-color-bg-canvas: var(--ai-c-gray-50);
+  --ai-color-bg-hover: var(--ai-c-gray-100);
+  --ai-color-bg-active: var(--ai-c-gray-200);
+  --ai-color-surface: var(--ai-c-slate-a04);
+  --ai-color-surface-strong: var(--ai-c-slate-a07);
 
-  --ai-color-text-primary: #0f172a;
-  --ai-color-text-secondary: #475569;
-  --ai-color-text-tertiary: #94a3b8;
-  --ai-color-text-inverse: #ffffff;
+  --ai-color-border: var(--ai-c-slate-a08);
+  --ai-color-border-strong: var(--ai-c-slate-a14);
+  --ai-color-border-emphasis: var(--ai-c-slate-a24);
+  --ai-color-divider: var(--ai-c-slate-a06);
+
+  --ai-color-text-primary: var(--ai-c-slate-900);
+  --ai-color-text-secondary: var(--ai-c-slate-600);
+  --ai-color-text-tertiary: var(--ai-c-slate-400);
+  --ai-color-text-inverse: var(--ai-c-white);
 
   /* Brand: indigo → violet (Doubao-style) */
-  --ai-color-primary: #4f46e5;
-  --ai-color-primary-strong: #4338ca;
-  --ai-color-primary-soft: rgba(79, 70, 229, 0.12);
-  --ai-color-primary-softer: rgba(79, 70, 229, 0.06);
-  --ai-color-primary-glow: rgba(79, 70, 229, 0.32);
+  --ai-color-primary: var(--ai-c-indigo-600);
+  --ai-color-primary-strong: var(--ai-c-indigo-700);
+  --ai-color-primary-soft: var(--ai-c-indigo-a12);
+  --ai-color-primary-softer: var(--ai-c-indigo-a06);
+  --ai-color-primary-glow: var(--ai-c-indigo-a32);
 
-  --ai-color-accent-violet: #7c3aed;
-  --ai-color-accent-cyan: #06b6d4;
-  --ai-color-accent-emerald: #10b981;
-  --ai-color-accent-warm: #f0eaff;
+  --ai-color-accent-violet: var(--ai-c-violet-600);
+  --ai-color-accent-cyan: var(--ai-c-cyan-500);
+  --ai-color-accent-emerald: var(--ai-c-emerald-500);
+  --ai-color-accent-warm: var(--ai-c-violet-50);
 
-  --ai-color-success: #10b981;
-  --ai-color-warning: #f59e0b;
-  --ai-color-danger: #ef4444;
-  --ai-color-info: #3b82f6;
+  --ai-color-success: var(--ai-c-emerald-500);
+  --ai-color-warning: var(--ai-c-amber-500);
+  --ai-color-danger: var(--ai-c-red-500);
+  --ai-color-info: var(--ai-c-blue-500);
 
   /* Brand gradients */
   --ai-grad-brand: linear-gradient(135deg, #5b6cff 0%, #7c5cff 45%, #9333ea 100%);
@@ -114,8 +163,8 @@
 
   /* Bubbles */
   --ai-color-user-bubble: var(--ai-grad-brand);
-  --ai-color-user-bubble-text: #ffffff;
-  --ai-color-assistant-bubble: #f4f5f9;
+  --ai-color-user-bubble-text: var(--ai-c-white);
+  --ai-color-assistant-bubble: var(--ai-c-gray-75);
   --ai-color-assistant-bubble-text: var(--ai-color-text-primary);
 
   /* ===== Shadows ===== */
@@ -141,29 +190,29 @@
 .ai-dark.ai-personalize-overlay,
 .ai-dark.ai-form-fill-overlay,
 .ai-dark.ai-form-fill-toast {
-  --ai-color-bg-base: #0e0f15;
-  --ai-color-bg-elevated: #14151c;
-  --ai-color-bg-canvas: #0a0b10;
-  --ai-color-bg-hover: #1c1d26;
-  --ai-color-bg-active: #25262f;
-  --ai-color-surface: rgba(255, 255, 255, 0.04);
-  --ai-color-surface-strong: rgba(255, 255, 255, 0.08);
+  --ai-color-bg-base: var(--ai-c-ink-900);
+  --ai-color-bg-elevated: var(--ai-c-ink-850);
+  --ai-color-bg-canvas: var(--ai-c-ink-950);
+  --ai-color-bg-hover: var(--ai-c-ink-800);
+  --ai-color-bg-active: var(--ai-c-ink-700);
+  --ai-color-surface: var(--ai-c-white-a04);
+  --ai-color-surface-strong: var(--ai-c-white-a08);
 
-  --ai-color-border: rgba(255, 255, 255, 0.08);
-  --ai-color-border-strong: rgba(255, 255, 255, 0.14);
-  --ai-color-border-emphasis: rgba(255, 255, 255, 0.22);
-  --ai-color-divider: rgba(255, 255, 255, 0.06);
+  --ai-color-border: var(--ai-c-white-a08);
+  --ai-color-border-strong: var(--ai-c-white-a14);
+  --ai-color-border-emphasis: var(--ai-c-white-a22);
+  --ai-color-divider: var(--ai-c-white-a06);
 
-  --ai-color-text-primary: #f5f5f7;
-  --ai-color-text-secondary: #a3a3a8;
-  --ai-color-text-tertiary: #6b6b73;
-  --ai-color-text-inverse: #0a0a0c;
+  --ai-color-text-primary: var(--ai-c-ink-50);
+  --ai-color-text-secondary: var(--ai-c-ink-300);
+  --ai-color-text-tertiary: var(--ai-c-ink-500);
+  --ai-color-text-inverse: var(--ai-c-ink-980);
 
-  --ai-color-primary-soft: rgba(91, 108, 255, 0.18);
-  --ai-color-primary-softer: rgba(91, 108, 255, 0.08);
-  --ai-color-primary-glow: rgba(91, 108, 255, 0.45);
+  --ai-color-primary-soft: var(--ai-c-brand-a18);
+  --ai-color-primary-softer: var(--ai-c-brand-a08);
+  --ai-color-primary-glow: var(--ai-c-brand-a45);
 
-  --ai-color-assistant-bubble: rgba(255, 255, 255, 0.06);
+  --ai-color-assistant-bubble: var(--ai-c-white-a06);
 
   --ai-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --ai-shadow-base: 0 6px 18px -6px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.05);

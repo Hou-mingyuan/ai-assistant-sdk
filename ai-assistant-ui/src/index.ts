@@ -9,6 +9,10 @@ export interface AiAssistantOptions {
   primaryColor?: string;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   theme?: 'light' | 'dark' | 'auto';
+  /** 阅读主题：限宽正文 + 衬线标题 + 暖白表面 + 升字号（默认关闭）。 */
+  readingMode?: boolean;
+  /** Artifacts/Canvas：把成品（代码/文档/HTML/图）放到侧边画布展示。默认开启，设 false 关闭。 */
+  artifactsEnabled?: boolean;
   persistHistory?: boolean;
   /** 是否持久化悬浮球位置与贴边状态（localStorage），默认 true */
   persistFabPosition?: boolean;
