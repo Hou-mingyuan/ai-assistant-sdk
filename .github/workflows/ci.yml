@@ -39,6 +39,8 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: ai-assistant-ui/package-lock.json
 
       - name: Check all repo scripts syntax (.mjs)
         # Matches every .mjs under scripts/ and scripts/git-hooks/. Cheap (~1s) and
@@ -51,6 +53,14 @@ jobs:
             echo "  - $f"
             node --check "$f"
           done
+
+      - name: Install ai-assistant-ui dependencies
+        # frontend-api-path-types.test.mjs (run by --release-check-fast) type-checks a
+        # probe with `npm exec --prefix ai-assistant-ui -- tsc`. Without the UI deps
+        # installed, npx silently fetches the latest TypeScript instead of the pinned
+        # 5.x, whose stricter rules fail the probe. Install so the pinned tsc is used.
+        run: npm ci
+        working-directory: ai-assistant-ui
 
       - name: Run fast release checks
         # Keeps repository-wide script/OpenAPI/dependency gates in one lane while
