@@ -4,6 +4,7 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.security.DefaultSsrfPolicy;
 import com.aiassistant.security.SsrfPolicy;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,8 +14,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 核心 HTTP 正文抓取器：SSRF 安全的字节抓取（含重定向逐跳校验）、字符集嗅探与 TTL 正文缓存。
@@ -28,6 +32,8 @@ public class HttpContentFetcher {
 
     private static final int MAX_REDIRECTS = 5;
 
+    private static final Logger log = LoggerFactory.getLogger(HttpContentFetcher.class);
+
     private static final Pattern CHARSET_ATTR =
             Pattern.compile("charset=([a-zA-Z0-9._-]+)", Pattern.CASE_INSENSITIVE);
 
@@ -35,6 +41,8 @@ public class HttpContentFetcher {
     private final HttpClient httpClient;
     private final SsrfPolicy ssrfPolicy;
     private final ConcurrentHashMap<String, CacheEntry> fetchCache = new ConcurrentHashMap<>();
+    // R5: warn at most once if IP pinning is enabled but the JVM forbids the Host header.
+    private final AtomicBoolean warnedPinUnavailable = new AtomicBoolean(false);
 
     public HttpContentFetcher(
             AiAssistantProperties properties, HttpClient httpClient, SsrfPolicy ssrfPolicy) {
@@ -69,14 +77,7 @@ public class HttpContentFetcher {
         int max = Math.max(1024, properties.getUrlFetchMaxBytes());
         URI current = uri;
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
-            HttpRequest req =
-                    HttpRequest.newBuilder(current)
-                            .timeout(
-                                    Duration.ofSeconds(
-                                            Math.max(1, properties.getUrlFetchTimeoutSeconds())))
-                            .header("User-Agent", "AiAssistantUrlFetch/1.0")
-                            .GET()
-                            .build();
+            HttpRequest req = buildRequest(current);
             HttpResponse<InputStream> res =
                     httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream());
             int code = res.statusCode();
@@ -102,6 +103,106 @@ public class HttpContentFetcher {
             }
         }
         throw new IllegalStateException("Too many redirects (max " + MAX_REDIRECTS + ")");
+    }
+
+    /**
+     * Builds the GET request for one hop. When {@code url-fetch.pin-resolved-ip} is enabled and the
+     * target is plaintext {@code http}, the connection is pinned to the resolved IP literal so the
+     * {@link HttpClient} does not re-resolve the hostname (closing the DNS-rebinding TOCTOU window,
+     * which matters most for {@code http} cloud-metadata endpoints). The exact pinned IP is
+     * re-validated through {@link SsrfPolicy} before use, so we only ever connect to an address
+     * that passed the policy. {@code https} is never pinned because that breaks SNI / certificate
+     * hostname verification. If the JVM forbids the {@code Host} header (the default unless {@code
+     * -Djdk.httpclient.allowRestrictedHeaders=host} is set), pinning is skipped and the request
+     * falls back to the normal hostname-based form.
+     */
+    private HttpRequest buildRequest(URI current) {
+        Duration timeout = Duration.ofSeconds(Math.max(1, properties.getUrlFetchTimeoutSeconds()));
+        if (properties.isUrlFetchPinResolvedIp()
+                && "http".equalsIgnoreCase(current.getScheme())
+                && current.getHost() != null
+                && !current.getHost().isBlank()) {
+            try {
+                String ip = firstResolvedIp(current.getHost());
+                URI pinned = pinHttpUriToIp(current, ip);
+                if (pinned != null && !pinned.equals(current)) {
+                    if (properties.isUrlFetchSsrfProtection()) {
+                        // Validate the literal IP we will actually connect to (no further DNS).
+                        ssrfPolicy.validate(pinned);
+                    }
+                    String hostHeader =
+                            current.getHost()
+                                    + (current.getPort() != -1 ? ":" + current.getPort() : "");
+                    return HttpRequest.newBuilder(pinned)
+                            .timeout(timeout)
+                            .header("User-Agent", "AiAssistantUrlFetch/1.0")
+                            .header("Host", hostHeader)
+                            .GET()
+                            .build();
+                }
+            } catch (IllegalArgumentException restrictedHeaderOrPolicy) {
+                // Either the JVM rejected the Host header, or the pinned IP failed SSRF
+                // re-validation. Warn once for the header case and fall back to a non-pinned
+                // request; a policy failure will be re-raised by the outer validate() below.
+                if (warnedPinUnavailable.compareAndSet(false, true)) {
+                    log.warn(
+                            "url-fetch.pin-resolved-ip is enabled but pinning was skipped ({}). "
+                                    + "To pin http connections, start the JVM with "
+                                    + "-Djdk.httpclient.allowRestrictedHeaders=host.",
+                            restrictedHeaderOrPolicy.getMessage());
+                }
+            } catch (Exception resolutionFailed) {
+                // DNS failure etc. -- fall back to the normal request which will surface the error.
+                if (warnedPinUnavailable.compareAndSet(false, true)) {
+                    log.warn(
+                            "url-fetch.pin-resolved-ip resolution failed, using non-pinned request: {}",
+                            resolutionFailed.getMessage());
+                }
+            }
+        }
+        return HttpRequest.newBuilder(current)
+                .timeout(timeout)
+                .header("User-Agent", "AiAssistantUrlFetch/1.0")
+                .GET()
+                .build();
+    }
+
+    /**
+     * Resolves the host and returns the first address as a literal, stripping any IPv6 scope id.
+     */
+    private static String firstResolvedIp(String host) throws Exception {
+        InetAddress[] addresses = InetAddress.getAllByName(host);
+        if (addresses.length == 0) {
+            throw new IllegalStateException("no address for host: " + host);
+        }
+        String ip = addresses[0].getHostAddress();
+        int scope = ip.indexOf('%');
+        return scope >= 0 ? ip.substring(0, scope) : ip;
+    }
+
+    /**
+     * Rewrites an {@code http} URI so the authority is the given IP literal (IPv6 bracketed), while
+     * preserving port, path and query. Returns the original URI unchanged for non-http schemes or
+     * when inputs are blank, so HTTPS is never pinned (SNI/cert safety). Pure and unit-testable.
+     */
+    static URI pinHttpUriToIp(URI uri, String ipLiteral) {
+        if (uri == null || ipLiteral == null || ipLiteral.isBlank()) {
+            return uri;
+        }
+        if (!"http".equalsIgnoreCase(uri.getScheme())) {
+            return uri;
+        }
+        String authorityHost = ipLiteral.indexOf(':') >= 0 ? "[" + ipLiteral + "]" : ipLiteral;
+        StringBuilder sb = new StringBuilder("http://").append(authorityHost);
+        if (uri.getPort() != -1) {
+            sb.append(':').append(uri.getPort());
+        }
+        String rawPath = uri.getRawPath();
+        sb.append(rawPath == null || rawPath.isEmpty() ? "/" : rawPath);
+        if (uri.getRawQuery() != null) {
+            sb.append('?').append(uri.getRawQuery());
+        }
+        return URI.create(sb.toString());
     }
 
     public static Charset sniffCharset(byte[] body, URI uri) {

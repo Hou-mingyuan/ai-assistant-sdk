@@ -7,7 +7,9 @@ import prettier from "eslint-config-prettier";
  * File-size guard (Phase 2 from the external audit, 2026-05-16).
  *
  * Goal: keep new modules small without blocking the existing oversized
- * AiAssistant.vue (3635 lines as of the audit) on CI. The rules below are
+ * AiAssistant.vue (3635 lines at the original audit; ~3100 now) on CI.
+ * The per-file cap is ratcheted down as the file shrinks so it can never
+ * grow back. The rules below are
  * "warn" by default so that:
  *
  *  - CI does not fail (ESLint warn ≠ exit 1).
@@ -30,7 +32,10 @@ const historicalLargeFiles = {
   // here because ESLint does not parse CSS; for CSS size tracking see
   // `scripts/bundle-size-check.mjs` and the comment block at the top of
   // each `NN-*.css` slice.
-  "src/components/AiAssistant.vue": 3800,
+  // Ratcheted 3800 -> 3200 (2026-06) after the file shrank to ~3100 raw
+  // lines. Lower this further as more orchestration moves into composables;
+  // never raise it (see comment above).
+  "src/components/AiAssistant.vue": 3200,
 };
 
 const sizeOverrides = Object.entries(historicalLargeFiles).map(

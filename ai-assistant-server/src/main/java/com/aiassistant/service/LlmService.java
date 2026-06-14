@@ -795,4 +795,111 @@ public class LlmService {
         }
         return response;
     }
+
+    /**
+     * Creates a fluent {@link Builder} for {@link LlmService}.
+     *
+     * <p>R8 (2026-06): preferred over the multi-argument constructors at wiring sites. Future
+     * collaborators can be added as a {@code withX} setter on the builder instead of introducing
+     * yet another telescoping public constructor. The builder delegates to the canonical
+     * 12-argument constructor, so behaviour is identical and the existing constructors stay for
+     * compatibility.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /** Fluent builder for {@link LlmService}; see {@link #builder()}. */
+    public static final class Builder {
+        private AiAssistantProperties properties;
+        private UrlFetchService urlFetchService;
+        private ChatCompletionClient chatCompletionClient;
+        private MeterRegistry meterRegistry;
+        private ToolRegistry toolRegistry;
+        private ContentFilter contentFilter;
+        private TokenUsageTracker tokenUsageTracker;
+        private ModelRouter modelRouter;
+        private RagService ragService;
+        private ConversationMemoryProvider memoryProvider;
+        private List<ChatInterceptor> interceptors;
+        private AuditEventStore auditEventStore;
+
+        private Builder() {}
+
+        public Builder properties(AiAssistantProperties properties) {
+            this.properties = properties;
+            return this;
+        }
+
+        public Builder urlFetchService(UrlFetchService urlFetchService) {
+            this.urlFetchService = urlFetchService;
+            return this;
+        }
+
+        public Builder chatCompletionClient(ChatCompletionClient chatCompletionClient) {
+            this.chatCompletionClient = chatCompletionClient;
+            return this;
+        }
+
+        public Builder meterRegistry(MeterRegistry meterRegistry) {
+            this.meterRegistry = meterRegistry;
+            return this;
+        }
+
+        public Builder toolRegistry(ToolRegistry toolRegistry) {
+            this.toolRegistry = toolRegistry;
+            return this;
+        }
+
+        public Builder contentFilter(ContentFilter contentFilter) {
+            this.contentFilter = contentFilter;
+            return this;
+        }
+
+        public Builder tokenUsageTracker(TokenUsageTracker tokenUsageTracker) {
+            this.tokenUsageTracker = tokenUsageTracker;
+            return this;
+        }
+
+        public Builder modelRouter(ModelRouter modelRouter) {
+            this.modelRouter = modelRouter;
+            return this;
+        }
+
+        public Builder ragService(RagService ragService) {
+            this.ragService = ragService;
+            return this;
+        }
+
+        public Builder memoryProvider(ConversationMemoryProvider memoryProvider) {
+            this.memoryProvider = memoryProvider;
+            return this;
+        }
+
+        public Builder interceptors(List<ChatInterceptor> interceptors) {
+            this.interceptors = interceptors;
+            return this;
+        }
+
+        public Builder auditEventStore(AuditEventStore auditEventStore) {
+            this.auditEventStore = auditEventStore;
+            return this;
+        }
+
+        public LlmService build() {
+            return new LlmService(
+                    properties,
+                    urlFetchService,
+                    chatCompletionClient,
+                    meterRegistry,
+                    toolRegistry,
+                    contentFilter,
+                    tokenUsageTracker,
+                    modelRouter,
+                    ragService,
+                    memoryProvider,
+                    interceptors,
+                    auditEventStore);
+        }
+    }
 }

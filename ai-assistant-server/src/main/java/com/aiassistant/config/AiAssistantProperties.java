@@ -142,6 +142,13 @@ public class AiAssistantProperties {
     public static class UrlFetchProperties {
         private boolean enabled = true;
         private boolean ssrfProtection = true;
+        // R5 (2026-06): opt-in DNS-rebinding (TOCTOU) hardening. When true, plaintext
+        // http(s is never pinned) fetches connect to the already-validated IP instead of
+        // re-resolving the host, closing the rebinding window for cloud-metadata-style
+        // targets (169.254.169.254 is http). Default off because it needs the JVM flag
+        // -Djdk.httpclient.allowRestrictedHeaders=host to send the original Host header;
+        // when that flag is absent the fetcher safely falls back to non-pinned requests.
+        private boolean pinResolvedIp = false;
         private int maxBytes = 524_288;
         private int timeoutSeconds = 15;
         private int maxCharsInjected = 24_000;
@@ -372,6 +379,14 @@ public class AiAssistantProperties {
 
     public void setUrlFetchSsrfProtection(boolean v) {
         urlFetch.setSsrfProtection(v);
+    }
+
+    public boolean isUrlFetchPinResolvedIp() {
+        return urlFetch.isPinResolvedIp();
+    }
+
+    public void setUrlFetchPinResolvedIp(boolean v) {
+        urlFetch.setPinResolvedIp(v);
     }
 
     public int getUrlFetchMaxBytes() {

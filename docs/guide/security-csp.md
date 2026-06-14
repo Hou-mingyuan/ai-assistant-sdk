@@ -112,6 +112,24 @@ Content-Security-Policy:
 > SDK 本身不会 hard-code inline `<style>`（除了主题色 CSS 变量注入），
 > 因此对接 nonce 主要是宿主页面侧的工作。
 
+## 渲染模型输出的安全边界（XSS）
+
+模型输出是**不可信内容**，渲染到 HTML 上下文前必须净化。本 SDK 的分层约定：
+
+- **官方 Vue 组件 / Web Component 默认安全**：助手回复经 `useAiMarkdownRenderer`
+  的 DOMPurify（严格配置，仅放行 `button`/`mark` 标签与少量 `data-*`/`aria-*`
+  属性，默认拦截 `<script>`、`on*` 事件、`javascript:` URL）后才插入 DOM。
+- **后端有意不对模型输出做 HTML 转义**：`/chat`、`/stream`、`/sse` 返回的是
+  **未净化的模型原文（markdown）**。这是刻意设计——若后端转义 HTML 会破坏
+  markdown 与代码块渲染；净化职责放在渲染层。
+- **自建渲染器 / 直连 REST API 的宿主必须自己净化**：如果你不使用官方组件，
+  而是把响应通过 `v-html`、`innerHTML`、`dangerouslySetInnerHTML` 等注入 DOM，
+  **必须自行做等价净化**（DOMPurify 或服务端模板转义），否则存在存储型/反射型
+  XSS 风险。`ai-assistant-client`（Java）消费方同理：渲染到任何 HTML 上下文前需净化。
+
+> 一句话：把模型输出当成"用户输入"。官方 UI 已替你净化；任何绕过官方 UI 的
+> 渲染路径都要自己补上净化这一步。
+
 ## 与服务端安全的关系
 
 CSP 是**浏览器侧的纵深防御**，不能替代下列服务端措施：

@@ -87,19 +87,20 @@ public class AiAssistantLlmAutoConfiguration {
                 ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
                 ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
                 ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
-            return new LlmService(
-                    properties,
-                    urlFetchService,
-                    chatCompletionClient,
-                    meterRegistryProvider.getIfAvailable(),
-                    toolRegistry,
-                    contentFilter,
-                    tokenUsageTracker,
-                    modelRouter,
-                    ragServiceProvider.getIfAvailable(),
-                    memoryProviderProvider.getIfAvailable(),
-                    interceptorsProvider.getIfAvailable(),
-                    auditEventStoreProvider.getIfAvailable());
+            return LlmService.builder()
+                    .properties(properties)
+                    .urlFetchService(urlFetchService)
+                    .chatCompletionClient(chatCompletionClient)
+                    .meterRegistry(meterRegistryProvider.getIfAvailable())
+                    .toolRegistry(toolRegistry)
+                    .contentFilter(contentFilter)
+                    .tokenUsageTracker(tokenUsageTracker)
+                    .modelRouter(modelRouter)
+                    .ragService(ragServiceProvider.getIfAvailable())
+                    .memoryProvider(memoryProviderProvider.getIfAvailable())
+                    .interceptors(interceptorsProvider.getIfAvailable())
+                    .auditEventStore(auditEventStoreProvider.getIfAvailable())
+                    .build();
         }
     }
 
@@ -118,19 +119,20 @@ public class AiAssistantLlmAutoConfiguration {
             ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
             ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
             ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
-        return new LlmService(
-                properties,
-                urlFetchService,
-                chatCompletionClient,
-                null,
-                toolRegistry,
-                contentFilter,
-                tokenUsageTracker,
-                modelRouter,
-                ragServiceProvider.getIfAvailable(),
-                memoryProviderProvider.getIfAvailable(),
-                interceptorsProvider.getIfAvailable(),
-                auditEventStoreProvider.getIfAvailable());
+        return LlmService.builder()
+                .properties(properties)
+                .urlFetchService(urlFetchService)
+                .chatCompletionClient(chatCompletionClient)
+                .meterRegistry(null)
+                .toolRegistry(toolRegistry)
+                .contentFilter(contentFilter)
+                .tokenUsageTracker(tokenUsageTracker)
+                .modelRouter(modelRouter)
+                .ragService(ragServiceProvider.getIfAvailable())
+                .memoryProvider(memoryProviderProvider.getIfAvailable())
+                .interceptors(interceptorsProvider.getIfAvailable())
+                .auditEventStore(auditEventStoreProvider.getIfAvailable())
+                .build();
     }
 
     @Bean
