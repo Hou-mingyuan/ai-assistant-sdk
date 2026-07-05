@@ -60,20 +60,25 @@ test.describe('runtime provider configuration', () => {
     })
 
     await openPersonalizeDialog(page)
-    await expect(page.getByLabel(/^Provider$/)).toHaveValue('minimax')
-    await expect(page.getByLabel(/模型 API Base URL|Model API Base URL/)).toHaveValue(
+    const modelProviderSection = page.locator('.ai-personalize-model-section').first()
+    await expect(modelProviderSection.getByPlaceholder('minimax / openai / deepseek')).toHaveValue(
+      'minimax',
+    )
+    await expect(modelProviderSection.getByLabel(/模型 API Base URL|Model API Base URL/)).toHaveValue(
       'https://api.minimaxi.com/v1',
     )
     await page.getByRole('button', { name: 'MiniMax' }).click()
-    await page.getByLabel(/模型 API Key|Model API key/).fill('runtime-key')
-    const detectModels = page.getByRole('button', { name: /检测模型|Detect models/ })
+    await modelProviderSection.getByLabel(/模型 API Key|Model API key/).fill('runtime-key')
+    const detectModels = modelProviderSection.getByRole('button', { name: /检测模型|Detect models/ })
     await expect(detectModels).toBeEnabled()
     await detectModels.click()
-    await expect(page.getByLabel(/允许模型列表|Allowed models/)).toHaveValue(
+    await expect(modelProviderSection.getByLabel(/允许模型列表|Allowed models/)).toHaveValue(
       'MiniMax-M2.5, MiniMax-M2.7',
     )
 
-    await page.getByRole('button', { name: /保存模型配置并刷新列表|Save model config/ }).click()
+    await modelProviderSection
+      .getByRole('button', { name: /保存模型配置并刷新列表|Save model config/ })
+      .click()
     await expect(page.locator('.ai-model-select')).toContainText('MiniMax-M2.5')
   })
 })
