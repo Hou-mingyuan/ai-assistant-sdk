@@ -66,6 +66,37 @@ public class AiAssistantSecurityPostureAdvisor {
         return List.copyOf(warnings);
     }
 
+    /**
+     * 强制 / 告警「必须配置 access-token」策略，用于启动阶段。未配置 {@code access-token} 时：
+     *
+     * <ul>
+     *   <li>{@code ai-assistant.security.require-access-token=true}：抛出 {@link
+     *       IllegalStateException} 让应用 fail-fast，拒绝以无鉴权方式启动；
+     *   <li>否则：打一条高危启动告警，明确提示 {@code /chat}、{@code /stream} 等业务端点当前对任意 HTTP 客户端开放（不仅是浏览器跨域），LLM
+     *       配额可能被滥用。
+     * </ul>
+     *
+     * <p>与 {@link #warningCodes()} 解耦，不改变 {@code /runtime/config} 输出，避免影响既有消费方。
+     *
+     * @throws IllegalStateException 当 {@code require-access-token=true} 且未配置 {@code access-token}
+     */
+    public void enforceAccessTokenPolicy() {
+        if (hasText(properties.getAccessToken())) {
+            return;
+        }
+        if (properties.isRequireAccessToken()) {
+            throw new IllegalStateException(
+                    "ai-assistant.security.require-access-token=true 但未配置 ai-assistant.access-token，"
+                            + "拒绝以无鉴权方式启动。请配置 access-token，或显式将 require-access-token 设为"
+                            + " false（确认由宿主应用负责鉴权）。");
+        }
+        log.warn(
+                "SECURITY: ai-assistant.access-token 未配置 —— /chat、/stream 等业务端点对任意 HTTP 客户端开放"
+                        + "（不仅是浏览器跨域），LLM 配额可能被滥用。生产环境请配置 ai-assistant.access-token；"
+                        + "若确实由宿主应用负责鉴权，可将 ai-assistant.security.require-access-token 显式保持为"
+                        + " false 以消除此告警的升级路径。");
+    }
+
     public void logWarnings() {
         for (String warning : warningCodes()) {
             if (ADMIN_WITHOUT_ACCESS_TOKEN.equals(warning)) {

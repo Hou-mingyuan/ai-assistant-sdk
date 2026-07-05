@@ -1,7 +1,51 @@
 # Changelog
 
-> 由 `scripts/generate-changelog.mjs` 从 git log 自动生成。
-> 采用 [Conventional Commits](https://www.conventionalcommits.org/) 类型分组。
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+当前发布版本见仓库根目录 [`VERSION`](VERSION)。
+
+## [Unreleased]
+
+### Added
+
+- UI：K36–K48 系列（prompt 历史回放、TTS 朗读、KB 拖放入库、跨会话搜索、N-way Compare 等）
+
+### Changed
+
+- UI：K36a Prettier 格式化 53 个前端文件（无行为变更）
+
+### Fixed
+
+- UI：K44 修复 K36 长期被 Vue Boolean 默认 `false` 静默禁用的 bug
+
+## [1.0.1] - 2026-05-13
+
+### Added
+
+- Spring Boot Starter（`ai-assistant-server`）与 Vue 3 组件库（`@ai-assistant/vue`）首版发布
+- 16 家大模型供应商、SSE 流式对话、RAG 检索增强、Function Calling、ReAct 多步 Agent
+- 多租户隔离、PII 脱敏、Prompt 注入检测、Token 配额与模型路由
+- 独立 Docker 服务、Helm Chart、VitePress 文档站与 CI/CD 流水线
+
+### Changed
+
+- 默认模型版本对齐各供应商最新官方推荐型号
+
+### Fixed
+
+- 会话存储、PII 校验与审计日志加固；多项 UI 与导出缺陷修复
+
+### Security
+
+- Admin 端点鉴权过滤器；URL 抓取 SSRF 防护；依赖漏洞扫描（OWASP / Trivy）
+
+---
+
+<details>
+<summary>自动生成明细（Conventional Commits，由 <code>scripts/generate-changelog.mjs</code> 维护）</summary>
 
 ## [Unreleased]
 
@@ -607,3 +651,7 @@ _Earliest commit → HEAD_
 - remove .cursor from repo; ignore entire .cursor directory [`5ac0b67`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/5ac0b6763ceb239f1f3d9e74382d332f77285ec1)
 - stop tracking demo and playground; document optional local copies [`185a27b`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/185a27b24e91804c3d003612458d9a7358926c5b)
 - initial import AI Assistant SDK (Spring starter, Vue UI, demo, playground) [`1be5665`](https://github.com/Hou-mingyuan/ai-assistant-sdk/commit/1be5665c37596b566e30503d5f098735746cf38f)
+
+</details>
+
+</details>

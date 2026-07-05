@@ -143,6 +143,17 @@
             <version>${playwright.version}</version>
             <optional>true</optional>
         </dependency>
+        <!-- OkHttp: optional. When present, server-side URL fetches (HttpContentFetcher) use an
+             SSRF-pinning DNS that resolves once, validates every resolved IP, and connects to the
+             validated address while keeping the original hostname for SNI/cert verification — which
+             closes the DNS-rebinding (TOCTOU) window the JDK HttpClient cannot. Absent => the
+             existing java.net.http.HttpClient path is used unchanged (host-level SSRF only). -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

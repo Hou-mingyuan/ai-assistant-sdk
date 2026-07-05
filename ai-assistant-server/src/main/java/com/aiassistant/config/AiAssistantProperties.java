@@ -275,6 +275,20 @@ public class AiAssistantProperties {
         private String allowedOrigins = "*";
         private boolean piiMaskingEnabled = true;
         private boolean allowQueryTokenAuth = false;
+
+        /**
+         * 服务前置的可信反向代理层数（Nginx / ALB 等）。默认 0：完全忽略 {@code X-Forwarded-For}，仅以 {@code remoteAddr}
+         * 作为客户端身份，避免请求方伪造 XFF 绕过限流。设为 N(&gt;0) 时，仅当 XFF 链长度 不小于 N 才从右数第 N 个条目取真实客户端 IP（右侧 N
+         * 个条目由可信代理追加，不可伪造）；链长不足 N 视为 异常并回退到 {@code remoteAddr}。
+         */
+        private int trustedProxyHops = 0;
+
+        /**
+         * 未配置 {@code access-token} 时是否让应用启动失败（fail-fast）。默认 false：保持可嵌入语义（宿主可自行
+         * 鉴权），仅打高危启动告警。安全敏感的独立部署建议设为 true，强制必须配置 {@code access-token} 才能启动， 避免业务端点在无人察觉的情况下对任意 HTTP
+         * 客户端开放。
+         */
+        private boolean requireAccessToken = false;
     }
 
     /**
@@ -601,6 +615,22 @@ public class AiAssistantProperties {
 
     public void setAllowQueryTokenAuth(boolean v) {
         security.setAllowQueryTokenAuth(v);
+    }
+
+    public int getTrustedProxyHops() {
+        return security.getTrustedProxyHops();
+    }
+
+    public void setTrustedProxyHops(int v) {
+        security.setTrustedProxyHops(v);
+    }
+
+    public boolean isRequireAccessToken() {
+        return security.isRequireAccessToken();
+    }
+
+    public void setRequireAccessToken(boolean v) {
+        security.setRequireAccessToken(v);
     }
 
     // ── Admin flat delegation (backward compatibility) ────────────

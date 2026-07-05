@@ -170,29 +170,13 @@ public class RestApiConnector implements DataConnector {
                 body.put(
                         "conditions",
                         filter.conditions().stream()
-                                .map(
-                                        c ->
-                                                Map.of(
-                                                        "fieldId",
-                                                        c.fieldId(),
-                                                        "operator",
-                                                        c.operator(),
-                                                        "value",
-                                                        c.value() != null ? c.value() : ""))
+                                .map(RestApiConnector::toConditionMap)
                                 .toList());
             }
             if (filter.orderByList() != null && !filter.orderByList().isEmpty()) {
                 body.put(
                         "orderByList",
-                        filter.orderByList().stream()
-                                .map(
-                                        o ->
-                                                Map.of(
-                                                        "fieldId",
-                                                        o.fieldId(),
-                                                        "direction",
-                                                        o.direction()))
-                                .toList());
+                        filter.orderByList().stream().map(RestApiConnector::toOrderByMap).toList());
             }
 
             String response = post(queryPath, mapper.writeValueAsString(body));
@@ -214,6 +198,30 @@ public class RestApiConnector implements DataConnector {
             log.error("REST query failed for {}: {}", moduleId, e.getMessage());
             return new QueryResult(List.of(), 0, filter.pageIndex(), filter.pageSize());
         }
+    }
+
+    /**
+     * 把查询条件转成请求体 map。{@code operator} 为空时归一为 {@code eq}（与 {@link JdbcConnector} 行为一致）； 用 {@link
+     * LinkedHashMap} 而非 {@code Map.of}，以容忍 {@code fieldId}/{@code value} 为 null，避免 {@code Map.of} 对
+     * null 抛 NPE 把整次查询在外层 catch 里吞成空结果。Visible for testing.
+     */
+    static Map<String, Object> toConditionMap(QueryFilter.Condition c) {
+        String operator = (c.operator() == null || c.operator().isBlank()) ? "eq" : c.operator();
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("fieldId", c.fieldId());
+        m.put("operator", operator);
+        m.put("value", c.value() != null ? c.value() : "");
+        return m;
+    }
+
+    /** 把排序项转成请求体 map；{@code direction} 为空时默认 {@code asc}；同样 null 容忍。Visible for testing. */
+    static Map<String, Object> toOrderByMap(QueryFilter.OrderBy o) {
+        String direction =
+                (o.direction() == null || o.direction().isBlank()) ? "asc" : o.direction();
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("fieldId", o.fieldId());
+        m.put("direction", direction);
+        return m;
     }
 
     private void checkCircuit(String op) {

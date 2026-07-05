@@ -37,6 +37,9 @@ public class HttpContentFetcher {
     private static final Pattern CHARSET_ATTR =
             Pattern.compile("charset=([a-zA-Z0-9._-]+)", Pattern.CASE_INSENSITIVE);
 
+    /** 仅当 classpath 存在 OkHttp 时才走 SSRF pin 路径，避免缺少可选依赖时触发 NoClassDefFoundError。 */
+    private static final boolean OKHTTP_PRESENT = isPresent("okhttp3.OkHttpClient");
+
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
     private final SsrfPolicy ssrfPolicy;
@@ -44,12 +47,21 @@ public class HttpContentFetcher {
     // R5: warn at most once if IP pinning is enabled but the JVM forbids the Host header.
     private final AtomicBoolean warnedPinUnavailable = new AtomicBoolean(false);
 
+    /**
+     * 非空表示对 {@link #fetchBytes(URI)} 启用 OkHttp 的 SSRF pin 抓取（解析一次 + 逐 IP 校验 + pin 连接， 同时保留
+     * SNI/证书主机名），关闭 http 与 https 的 DNS 重绑定窗口。仅在「未注入自定义 HttpClient（即生产默认 路径）且 classpath 存在
+     * OkHttp」时启用；注入了 HttpClient（测试 / 自定义）时保持原 JDK 抓取路径不变。
+     */
+    private final RawByteFetcher pinningFetcher;
+
     public HttpContentFetcher(
             AiAssistantProperties properties, HttpClient httpClient, SsrfPolicy ssrfPolicy) {
         this.properties = properties;
         this.ssrfPolicy = ssrfPolicy != null ? ssrfPolicy : DefaultSsrfPolicy.INSTANCE;
         if (httpClient != null) {
             this.httpClient = httpClient;
+            // 注入了客户端（测试 / 自定义）：保持原 JDK 路径不变，不启用 pin。
+            this.pinningFetcher = null;
         } else {
             int timeout = Math.max(1, properties.getUrlFetchTimeoutSeconds());
             this.httpClient =
@@ -57,6 +69,18 @@ public class HttpContentFetcher {
                             .connectTimeout(Duration.ofSeconds(timeout))
                             .followRedirects(HttpClient.Redirect.NEVER)
                             .build();
+            // 仅在 OkHttp 存在时实例化（该 new 受 OKHTTP_PRESENT 守卫，缺依赖时这行不执行，不会加载 OkHttp 类）。
+            this.pinningFetcher =
+                    OKHTTP_PRESENT ? new SsrfPinningHttpFetcher(properties, this.ssrfPolicy) : null;
+        }
+    }
+
+    private static boolean isPresent(String className) {
+        try {
+            Class.forName(className, false, HttpContentFetcher.class.getClassLoader());
+            return true;
+        } catch (Throwable t) {
+            return false;
         }
     }
 
@@ -72,6 +96,11 @@ public class HttpContentFetcher {
 
     public byte[] fetchBytes(URI uri) throws Exception {
         if (properties.isUrlFetchSsrfProtection()) {
+            if (pinningFetcher != null) {
+                // OkHttp SSRF-pinning 路径：解析一次 + 逐 IP 校验 + pin 连接（保留 SNI/证书主机名），
+                // 关闭 http 与 https 的 DNS 重绑定（TOCTOU）窗口。
+                return pinningFetcher.fetch(uri);
+            }
             ssrfPolicy.validate(uri);
         }
         int max = Math.max(1024, properties.getUrlFetchMaxBytes());

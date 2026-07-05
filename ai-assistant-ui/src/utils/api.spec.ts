@@ -209,6 +209,15 @@ describe('runtime model config', () => {
     expect(res).not.toHaveProperty('apiKey');
   });
 
+  it('returns a normalized error when runtime provider config fetch fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 502, statusText: 'Bad Gateway' });
+
+    const res = await fetchRuntimeModelConfig('/ai');
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe('HTTP 502: Bad Gateway');
+  });
+
   it('saves runtime provider config and keeps api key write-only', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -265,6 +274,15 @@ describe('runtime model config', () => {
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
     expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('token');
     expect(res.models).toEqual(['MiniMax-M2.5', 'MiniMax-M2.7']);
+  });
+
+  it('returns a normalized error when runtime provider model discovery fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 504, statusText: 'Gateway Timeout' });
+
+    const res = await discoverRuntimeProviderModels('/ai');
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe('HTTP 504: Gateway Timeout');
   });
 });
 

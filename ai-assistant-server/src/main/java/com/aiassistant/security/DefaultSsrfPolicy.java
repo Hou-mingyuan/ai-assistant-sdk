@@ -74,6 +74,16 @@ public final class DefaultSsrfPolicy implements SsrfPolicy {
         }
     }
 
+    @Override
+    public void validateResolvedAddress(InetAddress address) {
+        if (address == null) {
+            throw new IllegalArgumentException("address is null");
+        }
+        if (isDisallowedTarget(address)) {
+            throw new IllegalArgumentException("address not allowed: " + address.getHostAddress());
+        }
+    }
+
     private static boolean isDisallowedTarget(InetAddress a) {
         if (a.isLoopbackAddress()
                 || a.isAnyLocalAddress()

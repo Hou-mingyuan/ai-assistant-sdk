@@ -29,6 +29,8 @@ public class AiAssistantObservabilityAutoConfiguration {
             aiAssistantSecurityPostureAdvisor(AiAssistantProperties properties) {
         com.aiassistant.config.AiAssistantSecurityPostureAdvisor advisor =
                 new com.aiassistant.config.AiAssistantSecurityPostureAdvisor(properties);
+        // 未配置 access-token 时打高危告警；require-access-token=true 则在此 fail-fast（阻止无鉴权启动）。
+        advisor.enforceAccessTokenPolicy();
         advisor.logWarnings();
         return advisor;
     }

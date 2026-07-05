@@ -75,6 +75,41 @@ describe('useMultiSession', () => {
     expect(ms.getActiveSession()!.title).toBe('First');
   });
 
+  it('renames a session with trimmed and capped title', () => {
+    const ms = useMultiSession(STORAGE_KEY);
+    const active = ms.getActiveSession()!;
+    const cappedTitle = 'A'.repeat(80);
+
+    ms.renameSession(active.id, `  ${'A'.repeat(90)}  `);
+
+    expect(active.title).toBe(cappedTitle);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')[0].title).toBe(cappedTitle);
+  });
+
+  it('ignores rename requests for unknown sessions', () => {
+    const ms = useMultiSession(STORAGE_KEY);
+    const before = JSON.stringify(ms.sessions.value);
+
+    ms.renameSession('missing-session', 'Ignored');
+
+    expect(JSON.stringify(ms.sessions.value)).toBe(before);
+  });
+
+  it('toggles session pin state and ignores unknown sessions', () => {
+    const ms = useMultiSession(STORAGE_KEY);
+    const active = ms.getActiveSession()!;
+
+    ms.togglePinSession(active.id);
+    expect(active.pinned).toBe(true);
+
+    ms.togglePinSession(active.id);
+    expect(active.pinned).toBe(false);
+
+    const before = JSON.stringify(ms.sessions.value);
+    ms.togglePinSession('missing-session');
+    expect(JSON.stringify(ms.sessions.value)).toBe(before);
+  });
+
   it('persists sessions to localStorage', () => {
     const ms = useMultiSession(STORAGE_KEY);
     ms.updateActiveTitle('Persisted');

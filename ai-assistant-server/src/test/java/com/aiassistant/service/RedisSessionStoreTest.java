@@ -122,6 +122,37 @@ class RedisSessionStoreTest {
     }
 
     @Test
+    void list_doesNotBlankWholeListWhenOneSessionHasNullUpdatedAt() {
+        // 回归：updatedAt 为 null 的脏会话曾让 Comparator NPE，被 catch 吞成空列表，
+        // 导致该用户全部会话“凭空消失”。修复后应正常返回，且 null 排到末尾。
+        Map<Object, Object> all = new HashMap<>();
+        all.put("a", json("a", "older", Instant.parse("2026-01-01T00:00:00Z")));
+        all.put("b", json("b", "newer", Instant.parse("2026-06-01T00:00:00Z")));
+        all.put("c", jsonWithoutUpdatedAt("c", "broken"));
+        when(hashOps.entries("ai-session:user1")).thenReturn(all);
+
+        List<SessionData> list = store.list("user1");
+
+        assertEquals(3, list.size());
+        assertEquals("b", list.get(0).getId());
+        assertEquals("a", list.get(1).getId());
+        assertEquals("c", list.get(2).getId());
+        assertNull(list.get(2).getUpdatedAt());
+    }
+
+    @Test
+    void list_allNullUpdatedAtStillReturnsInsteadOfThrowing() {
+        Map<Object, Object> all = new HashMap<>();
+        all.put("x", jsonWithoutUpdatedAt("x", "one"));
+        all.put("y", jsonWithoutUpdatedAt("y", "two"));
+        when(hashOps.entries("ai-session:user1")).thenReturn(all);
+
+        List<SessionData> list = store.list("user1");
+
+        assertEquals(2, list.size());
+    }
+
+    @Test
     void update_updatesTitleAndPersists() {
         when(hashOps.get("ai-session:user1", "sid1"))
                 .thenReturn(json("sid1", "old", Instant.now()));
@@ -180,6 +211,18 @@ class RedisSessionStoreTest {
         s.setTitle(title);
         s.setCreatedAt(updatedAt);
         s.setUpdatedAt(updatedAt);
+        try {
+            return MAPPER.writeValueAsString(s);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** 模拟脏数据：createdAt/updatedAt 均为 null（历史 schema 或外部写入）。 */
+    private static String jsonWithoutUpdatedAt(String id, String title) {
+        SessionData s = new SessionData();
+        s.setId(id);
+        s.setTitle(title);
         try {
             return MAPPER.writeValueAsString(s);
         } catch (Exception e) {

@@ -11,12 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Per-IP / per-token sliding-window rate limiter.
  *
- * <p>Client identity is resolved as: (1) {@code X-AI-Token} header if present; (2) first IP in
- * {@code X-Forwarded-For} header if present; (3) {@code request.getRemoteAddr()} fallback.
+ * <p>Client identity is resolved as: (1) {@code X-AI-Token} header if present; (2) a trusted client
+ * IP derived from {@code X-Forwarded-For} only when {@code
+ * ai-assistant.security.trusted-proxy-hops} is set; (3) {@code request.getRemoteAddr()} fallback.
  *
- * <p><b>Deployment note:</b> {@code X-Forwarded-For} can be spoofed if the application is directly
- * exposed without a trusted reverse proxy. In production, deploy behind a proxy (Nginx / ALB /
- * etc.) that overwrites {@code X-Forwarded-For}.
+ * <p><b>Deployment note:</b> {@code X-Forwarded-For} is spoofable, so it is ignored by default
+ * (trusted-proxy-hops = 0) and {@code remoteAddr} is authoritative. When deploying behind N trusted
+ * reverse proxies (Nginx / ALB / etc.), set {@code ai-assistant.security.trusted-proxy-hops=N} so
+ * the real client IP is taken from the trusted (right-hand) side of the chain and cannot be forged.
  */
 public class RateLimitFilter implements Filter {
 
@@ -81,18 +83,13 @@ public class RateLimitFilter implements Filter {
         String clientKey = getClientKey(request) + ":" + action;
         if (counters.size() >= MAX_TRACKED_CLIENTS && !counters.containsKey(clientKey)) {
             cleanupIfNeeded();
+            // If still full after cleanup, evict the least-recently-active entries instead of
+            // rejecting the newcomer with 429. Rejecting new clients would let an attacker who
+            // floods the table with distinct client keys lock out every legitimate newcomer (an
+            // availability DoS). Eviction is ordered by windowStart, so a key that is actively
+            // hitting the limit (freshest windowStart) is never the one dropped.
             if (counters.size() >= MAX_TRACKED_CLIENTS) {
-                HttpServletResponse response = (HttpServletResponse) res;
-                response.setStatus(429);
-                response.setContentType("application/json;charset=UTF-8");
-                objectMapper.writeValue(
-                        response.getOutputStream(),
-                        Map.of(
-                                "success",
-                                false,
-                                "error",
-                                "Too many concurrent clients. Try again later."));
-                return;
+                evictOldest(counters.size() - MAX_TRACKED_CLIENTS + (MAX_TRACKED_CLIENTS / 10));
             }
         }
         RateEntry entry = counters.computeIfAbsent(clientKey, k -> new RateEntry());
@@ -134,7 +131,8 @@ public class RateLimitFilter implements Filter {
     }
 
     private String getClientKey(HttpServletRequest request) {
-        return com.aiassistant.util.ClientIdentity.resolve(request);
+        return com.aiassistant.util.ClientIdentity.resolve(
+                request, properties.getTrustedProxyHops());
     }
 
     private void cleanupIfNeeded() {
@@ -145,24 +143,52 @@ public class RateLimitFilter implements Filter {
         }
     }
 
+    /**
+     * Bounded-memory safeguard: drop the {@code n} least-recently-active counters so the tracking
+     * table can still admit new clients under a distinct-key flood. Safe because entries are
+     * ordered by last activity ({@code windowStart}); a key that is actively hitting the limit has
+     * the freshest timestamp and is never evicted here.
+     */
+    private void evictOldest(int n) {
+        if (n <= 0) return;
+        counters.entrySet().stream()
+                .sorted(java.util.Comparator.comparingLong(e -> e.getValue().windowStart))
+                .limit(n)
+                .map(Map.Entry::getKey)
+                .forEach(counters::remove);
+    }
+
+    /**
+     * Per-client <b>sliding-window</b> counter backed by a timestamp log. Only request timestamps
+     * within the trailing 60s are retained, so — unlike a fixed window that resets its counter on a
+     * boundary — it cannot admit a 2x burst straddling a window edge. Memory per entry is bounded
+     * by {@code max} longs (once the limit is hit no further timestamps are appended).
+     */
     private static class RateEntry {
-        private int count;
+        private final java.util.ArrayDeque<Long> timestamps = new java.util.ArrayDeque<>();
+        // Last activity time; consumed only by the idle sweep in cleanupIfNeeded()/evictOldest().
         volatile long windowStart = System.currentTimeMillis();
 
         record AcquireResult(boolean allowed, int count, long windowResetEpochSeconds) {}
 
         synchronized AcquireResult tryAcquireWithInfo(int max) {
             long now = System.currentTimeMillis();
-            if (now - windowStart > 60_000) {
-                count = 0;
-                windowStart = now;
+            long cutoff = now - 60_000;
+            while (!timestamps.isEmpty() && timestamps.peekFirst() <= cutoff) {
+                timestamps.pollFirst();
             }
-            long resetEpoch = (windowStart + 60_000) / 1000;
+            windowStart = now;
+            int count = timestamps.size();
+            // A slot frees up 60s after the oldest in-window request (true sliding semantics).
+            long resetEpoch =
+                    timestamps.isEmpty()
+                            ? (now + 60_000) / 1000
+                            : (timestamps.peekFirst() + 60_000) / 1000;
             if (count >= max) {
                 return new AcquireResult(false, count, resetEpoch);
             }
-            count++;
-            return new AcquireResult(true, count, resetEpoch);
+            timestamps.addLast(now);
+            return new AcquireResult(true, count + 1, resetEpoch);
         }
     }
 }

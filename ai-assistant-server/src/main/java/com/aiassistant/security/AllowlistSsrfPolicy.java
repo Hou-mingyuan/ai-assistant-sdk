@@ -99,6 +99,12 @@ public final class AllowlistSsrfPolicy implements SsrfPolicy {
         throw new IllegalArgumentException("host not in allowlist: " + rawHost);
     }
 
+    @Override
+    public void validateResolvedAddress(java.net.InetAddress address) {
+        // 主机名白名单在 validate(URI) 阶段已生效；解析地址的安全判定委托给基线策略（私有 / 回环 / 元数据等）。
+        base.validateResolvedAddress(address);
+    }
+
     /** Expose the compiled patterns for diagnostics / logging. */
     public List<String> getPatterns() {
         List<String> out = new ArrayList<>(matchers.size());

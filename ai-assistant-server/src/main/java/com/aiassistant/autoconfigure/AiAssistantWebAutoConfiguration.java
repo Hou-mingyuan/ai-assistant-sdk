@@ -170,8 +170,9 @@ public class AiAssistantWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public SessionController sessionController(SessionStore sessionStore) {
-        return new SessionController(sessionStore);
+    public SessionController sessionController(
+            SessionStore sessionStore, AiAssistantProperties properties) {
+        return new SessionController(sessionStore, properties);
     }
 
     @Bean

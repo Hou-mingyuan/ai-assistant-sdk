@@ -35,6 +35,23 @@ describe('useAiMarkdownRenderer', () => {
     expect(html).toContain('log');
   });
 
+  it('renders code blocks without a language chip when no language is provided', () => {
+    const html = renderContent('<pre>plain text</pre>', 'Copy', false);
+
+    expect(html).toContain('ai-code-wrap');
+    expect(html).not.toContain('ai-code-lang');
+    expect(html).not.toContain('data-lang=');
+  });
+
+  it('renders long code blocks as foldable', () => {
+    const source = Array.from({ length: 22 }, (_, index) => `line ${index + 1}`).join('\n');
+
+    const html = renderContent(`\`\`\`ts\n${source}\n\`\`\``, 'Copy', false);
+
+    expect(html).toContain('ai-code-foldable');
+    expect(html).toContain('ai-code-fold-btn');
+  });
+
   it('renders IDE toolbar action when enabled', () => {
     const { renderContent: renderWithIde } = useAiMarkdownRenderer(t, { openCodeInIde: true });
 
@@ -48,6 +65,7 @@ describe('useAiMarkdownRenderer', () => {
   it('returns empty string for whitespace-only input', () => {
     expect(renderContent('   ', 'Copy', false)).toBe('');
     expect(renderContent('', 'Copy', false)).toBe('');
+    expect(renderContent(null as unknown as string, 'Copy', false)).toBe('');
   });
 
   it('adds stream caret for streaming last', () => {
@@ -104,6 +122,13 @@ describe('useAiMarkdownRenderer', () => {
     expect(first).toContain('Hello');
     const second = renderStreamIncremental('Hello world', 'Copy');
     expect(second).toContain('world');
+  });
+
+  it('renderStreamIncremental returns empty for null or blank input', () => {
+    resetStreamState();
+
+    expect(renderStreamIncremental(null as unknown as string, 'Copy')).toBe('');
+    expect(renderStreamIncremental('   ', 'Copy')).toBe('');
   });
 
   it('renderStreamIncremental inserts small appends before the stream caret', () => {

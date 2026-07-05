@@ -160,6 +160,7 @@ public class RedisRateLimitFilter implements Filter {
     }
 
     private String getClientKey(HttpServletRequest request) {
-        return com.aiassistant.util.ClientIdentity.resolve(request);
+        return com.aiassistant.util.ClientIdentity.resolve(
+                request, properties.getTrustedProxyHops());
     }
 }

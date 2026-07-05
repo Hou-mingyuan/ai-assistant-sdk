@@ -254,56 +254,21 @@
           />
         </div>
         <Transition name="ai-fade">
-          <div v-if="selectMode && selectedMsgIndices.size > 0" class="ai-batch-delete-bar">
-            <span class="ai-batch-delete-count">{{ selectedMsgIndices.size }}</span>
-            <button type="button" class="ai-batch-delete-btn" @click="deleteSelectedMessages">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 6h18" />
-                <path d="M8 6V4h8v2" />
-                <path d="M19 6 18 20H6L5 6" />
-                <path d="M10 11v5" />
-                <path d="M14 11v5" />
-              </svg>
-              <span>{{ t.msgCtxDelete }}</span>
-            </button>
-            <button type="button" class="ai-batch-cancel-btn" @click="toggleSelectMode">
-              {{ t.closePanel }}
-            </button>
-          </div>
+          <BatchDeleteBar
+            v-if="selectMode && selectedMsgIndices.size > 0"
+            :count="selectedMsgIndices.size"
+            :delete-label="t.msgCtxDelete"
+            :cancel-label="t.closePanel"
+            @delete="deleteSelectedMessages"
+            @cancel="toggleSelectMode"
+          />
         </Transition>
         <Transition name="ai-fade">
-          <button
+          <ScrollToBottomButton
             v-if="showScrollToBottomBtn && !loading"
-            type="button"
-            class="ai-scroll-bottom-btn"
-            :aria-label="t.scrollToBottom"
+            :label="t.scrollToBottom"
             @click="scrollToBottomClick"
-          >
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14" />
-              <path d="m19 12-7 7-7-7" />
-            </svg>
-          </button>
+          />
         </Transition>
 
         <div v-if="mode === 'chat' && quickPrompts.length > 0" class="ai-quick-prompts">
@@ -760,6 +725,8 @@ import KbPickerDialog from './KbPickerDialog.vue';
 import FormFillToast from './FormFillToast.vue';
 import CitationHoverCard from './CitationHoverCard.vue';
 import ArtifactCanvas from './ArtifactCanvas.vue';
+import ScrollToBottomButton from './ScrollToBottomButton.vue';
+import BatchDeleteBar from './BatchDeleteBar.vue';
 import { useArtifacts, ARTIFACTS_KEY } from '../composables/useArtifacts';
 import { useCitationHover } from '../composables/useCitationHover';
 import { useVoiceInput } from '../composables/useVoiceInput';
@@ -775,6 +742,15 @@ import { useTextToSpeech } from '../composables/useTextToSpeech';
 import { useAudioPreferences } from '../composables/useAudioPreferences';
 import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics';
 import { useLatencyBenchmark } from '../composables/useLatencyBenchmark';
+import { useResponseTimingUi } from '../composables/useResponseTimingUi';
+import { useInputConstraints } from '../composables/useInputConstraints';
+import { useBubbleRenderer } from '../composables/useBubbleRenderer';
+import { useFabContextMenu } from '../composables/useFabContextMenu';
+import { useSessionActions } from '../composables/useSessionActions';
+import { useCapabilityToggles } from '../composables/useCapabilityToggles';
+import { usePanelTransitions } from '../composables/usePanelTransitions';
+import { useLoadingEffects } from '../composables/useLoadingEffects';
+import { useWrapperStyles } from '../composables/useWrapperStyles';
 import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
 import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import { usePromptTemplateInteraction } from '../composables/usePromptTemplateInteraction';
@@ -827,7 +803,7 @@ import { usePanelGeometry } from '../composables/usePanelGeometry';
 import { useMsgContextMenu } from '../composables/useMsgContextMenu';
 import { getMessages } from '../utils/i18n';
 import type { Locale, I18nMessages } from '../utils/i18n';
-import { useSessionSearch, highlightSearchInHtml } from '../composables/useSessionSearch';
+import { useSessionSearch } from '../composables/useSessionSearch';
 import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
 import { useChatOrchestrator } from '../composables/useChatOrchestrator';
 import { useMessageCopy } from '../composables/useMessageCopy';
@@ -837,7 +813,6 @@ import { usePageSelectionActions } from '../composables/usePageSelectionActions'
 import { useCompareRegions } from '../composables/useCompareRegions';
 import { useSendStream } from '../composables/useSendStream';
 import {
-  isAbortCancellationMessage,
   loadPersistedMessages,
   pruneTransientAssistantMessages,
   useChatHistoryPersistence,
@@ -860,11 +835,13 @@ import { usePageSelection } from '../composables/usePageSelection';
 import { usePromptHistory } from '../composables/usePromptHistory';
 import { useFabDropIngest } from '../composables/useFabDropIngest';
 import { useKnowledgeDrop } from '../composables/useKnowledgeDrop';
-import { useFormAutoFill } from '../composables/useFormAutoFill';
+import { useFormAutoFillUi } from '../composables/useFormAutoFillUi';
 /* Refactor (T1)：从 AiAssistant.vue 抽出的 3 个 composable */
 import { useEmptyStateContent } from '../composables/useEmptyStateContent';
 import { useThemePreference } from '../composables/useThemePreference';
 import { useImageLightbox } from '../composables/useImageLightbox';
+import { useRelativeTime } from '../composables/useRelativeTime';
+import { useNotificationSound } from '../composables/useNotificationSound';
 const FormAutoFillDialog = defineAsyncComponent(() => import('./FormAutoFillDialog.vue'));
 import {
   extractHttpUrls,
@@ -940,26 +917,7 @@ function onArtifactResend(text: string) {
   artifactsController.resend(text);
 }
 
-let _rtfCache: { locale: string; rtf: Intl.RelativeTimeFormat } | null = null;
-function getRtf(locale: string) {
-  if (!_rtfCache || _rtfCache.locale !== locale) {
-    _rtfCache = {
-      locale,
-      rtf: new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'narrow' }),
-    };
-  }
-  return _rtfCache.rtf;
-}
-function formatRelativeTime(ts?: number): string {
-  if (!ts) return '';
-  const diff = Math.floor((Date.now() - ts) / 1000);
-  if (diff < 60) return t.value.justNow || 'just now';
-  const locale = options.locale || 'en';
-  const rtf = getRtf(locale);
-  if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
-  if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
-  return new Date(ts).toLocaleDateString(locale);
-}
+const { formatRelativeTime } = useRelativeTime(t, () => options.locale || 'en');
 
 const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
 
@@ -983,24 +941,7 @@ const input = ref('');
  * opens within the same session — but intentionally NOT to localStorage,
  * because semantics depend on the host's wiring.
  */
-const deepThinkEnabled = ref(false);
-const webSearchEnabled = ref(false);
-const fastReplyEnabled = ref(false);
-
-function setDeepThinkEnabled(value: boolean) {
-  deepThinkEnabled.value = value;
-  setExportToast(value ? '深度思考已开启：回答会更审慎但可能更慢' : '深度思考已关闭', 1800);
-}
-
-function setWebSearchEnabled(value: boolean) {
-  webSearchEnabled.value = value;
-  setExportToast(value ? '联网搜索已开启：回答前会先检索网页' : '联网搜索已关闭', 1800);
-}
-
-function setFastReplyEnabled(value: boolean) {
-  fastReplyEnabled.value = value;
-  setExportToast(value ? '快速回答已开启：简单问题会优先走快模型' : '快速回答已关闭', 1800);
-}
+/* Refactor (batch 6)：深度思考/联网搜索/快速回答能力开关迁移到 useCapabilityToggles（装配在 setExportToast 之后，notify 注入该 toast 通道）。 */
 
 /* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
  * 全部抽到 useEmptyStateContent composable（4 语言 i18n 静态数据 ~330 行）。
@@ -1051,92 +992,20 @@ function applyEmptyStarter(starter: EmptyStarterCard) {
 
 const loading = ref(false);
 const ctrlEnterToSend = ref(false);
-const soundEnabled = ref(false);
-
-function playNotificationSound() {
-  if (!soundEnabled.value) return;
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.setValueAtTime(1047, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.25);
-    osc.onended = () => ctx.close();
-  } catch {
-    /* AudioContext may not be available */
-  }
-}
-const maxUserChars = computed(() => {
-  const n = options.maxUserMessageChars;
-  return n && n > 0 ? n : 0;
-});
-const charCountLabel = computed(() => {
-  if (!maxUserChars.value) return '';
-  return `${input.value.length}/${maxUserChars.value}`;
-});
-const charCountNearLimit = computed(() => {
-  if (!maxUserChars.value) return false;
-  return input.value.length > maxUserChars.value * 0.85;
-});
-const charLimitWarningText = computed(() => {
-  if (!maxUserChars.value || !input.value) return '';
-  if (input.value.length > maxUserChars.value) {
-    return t.value.inputOverLimitWarning.replace('{max}', String(maxUserChars.value));
-  }
-  if (input.value.length > maxUserChars.value * 0.85) {
-    return t.value.inputNearLimitWarning.replace('{max}', String(maxUserChars.value));
-  }
-  return '';
-});
-const sendBlockedReason = computed(() => {
-  if (!input.value.trim()) return '';
-  if (!options.baseUrl) return t.value.sendUnavailableNoBackend;
-  return '';
-});
-const sendBlockedActionLabel = computed(() => {
-  if (!input.value.trim()) return '';
-  if (!options.baseUrl) return t.value.diagnosticsUseDefaultBaseUrl;
-  return '';
-});
+const { soundEnabled, playNotificationSound } = useNotificationSound();
+const {
+  charCountLabel,
+  charCountNearLimit,
+  charLimitWarningText,
+  sendBlockedReason,
+  sendBlockedActionLabel,
+} = useInputConstraints({ input, options, t });
 let streamAbortController: AbortController | null = null;
 let streamStoppedByUser = false;
 const messages = ref<Message[]>(
   pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)),
 );
-const responseTimingSummary = computed(() => {
-  return responseTimingHistory.value[0] || '';
-});
-const modelHealthText = computed(() => {
-  const latest = responseTimingSamples.value[0];
-  if (!latest) return '';
-  const ttftThreshold = latencyNumber(slowTtftThresholdMsInput.value, 3000);
-  const totalThreshold = latencyNumber(slowTotalThresholdMsInput.value, 8000);
-  const ttft =
-    latest.ttftMs == null ? 'TTFT n/a' : latest.ttftMs > ttftThreshold ? 'TTFT slow' : 'TTFT ok';
-  const total = latest.totalMs > totalThreshold ? 'total slow' : 'total ok';
-  return ['Provider ready', ttft, total].join(' · ');
-});
-const responseTimingHistory = computed(() => {
-  return responseTimingSamples.value.map((sample) => sample.summary);
-});
-const responseTimingSamples = computed(() => {
-  return [...messages.value]
-    .reverse()
-    .filter(
-      (msg) =>
-        msg.role === 'assistant' &&
-        (typeof msg.meta?.elapsedMs === 'number' || typeof msg.meta?.ttftMs === 'number'),
-    )
-    .slice(0, 5)
-    .map((msg, index) => toResponseTimingSample(msg, index))
-    .filter((sample) => sample.summary);
-});
+/* Refactor (batch 1)：响应计时/模型健康派生迁移到 useResponseTimingUi（在 diagnostics 解构后装配）。 */
 const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
   () => !!options.persistHistory,
@@ -1147,35 +1016,16 @@ const MAX_RENDERED_MESSAGES = 60;
 const renderAllMessages = ref(false);
 const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } = useExportUi();
 
-function formatTimingMs(ms: number) {
-  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
-}
+const {
+  deepThinkEnabled,
+  webSearchEnabled,
+  fastReplyEnabled,
+  setDeepThinkEnabled,
+  setWebSearchEnabled,
+  setFastReplyEnabled,
+} = useCapabilityToggles({ notify: setExportToast });
 
-function latencyNumber(raw: string, fallback: number) {
-  const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-function toResponseTimingSample(msg: Message, index: number) {
-  const meta = msg.meta;
-  if (!meta) {
-    return { label: `response-${index}`, summary: '', totalMs: 0 };
-  }
-  const parts = [
-    meta.effectiveModel || meta.model || meta.requestedModel,
-    meta.provider,
-    typeof meta.ttftMs === 'number' ? `TTFT ${formatTimingMs(meta.ttftMs)}` : '',
-    typeof meta.elapsedMs === 'number' ? `total ${formatTimingMs(meta.elapsedMs)}` : '',
-  ].filter(Boolean);
-  const model = meta.effectiveModel || meta.model || meta.requestedModel;
-  return {
-    label: `${msg.timestamp || index}-${model || 'model'}`,
-    model,
-    ttftMs: meta.ttftMs,
-    totalMs: meta.elapsedMs ?? meta.ttftMs ?? 0,
-    summary: parts.join(' · '),
-  };
-}
+/* Refactor (batch 1)：formatTimingMs / latencyNumber / toResponseTimingSample 迁移到 useResponseTimingUi。 */
 
 const exportActions = useExportActions({
   sessions: multiSessions.sessions,
@@ -1286,23 +1136,20 @@ const {
 } = assistantDiagnostics;
 
 const { benchmarkBusy, benchmarkRows, benchmarkSummary, runBenchmark } = useLatencyBenchmark();
-const fastReplyRoutingConfig = computed(() => ({
-  maxChars: latencyNumber(fastRouteMaxCharsInput.value, 32),
-}));
-const slowRequestHintText = computed(() => {
-  const streak = latencyNumber(slowRequestWarningStreakInput.value, 2);
-  const ttftThreshold = latencyNumber(slowTtftThresholdMsInput.value, 3000);
-  const totalThreshold = latencyNumber(slowTotalThresholdMsInput.value, 8000);
-  const slowSamples = responseTimingSamples.value
-    .slice(0, streak)
-    .filter(
-      (sample) =>
-        (typeof sample.ttftMs === 'number' && sample.ttftMs > ttftThreshold) ||
-        sample.totalMs > totalThreshold,
-    );
-  if (slowSamples.length < streak) return '';
-  const model = slowSamples[0].model || selectedChatModel.value || 'current model';
-  return `${model} has been slow ${slowSamples.length} times; use fast reply or run the benchmark to compare sibling models.`;
+const {
+  responseTimingSamples,
+  responseTimingHistory,
+  responseTimingSummary,
+  modelHealthText,
+  slowRequestHintText,
+  fastReplyRoutingConfig,
+} = useResponseTimingUi({
+  messages,
+  selectedChatModel,
+  fastRouteMaxCharsInput,
+  slowTtftThresholdMsInput,
+  slowTotalThresholdMsInput,
+  slowRequestWarningStreakInput,
 });
 
 function runModelBenchmark() {
@@ -1655,58 +1502,15 @@ function onCompareWith() {
  * K37 auto-read: 当 loading 由 true → false 且最后一条是 assistant 内容非空时，
  * 自动朗读（受 audioAutoRead 偏好门控）。可手动 toggleMessage 取消。
  */
-watch(loading, (now, prev) => {
-  if (!audioPreferences.autoRead.value && !voiceConversationActive.value) return;
-  if (prev !== true || now !== false) return;
-  if (!tts.supported.value) return;
-  const idx = messages.value.length - 1;
-  if (idx < 0) return;
-  const last = messages.value[idx];
-  if (!last || last.role !== 'assistant') return;
-  const text = (last.contentArchive ?? last.content ?? '').trim();
-  if (!text) return;
-  void tts.speak(text, {
-    messageIndex: idx,
-    voice: audioPreferences.voice.value || undefined,
-    rate: audioPreferences.rate.value,
-  });
-});
-
-/**
- * A11y 正文播报：与 K37 的 TTS 朗读相互独立。
- * TTS 受 audioAutoRead 偏好门控、面向有声朗读；这里只在流式结束后更新一个 polite
- * live region，让读屏软件读出完整答复。先清空再赋值是为了强制读屏重复播报（即使
- * 两次内容相同）。正文先做轻量 Markdown 去标记，过长截断，剩余部分用户可定位气泡阅读。
- */
-const a11yReplyAnnouncement = ref('');
-watch(loading, (now, prev) => {
-  if (prev !== true || now !== false) return;
-  // 互斥门控：若 K37 的 TTS 自动朗读会发声（autoRead 或语音会话开启 + 浏览器支持），
-  // 则不再更新这个 live region，避免读屏软件与 Web Speech 双路语音重叠播报。
-  // TTS 不可用或未开启时才走 live region，保证读屏用户仍能听到答复。
-  if ((audioPreferences.autoRead.value || voiceConversationActive.value) && tts.supported.value) {
-    return;
-  }
-  const idx = messages.value.length - 1;
-  if (idx < 0) return;
-  const last = messages.value[idx];
-  if (!last || last.role !== 'assistant') return;
-  const raw = (last.contentArchive ?? last.content ?? '').trim();
-  if (!raw) return;
-  const plain = raw
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[#>*_~]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!plain) return;
-  const capped = plain.length > 1500 ? plain.slice(0, 1500) + '…' : plain;
-  a11yReplyAnnouncement.value = '';
-  void nextTick(() => {
-    a11yReplyAnnouncement.value = capped;
-  });
+/* Refactor (batch 9)：4 个 watch(loading) 流式结束副作用（TTS 朗读 / a11y 播报 / artifacts 注册 / 清理瞬态）合并到 useLoadingEffects。 */
+const { a11yReplyAnnouncement } = useLoadingEffects({
+  loading,
+  messages,
+  audioPreferences,
+  voiceConversationActive,
+  tts,
+  artifactsController,
+  removeTransientAssistantMessages,
 });
 
 /**
@@ -1823,52 +1627,19 @@ function toggleMemoryPanel() {
  * 为对象，统一规范化成对象传给 composable。关闭时 composable 仍然存在但所
  * 有公开方法都会因为 autoDetectPaste/options 未设而早退。
  */
-const formAutoFillOptions = computed(() => {
-  const raw = options.formAutoFill;
-  if (!raw) return null;
-  if (raw === true) return {};
-  return raw;
-});
-const formAutoFillEnabled = computed(() => formAutoFillOptions.value !== null);
-const formAutoFill = useFormAutoFill({
-  options: computed(() => formAutoFillOptions.value ?? {}),
-});
-
-function onChatInputPasteText(payload: { text: string; event: ClipboardEvent }) {
-  if (!formAutoFillEnabled.value) return;
-  formAutoFill.inspectPasteText(payload.text);
-}
-
-function onFormAutoFillToggle(idx: number) {
-  formAutoFill.toggleSelection(idx);
-}
-
-function onFormAutoFillToggleAll(checked: boolean) {
-  formAutoFill.setAllSelections(checked);
-}
-
-function onFormAutoFillOverride(payload: { pairIdx: number; fieldId: string | null }) {
-  formAutoFill.overrideMatch(payload.pairIdx, payload.fieldId);
-}
-
-function onFormAutoFillConfirm() {
-  formAutoFill.confirmFill();
-}
-
-function onFormAutoFillUndo() {
-  formAutoFill.undoLastFill();
-}
-
-function onFormAutoFillToastDismiss() {
-  formAutoFill.dismissToast();
-}
-
-const formAutoFillToastText = computed(() => {
-  const s = formAutoFill.toastSummary.value;
-  if (!s) return '';
-  const tpl = t.value.formFillToastTemplate || 'Filled {filled} field(s) ({failed} failed)';
-  return tpl.replace('{filled}', String(s.filled)).replace('{failed}', String(s.failed));
-});
+/* Refactor (batch 7)：表单自动填充 UI 适配（options 规范化 + handlers + toast 文案）迁移到 useFormAutoFillUi。 */
+const {
+  formAutoFill,
+  formAutoFillEnabled,
+  onChatInputPasteText,
+  onFormAutoFillToggle,
+  onFormAutoFillToggleAll,
+  onFormAutoFillOverride,
+  onFormAutoFillConfirm,
+  onFormAutoFillUndo,
+  onFormAutoFillToastDismiss,
+  formAutoFillToastText,
+} = useFormAutoFillUi({ options, t });
 
 const featureCommands = useAssistantFeatureCommands({
   t,
@@ -1892,8 +1663,8 @@ const appCommands = useAssistantAppCommands({
   t,
   isOpen,
   isDark,
-  startNewSession,
-  clearMessages,
+  startNewSession: () => startNewSession(),
+  clearMessages: () => clearMessages(),
   toggleManualTheme,
   openPersonalize,
   keyboardHelpOpen,
@@ -1987,67 +1758,7 @@ const showEarlierLabel = computed(() =>
   t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
 );
 
-function escapeHtmlLite(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function renderBubble(content: string, globalIdx: number, isStreamingLast: boolean): string {
-  const sanitized = sanitizeAssistantContent(content);
-  let html: string;
-  if (isStreamingLast && sanitized.length > 200) {
-    html =
-      '<pre class="ai-stream-plain" style="white-space:pre-wrap;font-family:inherit;margin:0">' +
-      escapeHtmlLite(sanitized) +
-      '</pre>';
-  } else {
-    html = renderContent(sanitized, t.value.copyCode, isStreamingLast);
-    /* K46: inject a "Add to Compare" hover button into every <pre> code block
-     * (skip stream-plain which has no code semantics + skip if already injected
-     * via re-render). Button click is dispatched via event delegation in
-     * handleBodyClick below. The data-msg-idx attribute tells us which message
-     * the code block belongs to for the compare slot. */
-    html = injectCodeBlockCompareButton(html, globalIdx);
-  }
-  const q = debouncedSearchQuery.value.trim();
-  if (q) {
-    html = highlightSearchInHtml(html, q, globalIdx === activeMatchGlobalIdx.value, {
-      caseSensitive: searchCaseSensitive.value,
-      wholeWord: searchWholeWord.value,
-      regex: searchRegex.value,
-    });
-  }
-  return html;
-}
-
-/**
- * K46: inject hover-only "Add to Compare" button into every <pre> that's NOT
- * the streaming-plain wrapper. We do this with a single regex pass + the
- * markdown renderer is already trusted (sanitized inside renderContent), so
- * splicing extra elements is safe.
- *
- * Marker `data-ai-cmp-msg="N"` lets the global click delegator find the
- * source message index. The label string is i18n'd via window.__AI_T (see
- * handleBodyClick).
- */
-const CODE_COMPARE_BTN_LABEL_KEY = 'msgCtxCompareMarkSelection';
-function injectCodeBlockCompareButton(html: string, globalIdx: number): string {
-  const btnLabel = t.value[CODE_COMPARE_BTN_LABEL_KEY] || 'Add to Compare';
-  return html.replace(/<pre(?![^>]*data-ai-stream-plain)([^>]*)>/g, (full, attrs: string) => {
-    if (/data-ai-cmp-wrapped="1"/.test(attrs)) return full;
-    const newAttrs = `${attrs} data-ai-cmp-wrapped="1" style="position:relative"`;
-    const btn =
-      `<button type="button" class="ai-code-cmp-btn" data-ai-cmp-msg="${globalIdx}"` +
-      ` title="${escapeHtmlLite(btnLabel)}" aria-label="${escapeHtmlLite(btnLabel)}">` +
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-      ' stroke-width="2.5" stroke-linecap="round" aria-hidden="true">' +
-      '<path d="M5 12h14M12 5v14"/></svg></button>';
-    return `<pre${newAttrs}>${btn}`;
-  });
-}
-
-function isTransientAbortAssistantMessage(msg: Message): boolean {
-  return msg.role === 'assistant' && isAbortCancellationMessage(msg.content);
-}
+/* Refactor (batch 3)：renderBubble / injectCodeBlockCompareButton / escapeHtmlLite / isTransientAbortAssistantMessage 迁移到 useBubbleRenderer（在 useSendStream 之后装配，因 renderBubble 依赖其 sanitizeAssistantContent）。 */
 
 function removeTransientAssistantMessages() {
   const cleaned = pruneTransientAssistantMessages(messages.value);
@@ -2205,7 +1916,14 @@ const fabDrag = ref<{
 const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null);
 /** 打开面板瞬间的球位；关面板且本会话未拖过标题栏时还原到此（避免仅放大/夹紧视口导致球跑偏） */
 const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null);
-const fabCtxMenu = ref({ show: false, x: 0, y: 0 });
+const { fabCtxMenu, onFabContextMenu, closeFabCtxMenu, hideFabUntilPageReload, dockFab } =
+  useFabContextMenu({
+    isOpen,
+    fabHidden,
+    edgeDock,
+    getFab: () => fabRef.value,
+    dock: (edge) => fab.dockFab(edge),
+  });
 /* K34: inlineTransPopRef removed — it was declared but never read by any
  * code path in this file. InlineTranslatePopover now lives inside
  * AssistantBottomTransients, where parent-side ref access is no longer
@@ -2213,95 +1931,22 @@ const fabCtxMenu = ref({ show: false, x: 0, y: 0 });
  * method via defineExpose on AssistantBottomTransients. */
 
 /** 面板进出场时短暂保留悬浮球，使缩放原点与球心一致 */
-const showFabDuringPanelAnim = ref(true);
-
-function onPanelBeforeEnter() {
-  showFabDuringPanelAnim.value = true;
-}
-function onPanelAfterEnter() {
-  showFabDuringPanelAnim.value = false;
-}
-function onPanelBeforeLeave() {
-  showFabDuringPanelAnim.value = true;
-}
-function onPanelAfterLeave() {
-  panelMountedForLayout.value = false;
-}
+/* Refactor (batch 8)：面板进出动画 flag（showFabDuringPanelAnim + 4 个 Transition 钩子）迁移到 usePanelTransitions。 */
+const {
+  showFabDuringPanelAnim,
+  onPanelBeforeEnter,
+  onPanelAfterEnter,
+  onPanelBeforeLeave,
+  onPanelAfterLeave,
+} = usePanelTransitions({ panelMountedForLayout });
 
 const effectivePositionClass = computed(() => (fabLeft.value !== null ? '' : positionClass.value));
 
 const edgeDockClass = fabEdgeDockClass;
 
-const wrapperStyle = computed(() => {
-  const st: Record<string, string> = { '--primary': color.value, ...themePaletteVars.value };
-  if (panelMountedForLayout.value) {
-    st.width = `${effectivePanelWidthPx()}px`;
-    st.height = `${effectivePanelHeightPx()}px`;
-  }
-  if (fabLeft.value !== null && fabTop.value !== null) {
-    let L = fabLeft.value;
-    let T = fabTop.value;
-    if (panelMountedForLayout.value) {
-      const { dx, dy } = wrapperOffsetFromFab(openPanelQuadrant.value);
-      L += dx;
-      T += dy;
-    }
-    st.left = `${L}px`;
-    st.top = `${T}px`;
-    st.right = 'auto';
-    st.bottom = 'auto';
-  }
-  return st;
-});
+/* Refactor (batch 10)：wrapperStyle / panelStyle 迁移到 useWrapperStyles（装配在 panelStyle 原位置，因其依赖 panelTransformOrigin）。 */
 
-/** 菜单预估宽度（与样式同步，用于视口夹紧） */
-const FAB_CTX_MENU_W = 236;
-
-function estimateFabCtxMenuHeight(): number {
-  let n = 0;
-  if (edgeDock.value !== 'left') n++;
-  if (edgeDock.value !== 'right') n++;
-  if (edgeDock.value !== 'none') n++;
-  n++; // 隐藏至刷新
-  const header = 48;
-  const row = 52;
-  const listPad = 14;
-  return header + n * row + listPad;
-}
-
-function onFabContextMenu(e: MouseEvent) {
-  e.preventDefault();
-  if (isOpen.value || fabHidden.value) return;
-  const fab = fabRef.value;
-  if (!fab) return;
-  const fr = fab.getBoundingClientRect();
-  const pad = 10;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const menuH = estimateFabCtxMenuHeight();
-  let x = fr.left;
-  let y = fr.bottom + 6;
-  if (x + FAB_CTX_MENU_W > vw - pad) x = vw - FAB_CTX_MENU_W - pad;
-  if (x < pad) x = pad;
-  if (y + menuH > vh - pad) y = fr.top - menuH - 6;
-  if (y < pad) y = pad;
-  fabCtxMenu.value = { show: true, x, y };
-}
-
-function closeFabCtxMenu() {
-  fabCtxMenu.value.show = false;
-}
-
-function hideFabUntilPageReload() {
-  closeFabCtxMenu();
-  fabHidden.value = true;
-  isOpen.value = false;
-}
-
-function dockFab(edge: 'none' | 'left' | 'right') {
-  fab.dockFab(edge);
-  closeFabCtxMenu();
-}
+/* Refactor (batch 4)：FAB 右键菜单（fabCtxMenu 状态 + onFabContextMenu/closeFabCtxMenu/hideFabUntilPageReload/dockFab）迁移到 useFabContextMenu（装配在 fabCtxMenu 原定义处）。 */
 
 function onDocPointerDownCloseFabMenu(e: MouseEvent) {
   const el = e.target;
@@ -2424,13 +2069,18 @@ const fabLayoutStyle = computed(() => {
   };
   return { ...base, ...(map[p] || map['bottom-right']) };
 });
-const panelStyle = computed(
-  () =>
-    ({
-      '--primary': color.value,
-      transformOrigin: panelTransformOrigin.value,
-    }) as Record<string, string>,
-);
+const { wrapperStyle, panelStyle } = useWrapperStyles({
+  color,
+  themePaletteVars,
+  panelMountedForLayout,
+  effectivePanelWidthPx,
+  effectivePanelHeightPx,
+  fabLeft,
+  fabTop,
+  wrapperOffsetFromFab,
+  openPanelQuadrant,
+  panelTransformOrigin,
+});
 
 const emit = defineEmits<{
   (e: 'send', payload: { action: string; text: string }): void;
@@ -2450,94 +2100,28 @@ function onChangeMode(m: 'translate' | 'summarize' | 'chat') {
   setMode(m);
 }
 
-function startNewSession() {
-  saveCurrentSessionToMulti();
-  multiSessions.createSession();
-  messages.value = [];
-  renderAllMessages.value = false;
-  resetSearch();
-  clearRenderCache();
-  sessionTitle.value = '';
-}
-
-function switchToSession(id: string) {
-  if (id === multiSessions.activeSessionId.value) return;
-  saveCurrentSessionToMulti();
-  multiSessions.switchSession(id);
-  const s = multiSessions.getActiveSession();
-  messages.value = s?.messages ?? [];
-  sessionTitle.value = s?.title ?? '';
-  renderAllMessages.value = false;
-  resetSearch();
-  clearRenderCache();
-}
-
-/**
- * K39: 跨会话搜索的「跳到某条消息」入口。
- *
- * 步骤：
- *   1. 切换到目标会话（如果不是当前）；保留旧逻辑分支以避免不必要的 save。
- *   2. 因为切到新 session 后 renderAllMessages 重置为 false，确保目标 msgIndex
- *      在「最近 N 条」之外时强制全量渲染，否则 DOM 里找不到 element。
- *   3. nextTick 后用 SessionSearch 已经在用的 data-attr 找到 element 并
- *      scrollIntoView，触发用户视觉确认。
- */
-function onPickCrossSessionMessage(sessionId: string, msgIndex: number) {
-  switchToSession(sessionId);
-  if (msgIndex < messages.value.length - MAX_RENDERED_MESSAGES) {
-    renderAllMessages.value = true;
-  }
-  void nextTick(() => {
-    const root = panelRef.value ?? document;
-    const el = root.querySelector(`[data-ai-msg-global-idx="${msgIndex}"]`);
-    if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
-      (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
-      (el as HTMLElement).classList.add('ai-cross-search-flash');
-      setTimeout(() => (el as HTMLElement).classList.remove('ai-cross-search-flash'), 1600);
-    }
-    if (!isOpen.value) {
-      isOpen.value = true;
-    }
-  });
-}
-
-function deleteSessionTab(id: string) {
-  multiSessions.deleteSession(id);
-  const s = multiSessions.getActiveSession();
-  messages.value = s?.messages ?? [];
-  sessionTitle.value = s?.title ?? '';
-  clearRenderCache();
-}
-
-function forkFromHere(index: number) {
-  saveCurrentSessionToMulti();
-  const forked = multiSessions.forkFromMessage(multiSessions.activeSessionId.value, index);
-  if (forked) {
-    messages.value = forked.messages as Message[];
-    sessionTitle.value = forked.title;
-    clearRenderCache();
-  }
-}
-
-function saveCurrentSessionToMulti() {
-  multiSessions.updateActiveMessages(JSON.parse(JSON.stringify(messages.value)));
-  if (sessionTitle.value) multiSessions.updateActiveTitle(sessionTitle.value);
-}
-
-function clearMessages() {
-  messages.value = [];
-  renderAllMessages.value = false;
-  resetSearch();
-  clearRenderCache();
-  clearStoredHistory();
-  sessionTitle.value = '';
-  multiSessions.updateActiveMessages([]);
-}
-
-function showAllOlderMessages() {
-  renderAllMessages.value = true;
-  nextTick(() => scrollToBottom(true));
-}
+/* Refactor (batch 5)：多会话生命周期动作迁移到 useSessionActions（装配在此，scrollToBottom 为 hoisted function，可前向引用）。saveCurrentSessionToMulti 仅 composable 内部使用，不在主组件解构。 */
+const {
+  startNewSession,
+  switchToSession,
+  onPickCrossSessionMessage,
+  deleteSessionTab,
+  forkFromHere,
+  clearMessages,
+  showAllOlderMessages,
+} = useSessionActions({
+  multiSessions,
+  messages,
+  renderAllMessages,
+  sessionTitle,
+  isOpen,
+  panelRef,
+  maxRenderedMessages: MAX_RENDERED_MESSAGES,
+  resetSearch,
+  clearRenderCache,
+  clearStoredHistory,
+  scrollToBottom,
+});
 
 const { copiedIndex, copyMessage } = useMessageCopy({
   writeText: writeClipboardText,
@@ -2757,6 +2341,17 @@ const {
   pageContextEnabled: computed(() => !pageContextDisabledOverride.value),
 });
 
+const { renderBubble, isTransientAbortAssistantMessage } = useBubbleRenderer({
+  t,
+  sanitizeAssistantContent,
+  renderContent,
+  debouncedSearchQuery,
+  activeMatchGlobalIdx,
+  searchCaseSensitive,
+  searchWholeWord,
+  searchRegex,
+});
+
 watch(streamStartedAt, (v) => {
   if (v != null) startStreamingTick();
   else stopStreamingTick();
@@ -2792,11 +2387,7 @@ artifactsController.setResendHandler((text: string) => {
   input.value = text;
   void send();
 });
-watch(loading, (val, prev) => {
-  if (prev && !val) {
-    for (const m of messages.value) artifactsController.registerArtifacts(m.artifacts);
-  }
-});
+/* Refactor (batch 9)：artifacts 注册副作用已并入 useLoadingEffects。 */
 
 function regenerateWithCitations(globalIdx: number) {
   if (loading.value) return;
@@ -2961,9 +2552,7 @@ watch(
   },
 );
 
-watch(loading, (now, prev) => {
-  if (!now && prev) removeTransientAssistantMessages();
-});
+/* Refactor (batch 9)：清理瞬态消息副作用已并入 useLoadingEffects。 */
 
 const { trapFocus, onEscKeydown } = useAssistantKeyboard({
   options,

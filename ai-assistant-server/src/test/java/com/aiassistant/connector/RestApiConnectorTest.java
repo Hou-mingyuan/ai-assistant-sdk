@@ -130,4 +130,54 @@ class RestApiConnectorTest {
         assertEquals(0, result.total());
         assertTrue(result.records().isEmpty());
     }
+
+    @Test
+    void queryData_nullOperatorNormalizedToEqAndDoesNotReturnEmpty() throws InterruptedException {
+        // 回归：null operator 曾让 Map.of 抛 NPE，被外层 catch 吞成空结果。
+        server.enqueue(
+                new MockResponse()
+                        .setHeader("Content-Type", "application/json")
+                        .setBody("{\"records\":[{\"id\":1}],\"total\":1}"));
+
+        var cond = new DataConnector.QueryFilter.Condition("status", null, "active");
+        var filter = new DataConnector.QueryFilter(List.of(cond), 1, 20, List.of());
+
+        DataConnector.QueryResult result = connector.queryData("orders", filter);
+
+        assertEquals(1, result.records().size());
+        String sentBody = server.takeRequest().getBody().readUtf8();
+        assertTrue(sentBody.contains("\"operator\":\"eq\""), sentBody);
+        assertTrue(sentBody.contains("\"fieldId\":\"status\""), sentBody);
+    }
+
+    @Test
+    void toConditionMap_defaultsOperatorAndToleratesNulls() {
+        Map<String, Object> c =
+                RestApiConnector.toConditionMap(
+                        new DataConnector.QueryFilter.Condition(null, null, null));
+        assertEquals("eq", c.get("operator"));
+        assertNull(c.get("fieldId"));
+        assertEquals("", c.get("value"));
+
+        Map<String, Object> c2 =
+                RestApiConnector.toConditionMap(
+                        new DataConnector.QueryFilter.Condition("amount", "gt", 100));
+        assertEquals("gt", c2.get("operator"));
+        assertEquals("amount", c2.get("fieldId"));
+        assertEquals(100, c2.get("value"));
+    }
+
+    @Test
+    void toOrderByMap_defaultsDirectionToAsc() {
+        Map<String, Object> o =
+                RestApiConnector.toOrderByMap(
+                        new DataConnector.QueryFilter.OrderBy("createdAt", null));
+        assertEquals("asc", o.get("direction"));
+        assertEquals("createdAt", o.get("fieldId"));
+
+        Map<String, Object> o2 =
+                RestApiConnector.toOrderByMap(
+                        new DataConnector.QueryFilter.OrderBy("createdAt", "desc"));
+        assertEquals("desc", o2.get("direction"));
+    }
 }

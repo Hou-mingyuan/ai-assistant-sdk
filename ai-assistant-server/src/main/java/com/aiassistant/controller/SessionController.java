@@ -1,5 +1,6 @@
 package com.aiassistant.controller;
 
+import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.model.SessionData;
 import com.aiassistant.service.SessionStore;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 public class SessionController {
 
     private final SessionStore sessionStore;
+    private final AiAssistantProperties properties;
 
-    public SessionController(SessionStore sessionStore) {
+    public SessionController(SessionStore sessionStore, AiAssistantProperties properties) {
         this.sessionStore = sessionStore;
+        this.properties = properties;
     }
 
     @GetMapping
@@ -58,6 +61,7 @@ public class SessionController {
     }
 
     private String resolveUserId(HttpServletRequest request) {
-        return com.aiassistant.util.ClientIdentity.resolve(request);
+        return com.aiassistant.util.ClientIdentity.resolve(
+                request, properties.getTrustedProxyHops());
     }
 }

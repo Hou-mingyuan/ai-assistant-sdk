@@ -95,7 +95,12 @@ public class RedisSessionStore implements SessionStore {
                 SessionData s = fromJson(v.toString());
                 if (s != null) out.add(s);
             }
-            out.sort(Comparator.comparing(SessionData::getUpdatedAt).reversed());
+            // 按 updatedAt 倒序（最近在前）；updatedAt 为 null 的脏数据排到末尾，避免
+            // Comparator.comparing 对 null 键抛 NPE 导致整份列表被 catch 吞成空（与 evictOldest 的判空保持一致）。
+            out.sort(
+                    Comparator.comparing(
+                            SessionData::getUpdatedAt,
+                            Comparator.nullsLast(Comparator.reverseOrder())));
             return out;
         } catch (RuntimeException e) {
             warnRedisFailure("list", e);

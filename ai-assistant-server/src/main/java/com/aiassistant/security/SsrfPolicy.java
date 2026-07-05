@@ -1,5 +1,6 @@
 package com.aiassistant.security;
 
+import java.net.InetAddress;
 import java.net.URI;
 
 /**
@@ -22,4 +23,15 @@ public interface SsrfPolicy {
      * @param uri 目标 URI；可能由调用方从原始 URL 或 3xx Location 头解析得到
      */
     void validate(URI uri);
+
+    /**
+     * 校验「已经解析出来的」目标 IP 地址，用于支持 DNS pin 的客户端（如 OkHttp 的自定义 {@code Dns}）在真正建立 连接前对解析结果做二次校验，从而关闭
+     * {@link #validate(URI)} 与实际连接之间的 DNS 重绑定（TOCTOU）窗口。
+     *
+     * <p>缺省实现为空操作：仅按主机名做白名单的自定义策略无需逐 IP 校验也能保持安全。基线实现 {@link DefaultSsrfPolicy} 会覆盖此方法，对回环 / 私有 /
+     * 链路本地 / 元数据等地址抛 {@link IllegalArgumentException}。
+     *
+     * @param address 即将连接的已解析地址
+     */
+    default void validateResolvedAddress(InetAddress address) {}
 }

@@ -1,6 +1,8 @@
 package com.aiassistant.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -97,5 +99,36 @@ class AiAssistantSecurityPostureAdvisorTest {
                 new AiAssistantSecurityPostureAdvisor(properties);
 
         assertTrue(advisor.warningCodes().isEmpty());
+    }
+
+    @Test
+    void enforceAccessTokenPolicy_warnsButDoesNotThrowByDefaultWhenTokenMissing() {
+        // 默认（require-access-token=false）：无 token 只告警，不阻止启动（保留可嵌入语义）。
+        AiAssistantProperties properties = new AiAssistantProperties();
+        AiAssistantSecurityPostureAdvisor advisor =
+                new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertDoesNotThrow(advisor::enforceAccessTokenPolicy);
+    }
+
+    @Test
+    void enforceAccessTokenPolicy_failsFastWhenRequiredAndTokenMissing() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setRequireAccessToken(true);
+        AiAssistantSecurityPostureAdvisor advisor =
+                new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertThrows(IllegalStateException.class, advisor::enforceAccessTokenPolicy);
+    }
+
+    @Test
+    void enforceAccessTokenPolicy_passesWhenTokenConfiguredEvenIfRequired() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setRequireAccessToken(true);
+        properties.setAccessToken("secret");
+        AiAssistantSecurityPostureAdvisor advisor =
+                new AiAssistantSecurityPostureAdvisor(properties);
+
+        assertDoesNotThrow(advisor::enforceAccessTokenPolicy);
     }
 }

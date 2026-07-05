@@ -15,12 +15,45 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class InMemoryTokenUsageTracker implements TokenUsageTracker {
 
+    /**
+     * Upper bound on distinct tenants tracked in-process. {@code tenantId} originates from the
+     * (format-validated but still caller-controlled) {@code X-Tenant-Id} header, so without a cap a
+     * flood of distinct tenant ids would grow these maps unbounded — a memory DoS. When exceeded,
+     * the least-recently-used tenants are evicted. Quotas set explicitly via {@link #setQuota} are
+     * governed by admin action and are intentionally not evicted here.
+     */
+    private static final int MAX_TENANTS = 100_000;
+
     private final ConcurrentHashMap<String, TenantUsage> usageByTenant = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> tenantQuotas = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicLong> reservedTokens = new ConcurrentHashMap<>();
 
+    /**
+     * Evicts the least-recently-used tenants when {@link #usageByTenant} exceeds {@link
+     * #MAX_TENANTS}. Called before inserting a new tenant. Ordering is by {@code lastAccessMs}, so
+     * an actively-used tenant is never the one dropped. Approximate under concurrency (best-effort
+     * cap), which is acceptable for a memory safeguard.
+     */
+    private void evictTenantsIfNeeded() {
+        int size = usageByTenant.size();
+        if (size <= MAX_TENANTS) return;
+        int toRemove = size - MAX_TENANTS + (MAX_TENANTS / 10);
+        usageByTenant.entrySet().stream()
+                .sorted(java.util.Comparator.comparingLong(e -> e.getValue().lastAccessMs))
+                .limit(toRemove)
+                .map(Map.Entry::getKey)
+                .forEach(
+                        k -> {
+                            usageByTenant.remove(k);
+                            reservedTokens.remove(k);
+                        });
+    }
+
     @Override
     public void recordUsage(String tenantId, String model, int promptTokens, int completionTokens) {
+        if (!usageByTenant.containsKey(tenantId)) {
+            evictTenantsIfNeeded();
+        }
         TenantUsage usage = usageByTenant.computeIfAbsent(tenantId, k -> new TenantUsage());
         usage.record(model, promptTokens, completionTokens);
     }
@@ -119,6 +152,8 @@ public class InMemoryTokenUsageTracker implements TokenUsageTracker {
     }
 
     private static class TenantUsage {
+        // Wall-clock of the last write; used by evictTenantsIfNeeded() for LRU ordering.
+        volatile long lastAccessMs = System.currentTimeMillis();
         final AtomicLong totalTokens = new AtomicLong();
         final AtomicLong totalPromptTokens = new AtomicLong();
         final AtomicLong totalCompletionTokens = new AtomicLong();
@@ -127,6 +162,7 @@ public class InMemoryTokenUsageTracker implements TokenUsageTracker {
         final ConcurrentHashMap<String, AtomicLong> tokensByDate = new ConcurrentHashMap<>();
 
         void record(String model, int promptTokens, int completionTokens) {
+            lastAccessMs = System.currentTimeMillis();
             int total = promptTokens + completionTokens;
             totalTokens.addAndGet(total);
             totalPromptTokens.addAndGet(promptTokens);

@@ -1,8 +1,50 @@
-# AI Assistant SDK
+<div align="center">
 
-可嵌入任何 Java + Vue 项目的 AI 小助手，覆盖一键翻译、全文摘要、自由对话、RAG 知识库、多步 Agent、PII 脱敏、多租户隔离与管理后台。
+# 🤖 AI Assistant SDK
+
+### 给任意 Java + Vue 项目，5 分钟接入一个「企业级 AI 助手」
+
+后端一个 Starter、前端一个组件，开箱即拥有 **多轮对话 · 一键翻译 · 全文摘要 · RAG 知识库 · 多步 Agent · Function Calling · 16 家大模型**
+
+[![GitHub stars](https://img.shields.io/github/stars/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/network/members)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F.svg?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Vue](https://img.shields.io/badge/Vue-3.x-42B883.svg?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![CI](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[English](./README_EN.md) · [📖 文档站](docs/guide/index.md) · [🚀 快速开始](docs/guide/quick-start.md) · [💡 特性详解](docs/guide/index.md) · [🐛 反馈问题](https://github.com/Hou-mingyuan/ai-assistant-sdk/issues)
+
+<!-- 📌 补图指引：用 ai-assistant-vue-playground / ai-assistant-demo 录制演示 GIF（悬浮球 → 提问 → 流式回答 → RAG 引用溯源），放到 docs/assets/demo.gif，然后取消下一行注释即可显示 -->
+<!-- <img src="docs/assets/demo.gif" alt="AI Assistant SDK 演示" width="760" /> -->
+
+_🎬 演示动图即将上线（补图指引见 [docs/assets](docs/assets/)）_
+
+<br/>
+
+> ⭐ **如果这个项目帮到了你，点个 Star 让更多人看到！** 你的每一个 Star 都是持续维护的动力。
+
+</div>
+
+---
+
+## 这是什么
+
+**AI Assistant SDK** 是一个可嵌入任何 **Java + Vue** 项目的企业级 AI 小助手，覆盖一键翻译、全文摘要、自由对话、RAG 知识库、多步 Agent、PII 脱敏、多租户隔离与管理后台。
 
 仓库由后端 Spring Boot Starter、独立服务、Vue 3 组件库、Web Component、Java 客户端、VitePress 文档站和 Helm/Docker 部署模板组成；任选其中一种或两种形态接入，互不冲突。
+
+## 为什么选它
+
+- 🧩 **接入极快**：后端引一个 starter、前端 `app.use` 一行，5 分钟跑通，无需自建 LLM 网关。
+- 🌐 **16 家大模型开箱即用**：OpenAI / DeepSeek / 通义千问 / 智谱 GLM / 豆包 / Kimi / Gemini / Ollama…… 一个配置项切换，或接任意 OpenAI 兼容端点。
+- 🏢 **生来为企业**：多租户隔离、PII 脱敏、Prompt 注入检测、Token 配额、模型路由 A/B、限流熔断——不是 demo，是能上生产的。
+- 🧠 **不止对话**：RAG 检索增强、Function Calling、ReAct 多步 Agent、MCP Server 一应俱全。
+- 🎨 **前端三形态**：Vue 插件 / Web Component（`<ai-assistant>`，React·Angular·原生 HTML 可用）/ `useAiAssistant` Composable，70+ 可配置项。
+- 🛠 **工程化到位**：CI、OWASP、Trivy、E2E、Helm Chart、多套 docker-compose，VitePress 文档站齐全。
 
 ## 先看这里
 
@@ -364,6 +406,20 @@ CI 流水线（`.github/workflows/ci.yml`）在每次 push / PR 时运行 lint�
 
 ---
 
+## 贡献 & 支持
+
+欢迎提 Issue、PR 和建议！参与开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+如果这个项目对你有帮助：
+
+- ⭐ 给个 **Star** —— 这是对作者最大的鼓励，也让更多人发现它
+- 🍴 **Fork** 后自由改造成你自己的 AI 助手
+- 📢 分享给可能需要的同行 / 技术群
+
+### Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Hou-mingyuan/ai-assistant-sdk&type=Date)](https://star-history.com/#Hou-mingyuan/ai-assistant-sdk&Date)
+
 ## License
 
-MIT
+[MIT](./LICENSE) © [Hou-mingyuan](https://github.com/Hou-mingyuan)
