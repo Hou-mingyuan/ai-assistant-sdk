@@ -21,6 +21,7 @@ import {
   uploadFile,
   postServerExport,
   fetchPromptTemplates,
+  fetchHealth,
   fetchRuntimeModelConfig,
   saveRuntimeModelConfig,
   discoverRuntimeProviderModels,
@@ -182,6 +183,31 @@ describe('fetchModels', () => {
     expect(first.models).toEqual(['gpt-5.4']);
     expect(second).toBe(first);
     expect(mockFetch).toHaveBeenCalledOnce();
+  });
+});
+
+describe('fetchHealth', () => {
+  it('fetches deep health with a trimmed token header', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, status: 'UP' }),
+    });
+
+    const res = await fetchHealth('/ai/', '  health-token  ', true);
+
+    expect(res.success).toBe(true);
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/health?deep=true');
+    expect(mockFetch.mock.calls[0][1].method).toBe('GET');
+    expect(mockFetch.mock.calls[0][1].headers['X-AI-Token']).toBe('health-token');
+  });
+
+  it('returns success=false when health endpoint fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Unavailable' });
+
+    const res = await fetchHealth('/ai');
+
+    expect(res).toEqual({ success: false });
+    expect(mockFetch.mock.calls[0][0]).toBe('/ai/health');
   });
 });
 
@@ -429,6 +455,19 @@ describe('postServerExport', () => {
     expect(anchor.download).toBe('对话.docx');
   });
 
+  it('falls back to raw filename star value when percent decoding fails', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce(
+      exportResponse(new Blob(['docx']), "attachment; filename*=UTF-8''broken%ZZ.docx"),
+    );
+
+    const res = await postServerExport('/ai', 'docx', 'Broken Export', []);
+    const anchor = clickSpy.mock.instances[0] as HTMLAnchorElement;
+
+    expect(res.ok).toBe(true);
+    expect(anchor.download).toBe('broken%ZZ.docx');
+  });
+
   it('converts pdf blob to octet-stream before download', async () => {
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mockFetch.mockResolvedValueOnce(
@@ -454,6 +493,19 @@ describe('postServerExport', () => {
 
     expect(res).toEqual({ ok: false, error: 'export failed' });
     expect(mockCreateObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('falls back to HTTP status when export error body is empty', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      text: () => Promise.resolve(''),
+    });
+
+    const res = await postServerExport('/ai', 'docx', 'Export', []);
+
+    expect(res).toEqual({ ok: false, error: 'HTTP 503' });
   });
 });
 
@@ -549,6 +601,7 @@ describe('streamChat', () => {
               title: 'Official docs',
               url: 'https://example.com/a',
               snippet: 'Preview summary',
+              qualityScore: 0.92,
               qualityLabel: 'docs',
             },
           ]),
@@ -589,10 +642,62 @@ describe('streamChat', () => {
           title: 'Official docs',
           url: 'https://example.com/a',
           snippet: 'Preview summary',
+          qualityScore: 0.92,
           qualityLabel: 'docs',
         },
       ],
     });
+  });
+
+  it('normalizes malformed runtime metadata headers without failing the stream', async () => {
+    const onMeta = vi.fn();
+    mockFetch.mockResolvedValueOnce(
+      streamResponse(['data: ok\n\n'], {
+        'X-AI-Web-Search-Fallback': 'true',
+        'X-AI-Web-Search-Duration-Ms': 'not-a-number',
+        'X-AI-Web-Search-Source-Urls': 'https%3A%2F%2Fexample.com%2Fok,bad%ZZ',
+        'X-AI-Web-Search-Source-Previews': encodeURIComponent(JSON.stringify({ nope: true })),
+      }),
+    );
+
+    const chunks = [];
+    for await (const chunk of streamChat(
+      '/ai',
+      { action: 'chat', text: 'hi' },
+      undefined,
+      undefined,
+      onMeta,
+    )) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['ok']);
+    expect(onMeta).toHaveBeenCalledWith({
+      webSearchFallback: true,
+      webSearchSourceUrls: ['https://example.com/ok', 'bad%ZZ'],
+    });
+  });
+
+  it('omits web search previews when the decoded preview list is empty', async () => {
+    const onMeta = vi.fn();
+    mockFetch.mockResolvedValueOnce(
+      streamResponse(['data: ok\n\n'], {
+        'X-AI-Web-Search-Fallback': 'true',
+        'X-AI-Web-Search-Source-Previews': encodeURIComponent(JSON.stringify([])),
+      }),
+    );
+
+    for await (const _chunk of streamChat(
+      '/ai',
+      { action: 'chat', text: 'hi' },
+      undefined,
+      undefined,
+      onMeta,
+    )) {
+      // consume stream
+    }
+
+    expect(onMeta).toHaveBeenCalledWith({ webSearchFallback: true });
   });
 
   it('throws on failed streaming response', async () => {
@@ -709,5 +814,14 @@ describe('fetchPromptTemplates', () => {
     const r = await fetchPromptTemplates('/ai');
     expect(r.success).toBe(false);
     expect(r.error).toMatch(/connection refused/);
+  });
+
+  it('stringifies non-Error failures from the templates endpoint', async () => {
+    mockFetch.mockRejectedValueOnce('offline');
+
+    const r = await fetchPromptTemplates('/ai');
+
+    expect(r.success).toBe(false);
+    expect(r.error).toBe('offline');
   });
 });
