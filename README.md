@@ -16,10 +16,72 @@
 [![CI](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[English](./README_EN.md) · [📖 文档站](docs/guide/index.md) · [🚀 快速开始](docs/guide/quick-start.md) · [💡 特性详解](docs/guide/index.md) · [🐛 反馈问题](https://github.com/Hou-mingyuan/ai-assistant-sdk/issues)
+[English](./README_EN.md) · [📖 文档站](docs/guide/index.md) · [🚀 快速开始](docs/guide/quick-start.md) · [💡 特性详解](docs/guide/index.md) · [🔒 SECURITY](SECURITY.md) · [🚢 DEPLOYMENT](DEPLOYMENT.md) · [⚡ PERFORMANCE](PERFORMANCE.md) · [🐛 反馈问题](https://github.com/Hou-mingyuan/ai-assistant-sdk/issues)
 
 <!-- 📌 补图指引：用 ai-assistant-vue-playground / ai-assistant-demo 录制演示 GIF（悬浮球 → 提问 → 流式回答 → RAG 引用溯源），放到 docs/assets/demo.gif，然后取消下一行注释即可显示 -->
 <!-- <img src="docs/assets/demo.gif" alt="AI Assistant SDK 演示" width="760" /> -->
+<img src="docs/assets/demo.gif" alt="AI Assistant SDK 演示" width="760" />
+
+### 作品集 / 一键演示
+
+| 要素 | 说明 |
+| --- | --- |
+| **零密钥 smoke** | 无需 Key：`scripts/smoke-zero-key.mjs` 覆盖 health / liveness / stats / runtime / provider / chat(503) |
+| **一键 UI Demo** | `docker-compose.demo.yml`：后端 + Playground，Docker Desktop 分组 **ai-assistant-demo** |
+| **完整流式对话** | `.env` 填入 `AI_ASSISTANT_API_KEY` 后重启，打开 Playground 悬浮球 |
+| **文档** | [docs/DEMO.md](docs/DEMO.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [SECURITY.md](SECURITY.md) |
+
+**零密钥验收（CI / 作品集基线）：**
+
+```bash
+cp .env.example .env          # Key 可留空
+docker compose up -d --build
+node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
+```
+
+**本地 k6 health smoke（`:8080` · pending-local）：**
+
+Hub `:18080` 已有实测回填，见 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)。本地 Docker `:8080` 复测命令（**无需 LLM Key**，仅 health / liveness）：
+
+```bash
+docker compose up -d --build
+curl -sf http://localhost:8080/ai-assistant/health
+
+# 本机 k6（默认 BASE=http://localhost:8080/ai-assistant）
+k6 run performance/k6-smoke.js
+```
+
+```powershell
+# Windows · Docker 版 k6（栈在本机 8080 时）
+docker run --rm `
+  -e BASE_URL=http://host.docker.internal:8080/ai-assistant `
+  -v ${PWD}/performance:/scripts `
+  grafana/k6:latest run /scripts/k6-smoke.js
+```
+
+> `:8080` 结果行当前为 **pending-local**（协作环境端口冲突时可只文档化、不实跑）；跑完后将 health / liveness p95 填入 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md) 结果表。
+
+**一键 Playground Demo（推荐作品集）：**
+
+```powershell
+# Windows
+.\scripts\demo-standalone.ps1
+```
+
+```bash
+# Linux / macOS
+./scripts/demo-standalone.sh
+```
+
+默认打开 http://localhost:3000/ 。配置 Key 后可体验 SSE 流式对话。
+
+**Hub Profile 一键（18080 + smoke）：**
+
+```powershell
+.\scripts\demo-hub.ps1
+```
+
+详见 [docs/DEMO.md](docs/DEMO.md)（含 Playground 流式 UI 与 `smoke-zero-key.mjs`）。
 
 _🎬 演示动图即将上线（补图指引见 [docs/assets](docs/assets/)）_
 
@@ -53,6 +115,7 @@ README 只作为项目总览和常用入口。更完整、可导航的安装、�
 | 你想做什么 | 推荐入口 |
 | --- | --- |
 | 5 分钟内跑通 Starter + Vue 组件 | [快速开始](docs/guide/quick-start.md) |
+| 作品集零密钥 / Playground 一键演示 | [演示指南](docs/DEMO.md) |
 | 了解所有配置项如何分层启用 | [配置说明](docs/guide/configuration.md) |
 | 在 Starter 集成和独立服务之间做选择 | [部署路径检查清单](docs/guide/deployment-checklists.md) |
 | 不改业务后端，直接运行独立服务 | [独立服务部署](docs/guide/standalone-service.md) |
@@ -61,7 +124,8 @@ README 只作为项目总览和常用入口。更完整、可导航的安装、�
 | 维护后端模块边界和扩展点 | [后端架构维护说明](docs/guide/backend-architecture.md) |
 | 对接聊天、流式输出或管理接口 | [API 文档](docs/api/index.md) |
 | 启用 OpenAPI、Tracing 或 JSON logging | [Observability support](docs/guide/observability-support-quick-start.md)：通过 `ai-assistant-observability-support` 接入 |
-| 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) |
+| 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) · [SECURITY.md](SECURITY.md) · [DEPLOYMENT.md](DEPLOYMENT.md) |
+| 调优限流、内存与多副本 | [PERFORMANCE.md](PERFORMANCE.md) · [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)（k6 smoke 实测 / pending-local） |
 | 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
 | 贡献代码 / 安装本地 pre-commit hook | [Git Hooks 指引](docs/guide/git-hooks.md) |
 
@@ -269,7 +333,7 @@ ai-assistant:
 
 ## 部署
 
-完整路径选择 + 上线检查：[部署路径检查清单](docs/guide/deployment-checklists.md)。
+完整路径选择 + 上线检查：[部署路径检查清单](docs/guide/deployment-checklists.md) · 仓库根目录 [DEPLOYMENT.md](DEPLOYMENT.md) · [SECURITY.md](SECURITY.md)。
 
 **集成到已有 Spring Boot 后端**：引入 starter，业务服务自动暴露 `/ai-assistant/*`。最适合需要复用业务身份、租户、数据库上下文的场景。
 
@@ -350,6 +414,9 @@ ai-assistant-sdk/
 ├── helm/                         # Kubernetes Helm Chart
 ├── deploy/                       # nginx / Caddy 反向代理样例
 ├── integrations/                 # 第三方集成示例
+├── SECURITY.md                   # 安全策略与漏洞报告
+├── DEPLOYMENT.md                 # 部署与运维入口
+├── PERFORMANCE.md                # 性能与容量调优
 └── scripts/                      # 版本一致性、健康检查、smoke 测试
 ```
 
@@ -389,6 +456,8 @@ CI 流水线（`.github/workflows/ci.yml`）在每次 push / PR 时运行 lint�
 ---
 
 ## 性能与风险
+
+详细调优与多副本说明：[PERFORMANCE.md](PERFORMANCE.md) · k6 health smoke 实测与 **:8080 pending-local** 复测命令见 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)。
 
 | 维度 | 现状 |
 | --- | --- |

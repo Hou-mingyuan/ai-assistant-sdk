@@ -375,3 +375,70 @@ jobs:
       - name: Build documentation site
         run: npm run build
         working-directory: docs
+
+  playground:
+    name: Playground unit tests
+    runs-on: ubuntu-latest
+    needs: frontend
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            ai-assistant-ui/package-lock.json
+            ai-assistant-vue-playground/package-lock.json
+
+      - name: Install UI dependencies
+        run: npm ci
+        working-directory: ai-assistant-ui
+
+      - name: Build UI library for Playground
+        run: npm run build:lib
+        working-directory: ai-assistant-ui
+
+      - name: Install Playground dependencies
+        run: npm ci
+        working-directory: ai-assistant-vue-playground
+
+      - name: Run Playground Vitest
+        run: npm test
+        working-directory: ai-assistant-vue-playground
+
+  compose-smoke:
+    name: Docker Compose zero-key smoke
+    runs-on: ubuntu-latest
+    needs: [backend, repository]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare env
+        run: |
+          cp .env.example .env
+          sed -i 's/^AI_ASSISTANT_API_KEY=.*/AI_ASSISTANT_API_KEY=/' .env
+
+      - name: Build and start standalone service
+        run: docker compose up -d --build
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 36); do
+            if curl -sf http://localhost:8080/ai-assistant/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose logs ai-assistant
+          exit 1
+
+      - name: Zero-key smoke (scripts/smoke-zero-key.mjs)
+        run: node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

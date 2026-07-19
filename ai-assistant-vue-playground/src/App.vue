@@ -46,10 +46,48 @@
     <article v-if="route === 'demo'" class="demo-assistant-page-context">
       <h1>AI Assistant 悬浮球演示</h1>
       <p>
-        请先启动 <code>ai-assistant-demo</code>（端口 8080），再在本目录执行
-        <code>npm run dev</code>。页面右下角为悬浮球，请求经 Vite 代理到
+        启动后端：<code>.\scripts\demo-standalone.ps1</code>（Playground :3000）或
+        <code>.\scripts\demo-hub.ps1</code>（Hub API :18080）。本地 dev：
+        <code>cd ai-assistant-vue-playground && npm run dev</code>，请求经 Vite 代理到
         <code>/ai-assistant</code>。
       </p>
+      <div v-if="connectionLabel || smokeChecks.length" class="stream-status-row">
+        <div :class="['stream-status', connectionOk ? 'is-ok' : connectionOk === false ? 'is-warn' : 'is-neutral']">
+          {{ connectionLabel || '点击刷新探测后端' }}
+        </div>
+        <button type="button" class="stream-refresh" :disabled="probing" @click="runSmokeChecks">
+          {{ probing ? '探测中…' : '运行零密钥 smoke' }}
+        </button>
+      </div>
+      <ul v-if="smokeChecks.length" class="smoke-checklist" aria-label="零密钥 smoke 检查清单">
+        <li
+          v-for="c in smokeChecks"
+          :key="c.name"
+          :class="['smoke-check', c.pass ? 'pass' : 'fail']"
+        >
+          <span class="smoke-icon">{{ c.pass ? '✓' : '✗' }}</span>
+          <span class="smoke-name">{{ c.label }}</span>
+          <code class="smoke-endpoint">{{ c.endpoint }}</code>
+        </li>
+      </ul>
+      <div class="stream-phase-hint">
+        <div class="stream-phase-title">SSE 流式体验路径</div>
+        <div class="stream-phase-steps">
+          <span :class="['stream-phase-chip', providerReady ? 'ready' : '']">① 连接</span>
+          <span :class="['stream-phase-chip', providerReady ? 'ready' : '']">② Provider</span>
+          <span class="stream-phase-chip">③ 发送</span>
+          <span class="stream-phase-chip">④ 首字 TTFT</span>
+          <span class="stream-phase-chip">⑤ 流式输出</span>
+        </div>
+        <p class="stream-phase-note">
+          助手面板内消息列表会显示 <strong>首字延迟</strong> 与进度条；需配置 Key 后步骤 ③–⑤ 才可完整体验。
+        </p>
+      </div>
+      <ol class="stream-steps">
+        <li>点击右下角悬浮球，输入问题并发送</li>
+        <li>观察消息区 <strong>SSE 流式</strong> 逐字输出（需 <code>.env</code> 配置 <code>AI_ASSISTANT_API_KEY</code>）</li>
+        <li>未配置 Key 时 <code>/chat</code> 返回 503，零密钥 smoke 仍可通过</li>
+      </ol>
       <p class="demo-hint">
         切到顶栏的 <strong>Admin Console</strong> 标签可看到本轮 K4 改进 -- 7 个 tab
         覆盖 15 个 admin endpoint 的完整管理面板。<br />
@@ -575,6 +613,153 @@ interface ReactionEntry {
 }
 const reactionLog = ref<ReactionEntry[]>([]);
 
+const connectionOk = ref<boolean | null>(null);
+const connectionLabel = ref('');
+const probing = ref(false);
+const providerReady = ref(false);
+
+interface SmokeCheckRow {
+  name: string;
+  label: string;
+  endpoint: string;
+  pass: boolean;
+}
+
+const smokeChecks = ref<SmokeCheckRow[]>([]);
+
+async function runSmokeChecks() {
+  if (probing.value) return;
+  probing.value = true;
+  smokeChecks.value = [];
+  const base = (import.meta.env.VITE_AI_ASSISTANT_BASE_URL || '/ai-assistant').replace(/\/+$/, '');
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const serviceOrigin = base.startsWith('http') ? new URL(base).origin : origin;
+
+  const checks: Array<{
+    name: string;
+    label: string;
+    endpoint: string;
+    run: () => Promise<boolean>;
+  }> = [
+    {
+      name: 'assistant health',
+      label: 'Assistant health',
+      endpoint: 'GET /health',
+      run: async () => {
+        const r = await fetch(`${base}/health`);
+        if (!r.ok) return false;
+        const body = await r.json();
+        return body?.success === true && body?.status === 'running';
+      },
+    },
+    {
+      name: 'actuator liveness',
+      label: 'Actuator liveness',
+      endpoint: 'GET /actuator/health/liveness',
+      run: async () => {
+        const r = await fetch(`${serviceOrigin}/actuator/health/liveness`);
+        if (!r.ok) return false;
+        const body = await r.json();
+        return body?.status === 'UP';
+      },
+    },
+    {
+      name: 'stats',
+      label: 'Stats (no auth)',
+      endpoint: 'GET /stats',
+      run: async () => {
+        const r = await fetch(`${base}/stats`);
+        if (!r.ok) return false;
+        const body = await r.json();
+        return body && typeof body === 'object';
+      },
+    },
+    {
+      name: 'runtime config',
+      label: 'Runtime config',
+      endpoint: 'GET /runtime/config',
+      run: async () => {
+        const r = await fetch(`${base}/runtime/config`);
+        if (!r.ok) return false;
+        const body = await r.json();
+        return (
+          body?.success === true &&
+          body.service &&
+          body.security &&
+          body.features &&
+          body.limits &&
+          typeof body.service.contextPath === 'string' &&
+          typeof body.security.accessTokenConfigured === 'boolean'
+        );
+      },
+    },
+    {
+      name: 'provider health',
+      label: 'Provider (no key)',
+      endpoint: 'GET /health/provider',
+      run: async () => {
+        const r = await fetch(`${base}/health/provider`);
+        if (!r.ok) return false;
+        const body = await r.json();
+        providerReady.value = body?.status === 'UP';
+        return ['DOWN', 'PENDING', 'UNKNOWN'].includes(body?.status);
+      },
+    },
+    {
+      name: 'chat routing',
+      label: 'Chat routing (503)',
+      endpoint: 'POST /chat',
+      run: async () => {
+        const r = await fetch(`${base}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'ping', action: 'chat' }),
+        });
+        if (r.status !== 503) return false;
+        const body = await r.json();
+        return body?.success === false;
+      },
+    },
+  ];
+
+  try {
+    const rows: SmokeCheckRow[] = [];
+    let allPass = true;
+    for (const check of checks) {
+      let pass = false;
+      try {
+        pass = await check.run();
+      } catch {
+        pass = false;
+      }
+      if (!pass) allPass = false;
+      rows.push({
+        name: check.name,
+        label: check.label,
+        endpoint: check.endpoint,
+        pass,
+      });
+    }
+    smokeChecks.value = rows;
+    connectionOk.value = allPass;
+    connectionLabel.value = allPass
+      ? providerReady.value
+        ? '✓ 零密钥 smoke 全通过 · Provider UP · 可体验 SSE 流式对话'
+        : '✓ 零密钥 smoke 全通过 · 未配置 API Key（流式需 Key）'
+      : `⚠ smoke ${rows.filter((r) => r.pass).length}/${rows.length} 通过 — 见下方清单`;
+  } catch {
+    connectionOk.value = false;
+    providerReady.value = false;
+    connectionLabel.value = '⚠ 无法连接 /ai-assistant — 请先运行 demo-standalone 或 demo-hub';
+  } finally {
+    probing.value = false;
+  }
+}
+
+onMounted(() => {
+  void runSmokeChecks();
+});
+
 function onAssistantReactionEvent(ev: Event) {
   const detail = (ev as CustomEvent<{ messageIndex: number; emoji: string; toggled: boolean }>)
     .detail;
@@ -730,6 +915,154 @@ onBeforeUnmount(() =>
   background: rgba(14, 165, 233, 0.08);
   font-size: 0.86rem;
   color: #0c4a6e;
+}
+
+.stream-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0.75rem 0;
+}
+
+.stream-status {
+  flex: 1 1 240px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.stream-refresh {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.stream-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.stream-status.is-ok {
+  background: rgba(22, 163, 74, 0.1);
+  color: #166534;
+  border: 1px solid rgba(22, 163, 74, 0.25);
+}
+
+.stream-status.is-warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.stream-status.is-neutral {
+  background: rgba(148, 163, 184, 0.12);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.smoke-checklist {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.smoke-check {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.smoke-check.pass {
+  border-color: rgba(22, 163, 74, 0.25);
+  background: rgba(22, 163, 74, 0.06);
+}
+
+.smoke-check.fail {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.smoke-icon {
+  font-weight: 700;
+  text-align: center;
+}
+
+.smoke-check.pass .smoke-icon { color: #16a34a; }
+.smoke-check.fail .smoke-icon { color: #dc2626; }
+
+.smoke-endpoint {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.stream-phase-hint {
+  margin: 0.75rem 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.04));
+  border: 1px solid rgba(14, 165, 233, 0.15);
+}
+
+.stream-phase-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0c4a6e;
+  margin-bottom: 8px;
+}
+
+.stream-phase-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.stream-phase-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+}
+
+.stream-phase-chip.ready {
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.3);
+  color: #166534;
+}
+
+.stream-phase-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+
+.stream-steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.stream-steps li {
+  margin-bottom: 0.35rem;
 }
 
 code {

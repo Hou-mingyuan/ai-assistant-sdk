@@ -20,6 +20,7 @@ One Spring Boot starter on the backend, one component on the frontend — instan
 
 <!-- 📌 Record a demo GIF (floating ball → ask → streaming answer → RAG citations), save to docs/assets/demo.gif, then uncomment the line below -->
 <!-- <img src="docs/assets/demo.gif" alt="AI Assistant SDK demo" width="760" /> -->
+<img src="docs/assets/demo.gif" alt="AI Assistant SDK demo" width="760" />
 
 _🎬 Demo GIF coming soon_
 
