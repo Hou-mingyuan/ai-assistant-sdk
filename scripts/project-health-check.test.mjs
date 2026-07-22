@@ -2,6 +2,24 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
+test('demo compose build inputs remain available in a clean checkout', async () => {
+  const gitignore = await readFile('.gitignore', 'utf8')
+  const requiredFiles = [
+    'ai-assistant-vue-playground/Dockerfile',
+    'ai-assistant-vue-playground/Dockerfile.dockerignore',
+    'ai-assistant-vue-playground/nginx.conf',
+    'ai-assistant-vue-playground/vitest.config.ts',
+  ]
+
+  for (const file of requiredFiles) {
+    assert.ok(gitignore.includes(`!${file}`), `${file} must be explicitly included by .gitignore`)
+    await readFile(file, 'utf8')
+  }
+
+  const compose = await readFile('docker-compose.demo.yml', 'utf8')
+  assert.match(compose, /dockerfile: ai-assistant-vue-playground\/Dockerfile/)
+})
+
 test('release-check builds the frontend before reading bundle dist output', async () => {
   const source = await readFile('scripts/project-health-check.mjs', 'utf8')
 
