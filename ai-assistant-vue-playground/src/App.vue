@@ -482,7 +482,13 @@
         :size="22"
         aria-hidden="true"
       />
-      <Sparkles v-else :size="22" aria-hidden="true" />
+      <Sparkles
+        v-else
+        class="assistant-loader-sparkle"
+        :size="30"
+        :stroke-width="1.8"
+        aria-hidden="true"
+      />
     </button>
 
     <CommandPalette
@@ -2214,22 +2220,38 @@ code {
 }
 
 .assistant-loader-fab {
-  border: 2px solid #ffffff;
-  color: #ffffff;
-  background: #1f2937;
-  box-shadow:
-    0 12px 28px rgba(31, 41, 55, 0.24),
-    0 2px 8px rgba(31, 41, 55, 0.14);
+  border: 0;
+  color: var(--demo-primary-from, #0ea5e9);
+  background: transparent;
+  box-shadow: none;
 }
 
 .assistant-loader-fab:hover {
-  box-shadow:
-    0 16px 32px rgba(31, 41, 55, 0.27),
-    0 3px 10px rgba(31, 41, 55, 0.16);
+  color: var(--demo-primary-to, #3b82f6);
+  box-shadow: none;
+}
+
+.assistant-loader-fab > svg {
+  filter: drop-shadow(0 3px 7px rgba(14, 165, 233, 0.28));
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    filter 180ms ease;
+}
+
+.assistant-loader-fab:not(:disabled):hover > svg {
+  transform: rotate(-5deg) scale(1.06);
+  filter: drop-shadow(0 4px 10px rgba(59, 130, 246, 0.38));
+}
+
+.assistant-loader-fab:focus-visible {
+  border-radius: 12px;
+  outline-color: var(--demo-primary-from, #0ea5e9);
+  outline-offset: -2px;
 }
 
 .assistant-loader-fab.has-error {
-  background: #b42318;
+  color: #b42318;
+  background: transparent;
 }
 
 .assistant-loader-spin {

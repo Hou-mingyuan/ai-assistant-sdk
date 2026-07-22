@@ -5,6 +5,7 @@
     Refactor (T1)：从 AiAssistant.vue 抽出。
   -->
   <div class="ai-empty">
+    <AssistantIcon class="ai-empty-brand-icon" name="sparkles" :size="38" />
     <p>{{ greeting }}</p>
     <button
       v-if="hasTaskEntries"

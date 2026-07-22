@@ -39,33 +39,29 @@
 }
 
 /* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
- * FAB 鈥?Doubao-style rounded brand orb
+ * FAB - star-only launcher
  * 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
-/* Double-wrap selector to outrank legacy `.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab` rules in 09-modern-overhaul.css */
+/* Star-only FAB: the 56px button remains as an accessible drag/click target,
+ * while the visible control is only the theme-coloured sparkle. */
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab {
   width: 56px !important;
   height: 56px !important;
-  border-radius: var(--ai-radius-pill) !important;
+  overflow: visible !important;
+  border-radius: 12px !important;
   position: relative;
   isolation: isolate;
-  background:
-    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.55), transparent 38%),
-    radial-gradient(circle at 72% 78%, rgba(167, 139, 250, 0.45), transparent 55%),
-    linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.36) !important;
-  color: #fff !important;
-  box-shadow:
-    0 8px 24px -6px rgba(91, 108, 255, 0.4),
-    0 16px 36px -10px rgba(147, 51, 234, 0.36),
-    0 0 0 1px rgba(255, 255, 255, 0.12) inset !important;
+  border: 0 !important;
+  color: var(--ai-theme-from, #0ea5e9) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  animation: none !important;
   transition:
     transform var(--ai-dur-base) var(--ai-ease-spring),
-    box-shadow var(--ai-dur-base) var(--ai-ease-out),
-    filter var(--ai-dur-base) var(--ai-ease-out) !important;
+    color var(--ai-dur-base) var(--ai-ease-out) !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::before,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::after {
-  /* Strip legacy decorations entirely 鈥?clean orb, no rotating halo. */
   display: none !important;
   content: none !important;
   background: none !important;
@@ -75,41 +71,38 @@
   display: none !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:hover {
-  transform: translateY(-2px) scale(1.04);
-  filter: brightness(1.06);
-  box-shadow:
-    0 12px 30px -6px rgba(91, 108, 255, 0.5),
-    0 20px 44px -10px rgba(147, 51, 234, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.18) inset !important;
+  color: var(--ai-theme-to, #3b82f6) !important;
+  transform: translateY(-2px) scale(1.08);
+  filter: none !important;
+  box-shadow: none !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:active {
   transform: translateY(0) scale(0.96);
 }
-/* Replace the legacy SVG icon with a "bean" silhouette in solid white */
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:focus-visible {
+  outline: 2px solid var(--ai-theme-from, #0ea5e9) !important;
+  outline-offset: -2px !important;
+}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab > svg,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-fab svg {
-  width: 0 !important;
-  height: 0 !important;
-  opacity: 0 !important;
-  position: absolute !important;
+  width: 32px !important;
+  height: 32px !important;
+  position: relative !important;
+  color: currentColor !important;
+  fill: none !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 3px 7px rgba(14, 165, 233, 0.28)) !important;
+  transition:
+    transform var(--ai-dur-base) var(--ai-ease-spring),
+    filter var(--ai-dur-base) var(--ai-ease-out) !important;
   pointer-events: none !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab::after {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
-  margin: auto !important;
-  width: 28px !important;
-  height: 28px !important;
-  background: #ffffff !important;
-  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat !important;
-  mask: var(--ai-bean-mask) center / contain no-repeat !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18)) !important;
-  pointer-events: none !important;
-  animation: none !important;
-  border-radius: 0 !important;
-  z-index: 2;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab:hover > svg {
+  transform: rotate(-5deg) scale(1.06);
+  filter: drop-shadow(0 4px 10px rgba(59, 130, 246, 0.38)) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-fab.ai-fab-drop-active {
+  color: var(--ai-theme-to, #3b82f6) !important;
 }
 
 /* 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
@@ -937,18 +930,10 @@
   text-overflow: ellipsis;
   text-shadow: none !important;
 }
-/* Doubao-style bean logo in front of the title */
+/* The visible title mark is rendered by AssistantHeader. */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-title::before {
-  content: '';
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-  vertical-align: -4px;
-  background: linear-gradient(135deg, #5b6cff, #9333ea);
-  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat;
-  mask: var(--ai-bean-mask) center / contain no-repeat;
-  filter: drop-shadow(0 1px 3px rgba(91, 108, 255, 0.35));
+  content: none;
+  display: none;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header button,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header [role='button'] {
@@ -1037,17 +1022,8 @@
   text-align: center;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
-  content: '' !important;
-  display: block;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto var(--ai-space-3);
-  background: linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%);
-  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat;
-  mask: var(--ai-bean-mask) center / contain no-repeat;
-  filter: drop-shadow(0 12px 24px rgba(91, 108, 255, 0.35))
-    drop-shadow(0 4px 12px rgba(147, 51, 234, 0.28));
-  animation: ai-orb-bob 4s ease-in-out infinite;
+  content: none !important;
+  display: none;
 }
 @keyframes ai-orb-bob {
   0%,
@@ -2593,7 +2569,7 @@
  *  - Larger inter-message gap for conversation breathing room
  * -------------------------------------------------------------------------- */
 
-/* Assistant avatar = bean mascot --------------------------------------- */
+/* Assistant avatar = star-only brand mark ------------------------------- */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar {
@@ -2603,14 +2579,10 @@
   margin: 0 8px 4px 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: 14px !important;
-  background:
-    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.55), transparent 38%),
-    linear-gradient(135deg, #5b6cff 0%, #7c5cff 50%, #9333ea 100%) !important;
-  box-shadow:
-    0 4px 10px -4px rgba(91, 108, 255, 0.42),
-    0 1px 0 rgba(255, 255, 255, 0.32) inset !important;
-  color: transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--ai-theme-from, #0ea5e9) !important;
   font-size: 0 !important;
   position: relative;
   flex-shrink: 0;
@@ -2619,26 +2591,8 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar::before,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar::before,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar::before {
-  content: '' !important;
-  display: block !important;
-  position: absolute !important;
-  inset: 4px !important;
-  margin: auto !important;
-  background: #ffffff !important;
-  -webkit-mask: var(--ai-bean-mask) center / contain no-repeat !important;
-  mask: var(--ai-bean-mask) center / contain no-repeat !important;
-  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.18)) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background-image: none !important;
-  pointer-events: none;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: auto !important;
-  height: auto !important;
-  color: transparent !important;
+  content: none !important;
+  display: none !important;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant .ai-assistant-avatar::after,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-assistant .ai-assistant-avatar::after,
@@ -2658,9 +2612,9 @@
   display: inline-flex !important;
 }
 
-/* Streaming avatar: gentle pulse (sleep → bob → glow) */
+/* Streaming state is already visible in the thinking bubble. */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-loading {
-  animation: ai-bean-bubble-stream 1.4s ease-in-out infinite !important;
+  animation: none !important;
 }
 @keyframes ai-bean-bubble-stream {
   0%,
@@ -6564,5 +6518,58 @@
   .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment-icon {
     width: 16px;
     height: 16px;
+  }
+}
+
+/* Star-only assistant identity. Layout boxes stay stable while the visible
+ * marks remain transparent, borderless Lucide icons. */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-title {
+  gap: 6px;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
+  display: block;
+  flex: 0 0 auto;
+  color: var(--ai-theme-from, #0ea5e9);
+  fill: none;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon {
+  width: 17px;
+  height: 17px;
+  filter: drop-shadow(0 2px 5px rgba(14, 165, 233, 0.24));
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 5px 10px rgba(14, 165, 233, 0.24));
+}
+
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 2px 5px rgba(14, 165, 233, 0.22));
+}
+
+@media (max-width: 430px) {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon {
+    width: 34px;
+    height: 34px;
   }
 }

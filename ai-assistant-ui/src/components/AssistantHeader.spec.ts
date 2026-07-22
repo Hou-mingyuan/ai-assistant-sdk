@@ -59,6 +59,9 @@ describe('AssistantHeader action hierarchy', () => {
     expect(wrapper.find('.ai-panel-expand').exists()).toBe(true);
     expect(wrapper.find('.ai-header-settings').exists()).toBe(true);
     expect(wrapper.find('.ai-close').exists()).toBe(true);
+    expect(wrapper.find('.ai-header-brand-icon').attributes('data-assistant-icon')).toBe(
+      'sparkles',
+    );
 
     await wrapper.find('.ai-panel-expand').trigger('click');
     expect(wrapper.emitted('toggle-panel-expand')).toBeTruthy();

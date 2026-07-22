@@ -33,6 +33,7 @@ describe('ChatEmptyState task launcher', () => {
   it('keeps task suggestions collapsed until the user opens the launcher', async () => {
     const wrapper = mountEmptyState();
 
+    expect(wrapper.find('.ai-empty-brand-icon').attributes('data-assistant-icon')).toBe('sparkles');
     expect(wrapper.find('.ai-empty-task-panel').exists()).toBe(false);
     expect(wrapper.find('.ai-empty-task-toggle').attributes('aria-expanded')).toBe('false');
 

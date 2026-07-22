@@ -6,7 +6,8 @@
     @dblclick="onHeaderDblclick"
   >
     <span :id="`${uid}-title`" class="ai-title" :title="t.title">
-      {{ t.title }}
+      <AssistantIcon class="ai-header-brand-icon" name="sparkles" :size="18" />
+      <span class="ai-title-text">{{ t.title }}</span>
     </span>
     <span class="ai-header-spacer" aria-hidden="true" />
     <div class="ai-header-actions">

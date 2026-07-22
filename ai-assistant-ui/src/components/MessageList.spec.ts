@@ -28,6 +28,9 @@ describe('MessageList error actions', () => {
       isErrorMessage: () => true,
     });
 
+    expect(wrapper.find('.ai-assistant-avatar-icon').attributes('data-assistant-icon')).toBe(
+      'sparkles',
+    );
     expect(wrapper.find('.ai-retry-btn svg').exists()).toBe(true);
     expect(wrapper.find('.ai-retry-btn').text()).toContain('Retry');
   });

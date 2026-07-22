@@ -43,7 +43,9 @@
         'ai-assistant-avatar-loading': isActiveStreaming(displayOffset + renderedStart + idx, msg),
       }"
       aria-hidden="true"
-    ></span>
+    >
+      <AssistantIcon class="ai-assistant-avatar-icon" name="sparkles" :size="22" />
+    </span>
     <template v-if="editingIdx === displayOffset + renderedStart + idx">
       <div class="ai-bubble ai-bubble-editing">
         <textarea

@@ -130,6 +130,7 @@ describe("Playground App", () => {
 
     const loader = wrapper.find(".assistant-loader-fab");
     expect(loader.attributes("aria-label")).toBe("打开 AI 助手");
+    expect(loader.find("svg.lucide-sparkles").exists()).toBe(true);
     await loader.trigger("click");
     expect(onLoad).toHaveBeenCalledTimes(1);
     expect((onLoad.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({

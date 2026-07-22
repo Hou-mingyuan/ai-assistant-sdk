@@ -2,6 +2,15 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+### 用户追加星形品牌视觉
+
+- 已核对两张参考图和当前未提交差异：入口已改用 Lucide `Sparkles`，本轮继续将标题栏、空状态和助手消息头像统一为无圆底星形，并保留原布局占位与可点击区域。
+- 恢复阶段首次把 `cmd /c` 的 `&&` 交给外层 PowerShell 解析而失败，随后拆成独立命令；另两次把 Windows 不支持的 `*.spec.ts`/`icons*` 字面 glob 传给 `rg`，已改用 `rg -g` 和已确认路径，不再重复这些调用形式。
+- 标题栏、空状态和助手消息头像已渲染真实 `AssistantIcon sparkles`；末端样式已禁用旧品牌伪元素，并清除头像的渐变背景、边框、圆角、球状阴影和旧 loading 动画。定向 UI `23/23`、Playground `9/9`、两包定向 Prettier 均通过；定向 ESLint 0 error，仅有 `MessageList.vue` 既有 max-lines warning。
+- 全量复验通过：UI `101` 个文件 `795/795`、Playground `2` 个文件 `13/13`、UI Prettier、ESLint 0 error。Vue ESM/CJS、Web Component、类型声明和 `27` 个公共导出构建通过，Playground `5842` 模块生产构建通过；仅保留既有 max-lines 与 Vite 大 chunk warning，均无新增运行错误。
+- 首轮 `--release-check-full` 的 90 项脚本测试、OpenAPI、前端构建、包导出、bundle 和依赖边界均通过，但 CSS 强制覆盖预算真实失败：`1787 -> 1815`。未放宽基线；已改为直接把既有紫球/豆形规则替换成星形规则，并从末端新规则移除全部新增 `!important`，等待相同门禁复验。
+- 相同 `--release-check-full` 已复验通过：90 项仓库脚本、OpenAPI 类型/快照、发布构建、27 个导出、bundle、依赖足迹、CSS 和 support boundary 全绿；CSS `!important` 从基线 `1787` 降至 `1773`，`style.css` 为 `418.00 kB` / gzip `62.16 kB`，没有放宽任何预算。
+
 ### 阶段 6 恢复与未提交差异审计
 
 - 继续既有 Goal；当前分支为 `agent/v1.0.1-release-candidate`，相对 `origin/agent/v1.0.1-release-candidate` 领先 1 个提交。
