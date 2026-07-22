@@ -335,6 +335,15 @@ public class AiAssistantProperties {
         return keys;
     }
 
+    /** Credentials consumed by the internal LLM pipeline; demo mode needs no external secret. */
+    public List<String> resolveLlmCredentials() {
+        return isDemoProvider() ? List.of("demo-local-no-secret") : resolveApiKeys();
+    }
+
+    public boolean isDemoProvider() {
+        return "demo".equalsIgnoreCase(provider);
+    }
+
     public String[] resolveAllowedOrigins() {
         String origins = security.getAllowedOrigins();
         if (origins == null || origins.isBlank()) {

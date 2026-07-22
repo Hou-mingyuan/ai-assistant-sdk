@@ -6,6 +6,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,13 @@ public class ProviderConnectivityChecker {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderConnectivityChecker.class);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
+    private static final int MAX_DIAGNOSTIC_SOURCE_CHARS = 2_048;
+    private static final int MAX_DIAGNOSTIC_CHARS = 200;
+    private static final Pattern SENSITIVE_ASSIGNMENT =
+            Pattern.compile(
+                    "(?i)(\\b(?:api[_ -]?key|authorization|access[_ -]?token|token|secret|key)\\b[\"']?\\s*[:=]\\s*[\"']?)(?:bearer\\s+)?([^\\s,\"'&}\\]]+)");
+    private static final Pattern CONTROL_CHARACTERS = Pattern.compile("\\p{Cntrl}");
+    private static final Pattern REPEATED_WHITESPACE = Pattern.compile("\\s{2,}");
 
     private final AiAssistantProperties properties;
     private final HttpClient httpClient;
@@ -31,6 +39,11 @@ public class ProviderConnectivityChecker {
     /** Run the connectivity check. Called once on application startup. */
     public void check() {
         String provider = properties.getProvider();
+        if (properties.isDemoProvider()) {
+            lastResult = ConnectivityResult.success(provider, "not-required", 0, 200);
+            logResult();
+            return;
+        }
         String baseUrl = null;
         String apiKey = null;
         try {
@@ -38,7 +51,12 @@ public class ProviderConnectivityChecker {
             List<String> keys = properties.resolveApiKeys();
             apiKey = keys.isEmpty() ? null : keys.get(0);
         } catch (Exception e) {
-            lastResult = ConnectivityResult.failure(provider, e.getMessage());
+            lastResult =
+                    ConnectivityResult.failure(
+                            provider,
+                            "Invalid provider configuration ("
+                                    + e.getClass().getSimpleName()
+                                    + ")");
             logResult();
             return;
         }
@@ -80,30 +98,37 @@ public class ProviderConnectivityChecker {
             } else if (status == 404) {
                 lastResult = ConnectivityResult.success(provider, maskedKey, elapsed, status);
             } else {
-                String body = response.body();
-                String snippet =
-                        body != null && body.length() > 200 ? body.substring(0, 200) + "..." : body;
+                String snippet = sanitizeDiagnostic(response.body(), apiKey);
                 lastResult =
                         ConnectivityResult.failure(
-                                provider, "HTTP " + status + " from " + modelsUrl + ": " + snippet);
+                                provider,
+                                "HTTP "
+                                        + status
+                                        + " from configured provider endpoint: "
+                                        + snippet);
             }
         } catch (java.net.ConnectException e) {
             lastResult =
                     ConnectivityResult.failure(
                             provider,
-                            "Connection refused: " + modelsUrl + ". Is the API server running?");
+                            "Connection refused at configured provider endpoint. Is the API server running?");
         } catch (java.net.http.HttpTimeoutException e) {
             lastResult =
                     ConnectivityResult.failure(
                             provider,
                             "Connection timed out after "
                                     + CONNECT_TIMEOUT.toSeconds()
-                                    + "s: "
-                                    + modelsUrl);
+                                    + "s at configured provider endpoint");
+        } catch (IllegalArgumentException e) {
+            lastResult =
+                    ConnectivityResult.failure(provider, "Invalid provider endpoint configuration");
         } catch (Exception e) {
             lastResult =
                     ConnectivityResult.failure(
-                            provider, e.getClass().getSimpleName() + ": " + e.getMessage());
+                            provider,
+                            e.getClass().getSimpleName()
+                                    + ": "
+                                    + sanitizeDiagnostic(e.getMessage(), apiKey));
         }
         logResult();
     }
@@ -150,6 +175,23 @@ public class ProviderConnectivityChecker {
     static String maskApiKey(String key) {
         if (key == null || key.length() <= 8) return "****";
         return key.substring(0, 4) + "****" + key.substring(key.length() - 4);
+    }
+
+    static String sanitizeDiagnostic(String value, String apiKey) {
+        if (value == null || value.isBlank()) {
+            return "No diagnostic details";
+        }
+        String limited = value.substring(0, Math.min(value.length(), MAX_DIAGNOSTIC_SOURCE_CHARS));
+        String sanitized = SENSITIVE_ASSIGNMENT.matcher(limited).replaceAll("$1[redacted]");
+        if (apiKey != null && !apiKey.isBlank()) {
+            sanitized = sanitized.replace(apiKey, "[redacted]");
+        }
+        sanitized = CONTROL_CHARACTERS.matcher(sanitized).replaceAll(" ");
+        sanitized = REPEATED_WHITESPACE.matcher(sanitized).replaceAll(" ").trim();
+        if (sanitized.length() > MAX_DIAGNOSTIC_CHARS) {
+            return sanitized.substring(0, MAX_DIAGNOSTIC_CHARS) + "...";
+        }
+        return sanitized;
     }
 
     public record ConnectivityResult(

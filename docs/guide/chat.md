@@ -2,6 +2,8 @@
 
 AI Assistant SDK 提供普通对话和 SSE 流式对话两种后端接口。前端组件默认使用流式接口，以获得逐字输出体验。
 
+零密钥环境可显式配置 `provider=demo`，此时两个接口都走真实服务链路并返回明确标识的确定性 Demo 内容。真实 Provider 失败时不会静默回退到 Demo。
+
 ## 普通对话
 
 ```bash
@@ -47,4 +49,3 @@ curl -N -X POST http://localhost:8080/ai-assistant/stream \
 - 返回 401 时，检查 `accessToken` 是否与后端 `access-token` 一致。
 - 返回 429 时，检查 `rate-limit` 或网关限流。
 - 流式输出中断时，检查代理、网关和浏览器是否支持 SSE。
-

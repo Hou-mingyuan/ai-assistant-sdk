@@ -9,7 +9,7 @@
 
 | 项 | 要求 |
 | --- | --- |
-| 后端 | Java 17+，Spring Boot 3.x |
+| 后端 | Java 21，Spring Boot 3.x |
 | 前端 | Vue 3 + Vite（或兼容的 Vue 3 构建链） |
 | 模型 | 任一已支持的供应商 API Key（如 DeepSeek / OpenAI / 通义千问） |
 | 接入形态 | **Starter 集成**（下文默认）或 [独立服务部署](guide/standalone-service.md) |

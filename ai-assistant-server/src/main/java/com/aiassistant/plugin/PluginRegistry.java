@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +80,7 @@ public class PluginRegistry {
                 new PluginDescriptor(
                         pluginId,
                         jarFile.getName(),
-                        "1.0.0",
+                        readPluginVersion(jarFile),
                         "Loaded from " + jarFile.getAbsolutePath(),
                         capNames);
 
@@ -119,6 +121,17 @@ public class PluginRegistry {
 
     public boolean isLoaded(String pluginId) {
         return plugins.containsKey(pluginId);
+    }
+
+    private static String readPluginVersion(File jarFile) throws Exception {
+        try (JarFile jar = new JarFile(jarFile)) {
+            if (jar.getManifest() == null) return "unspecified";
+            String version =
+                    jar.getManifest()
+                            .getMainAttributes()
+                            .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+            return version == null || version.isBlank() ? "unspecified" : version.trim();
+        }
     }
 
     private record LoadedPlugin(

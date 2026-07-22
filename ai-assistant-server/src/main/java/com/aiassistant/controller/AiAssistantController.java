@@ -123,6 +123,10 @@ public class AiAssistantController {
             usageStats.recordError();
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(ChatResponse.fail("QUOTA_EXCEEDED", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            usageStats.recordError();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ChatResponse.fail("INVALID_REQUEST", e.getMessage()));
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("POST /chat failed", e);
@@ -166,28 +170,38 @@ public class AiAssistantController {
         long dispatchEpochMs = System.currentTimeMillis();
         EffectivePageContext pageContext = effectivePageContext(request, action);
         ChatResponse.RuntimeMeta meta = runtimeMeta(request, action, pageContext.webSearch());
+        Flux<String> flux;
+        try {
+            flux =
+                    switch (action) {
+                        case "translate" ->
+                                llmService.translateStream(
+                                        request.getText(),
+                                        request.getTargetLang() != null
+                                                ? request.getTargetLang()
+                                                : "zh",
+                                        request.getModel());
+                        case "summarize" ->
+                                llmService.summarizeStream(request.getText(), request.getModel());
+                        default ->
+                                llmService.chatStream(
+                                        request.getText(),
+                                        request.getHistory(),
+                                        request.getSystemPrompt(),
+                                        request.getModel(),
+                                        request.resolveImageDataList(),
+                                        request.getSessionId(),
+                                        pageContext.value());
+                    };
+        } catch (IllegalArgumentException e) {
+            usageStats.recordError();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .body(
+                            Flux.just("[VALIDATION_ERROR] " + e.getMessage())
+                                    .map(SseFormatter::specData));
+        }
         usageStats.recordCall("stream_" + action);
-        Flux<String> flux =
-                switch (action) {
-                    case "translate" ->
-                            llmService.translateStream(
-                                    request.getText(),
-                                    request.getTargetLang() != null
-                                            ? request.getTargetLang()
-                                            : "zh",
-                                    request.getModel());
-                    case "summarize" ->
-                            llmService.summarizeStream(request.getText(), request.getModel());
-                    default ->
-                            llmService.chatStream(
-                                    request.getText(),
-                                    request.getHistory(),
-                                    request.getSystemPrompt(),
-                                    request.getModel(),
-                                    request.resolveImageDataList(),
-                                    request.getSessionId(),
-                                    pageContext.value());
-                };
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
                 .headers(runtimeHeaders(meta, action, dispatchEpochMs))
@@ -343,6 +357,8 @@ public class AiAssistantController {
         result.put("success", true);
         result.put("status", "running");
         result.put("provider", assistantProperties.getProvider());
+        result.put("mode", assistantProperties.isDemoProvider() ? "demo" : "live");
+        result.put("mock", assistantProperties.isDemoProvider());
         result.put("model", assistantProperties.resolveModel());
         String webSearchProvider = assistantProperties.getUrlFetch().getWebSearchProvider();
         result.put("webSearchProvider", webSearchProvider);

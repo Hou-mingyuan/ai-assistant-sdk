@@ -64,29 +64,40 @@ public class SseStreamController {
         }
 
         String action = request.getAction() == null ? "chat" : request.getAction();
+        Flux<String> rawFlux;
+        try {
+            rawFlux =
+                    switch (action) {
+                        case "translate" ->
+                                llmService.translateStream(
+                                        request.getText(),
+                                        request.getTargetLang() != null
+                                                ? request.getTargetLang()
+                                                : "zh",
+                                        request.getModel());
+                        case "summarize" ->
+                                llmService.summarizeStream(request.getText(), request.getModel());
+                        default ->
+                                llmService.chatStream(
+                                        request.getText(),
+                                        request.getHistory(),
+                                        request.getSystemPrompt(),
+                                        request.getModel(),
+                                        request.resolveImageDataList(),
+                                        request.getSessionId(),
+                                        request.getPageContext());
+                    };
+        } catch (IllegalArgumentException e) {
+            usageStats.recordError();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(
+                            Flux.just(
+                                    ServerSentEvent.<String>builder()
+                                            .event("error")
+                                            .data(e.getMessage())
+                                            .build()));
+        }
         usageStats.recordCall("sse_" + action);
-
-        Flux<String> rawFlux =
-                switch (action) {
-                    case "translate" ->
-                            llmService.translateStream(
-                                    request.getText(),
-                                    request.getTargetLang() != null
-                                            ? request.getTargetLang()
-                                            : "zh",
-                                    request.getModel());
-                    case "summarize" ->
-                            llmService.summarizeStream(request.getText(), request.getModel());
-                    default ->
-                            llmService.chatStream(
-                                    request.getText(),
-                                    request.getHistory(),
-                                    request.getSystemPrompt(),
-                                    request.getModel(),
-                                    request.resolveImageDataList(),
-                                    request.getSessionId(),
-                                    request.getPageContext());
-                };
 
         Flux<ServerSentEvent<String>> sseFlux =
                 rawFlux.onBackpressureBuffer(

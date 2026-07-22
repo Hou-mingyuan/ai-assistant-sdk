@@ -1,67 +1,76 @@
-<div align="center">
+# AI Assistant SDK
 
-# 🤖 AI Assistant SDK
-
-### 给任意 Java + Vue 项目，5 分钟接入一个「企业级 AI 助手」
-
-后端一个 Starter、前端一个组件，开箱即拥有 **多轮对话 · 一键翻译 · 全文摘要 · RAG 知识库 · 多步 Agent · Function Calling · 16 家大模型**
-
-[![GitHub stars](https://img.shields.io/github/stars/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/network/members)
+面向 Java 21 / Spring Boot 3 与 Vue 3 的可嵌入 AI 助手 SDK。仓库同时提供 Spring Boot Starter、独立服务、Java Client、Vue 组件、Web Component、Playground 和部署模板。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F.svg?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-3.x-42B883.svg?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![CI](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[English](./README_EN.md) · [📖 文档站](docs/guide/index.md) · [🚀 快速开始](docs/guide/quick-start.md) · [💡 特性详解](docs/guide/index.md) · [🔒 SECURITY](SECURITY.md) · [🚢 DEPLOYMENT](DEPLOYMENT.md) · [⚡ PERFORMANCE](PERFORMANCE.md) · [🐛 反馈问题](https://github.com/Hou-mingyuan/ai-assistant-sdk/issues)
+[English](./README_EN.md) · [快速开始](docs/guide/quick-start.md) · [能力矩阵](docs/CAPABILITY-MATRIX.md) · [API](docs/api/index.md) · [部署](DEPLOYMENT.md) · [安全](SECURITY.md) · [性能](PERFORMANCE.md)
 
-<!-- 📌 补图指引：用 ai-assistant-vue-playground / ai-assistant-demo 录制演示 GIF（悬浮球 → 提问 → 流式回答 → RAG 引用溯源），放到 docs/assets/demo.gif，然后取消下一行注释即可显示 -->
-<!-- <img src="docs/assets/demo.gif" alt="AI Assistant SDK 演示" width="760" /> -->
-<img src="docs/assets/demo.gif" alt="AI Assistant SDK 演示" width="760" />
+<p align="center">
+  <img src="docs/assets/demo.png" alt="AI Assistant SDK 零密钥 Playground 真实运行截图" width="760" />
+</p>
 
-### 作品集 / 一键演示
+> 当前版本是 `1.0.1` 发布候选版，不是“无需评估即可生产上线”的承诺。核心 REST/SSE、Starter、独立服务、Java Client、Vue 和 Web Component 为稳定范围；RAG、Agent、MCP、WebSocket、Admin 和 Artifact 的具体边界见[能力矩阵](docs/CAPABILITY-MATRIX.md)。
 
-| 要素 | 说明 |
-| --- | --- |
-| **零密钥 smoke** | 无需 Key：`scripts/smoke-zero-key.mjs` 覆盖 health / liveness / stats / runtime / provider / chat(503) |
-| **一键 UI Demo** | `docker-compose.demo.yml`：后端 + Playground，Docker Desktop 分组 **ai-assistant-demo** |
-| **完整流式对话** | `.env` 填入 `AI_ASSISTANT_API_KEY` 后重启，打开 Playground 悬浮球 |
-| **文档** | [docs/DEMO.md](docs/DEMO.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [SECURITY.md](SECURITY.md) |
+## 先选接入路径
 
-**零密钥验收（CI / 作品集基线）：**
+| 路径 | 适用场景 | 最短入口 |
+| --- | --- | --- |
+| Spring Boot Starter | 复用宿主认证、租户与业务 Bean | `ai-assistant-demo` 示例，或在现有应用引入 Starter |
+| 独立服务 | 多个前端共享一个 AI 网关，或不修改业务后端 | `copy .env.example .env` 后运行 `docker compose up -d --build` |
+
+两条路径使用同一 REST/SSE 契约。一个前端实例不要同时混用两套后端地址。
+
+## 零密钥一键启动
+
+要求：Docker Engine/Desktop + Compose v2；执行自动验收还需要 Node.js 22。默认无需账号，也无需外部模型 Key。
+
+支持 Windows 11、Linux 和 macOS；主机至少需要 2 个 CPU、4 GB 可用内存和 6 GB 可用磁盘。
+
+Windows：
+
+```bat
+copy .env.example .env
+docker compose up -d --build
+node scripts\smoke-zero-key.mjs http://localhost:8080/ai-assistant
+```
+
+Linux / macOS：
 
 ```bash
-cp .env.example .env          # Key 可留空
+cp .env.example .env
 docker compose up -d --build
 node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
 ```
 
-**本地 k6 health smoke（`:8080` · pending-local）：**
+`.env.example` 默认选择确定性的 `demo` Provider。它会走完整 HTTP/SSE 链路，但不访问外部模型：
 
-Hub `:18080` 已有实测回填，见 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)。本地 Docker `:8080` 复测命令（**无需 LLM Key**，仅 health / liveness）：
+- Provider 健康状态为 `UP`，同时返回 `mode=demo`、`mock=true`。
+- `/chat` 和 `/stream` 返回明确的 Demo 标识，响应元数据包含 `provider=demo`。
+- Demo 输出只用于零密钥演示和回归测试，不能当作真实 AI 效果。
+
+启动后：
+
+```text
+GET  http://localhost:8080/ai-assistant/health
+POST http://localhost:8080/ai-assistant/chat
+POST http://localhost:8080/ai-assistant/stream
+GET  http://localhost:8080/actuator/health/liveness
+```
+
+停止服务：
 
 ```bash
-docker compose up -d --build
-curl -sf http://localhost:8080/ai-assistant/health
-
-# 本机 k6（默认 BASE=http://localhost:8080/ai-assistant）
-k6 run performance/k6-smoke.js
+docker compose down
 ```
 
-```powershell
-# Windows · Docker 版 k6（栈在本机 8080 时）
-docker run --rm `
-  -e BASE_URL=http://host.docker.internal:8080/ai-assistant `
-  -v ${PWD}/performance:/scripts `
-  grafana/k6:latest run /scripts/k6-smoke.js
-```
+## Playground
 
-> `:8080` 结果行当前为 **pending-local**（协作环境端口冲突时可只文档化、不实跑）；跑完后将 health / liveness p95 填入 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md) 结果表。
-
-**一键 Playground Demo（推荐作品集）：**
+Playground 将独立服务、Vue 组件和真实 SSE 请求串成一条演示链路：
 
 ```powershell
 # Windows
@@ -73,184 +82,38 @@ docker run --rm `
 ./scripts/demo-standalone.sh
 ```
 
-默认打开 http://localhost:3000/ 。配置 Key 后可体验 SSE 流式对话。
+打开 `http://localhost:3000/`。页面会显示当前是 Demo 还是真实 Provider，并提供对话、Admin 状态和表单填充演示。完整步骤见[演示指南](docs/DEMO.md)。
 
-**Hub Profile 一键（18080 + smoke）：**
+## Starter 集成
+
+环境要求：JDK 21、Maven 3.9+、Node.js 22。仓库内的 `ai-assistant-demo` 是可运行宿主示例，默认同样使用 Demo Provider。一键脚本会从 lockfile 安装前端依赖、构建真实 Web Component、打包并启动宿主：
 
 ```powershell
-.\scripts\demo-hub.ps1
+# Windows
+.\scripts\demo-starter.ps1
 ```
 
-详见 [docs/DEMO.md](docs/DEMO.md)（含 Playground 流式 UI 与 `smoke-zero-key.mjs`）。
+```bash
+# Linux / macOS
+bash scripts/demo-starter.sh
+```
 
-_🎬 演示动图即将上线（补图指引见 [docs/assets](docs/assets/)）_
+手动等价命令：
 
-<br/>
+```bash
+npm --prefix ai-assistant-ui ci
+npm --prefix ai-assistant-ui run build:publish
+mvn -pl ai-assistant-demo -am -DskipTests package
+java -jar ai-assistant-demo/target/ai-assistant-demo-1.0.1.jar
+```
 
-> ⭐ **如果这个项目帮到了你，点个 Star 让更多人看到！** 你的每一个 Star 都是持续维护的动力。
+打开 `http://localhost:8080/`，或运行 Demo 的真实 HTTP 集成测试：
 
-</div>
+```bash
+mvn -pl ai-assistant-demo -am test
+```
 
----
-
-## 这是什么
-
-**AI Assistant SDK** 是一个可嵌入任何 **Java + Vue** 项目的企业级 AI 小助手，覆盖一键翻译、全文摘要、自由对话、RAG 知识库、多步 Agent、PII 脱敏、多租户隔离与管理后台。
-
-仓库由后端 Spring Boot Starter、独立服务、Vue 3 组件库、Web Component、Java 客户端、VitePress 文档站和 Helm/Docker 部署模板组成；任选其中一种或两种形态接入，互不冲突。
-
-## 为什么选它
-
-- 🧩 **接入极快**：后端引一个 starter、前端 `app.use` 一行，5 分钟跑通，无需自建 LLM 网关。
-- 🌐 **16 家大模型开箱即用**：OpenAI / DeepSeek / 通义千问 / 智谱 GLM / 豆包 / Kimi / Gemini / Ollama…… 一个配置项切换，或接任意 OpenAI 兼容端点。
-- 🏢 **生来为企业**：多租户隔离、PII 脱敏、Prompt 注入检测、Token 配额、模型路由 A/B、限流熔断——不是 demo，是能上生产的。
-- 🧠 **不止对话**：RAG 检索增强、Function Calling、ReAct 多步 Agent、MCP Server 一应俱全。
-- 🎨 **前端三形态**：Vue 插件 / Web Component（`<ai-assistant>`，React·Angular·原生 HTML 可用）/ `useAiAssistant` Composable，70+ 可配置项。
-- 🛠 **工程化到位**：CI、OWASP、Trivy、E2E、Helm Chart、多套 docker-compose，VitePress 文档站齐全。
-
-## 先看这里
-
-README 只作为项目总览和常用入口。更完整、可导航的安装、配置、部署和 API 说明请优先查看文档站目录。
-
-| 你想做什么 | 推荐入口 |
-| --- | --- |
-| 5 分钟内跑通 Starter + Vue 组件 | [快速开始](docs/guide/quick-start.md) |
-| 作品集零密钥 / Playground 一键演示 | [演示指南](docs/DEMO.md) |
-| 了解所有配置项如何分层启用 | [配置说明](docs/guide/configuration.md) |
-| 在 Starter 集成和独立服务之间做选择 | [部署路径检查清单](docs/guide/deployment-checklists.md) |
-| 不改业务后端，直接运行独立服务 | [独立服务部署](docs/guide/standalone-service.md) |
-| 前端单独连接远程后端服务 | [前端连接独立服务](docs/guide/frontend-standalone.md) |
-| 配置前端事件、快捷 Prompt 和常见交互 | [前端集成配方](docs/guide/frontend-recipes.md) |
-| 维护后端模块边界和扩展点 | [后端架构维护说明](docs/guide/backend-architecture.md) |
-| 对接聊天、流式输出或管理接口 | [API 文档](docs/api/index.md) |
-| 启用 OpenAPI、Tracing 或 JSON logging | [Observability support](docs/guide/observability-support-quick-start.md)：通过 `ai-assistant-observability-support` 接入 |
-| 上线前检查安全和运维配置 | [生产上线清单](docs/guide/production-checklist.md) · [SECURITY.md](SECURITY.md) · [DEPLOYMENT.md](DEPLOYMENT.md) |
-| 调优限流、内存与多副本 | [PERFORMANCE.md](PERFORMANCE.md) · [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)（k6 smoke 实测 / pending-local） |
-| 联调时排查 404、401、跨域或模型错误 | [排障手册](docs/guide/troubleshooting.md) |
-| 贡献代码 / 安装本地 pre-commit hook | [Git Hooks 指引](docs/guide/git-hooks.md) |
-
-Observability support 能力矩阵：
-
-| 能力 | support artifact 状态 |
-| --- | --- |
-| OpenAPI | direct |
-| Tracing | optional |
-| JSON logging | optional |
-
-如果你是第一次接入，建议先按"后端 Starter 集成"和"独立服务部署"二选一，不要同时混用两条路径。
-
----
-
-## 特性
-
-**核心交互**
-
-- 翻译、摘要、自由对话三档模式；多轮上下文记忆与可编辑 system prompt
-- SSE 流式输出（打字机效果）和可选 WebSocket 双向通道
-- Markdown 安全渲染（DOMPurify + highlight.js 核心 8 种语言常驻、扩展 13 种按需懒加载）
-- 暗色 / 浅色 / 跟随系统主题，多语言 UI（中 / 英 / 日 / 韩）
-- 对话持久化、多会话标签页、会话内搜索、会话分叉
-
-**多模型**
-
-OpenAI、DeepSeek、通义千问、智谱 GLM、火山引擎豆包、MiniMax、Kimi、Google Gemini、SiliconFlow、Groq、零一万物 Yi、讯飞星火、百川、阶跃星辰、腾讯混元、Ollama 共 16 家内置；其它任意 OpenAI 兼容供应商可通过 `provider=openai` + 自定义 `base-url` 接入。
-
-**企业能力**
-
-- 多租户隔离（`X-Tenant-Id` 请求头驱动，按租户独立配置模型 / 限流 / 连接器）
-- PII 自动脱敏（手机号、身份证、银行卡、邮箱、IP）+ 26 种 Prompt 注入检测
-- Token 用量按租户日期统计 + 每日配额
-- 智能模型路由（任务类型 / 成本 / token 量）+ A/B 测试分流
-- 服务端 Prompt 模板引擎（`{{var}}`、`{{#if}}`、4 套预设）
-
-**工程与运维**
-
-- Function Calling（多轮 tool calling 循环）+ ReAct 多步 Agent
-- RAG 检索增强（嵌入 → 向量存储 → 上下文注入）
-- 异步任务 API（202 + 轮询 + Webhook 回调）
-- Admin REST 后台（`/admin/*`，默认关闭）
-- 数据连接器（Informat / JDBC / REST API），自动注册为 LLM 工具
-- 链接正文抓取（含 SSRF 防护与短 TTL 缓存）
-- 启动时 Provider 连通性检测、连接器健康调度、熔断器
-- 进程内或 Redis 限流、SSE GZIP、请求追踪、SSE / WebSocket 心跳
-
-**前端**
-
-- Vue 3 插件 / Web Component / `useAiAssistant` Composable 三种形态
-- 拖拽文件上传（PDF / Word / Excel / CSV）、Vision 图片理解、TTS 朗读、🎤 语音输入
-- 70+ 配置项可控的悬浮球与面板（位置、贴边、缩放、自动挂载）
-
-完整能力清单与状态说明：[特性详解 / 文档地图](docs/guide/index.md)。
-
----
-
-## 架构与扩展点
-
-**后端（`ai-assistant-server`）**
-
-| 组件 | 职责 |
-|------|------|
-| `LlmService` | 业务 prompt 编排、`buildRequestBody`、URL enrich 后拼入 user 内容 |
-| `ChatCompletionClient` | 与供应商无关的网关：非流式 / SSE 流各一条抽象；默认 Bean 为 `OpenAiCompatibleChatClient` |
-| `UrlFetchService` | 外网抓取、SSRF 粗检、HTML 缓存与摘要 |
-| `RagService` | RAG 编排：文档分块、embedding、向量检索、上下文注入 |
-| `ContentFilter` | PII 脱敏 + Prompt 注入检测 |
-| `ModelRouter` | 按任务类型 / 成本 / token 路由模型，支持 A/B 测试分流 |
-| `AgentExecutor` | ReAct 多步 Agent：规划式工具调用 + 执行轨迹 |
-| `PromptTemplateRegistry` | 服务端 Prompt 模板注册中心，支持条件渲染 |
-| `TokenUsageTracker` | 按租户 / 日期追踪 token 用量与配额 |
-| `ConversationMemory` | 短期滑动窗口 + 长期事实记忆 |
-| `ProviderConnectivityChecker` | 启动时探测 LLM API 连通性 |
-| `ConnectorHealthScheduler` | 定期探测 DataConnector 健康状态 |
-| `TenantFilter` / `TenantContext` | 多租户请求隔离 |
-| `SseCompressionFilter` | SSE 流式端点 GZIP 压缩 |
-| `AdminDashboardController` | 管理后台 REST API |
-| `AsyncTaskController` | 异步对话任务（202 + 轮询 + webhook） |
-
-宿主只需声明自定义 `ChatCompletionClient` Bean（`@ConditionalOnMissingBean` 已让位）即可接入自建代理、工具调用协议或 RAG 改写后的请求体；若需改 prompt / 消息结构，仍可替换 `LlmService`。
-
-**前端（`ai-assistant-ui`）**
-
-| 资产 | 说明 |
-|------|------|
-| `components/AiAssistant.vue` | 主挂件逻辑与模板 |
-| `components/styles/01..08-*.css` | 主组件样式按区域切片（layout / header-messages / input-popups / features / overlays / page-feedback / voice-thinking / late-additions） |
-| `composables/useAiMarkdownRenderer.ts` | Markdown + 高亮 + DOMPurify + 代码块按钮 |
-| `utils/i18n/{en,zh,ja,ko}.ts` | 4 语言 i18n 拆分 |
-| `utils/api.ts` | REST `/export`、`url-preview`、`chat`、上传 |
-| `utils/pageContextDom.ts` | 按选择器采集页面区块文本（`pageContextBlocks`） |
-
-**限流**：Starter 内为进程内计数；多实例部署请在 API 网关或 Redis（`RedisRateLimitFilter`）侧做统一配额。
-
-完整后端模块图、新功能放置规则、扩展点维护建议见：[后端架构维护说明](docs/guide/backend-architecture.md)。
-
----
-
-## 高级能力（详见文档站）
-
-| 能力 | 入口 | 一句话 |
-| --- | --- | --- |
-| 数据连接器 | [插件指南](docs/guide/plugins.md) | `DataConnector` 接口让 LLM 自动调用 Informat / JDBC / REST API；每个连接器自动注册为 `list_modules` / `get_schema` / `query_data` 三个工具 |
-| RAG 检索增强 | [chat 与 RAG 介绍](docs/guide/chat.md) | `rag-enabled=true` 启用；默认 `InMemoryVectorStore`，生产可换 Milvus / Pinecone / Qdrant |
-| Admin 管理后台 | [Admin API](docs/api/admin.md) | `admin-enabled=true` 启用；提供总览、Token 配额、Prompt 模板、A/B 测试、RAG 录入 |
-| 异步任务 | [API 参考](docs/api/reference.md) | `POST /async/chat` 返回 202 + taskId，可轮询或配置 webhook |
-| 多租户 | [配置说明](docs/guide/configuration.md) | `X-Tenant-Id` 请求头隔离；可按租户独立配置模型 / 限流 / 配额 |
-| PII 与 Prompt 注入 | [生产清单](docs/guide/production-checklist.md) | 默认 `pii-masking-enabled=true`；注入检测仅日志告警不阻断 |
-| 模型路由 / A/B 测试 | [Admin API](docs/api/admin.md) | `ModelRouter` + Admin REST 配置 |
-| Prompt 模板 | [Function Calling](docs/guide/function-calling.md) | 内置 `general` / `customer-service` / `data-analyst` / `code-assistant` 4 套；支持 `{{var}}` 与 `{{#if}}` |
-| ReAct Agent | [Function Calling](docs/guide/function-calling.md) | `AgentExecutor.execute(plan)` 串行多步工具调用；含 `ExecutionTrace` |
-| Token 用量 | [Admin API](docs/api/admin.md) | 按租户 / 日期统计；超额拒绝请求 |
-| 连接器运维 | [插件指南](docs/guide/plugins.md) | `ConnectorHealthScheduler` 定时探测；`CircuitBreaker` 熔断；动态注册 / 卸载 |
-| Web Component | [前端配方](docs/guide/frontend-recipes.md) | `npm run build:wc` 后可在 React / Angular / 原生 HTML 中以 `<ai-assistant>` 嵌入 |
-| MCP Server | [MCP 指南](docs/guide/mcp-server.md) | `mcp-server-enabled=true` 暴露 JSON-RPC 工具发现 / 调用端点 |
-
----
-
-## 快速开始
-
-完整流程见 [docs/guide/quick-start.md](docs/guide/quick-start.md)。最小用法：
-
-**后端（Spring Boot 3.x）**
+在自己的 Spring Boot 3 应用中接入：
 
 ```xml
 <dependency>
@@ -260,14 +123,31 @@ OpenAI、DeepSeek、通义千问、智谱 GLM、火山引擎豆包、MiniMax、K
 </dependency>
 ```
 
+零密钥开发配置：
+
 ```yaml
 ai-assistant:
-  provider: deepseek
-  api-key: sk-xxx
+  provider: demo
   context-path: /ai-assistant
 ```
 
-**前端（Vue 3）**
+真实模型配置：
+
+```yaml
+ai-assistant:
+  provider: openai
+  base-url: ${AI_ASSISTANT_BASE_URL:https://api.openai.com/v1}
+  api-key: ${AI_ASSISTANT_API_KEY}
+  model: ${AI_ASSISTANT_MODEL:gpt-4o-mini}
+  access-token: ${AI_ASSISTANT_ACCESS_TOKEN}
+  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS}
+```
+
+真实 Provider 不可达、鉴权失败或返回限流时，SDK 会返回可诊断错误，不会回退为 Demo 成功响应。供应商配置和默认模型见[配置说明](docs/guide/configuration.md)。
+
+## Vue 3 与 Web Component
+
+Vue 3：
 
 ```bash
 npm install @ai-assistant/vue
@@ -277,217 +157,124 @@ npm install @ai-assistant/vue
 import AiAssistant from '@ai-assistant/vue'
 import '@ai-assistant/vue/dist/style.css'
 
-app.use(AiAssistant, { baseUrl: '/ai-assistant', theme: 'auto', locale: 'zh' })
+app.use(AiAssistant, {
+  baseUrl: '/ai-assistant',
+  accessToken: '由宿主安全注入的短期令牌',
+  tenantId: 'tenant-a',
+  locale: 'zh',
+  theme: 'auto',
+})
 ```
 
-模板内放置 `<AiAssistant />`，或开启 `autoMountToBody: true` 自动挂载。
+模板中放置 `<AiAssistant />`，或配置 `autoMountToBody: true`。
 
----
+Web Component：
 
-## 配置
-
-完整配置项（约 50+，覆盖必填、模型连接、安全、性能、可选能力、导出、独立服务、前端）：[配置说明](docs/guide/configuration.md)。
-
-最小生产基线：
-
-```yaml
-ai-assistant:
-  provider: deepseek
-  api-key: sk-xxx
-  access-token: change-me                       # 接口鉴权
-  allowed-origins: https://your-frontend.com    # CORS 限定
-  rate-limit: 60                                # 每分钟每 IP/Token 上限
-  pii-masking-enabled: true
-  url-fetch-ssrf-protection: true
+```ts
+import '@ai-assistant/vue/wc'
+import '@ai-assistant/vue/dist/style.css'
 ```
 
-前端组件配置项（`app.use` 的 `AiAssistantOptions`）共 70+ 项，常用 ~20 个，详见：[前端集成配方](docs/guide/frontend-recipes.md)、[前端连接独立服务](docs/guide/frontend-standalone.md)。
-
----
-
-## API 接口
-
-完整 API 细节维护在文档站：
-
-- [API 概览](docs/api/index.md)
-- [REST API 参考](docs/api/reference.md)
-- [Chat API](docs/api/chat.md)
-- [Capabilities API](docs/api/capabilities.md)
-- [Admin API](docs/api/admin.md)
-
-常用入口：
-
-| API | 说明 |
-| --- | --- |
-| `POST /ai-assistant/chat` | 同步对话、翻译、摘要 |
-| `POST /ai-assistant/stream` | 兼容 SSE 流式输出，官方 UI / Java Client 默认使用 |
-| `POST /ai-assistant/sse` | 标准化 SSE，带 `message` / `done` / `error` 事件类型 |
-| `POST /ai-assistant/file/summarize` | 上传文件并摘要 |
-| `POST /ai-assistant/file/translate` | 上传文件并翻译 |
-| `GET /ai-assistant/url-preview?url=...` | 抓取链接标题、摘要和图片 |
-| `POST /ai-assistant/export` | 导出 XLSX / DOCX / PDF |
-| `GET /ai-assistant/health` | 轻量健康检查 |
-| `GET /ai-assistant/runtime/config` | 不含密钥的运行时配置摘要 |
-
----
-
-## 部署
-
-完整路径选择 + 上线检查：[部署路径检查清单](docs/guide/deployment-checklists.md) · 仓库根目录 [DEPLOYMENT.md](DEPLOYMENT.md) · [SECURITY.md](SECURITY.md)。
-
-**集成到已有 Spring Boot 后端**：引入 starter，业务服务自动暴露 `/ai-assistant/*`。最适合需要复用业务身份、租户、数据库上下文的场景。
-
-**独立 Docker 服务**：`ai-assistant-service` 提供官方镜像。详见 [独立服务部署](docs/guide/standalone-service.md)。
-
-```bash
-copy .env.example .env
-# 编辑 .env，至少填入 AI_ASSISTANT_API_KEY
-docker compose up -d --build
+```html
+<ai-assistant
+  base-url="/ai-assistant"
+  tenant-id="tenant-a"
+  locale="zh"
+></ai-assistant>
 ```
 
-启动后默认地址：
+Web Component 复用同一后端、认证头、租户头和 SSE 契约。完整配方见[前端集成文档](docs/guide/frontend-recipes.md)。
+
+## 稳定能力
+
+- 同步聊天、翻译、摘要与 SSE 流式响应。
+- 统一结构化错误、request id、超时、取消和重试反馈。
+- `X-AI-Token`、`X-Tenant-Id`、CORS、SSRF、上传限制、PII 遮罩、注入告警和限流基线。
+- Java Client、Vue 插件、Composable 与 `<ai-assistant>` Web Component。
+- 多轮 Function Calling 执行循环；业务工具 Schema、权限和副作用控制由宿主负责。
+- 健康、存活、就绪、运行时配置摘要、可选指标与 tracing 支持。
+
+以下能力不是 v1 稳定承诺：本地内存 RAG、调用方计划驱动的 Agent、MCP JSON-RPC 子集、WebSocket、Admin 与 Artifact 预览。仓库不包含 Milvus/Pinecone/Qdrant 实现，也没有自主 LLM ReAct 规划器。
+
+## 安全边界
+
+Demo 默认允许本地零密钥体验；对外部署前至少配置：
 
 ```text
-http://localhost:8080/ai-assistant/health
-http://localhost:8080/ai-assistant/chat
-http://localhost:8080/ai-assistant/stream
-http://localhost:8080/actuator/health
+AI_ASSISTANT_PROVIDER=<真实 provider>
+AI_ASSISTANT_API_KEY=<密钥管理系统注入>
+AI_ASSISTANT_ACCESS_TOKEN=<高强度随机值>
+AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example
+AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
 ```
 
-如使用已发布镜像而不在本机构建：
+Admin、MCP、连接器管理、Headless 抓取和 RAG 默认关闭。`X-Tenant-Id` 只建立请求级租户上下文，不能代替宿主的登录、RBAC 和资源所有权检查。上线前逐项执行[生产检查清单](docs/guide/production-checklist.md)。
 
-```bash
-docker compose -f docker-compose.ghcr.yml up -d
-```
+## 模块
 
-生产推荐：
-
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-Kubernetes：使用 `helm/ai-assistant`，Chart 包含 Deployment / Service / 可选 Ingress / 可选 HPA。详见 [Kubernetes 指南](docs/guide/kubernetes.md)。
-
-烟测（不触发真实模型调用）：
-
-```bash
-node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me
-```
-
-上线前请逐项确认：[生产上线清单](docs/guide/production-checklist.md)。
-
----
-
-## 项目结构
-
-```text
-ai-assistant-sdk/
-├── ai-assistant-server/          # Spring Boot Starter（核心后端能力）
-│   └── src/main/java/com/aiassistant/
-│       ├── autoconfigure/        # Spring Boot 自动装配入口
-│       ├── config/               # Properties / Auth / CORS / RateLimit / Tenant / RequestId / Tracing
-│       ├── controller/           # REST / SSE / WebSocket / 异步任务 / Admin / 健康
-│       ├── service/              # LlmService、UrlFetchService、FileParser、Export、SessionStore
-│       │   └── llm/              # ChatCompletionClient（默认 OpenAI 兼容）
-│       ├── connector/            # DataConnector + Informat / JDBC / REST + 健康调度 + 熔断
-│       ├── tool/                 # Function Calling：ToolDefinition / ToolRegistry
-│       ├── rag/                  # EmbeddingProvider / VectorStore / RagService
-│       ├── agent/                # AgentExecutor 多步执行
-│       ├── memory/               # ConversationMemory
-│       ├── prompt/               # PromptTemplateRegistry
-│       ├── routing/              # ModelRouter + A/B 测试
-│       ├── security/             # ContentFilter（PII + 注入检测）+ Audit
-│       ├── stats/                # 用量 + TokenUsageTracker
-│       ├── mcp/                  # MCP Server JSON-RPC 端点
-│       └── spi/                  # 服务发现接口
-├── ai-assistant-service/         # 独立 Docker 服务启动器（复用 starter）
-├── ai-assistant-client/          # Java 客户端 SDK
-├── ai-assistant-ui/              # @ai-assistant/vue（Vue 3 npm 包）
-│   └── src/
-│       ├── index.ts              # 插件入口与 AiAssistantOptions 类型
-│       ├── components/           # AiAssistant.vue + styles/01..08-*.css + 11 个子组件
-│       ├── composables/          # useAiAssistant + 21 个 composable
-│       ├── utils/                # api / wsChat / i18n（按语言拆分）/ Markdown / 客户端导出
-│       └── web-component.ts      # <ai-assistant> 自定义元素封装
-├── docs/                         # VitePress 文档站
-├── e2e/                          # Playwright 端到端测试
-├── helm/                         # Kubernetes Helm Chart
-├── deploy/                       # nginx / Caddy 反向代理样例
-├── integrations/                 # 第三方集成示例
-├── SECURITY.md                   # 安全策略与漏洞报告
-├── DEPLOYMENT.md                 # 部署与运维入口
-├── PERFORMANCE.md                # 性能与容量调优
-└── scripts/                      # 版本一致性、健康检查、smoke 测试
-```
-
----
-
-## 开发与测试
-
-```bash
-# 前端 Vitest
-cd ai-assistant-ui && npm test
-
-# 后端 JUnit 5
-cd ai-assistant-server && mvn test
-
-# 文档站本地预览
-cd docs && npm ci && npm run dev
-
-# 综合健康检查
-node scripts/project-health-check.mjs --docs   # 仅文档站
-node scripts/project-health-check.mjs --all    # 全量（耗时）
-```
-
-CI 流水线（`.github/workflows/ci.yml`）在每次 push / PR 时运行 lint、测试、构建、OWASP Dependency-Check、npm audit、Trivy；发布流（`publish.yml`）在创建 GitHub Release 时自动发包到 npmjs.org 与 GitHub Packages。详见 `docs/guide/quick-start.md` 与 `docs/guide/deployment-checklists.md`。
-
----
-
-## 常见问题
-
-完整 FAQ 见 [排障手册](docs/guide/troubleshooting.md)。最高频问题速查：
-
-- 启动报 `ai-assistant.api-key must be configured` → 缺少配置项，按 [快速开始](docs/guide/quick-start.md) 在 `application.yml` / 环境变量补全。
-- 调用 AI 返回 `LLM call failed: Connection refused` → 网络无法访问 `base-url`；离线环境改用 Ollama 或代理。
-- 前端跨域报错 → 后端配置 `ai-assistant.allowed-origins=https://your-frontend.com`。
-- 接口返回 401 / 429 → 检查 `X-AI-Token` 与 `rate-limit` 配置，详见 [配置说明](docs/guide/configuration.md)。
-- 导出 PDF 中文变空格 → 默认嵌入 `NotoSansSC_400Regular.ttf`；若改成自定义字体注意 PDFBox 3.x 不支持 OTF/CFF。
-
----
-
-## 性能与风险
-
-详细调优与多副本说明：[PERFORMANCE.md](PERFORMANCE.md) · k6 health smoke 实测与 **:8080 pending-local** 复测命令见 [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)。
-
-| 维度 | 现状 |
+| 模块 | 作用 |
 | --- | --- |
-| URL 抓取 | 预编译正则；HTML 超 ~900 KB 截断；同 URL 短 TTL 缓存截断正文 + 原始 HTML；SSRF DNS 判定 ~5 分钟缓存 |
-| 悬浮球 / 面板 | `resize` / visualViewport 用 rAF 合并；自定义尺寸再夹紧 |
-| 对话区 | 默认仅挂载最近 60 条；`scrollToBottom` rAF 合并；`content-visibility: auto` 减轻长列表 |
-| Markdown | LRU 缓存；highlight.js 扩展语言按需加载；流式最后一泡用无高亮渲染 |
-| 浏览器内存 | 默认 200 条 + 总字符 ~4M + 单次输入 120k；均可调整或关闭 |
-| 模型请求 | `chat-history-max-chars` 从末尾截断；`chat-max-total-chars` 校验整包 |
-| 限流 / 缓存 | 默认进程内；多实例需 Redis（`RedisRateLimitFilter` / `RedisSessionStore` 已预置） |
+| `ai-assistant-server` | Spring Boot Starter 与核心服务 |
+| `ai-assistant-service` | 独立运行的 Spring Boot 服务与 Docker 镜像 |
+| `ai-assistant-client` | Java Client |
+| `ai-assistant-ui` | `@ai-assistant/vue`、Composable 与 Web Component |
+| `ai-assistant-vue-playground` | Demo / Admin / Form Fill Playground |
+| `ai-assistant-demo` | 最小 Starter 宿主与真实 HTTP 集成测试 |
+| `ai-assistant-observability-support` | 可选 OpenAPI、Tracing 与日志桥接 |
+| `e2e` | Playwright 浏览器验收 |
+| `docs` | VitePress 文档站 |
 
-**主要风险**：外网抓取与 SSRF（限流、可关 `url-fetch-enabled`）；模型输出仅走 DOMPurify；密钥与 Token 防泄漏；多实例下进程内限流不一致；中文 PDF 嵌入字体 ~10 MB。生产请配 `rate-limit`、HTTPS 与网关层配额。
+### Observability support
 
-进一步扩展方向：[扩展指南 / 文档地图](docs/guide/index.md)。
+`ai-assistant-observability-support` 是可选支持包：OpenAPI 可作为 direct dependency 接入；Tracing 和 JSON logging 都是 optional 桥接，不会由基础 Starter 自动引入。Starter-only 与支持包接入方式见[可观测性快速开始](docs/guide/observability-support-quick-start.md)。
 
----
+## 开发验证
 
-## 贡献 & 支持
+推荐环境：Windows 11、Linux 或 macOS；JDK 21；Maven 3.9+；Node.js 22 + npm；需要容器验证时使用 Docker Compose v2。首次安装需要访问 Maven/npm 镜像。
 
-欢迎提 Issue、PR 和建议！参与开发前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+```bash
+# 后端全部模块
+mvn test
 
-如果这个项目对你有帮助：
+# Java Client 发布前验证
+mvn -f ai-assistant-client/pom.xml verify
 
-- ⭐ 给个 **Star** —— 这是对作者最大的鼓励，也让更多人发现它
-- 🍴 **Fork** 后自由改造成你自己的 AI 助手
-- 📢 分享给可能需要的同行 / 技术群
+# Vue：lint、格式、测试与发布构建
+cd ai-assistant-ui
+npm ci
+npm run lint
+npm run format:check
+npm test
+npm run build:publish
 
-### Star 趋势
+# Playground
+cd ../ai-assistant-vue-playground
+npm ci
+npm test
+npm run build
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Hou-mingyuan/ai-assistant-sdk&type=Date)](https://star-history.com/#Hou-mingyuan/ai-assistant-sdk&Date)
+# 文档
+cd ../docs
+npm ci
+npm run build
+
+# 浏览器 E2E
+cd ../e2e
+npm ci
+npx playwright install chromium
+npm test
+```
+
+更多入口：
+
+- [快速开始](docs/guide/quick-start.md)
+- [能力矩阵](docs/CAPABILITY-MATRIX.md)
+- [API 文档](docs/api/index.md)
+- [部署与运维](DEPLOYMENT.md)
+- [安全策略](SECURITY.md)
+- [性能与容量](PERFORMANCE.md)
+- [故障排查](docs/guide/troubleshooting.md)
+- [CHANGELOG](CHANGELOG.md)
 
 ## License
 

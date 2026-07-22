@@ -14,8 +14,17 @@ const libEntries = {
   screenshot: resolve(__dirname, 'src/entries/screenshot.ts'),
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [vue()],
+  // The Web Component bundles Vue for direct use from a classic <script> tag.
+  // Vue's bundler build intentionally leaves this expression for host bundlers;
+  // a plain browser has no global `process`, so resolve it at build time.
+  define:
+    command === 'build'
+      ? {
+          'process.env.NODE_ENV': JSON.stringify('production'),
+        }
+      : {},
   test: {
     environment: 'jsdom',
     include: ['src/**/*.spec.ts'],
@@ -107,4 +116,4 @@ export default defineConfig({
           },
         },
       },
-});
+}));

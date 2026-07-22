@@ -62,6 +62,36 @@ class AiAssistantControllerTest {
     }
 
     @Test
+    void chat_returns400ForInvalidTranslationRequest() {
+        when(llmService.translate("hello", "bad target", null))
+                .thenThrow(new IllegalArgumentException("targetLang must be a valid language tag"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("translate");
+        req.setTargetLang("bad target");
+
+        var response = controller.chat(req);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals("INVALID_REQUEST", response.getBody().getErrorCode());
+    }
+
+    @Test
+    void stream_returns400ForInvalidTranslationRequest() {
+        when(llmService.translateStream("hello", "bad target", null))
+                .thenThrow(new IllegalArgumentException("targetLang must be a valid language tag"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("translate");
+        req.setTargetLang("bad target");
+
+        var response = controller.stream(req);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertTrue(response.getBody().blockFirst().contains("VALIDATION_ERROR"));
+    }
+
+    @Test
     void chat_returnsRuntimeMetadataForWhitelistedVisionModel() {
         props.setProvider("minimax");
         props.setModel("MiniMax-M2.5");

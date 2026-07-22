@@ -20,7 +20,7 @@ public class OpenApiConfiguration {
                 .info(
                         new Info()
                                 .title("AI Assistant SDK API")
-                                .version("1.0.0")
+                                .version("1.0.1")
                                 .description(
                                         "Embeddable AI assistant REST API - chat, translate, summarize, RAG, tool-calling, multi-tenant")
                                 .license(new License().name("MIT"))

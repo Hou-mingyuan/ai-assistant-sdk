@@ -1,84 +1,107 @@
-<div align="center">
+# AI Assistant SDK
 
-# 🤖 AI Assistant SDK
-
-### Drop an enterprise-grade AI assistant into any Java + Vue app in 5 minutes
-
-One Spring Boot starter on the backend, one component on the frontend — instantly get **multi-turn chat · translation · summarization · RAG · multi-step agents · function calling · 16 LLM providers**
-
-[![GitHub stars](https://img.shields.io/github/stars/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/Hou-mingyuan/ai-assistant-sdk?style=social)](https://github.com/Hou-mingyuan/ai-assistant-sdk/network/members)
+An embeddable assistant SDK for Java 21 / Spring Boot 3 and Vue 3. The repository ships a Spring Boot Starter, standalone service, Java client, Vue component, Web Component, Playground, and deployment templates.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F.svg?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-3.x-42B883.svg?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![CI](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Hou-mingyuan/ai-assistant-sdk/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[简体中文](./README.md) · [📖 Docs](docs/guide/index.md) · [🚀 Quick Start](docs/guide/quick-start.md) · [💡 Features](docs/guide/index.md) · [🐛 Issues](https://github.com/Hou-mingyuan/ai-assistant-sdk/issues)
+[简体中文](./README.md) · [Quick Start](docs/guide/quick-start.md) · [Capability Matrix](docs/CAPABILITY-MATRIX.md) · [API](docs/api/index.md) · [Deployment](DEPLOYMENT.md) · [Security](SECURITY.md)
 
-<!-- 📌 Record a demo GIF (floating ball → ask → streaming answer → RAG citations), save to docs/assets/demo.gif, then uncomment the line below -->
-<!-- <img src="docs/assets/demo.gif" alt="AI Assistant SDK demo" width="760" /> -->
-<img src="docs/assets/demo.gif" alt="AI Assistant SDK demo" width="760" />
+<p align="center">
+  <img src="docs/assets/demo.png" alt="AI Assistant SDK zero-key Playground running locally" width="760" />
+</p>
 
-_🎬 Demo GIF coming soon_
+> Version `1.0.1` is a release candidate, not a blanket production-readiness claim. REST/SSE, the Starter, standalone service, Java client, Vue package, and Web Component are the stable core. See the [capability matrix](docs/CAPABILITY-MATRIX.md) for the exact RAG, Agent, MCP, WebSocket, Admin, and Artifact boundaries.
 
-<br/>
+## Choose an integration path
 
-> ⭐ **If this project helps you, drop a Star to help others find it!** Every star keeps this project maintained.
+| Path | Best for | Entry point |
+| --- | --- | --- |
+| Spring Boot Starter | Reusing host authentication, tenancy, and business beans | The tracked `ai-assistant-demo` host or your existing Spring Boot app |
+| Standalone service | Sharing one AI gateway or avoiding backend changes | `cp .env.example .env`, then `docker compose up -d --build` |
 
-</div>
+Both paths expose the same REST/SSE contract. Do not mix both backends in one frontend instance unless URLs, tokens, and CORS are aligned.
 
----
+## Zero-key quick start
 
-## What is this
+Prerequisites: Docker Engine/Desktop with Compose v2. Node.js 22 is needed for the automated smoke command. No account or external model key is required.
 
-**AI Assistant SDK** is an embeddable, enterprise-grade AI assistant for any **Java + Vue** project. It covers one-click translation, full-text summarization, free chat, RAG knowledge base, multi-step agents, PII masking, multi-tenant isolation and an admin dashboard.
+Supported hosts are Windows 11, Linux, and macOS, with at least 2 CPUs, 4 GB of available memory, and 6 GB of available disk space.
 
-The repo ships a Spring Boot Starter, a standalone service, a Vue 3 component library, a Web Component, a Java client, a VitePress docs site and Helm/Docker deployment templates. Pick one or two integration styles — they don't conflict.
+```bash
+cp .env.example .env
+docker compose up -d --build
+node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
+```
 
-## Why AI Assistant SDK
+On Windows Command Prompt, use `copy .env.example .env` for the first command.
 
-- 🧩 **Ridiculously fast to integrate** — add one starter on the backend, one `app.use` line on the frontend, and you're running in 5 minutes. No need to build your own LLM gateway.
-- 🌐 **16 LLM providers out of the box** — OpenAI / DeepSeek / Qwen / Zhipu GLM / Doubao / Kimi / Gemini / Ollama… switch with a single config key, or plug in any OpenAI-compatible endpoint.
-- 🏢 **Built for the enterprise** — multi-tenant isolation, PII masking, prompt-injection detection, per-tenant token quota, model routing with A/B testing, rate limiting and circuit breakers. Not a demo — production-ready.
-- 🧠 **Beyond chat** — RAG retrieval augmentation, function calling, ReAct multi-step agents and an MCP server, all included.
-- 🎨 **Three frontend forms** — Vue plugin / Web Component (`<ai-assistant>`, usable in React, Angular, plain HTML) / `useAiAssistant` composable, with 70+ config options.
-- 🛠 **Solid engineering** — CI, OWASP Dependency-Check, Trivy, E2E tests, a Helm chart, multiple docker-compose files and a full docs site.
+`.env.example` selects the deterministic `demo` provider. It exercises the real HTTP and SSE stack without contacting an external model:
 
-## Features
+- Provider health is `UP` with `mode=demo` and `mock=true`.
+- `/chat` and `/stream` return an explicit Demo marker and `meta.provider=demo`.
+- Demo output is only for zero-key demonstrations and tests; it is not presented as real AI output.
 
-**Core interaction**
-- Translate / summarize / free-chat modes; multi-turn memory with editable system prompt
-- SSE streaming (typewriter effect) and optional WebSocket duplex channel
-- Safe Markdown rendering (DOMPurify + highlight.js), dark/light/system themes, i18n UI (zh / en / ja / ko)
-- Conversation persistence, multi-session tabs, in-conversation search, conversation forking
+Endpoints:
 
-**Multi-model**
-- OpenAI, DeepSeek, Qwen, Zhipu GLM, Doubao, MiniMax, Kimi, Gemini, SiliconFlow, Groq, Yi, Spark, Baichuan, StepFun, Hunyuan, Ollama built in; any OpenAI-compatible provider via `provider=openai` + custom `base-url`.
+```text
+GET  http://localhost:8080/ai-assistant/health
+POST http://localhost:8080/ai-assistant/chat
+POST http://localhost:8080/ai-assistant/stream
+GET  http://localhost:8080/actuator/health/liveness
+```
 
-**Enterprise**
-- Multi-tenant isolation (`X-Tenant-Id` header driven), PII masking + prompt-injection detection
-- Per-tenant token usage & daily quota, smart model routing (task/cost/token) + A/B testing
-- Server-side prompt template engine (`{{var}}`, `{{#if}}`, 4 presets)
+Stop with `docker compose down`.
 
-**Engineering & ops**
-- Function calling (multi-round tool-calling loop) + ReAct multi-step agent
-- RAG (embedding → vector store → context injection), async task API (202 + polling + webhook)
-- Admin REST dashboard, data connectors (Informat / JDBC / REST) auto-registered as LLM tools
-- Startup provider connectivity check, connector health scheduling, circuit breakers, in-process or Redis rate limiting
+## Playground
 
-**Frontend**
-- Vue 3 plugin / Web Component / `useAiAssistant` composable
-- Drag-and-drop file upload (PDF / Word / Excel / CSV), vision image understanding, TTS, 🎤 voice input
-- Floating ball & panel with 70+ config options
+Run the standalone service and Vue Playground together:
 
-## Quick Start
+```powershell
+# Windows
+.\scripts\demo-standalone.ps1
+```
 
-Full guide: [docs/guide/quick-start.md](docs/guide/quick-start.md).
+```bash
+# Linux / macOS
+./scripts/demo-standalone.sh
+```
 
-**Backend (Spring Boot 3.x)**
+Open `http://localhost:3000/`. The UI explicitly shows whether it is using Demo or a real provider and includes chat, Admin status, and form-fill examples. See the [demo guide](docs/DEMO.md).
+
+## Starter integration
+
+Prerequisites: JDK 21, Maven 3.9+, and Node.js 22. The tracked `ai-assistant-demo` module is a runnable host and defaults to Demo mode. The one-command script installs locked frontend dependencies, builds the real Web Component, packages the host, and starts it:
+
+```powershell
+# Windows
+.\scripts\demo-starter.ps1
+```
+
+```bash
+# Linux / macOS
+bash scripts/demo-starter.sh
+```
+
+Equivalent manual commands:
+
+```bash
+npm --prefix ai-assistant-ui ci
+npm --prefix ai-assistant-ui run build:publish
+mvn -pl ai-assistant-demo -am -DskipTests package
+java -jar ai-assistant-demo/target/ai-assistant-demo-1.0.1.jar
+```
+
+Open `http://localhost:8080/`, or run its real HTTP integration test:
+
+```bash
+mvn -pl ai-assistant-demo -am test
+```
+
+Add the Starter to your own Spring Boot 3 application:
 
 ```xml
 <dependency>
@@ -88,14 +111,31 @@ Full guide: [docs/guide/quick-start.md](docs/guide/quick-start.md).
 </dependency>
 ```
 
+Zero-key development configuration:
+
 ```yaml
 ai-assistant:
-  provider: deepseek
-  api-key: sk-xxx
+  provider: demo
   context-path: /ai-assistant
 ```
 
-**Frontend (Vue 3)**
+Real-provider configuration:
+
+```yaml
+ai-assistant:
+  provider: openai
+  base-url: ${AI_ASSISTANT_BASE_URL:https://api.openai.com/v1}
+  api-key: ${AI_ASSISTANT_API_KEY}
+  model: ${AI_ASSISTANT_MODEL:gpt-4o-mini}
+  access-token: ${AI_ASSISTANT_ACCESS_TOKEN}
+  allowed-origins: ${AI_ASSISTANT_ALLOWED_ORIGINS}
+```
+
+An unreachable provider, rejected credential, or upstream rate limit is returned as a diagnosable error. It never silently falls back to a Demo success response.
+
+## Vue 3 and Web Component
+
+Vue 3:
 
 ```bash
 npm install @ai-assistant/vue
@@ -105,37 +145,108 @@ npm install @ai-assistant/vue
 import AiAssistant from '@ai-assistant/vue'
 import '@ai-assistant/vue/dist/style.css'
 
-app.use(AiAssistant, { baseUrl: '/ai-assistant', theme: 'auto', locale: 'en' })
+app.use(AiAssistant, {
+  baseUrl: '/ai-assistant',
+  accessToken: 'a short-lived token supplied by the host',
+  tenantId: 'tenant-a',
+  locale: 'en',
+  theme: 'auto',
+})
 ```
 
-Place `<AiAssistant />` in your template, or enable `autoMountToBody: true`.
+Place `<AiAssistant />` in a template, or set `autoMountToBody: true`.
 
-## Standalone service (Docker)
+Web Component:
+
+```ts
+import '@ai-assistant/vue/wc'
+import '@ai-assistant/vue/dist/style.css'
+```
+
+```html
+<ai-assistant
+  base-url="/ai-assistant"
+  tenant-id="tenant-a"
+  locale="en"
+></ai-assistant>
+```
+
+The Web Component uses the same backend, auth/tenant headers, and SSE contract. See the [frontend recipes](docs/guide/frontend-recipes.md).
+
+## Stable scope
+
+- Synchronous chat, translation, summarization, and SSE streaming.
+- Structured errors, request IDs, timeouts, cancellation, and retry feedback.
+- `X-AI-Token`, `X-Tenant-Id`, CORS, SSRF protection, upload limits, PII masking, injection warnings, and rate limiting.
+- Java client, Vue plugin/composable, and `<ai-assistant>` Web Component.
+- Multi-round Function Calling execution; business tool schemas, permissions, and side effects remain the host's responsibility.
+- Health/liveness/readiness endpoints, runtime configuration summary, and optional metrics/tracing support.
+
+Local in-memory RAG, caller-planned Agent execution, the MCP JSON-RPC subset, WebSocket, Admin, and Artifact preview are not v1 stable commitments. The repository does not ship Milvus/Pinecone/Qdrant implementations or an autonomous LLM ReAct planner.
+
+## Security boundary
+
+Demo defaults are for local zero-key use. Before exposing a real provider, set at least:
+
+```text
+AI_ASSISTANT_PROVIDER=<real provider>
+AI_ASSISTANT_API_KEY=<injected by a secret store>
+AI_ASSISTANT_ACCESS_TOKEN=<strong random value>
+AI_ASSISTANT_ALLOWED_ORIGINS=https://your-frontend.example
+AI_ASSISTANT_ALLOW_QUERY_TOKEN_AUTH=false
+```
+
+Admin, MCP, connector management, headless fetching, and RAG are disabled by default. `X-Tenant-Id` establishes request-scoped tenant context; it does not replace host login, RBAC, or resource ownership checks. Follow the [production checklist](docs/guide/production-checklist.md).
+
+## Modules
+
+| Module | Purpose |
+| --- | --- |
+| `ai-assistant-server` | Spring Boot Starter and core services |
+| `ai-assistant-service` | Standalone Spring Boot service and Docker image |
+| `ai-assistant-client` | Java client |
+| `ai-assistant-ui` | `@ai-assistant/vue`, composables, and Web Component |
+| `ai-assistant-vue-playground` | Demo, Admin, and form-fill Playground |
+| `ai-assistant-demo` | Minimal Starter host and real HTTP integration test |
+| `ai-assistant-observability-support` | Optional OpenAPI, tracing, and logging bridges |
+| `e2e` | Playwright browser acceptance tests |
+| `docs` | VitePress documentation site |
+
+### Observability support
+
+`ai-assistant-observability-support` is optional. OpenAPI can be added as a direct dependency; Tracing and JSON logging remain optional bridges and are not pulled in by the base Starter. See the [observability quick start](docs/guide/observability-support-quick-start.md) for Starter-only and support-enabled POMs.
+
+## Verification
+
+Recommended environment: Windows 11, Linux, or macOS; JDK 21; Maven 3.9+; Node.js 22 with npm; Docker Compose v2 for containers.
 
 ```bash
-cp .env.example .env   # set AI_ASSISTANT_API_KEY at minimum
-docker compose up -d --build
+mvn test
+mvn -f ai-assistant-client/pom.xml verify
+
+cd ai-assistant-ui
+npm ci
+npm run lint
+npm run format:check
+npm test
+npm run build:publish
+
+cd ../ai-assistant-vue-playground
+npm ci
+npm test
+npm run build
+
+cd ../docs
+npm ci
+npm run build
+
+cd ../e2e
+npm ci
+npx playwright install chromium
+npm test
 ```
 
-Then hit `http://localhost:8080/ai-assistant/health`. For Kubernetes, use the `helm/ai-assistant` chart. See [deployment checklists](docs/guide/deployment-checklists.md).
-
-## Documentation
-
-- [Quick Start](docs/guide/quick-start.md) · [Configuration](docs/guide/configuration.md) · [Deployment](docs/guide/deployment-checklists.md)
-- [API Reference](docs/api/index.md) · [Chat API](docs/api/chat.md) · [Admin API](docs/api/admin.md)
-- [Function Calling & Agent](docs/guide/function-calling.md) · [Plugins / Data Connectors](docs/guide/plugins.md) · [MCP Server](docs/guide/mcp-server.md)
-
-## Contributing & Support
-
-Issues, PRs and ideas are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
-
-If this project helps you:
-
-- ⭐ **Star** it — the best encouragement for the author and it helps others discover it
-- 🍴 **Fork** it and make it your own
-- 📢 **Share** it with peers who might need it
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Hou-mingyuan/ai-assistant-sdk&type=Date)](https://star-history.com/#Hou-mingyuan/ai-assistant-sdk&Date)
+Documentation: [Quick Start](docs/guide/quick-start.md) · [Capability Matrix](docs/CAPABILITY-MATRIX.md) · [API](docs/api/index.md) · [Deployment](DEPLOYMENT.md) · [Security](SECURITY.md) · [Performance](PERFORMANCE.md) · [Troubleshooting](docs/guide/troubleshooting.md) · [CHANGELOG](CHANGELOG.md)
 
 ## License
 

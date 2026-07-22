@@ -6,6 +6,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/guide/' },
+      { text: 'Capability Matrix', link: '/CAPABILITY-MATRIX' },
       { text: 'API', link: '/api/' },
       { text: 'GitHub', link: 'https://github.com/Hou-mingyuan/ai-assistant-sdk' },
     ],

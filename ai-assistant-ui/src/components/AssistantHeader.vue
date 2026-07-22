@@ -170,7 +170,7 @@
                 emit('toggle-theme');
               "
             >
-              <span aria-hidden="true">{{ isDark ? '☼' : '☾' }}</span>
+              <AssistantIcon :name="isDark ? 'sun' : 'moon'" :size="14" />
               <span>{{ themeToggleLabel }}</span>
             </button>
           </div>
@@ -256,7 +256,7 @@
                   emit('toggle-select-mode');
                 "
               >
-                <span aria-hidden="true">☑</span>
+                <AssistantIcon name="square-check-big" :size="14" />
                 <span>{{ t.selectModeToggle }}</span>
               </button>
               <button
@@ -268,7 +268,7 @@
                   emit('clear-messages');
                 "
               >
-                <span aria-hidden="true">×</span>
+                <AssistantIcon name="trash-2" :size="14" />
                 <span>{{ t.clear }}</span>
               </button>
             </div>
@@ -305,6 +305,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, nextTick, watch, type PropType } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { I18nMessages } from '../utils/i18n/types';
 import type { AiPlugin } from '../composables/usePluginRegistry';
 

@@ -12,6 +12,30 @@ import org.junit.jupiter.api.io.TempDir;
 class RuntimeModelConfigServiceTest {
 
     @Test
+    void defaultConstructorDoesNotLoadUserHomeStateWhenAdminApiIsDisabled(@TempDir Path tempDir)
+            throws Exception {
+        Path persisted = tempDir.resolve("runtime-model.properties");
+        java.nio.file.Files.writeString(persisted, "provider=minimax\nmodel=MiniMax-M2.7\n");
+        String previous = System.getProperty("ai.assistant.runtime.config.path");
+        System.setProperty("ai.assistant.runtime.config.path", persisted.toString());
+        try {
+            AiAssistantProperties properties = new AiAssistantProperties();
+            properties.setProvider("demo");
+
+            new RuntimeModelConfigService(properties);
+
+            assertEquals("demo", properties.getProvider());
+            assertEquals("demo-local", properties.resolveModel());
+        } finally {
+            if (previous == null) {
+                System.clearProperty("ai.assistant.runtime.config.path");
+            } else {
+                System.setProperty("ai.assistant.runtime.config.path", previous);
+            }
+        }
+    }
+
+    @Test
     void updateMutatesPropertiesWithoutExposingApiKey() {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setApiKey("old-key");

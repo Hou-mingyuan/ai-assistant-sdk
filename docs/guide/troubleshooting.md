@@ -36,7 +36,7 @@ GET /ai-assistant/runtime/config
 
 ```bash
 docker pull maven:3.9.11-eclipse-temurin-21
-docker pull eclipse-temurin:17-jre-alpine
+docker pull eclipse-temurin:21-jre-alpine
 ```
 
 如果本机走代理，Docker Desktop 容器访问宿主机代理通常用 `host.docker.internal`：

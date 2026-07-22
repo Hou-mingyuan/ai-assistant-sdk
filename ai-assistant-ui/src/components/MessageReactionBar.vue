@@ -135,4 +135,12 @@ function onClick(emoji: string) {
     transition: none;
   }
 }
+
+@media (max-width: 820px) {
+  .ai-reaction-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+}
 </style>

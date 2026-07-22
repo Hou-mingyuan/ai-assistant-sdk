@@ -3,10 +3,10 @@ import { en } from './en';
 
 export const ko: I18nMessages = {
   ...en,
-  greeting: '👋 안녕하세요! 도와드리겠습니다:',
-  translate: '🌐 번역',
-  summarize: '📝 요약',
-  chat: '💬 채팅',
+  greeting: '안녕하세요! 도와드리겠습니다:',
+  translate: '번역',
+  summarize: '요약',
+  chat: '채팅',
   placeholder: {
     translate: '번역할 텍스트를 붙여넣기...',
     summarize: '요약할 텍스트를 붙여넣기...',

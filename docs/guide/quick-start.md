@@ -19,11 +19,18 @@
 
 ## 2. 配置
 
-在 `application.yml` 中添加：
+先用零密钥 Demo 跑通真实 REST/SSE 链路：
 
 ```yaml
 ai-assistant:
-  api-key: sk-your-api-key
+  provider: demo
+```
+
+Demo 响应会明确标识为确定性本地输出。切换真实 Provider 时改为：
+
+```yaml
+ai-assistant:
+  api-key: ${AI_ASSISTANT_API_KEY}
   provider: openai        # openai / deepseek / qwen / glm / gemini
   model: gpt-4o
 ```
@@ -39,8 +46,8 @@ ai-assistant:
 | `/ai-assistant/sse` | POST | 标准化 SSE（带事件类型） |
 | `/ai-assistant/health` | GET | 健康检查 |
 | `/ai-assistant/capabilities` | GET | 能力发现 |
-| `/ai-assistant/mcp` | POST | MCP Server 端点，需显式启用 `ai-assistant.mcp-server-enabled=true` |
-| `/ai-assistant/admin/overview` | GET | 管理面板 |
+| `/ai-assistant/mcp` | POST | 实验性 MCP JSON-RPC 子集；默认关闭，需显式启用 |
+| `/ai-assistant/admin/overview` | GET | 实验性管理端点；默认关闭，需管理令牌 |
 
 ## 4. 前端集成
 
@@ -64,3 +71,4 @@ app.use(AiAssistant, { baseUrl: '/ai-assistant', locale: 'zh' })
 - 需要对接远程独立服务：阅读 [前端连接独立服务](./frontend-standalone)。
 - 需要确认接口契约：阅读 [聊天 API](../api/chat) 和 [能力发现 API](../api/capabilities)。
 - 准备生产上线：阅读 [生产上线清单](./production-checklist)。
+- 核对稳定与实验能力：[能力矩阵](../CAPABILITY-MATRIX)。

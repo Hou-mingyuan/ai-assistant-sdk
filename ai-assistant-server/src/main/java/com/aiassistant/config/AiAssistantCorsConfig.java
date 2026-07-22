@@ -28,7 +28,8 @@ public class AiAssistantCorsConfig implements WebMvcConfigurer {
                 .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("Content-Disposition")
+                .allowCredentials(false)
+                .exposedHeaders("Content-Disposition", "X-Request-Id", "X-Trace-Id")
                 .maxAge(3600);
     }
 }

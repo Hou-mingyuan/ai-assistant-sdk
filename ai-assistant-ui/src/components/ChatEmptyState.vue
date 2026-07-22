@@ -27,7 +27,9 @@
             :data-skill-tone="skill.tone"
             @click="emit('apply-skill', skill)"
           >
-            <span class="ai-empty-skill-icon" aria-hidden="true">{{ skill.icon }}</span>
+            <span class="ai-empty-skill-icon" aria-hidden="true">
+              <AssistantIcon :name="skill.icon" :size="13" />
+            </span>
             <span>{{ skill.label }}</span>
           </button>
         </div>
@@ -43,7 +45,9 @@
             :data-starter-tone="starter.tone"
             @click="emit('apply-starter', starter)"
           >
-            <span class="ai-empty-starter-icon" aria-hidden="true">{{ starter.icon }}</span>
+            <span class="ai-empty-starter-icon" aria-hidden="true">
+              <AssistantIcon :name="starter.icon" :size="16" />
+            </span>
             <span class="ai-empty-starter-body">
               <span class="ai-empty-starter-text">{{ starter.title }}</span>
               <span class="ai-empty-starter-desc">{{ starter.desc }}</span>
@@ -55,7 +59,9 @@
         <div class="ai-empty-section-title">{{ capabilitySectionLabel }}</div>
         <div class="ai-empty-capabilities" :aria-label="capabilitySectionLabel">
           <span v-for="hint in capabilityHints" :key="hint.label" class="ai-empty-capability">
-            <span class="ai-empty-capability-icon" aria-hidden="true">{{ hint.icon }}</span>
+            <span class="ai-empty-capability-icon" aria-hidden="true">
+              <AssistantIcon :name="hint.icon" :size="13" />
+            </span>
             <span>{{ hint.label }}</span>
           </span>
         </div>
@@ -80,6 +86,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type {
   EmptySkillChip,
   EmptyStarterCard,

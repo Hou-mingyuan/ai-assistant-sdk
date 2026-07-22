@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * Java client SDK for AI Assistant.
@@ -29,8 +30,11 @@ import java.util.function.Consumer;
  */
 public class AiAssistantClient {
 
+    private static final Pattern SAFE_TENANT_ID = Pattern.compile("[a-zA-Z0-9_.:-]{1,64}");
+
     private final String baseUrl;
     private final String token;
+    private final String tenantId;
     private final HttpClient httpClient;
     private final ObjectMapper mapper;
     private final Duration timeout;
@@ -38,6 +42,7 @@ public class AiAssistantClient {
     private AiAssistantClient(Builder builder) {
         this.baseUrl = normalizeBaseUrl(builder.baseUrl);
         this.token = normalizeToken(builder.token);
+        this.tenantId = normalizeTenantId(builder.tenantId);
         this.timeout = validateTimeout(builder.timeout);
         this.mapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -103,24 +108,36 @@ public class AiAssistantClient {
                             new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
                 errorBody = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
             }
-            throw new ApiException(
-                    response.statusCode(),
-                    null,
-                    extractErrorMessage(
-                            errorBody, "AI Assistant stream API error " + response.statusCode()),
-                    errorBody);
+            throw apiException(response.statusCode(), errorBody, response.headers());
         }
 
         try (BufferedReader reader =
                 new BufferedReader(
                         new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
             String line;
+            StringBuilder eventData = new StringBuilder();
             while ((line = reader.readLine()) != null) {
-                if (line.startsWith("data:")) {
-                    String data = parseSseDataLine(line);
-                    if ("[DONE]".equals(data)) break;
-                    onChunk.accept(data);
+                if (line.isEmpty()) {
+                    if (dispatchSseEvent(
+                            eventData,
+                            onChunk,
+                            response.headers().firstValue("X-Request-Id").orElse(null))) {
+                        break;
+                    }
+                    continue;
                 }
+                if (line.startsWith("data:")) {
+                    if (!eventData.isEmpty()) {
+                        eventData.append('\n');
+                    }
+                    eventData.append(parseSseDataLine(line));
+                }
+            }
+            if (!eventData.isEmpty()) {
+                dispatchSseEvent(
+                        eventData,
+                        onChunk,
+                        response.headers().firstValue("X-Request-Id").orElse(null));
             }
         }
     }
@@ -130,7 +147,7 @@ public class AiAssistantClient {
         HttpResponse<String> response =
                 httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() >= 400) {
-            throw apiException(response.statusCode(), response.body());
+            throw apiException(response.statusCode(), response.body(), response.headers());
         }
         return mapper.readValue(
                 response.body(),
@@ -142,11 +159,11 @@ public class AiAssistantClient {
         HttpResponse<String> response =
                 httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() >= 400) {
-            throw apiException(response.statusCode(), response.body());
+            throw apiException(response.statusCode(), response.body(), response.headers());
         }
         JsonNode root = mapper.readTree(response.body());
         if (root.has("success") && !root.path("success").asBoolean()) {
-            throw apiException(response.statusCode(), response.body(), root);
+            throw apiException(response.statusCode(), response.body(), root, response.headers());
         }
         return root;
     }
@@ -156,28 +173,65 @@ public class AiAssistantClient {
     }
 
     private ApiException apiException(int statusCode, String body) {
+        return apiException(statusCode, body, (java.net.http.HttpHeaders) null);
+    }
+
+    private ApiException apiException(
+            int statusCode, String body, java.net.http.HttpHeaders headers) {
         try {
-            return apiException(statusCode, body, mapper.readTree(body));
+            return apiException(statusCode, body, mapper.readTree(body), headers);
         } catch (Exception ignored) {
             return new ApiException(
-                    statusCode, null, "AI Assistant API error " + statusCode + ": " + body, body);
+                    statusCode,
+                    null,
+                    "AI Assistant API error " + statusCode + ": " + body,
+                    body,
+                    requestId(headers));
         }
     }
 
     private ApiException apiException(int statusCode, String body, JsonNode root) {
+        return apiException(statusCode, body, root, null);
+    }
+
+    private ApiException apiException(
+            int statusCode, String body, JsonNode root, java.net.http.HttpHeaders headers) {
         String errorCode = root.path("errorCode").asText(null);
         String error = root.path("error").asText(null);
         if (error == null || error.isBlank()) {
             error = "AI Assistant API error " + statusCode;
         }
-        return new ApiException(statusCode, errorCode, error, body);
+        return new ApiException(statusCode, errorCode, error, body, requestId(headers));
     }
 
-    private static String extractErrorMessage(String body, String fallback) {
-        if (body == null || body.isBlank()) {
-            return fallback;
+    private static String requestId(java.net.http.HttpHeaders headers) {
+        return headers == null ? null : headers.firstValue("X-Request-Id").orElse(null);
+    }
+
+    private static boolean dispatchSseEvent(
+            StringBuilder eventData, Consumer<String> onChunk, String requestId) {
+        if (eventData.isEmpty()) {
+            return false;
         }
-        return body;
+        String data = eventData.toString();
+        eventData.setLength(0);
+        if ("[DONE]".equals(data)) {
+            return true;
+        }
+        if (data.startsWith("[") && data.contains("]")) {
+            int markerEnd = data.indexOf(']');
+            String code = data.substring(1, markerEnd);
+            if (code.endsWith("ERROR")
+                    || "RATE_LIMITED".equals(code)
+                    || "TIMEOUT".equals(code)
+                    || "QUOTA_EXCEEDED".equals(code)
+                    || "VALIDATION_ERROR".equals(code)) {
+                String message = data.substring(markerEnd + 1).trim();
+                throw new ApiException(200, code, message, data, requestId);
+            }
+        }
+        onChunk.accept(data);
+        return false;
     }
 
     private static String parseSseDataLine(String line) {
@@ -220,6 +274,18 @@ public class AiAssistantClient {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private static String normalizeTenantId(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            return null;
+        }
+        String normalized = tenantId.trim();
+        if (!SAFE_TENANT_ID.matcher(normalized).matches()) {
+            throw new IllegalArgumentException(
+                    "tenantId must be 1-64 characters using letters, digits, _, ., :, or -");
+        }
+        return normalized;
+    }
+
     private static Duration validateTimeout(Duration timeout) {
         if (timeout == null) {
             throw new IllegalArgumentException("timeout is required");
@@ -240,6 +306,9 @@ public class AiAssistantClient {
         if (token != null) {
             builder.header("X-AI-Token", token);
         }
+        if (tenantId != null) {
+            builder.header("X-Tenant-Id", tenantId);
+        }
         return builder;
     }
 
@@ -249,12 +318,16 @@ public class AiAssistantClient {
         if (token != null) {
             builder.header("X-AI-Token", token);
         }
+        if (tenantId != null) {
+            builder.header("X-Tenant-Id", tenantId);
+        }
         return builder.build();
     }
 
     public static class Builder {
         private String baseUrl = "http://localhost:8080/ai-assistant";
         private String token;
+        private String tenantId;
         private Duration timeout = Duration.ofSeconds(60);
 
         public Builder baseUrl(String baseUrl) {
@@ -264,6 +337,11 @@ public class AiAssistantClient {
 
         public Builder token(String token) {
             this.token = token;
+            return this;
+        }
+
+        public Builder tenantId(String tenantId) {
+            this.tenantId = tenantId;
             return this;
         }
 
@@ -281,12 +359,23 @@ public class AiAssistantClient {
         private final int statusCode;
         private final String errorCode;
         private final String responseBody;
+        private final String requestId;
 
         public ApiException(int statusCode, String errorCode, String message, String responseBody) {
+            this(statusCode, errorCode, message, responseBody, null);
+        }
+
+        public ApiException(
+                int statusCode,
+                String errorCode,
+                String message,
+                String responseBody,
+                String requestId) {
             super(message);
             this.statusCode = statusCode;
             this.errorCode = errorCode;
             this.responseBody = responseBody;
+            this.requestId = requestId;
         }
 
         public int statusCode() {
@@ -299,6 +388,10 @@ public class AiAssistantClient {
 
         public String responseBody() {
             return responseBody;
+        }
+
+        public String requestId() {
+            return requestId;
         }
     }
 }

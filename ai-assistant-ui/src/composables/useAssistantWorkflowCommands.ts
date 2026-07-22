@@ -18,7 +18,7 @@ export function useAssistantWorkflowCommands(options: UseAssistantWorkflowComman
       id: 'ai.open-diagnostics',
       label: options.t.value.diagnosticsTitle || '连接诊断 / Connection diagnostics',
       group: '工作流',
-      icon: '🔍',
+      icon: 'search',
       keywords: ['diagnostics', 'health', '连接', '诊断'],
       action: () => {
         options.diagnosticsOpen.value = true;
@@ -28,7 +28,7 @@ export function useAssistantWorkflowCommands(options: UseAssistantWorkflowComman
       id: 'ai.open-sessions',
       label: options.t.value.sessionsDrawerTitle || '所有会话 / All sessions',
       group: '工作流',
-      icon: '📚',
+      icon: 'history',
       keywords: ['sessions', 'history', '会话', '抽屉'],
       action: () => {
         options.sessionsDrawerOpen.value = true;
@@ -38,7 +38,7 @@ export function useAssistantWorkflowCommands(options: UseAssistantWorkflowComman
       id: 'ai.open-export',
       label: options.t.value.export || '导出 / Export',
       group: '工作流',
-      icon: '⤓',
+      icon: 'download',
       keywords: ['export', 'download', '导出', '下载'],
       action: options.openExportMenu,
     },

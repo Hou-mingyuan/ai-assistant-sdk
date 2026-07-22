@@ -8,6 +8,8 @@
       :aria-label="props.title"
       @click.self="close"
       @keydown.esc="close"
+      @keydown.ctrl.k.stop.prevent="close"
+      @keydown.meta.k.stop.prevent="close"
     >
       <div
         class="ai-cmd-palette"
@@ -16,7 +18,7 @@
         @keydown.enter.prevent="runActive"
       >
         <div class="ai-cmd-palette-search">
-          <span class="ai-cmd-palette-icon" aria-hidden="true">🔍</span>
+          <AssistantIcon class="ai-cmd-palette-icon" name="search" :size="17" />
           <input
             ref="searchInput"
             v-model="query"
@@ -40,7 +42,13 @@
             @click="run(cmd)"
             @mouseenter="activeIndex = idx"
           >
-            <span class="ai-cmd-palette-item-icon" :aria-hidden="true">{{ cmd.icon ?? '◯' }}</span>
+            <span class="ai-cmd-palette-item-icon" aria-hidden="true">
+              <AssistantIcon
+                :name="cmd.icon ?? 'circle'"
+                :fallback-text="cmd.icon ?? ''"
+                :size="15"
+              />
+            </span>
             <span class="ai-cmd-palette-item-label">{{ cmd.label }}</span>
             <span v-if="cmd.group" class="ai-cmd-palette-item-group">{{ cmd.group }}</span>
             <kbd v-if="cmd.shortcut" class="ai-cmd-palette-item-kbd">{{ cmd.shortcut }}</kbd>
@@ -62,6 +70,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { CommandItem } from '../types/command-palette';
 
 interface Props {
@@ -171,7 +180,7 @@ async function run(cmd: CommandItem) {
 
 .ai-cmd-palette {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 8px;
   box-shadow:
     0 24px 64px -16px rgba(15, 23, 42, 0.36),
     0 12px 32px rgba(15, 23, 42, 0.18),
@@ -225,7 +234,7 @@ async function run(cmd: CommandItem) {
 }
 
 .ai-cmd-palette-icon {
-  font-size: 16px;
+  flex: 0 0 auto;
   opacity: 0.7;
 }
 
@@ -236,7 +245,7 @@ async function run(cmd: CommandItem) {
   background: transparent;
   font-size: 15px;
   color: inherit;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
 }
 
 .ai-cmd-palette-kbd,
@@ -281,13 +290,13 @@ async function run(cmd: CommandItem) {
 }
 
 .ai-cmd-palette-item.active {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(6, 182, 212, 0.1));
+  background: rgba(14, 165, 233, 0.12);
   color: #0ea5e9;
 }
 
 @media (prefers-color-scheme: dark) {
   .ai-cmd-palette-item.active {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(34, 211, 238, 0.12));
+    background: rgba(56, 189, 248, 0.16);
     color: #38bdf8;
   }
 }
@@ -299,7 +308,11 @@ async function run(cmd: CommandItem) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  color: currentColor;
+}
+
+.ai-cmd-palette-item-icon svg {
+  display: block;
 }
 
 .ai-cmd-palette-item-label {
@@ -349,6 +362,17 @@ async function run(cmd: CommandItem) {
   .ai-cmd-palette-foot kbd {
     background: #1e293b;
     border-color: #334155;
+  }
+}
+
+@media (max-width: 820px) {
+  .ai-cmd-palette-search,
+  .ai-cmd-palette-item {
+    min-height: 44px;
+  }
+
+  .ai-cmd-palette-input {
+    min-height: 44px;
   }
 }
 </style>

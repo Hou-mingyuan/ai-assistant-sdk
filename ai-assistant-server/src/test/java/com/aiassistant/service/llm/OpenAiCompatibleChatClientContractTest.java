@@ -24,8 +24,8 @@ class OpenAiCompatibleChatClientContractTest extends ChatCompletionClientContrac
     protected ChatCompletionClient newClient(MockWebServer server) {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setBaseUrl(server.url("/v1").toString());
-        // Short timeout so the network-failure / disconnect tests don't drag the suite.
-        properties.setTimeoutSeconds(2);
+        // Keep failure tests bounded without making Reactor/Netty cold startup flaky on Windows CI.
+        properties.setTimeoutSeconds(5);
         properties.setLlmMaxRetries(0);
         properties.setChatMaxTotalChars(16_000);
 

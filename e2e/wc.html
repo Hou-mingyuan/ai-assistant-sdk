@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>AI Assistant Web Component E2E</title>
+  </head>
+  <body>
+    <main>
+      <h1>AI Assistant Web Component E2E</h1>
+      <p>This page loads the published custom-element entry without a Vue host application.</p>
+    </main>
+    <ai-assistant
+      base-url="/ai-assistant"
+      tenant-id="e2e-tenant"
+      locale="en"
+      show-model-picker="true"
+    ></ai-assistant>
+    <script type="module" src="/src/wc.ts"></script>
+  </body>
+</html>

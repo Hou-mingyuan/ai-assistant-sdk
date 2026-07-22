@@ -17,6 +17,9 @@ public class ChatRequest {
     @Size(max = 300_000, message = "text exceeds 300000 characters")
     private String text;
 
+    @Pattern(
+            regexp = "[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8}){0,3}",
+            message = "targetLang must be a valid language tag")
     private String targetLang;
 
     @Size(max = 500, message = "history exceeds 500 messages")

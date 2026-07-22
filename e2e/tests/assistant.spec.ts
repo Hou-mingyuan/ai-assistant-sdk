@@ -1,28 +1,5 @@
 import { test, expect } from '@playwright/test'
 
-/**
- * TODO(K56-dom-drift): K55 (form auto-fill) + K56 (Doubao visual overhaul)
- * + Phase 6 (OpenAPI auto-config) shipped to origin/main with DOM /
- * selector drift that the e2e suite below has not yet been realigned
- * against.  Specifically:
- *   - `.ai-mode-bar` is no longer rendered; restored mode tests now target
- *     `.ai-mode-segmented` / `.ai-mode-segment`.
- *   - `.ai-code-wall-canvas` is rendered but timing/conditions changed
- *     so the post-click visibility assertion times out.
- *   - `.ai-header-diagnostics` / `.ai-diagnostics-panel` were moved out
- *     of AssistantHeader.vue (only ConnectionDiagnostics.vue still has
- *     them) and the open path differs.
- *
- * 6 specs below are temporarily marked `test.skip(...)` so CI can be
- * green while we triage with the UI owner.  Issue / PR to track:
- *   - Decide whether DOM is the source of truth (e2e follows) or the
- *     e2e contract is (UI restores selectors).
- *   - Once decided, restore each `test.skip(...)` → `test(...)` and
- *     adjust selectors / add data-testid attributes.
- *
- * See Round-6 audit risk #5.2 (AiAssistant.vue churn) and #5.6
- * (frontend/backend contract drift) for context.
- */
 test.describe('AI Assistant Widget', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -41,23 +18,74 @@ test.describe('AI Assistant Widget', () => {
     await expect(page.locator('.ai-header')).toBeVisible()
   })
 
-  // K56-dom-drift: code-wall canvas timing/conditional render changed
-  test.skip('panel renders non-interactive code wall canvas', async ({ page }) => {
+  test('mobile panel fits the visible viewport and locks background scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
     await page.click('.ai-fab')
-    const canvas = page.locator('.ai-code-wall-canvas')
-    await expect(canvas).toBeVisible()
-    await expect(canvas).toHaveAttribute('aria-hidden', 'true')
-    await expect(canvas).toHaveCSS('pointer-events', 'none')
+
+    await expect(page.locator('html')).toHaveClass(/ai-assistant-mobile-scroll-locked/)
+    await expect(page.locator('body')).toHaveClass(/ai-assistant-mobile-scroll-locked/)
+    const geometry = await page.locator('.ai-panel').evaluate((panel) => {
+      const rect = panel.getBoundingClientRect()
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportWidth: document.documentElement.clientWidth,
+        viewportHeight: document.documentElement.clientHeight,
+      }
+    })
+    expect(geometry.left).toBe(0)
+    expect(geometry.top).toBe(0)
+    expect(Math.abs(geometry.right - geometry.viewportWidth)).toBeLessThanOrEqual(1)
+    expect(Math.abs(geometry.bottom - geometry.viewportHeight)).toBeLessThanOrEqual(1)
+
+    const touchTargets = await page.locator('.ai-panel').evaluate((panel) => {
+      const selectors = [
+        '.ai-header-actions button',
+        '.ai-quick-toggle',
+        '.ai-mode-segment',
+        '.ai-model-picker-trigger',
+        '.ai-page-context-badge',
+        '.ai-attach-image',
+        '.ai-mic',
+        '.ai-voice-loop',
+        '.ai-tools-toggle',
+        '.ai-send',
+      ]
+      return Array.from(panel.querySelectorAll<HTMLButtonElement>(selectors.join(',')))
+        .filter((button) => button.getBoundingClientRect().width > 0)
+        .map((button) => ({
+          className: button.className,
+          height: button.getBoundingClientRect().height,
+        }))
+    })
+    expect(touchTargets.length).toBeGreaterThan(0)
+    expect(touchTargets.filter((target) => target.height < 32)).toEqual([])
+
+    await page.click('.ai-close')
+    await expect(page.locator('html')).not.toHaveClass(/ai-assistant-mobile-scroll-locked/)
+    await expect(page.locator('body')).not.toHaveClass(/ai-assistant-mobile-scroll-locked/)
+
+    await page.setViewportSize({ width: 768, height: 1024 })
     await expect
-      .poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.width))
-      .toBeGreaterThan(0)
-    await expect
-      .poll(() => canvas.evaluate((el: HTMLCanvasElement) => el.height))
-      .toBeGreaterThan(0)
+      .poll(async () => (await page.locator('.ai-fab').boundingBox())?.x ?? 0)
+      .toBeGreaterThan(680)
   })
 
-  // K56-dom-drift: matrix decoration was reworked, selector chain stale
-  test.skip('reduced motion disables decorative matrix animations', async ({ page }) => {
+  test('panel keeps the retired code wall non-interactive', async ({ page }) => {
+    await page.click('.ai-fab')
+    const canvas = page.locator('.ai-code-wall-canvas')
+    await expect(canvas).toBeAttached()
+    await expect(canvas).toBeHidden()
+    await expect(canvas).toHaveAttribute('aria-hidden', 'true')
+    await expect(canvas).toHaveCSS('pointer-events', 'none')
+    const textarea = page.locator('.ai-footer-textarea')
+    await textarea.fill('The hidden decoration must not intercept input')
+    await expect(textarea).toHaveValue('The hidden decoration must not intercept input')
+  })
+
+  test('reduced motion disables decorative shell animations', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.reload()
     await page.waitForSelector('.ai-fab')
@@ -68,7 +96,7 @@ test.describe('AI Assistant Widget', () => {
       .toBe('none')
 
     await page.click('.ai-fab')
-    await expect(page.locator('.ai-code-wall-canvas')).toBeVisible()
+    await expect(page.locator('.ai-code-wall-canvas')).toBeHidden()
     await expect
       .poll(() =>
         page.locator('.ai-panel').evaluate((el) => getComputedStyle(el, '::after').animationName),
@@ -76,8 +104,7 @@ test.describe('AI Assistant Widget', () => {
       .toBe('none')
   })
 
-  // K56-dom-drift: code-wall canvas conditional render changed
-  test.skip('code wall stays static while page is hidden', async ({ page }) => {
+  test('hidden page keeps retired code wall inert', async ({ page }) => {
     await page.evaluate(() => {
       Object.defineProperty(document, 'hidden', {
         configurable: true,
@@ -87,11 +114,10 @@ test.describe('AI Assistant Widget', () => {
     })
     await page.click('.ai-fab')
     const canvas = page.locator('.ai-code-wall-canvas')
-    await expect(canvas).toBeVisible()
-    const firstFrame = await canvas.evaluate((el: HTMLCanvasElement) => el.toDataURL())
-    await page.waitForTimeout(260)
-    const secondFrame = await canvas.evaluate((el: HTMLCanvasElement) => el.toDataURL())
-    expect(secondFrame).toBe(firstFrame)
+    await expect(canvas).toBeAttached()
+    await expect(canvas).toBeHidden()
+    await expect(canvas).toHaveCSS('pointer-events', 'none')
+    await expect(page.locator('.ai-footer-textarea')).toBeEditable()
   })
 
   test('panel has mode buttons', async ({ page }) => {
@@ -117,11 +143,22 @@ test.describe('AI Assistant Widget', () => {
   })
 
   test('model picker explains missing backend model list', async ({ page }) => {
+    await page.route('**/ai-assistant/models**', async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'Model service unavailable' }),
+      })
+    })
+    await page.reload()
+    await page.waitForSelector('.ai-fab')
     await page.click('.ai-fab')
     const modelPicker = page.locator('.ai-model-select')
     await expect(modelPicker).toBeVisible()
     await expect(modelPicker).toBeDisabled()
-    await expect(modelPicker).toContainText(/无法连接模型接口|Unable to reach model API|无模型列表|No models/)
+    await expect(modelPicker).toContainText(
+      /无法连接模型接口|模型接口返回服务端错误|Unable to reach model API|Model API returned a server error|无模型列表|No models/,
+    )
   })
 
   test('diagnostics panel shows connection details', async ({ page }) => {
@@ -183,11 +220,24 @@ test.describe('AI Assistant Widget', () => {
     await expect(statusRow).toHaveCSS('display', 'grid')
   })
 
-  // K56-dom-drift: relies on the same diagnostics opener as above
-  test.skip('connection settings update diagnostics endpoint', async ({ page }) => {
+  test('connection settings update diagnostics endpoint', async ({ page }) => {
+    await page.route('**/custom-ai/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          provider: 'demo',
+          model: 'demo-local',
+          models: ['demo-local'],
+          status: 'running',
+        }),
+      })
+    })
     await page.click('.ai-fab')
-    await page.click('.ai-header-diagnostics')
-    const diagnostics = page.locator('.ai-diagnostics-panel')
+    await page.click('.ai-header-settings')
+    await page.getByRole('menuitem', { name: /诊断|Diagnostics/ }).click()
+    const diagnostics = page.locator('.ai-diagnostics-dialog')
     await diagnostics.locator('input[type="text"]').fill('/custom-ai')
     await diagnostics.locator('input[type="password"]').fill('test-token')
     await page.getByRole('button', { name: /测试连接|Test connection/ }).click()
@@ -196,8 +246,7 @@ test.describe('AI Assistant Widget', () => {
     await expect(diagnostics.locator('.ai-connection-config-message')).toBeVisible()
   })
 
-  // K56-dom-drift: relies on the same diagnostics opener as above
-  test.skip('diagnostics copy includes troubleshooting details', async ({ page }) => {
+  test('diagnostics copy includes troubleshooting details', async ({ page }) => {
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
@@ -209,8 +258,9 @@ test.describe('AI Assistant Widget', () => {
       })
     })
     await page.click('.ai-fab')
-    await page.click('.ai-header-diagnostics')
-    const diagnostics = page.locator('.ai-diagnostics-panel')
+    await page.click('.ai-header-settings')
+    await page.getByRole('menuitem', { name: /诊断|Diagnostics/ }).click()
+    const diagnostics = page.locator('.ai-diagnostics-dialog')
     await diagnostics.getByRole('button', { name: /复制|Copy/ }).click()
     await expect(diagnostics.getByRole('button', { name: /已复制|Copied/ })).toBeVisible()
     await expect
@@ -225,8 +275,7 @@ test.describe('AI Assistant Widget', () => {
       .toContain('Last error:')
   })
 
-  // K56-dom-drift: relies on the same diagnostics opener as above
-  test.skip('clearing saved connection settings removes stale browser storage', async ({ page }) => {
+  test('clearing saved connection settings removes stale browser storage', async ({ page }) => {
     await page.evaluate(() => {
       localStorage.setItem('ai-assistant-connection-base-url', '/stale-ai')
       localStorage.setItem('ai-assistant-connection-token', 'stale-token')
@@ -234,8 +283,9 @@ test.describe('AI Assistant Widget', () => {
     await page.reload()
     await page.waitForSelector('.ai-fab')
     await page.click('.ai-fab')
-    await page.click('.ai-header-diagnostics')
-    const diagnostics = page.locator('.ai-diagnostics-panel')
+    await page.click('.ai-header-settings')
+    await page.getByRole('menuitem', { name: /诊断|Diagnostics/ }).click()
+    const diagnostics = page.locator('.ai-diagnostics-dialog')
     await expect(diagnostics).toContainText('/stale-ai/models')
 
     await diagnostics.locator('input[type="text"]').fill('')

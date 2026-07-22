@@ -18,6 +18,8 @@ export interface AiAssistantOptions {
   persistFabPosition?: boolean;
   locale?: 'en' | 'zh' | 'ja' | 'ko';
   accessToken?: string;
+  /** Optional tenant partition sent as the validated `X-Tenant-Id` header. */
+  tenantId?: string;
   /** Admin-only token for runtime provider configuration; falls back to accessToken when omitted. */
   adminToken?: string;
   /** 与 @error 事件并行，便于接入监控/日志 */
@@ -228,6 +230,9 @@ export type { PageSelectionState } from './composables/usePageSelection';
 export type { StreamOptions } from './composables/useAiAssistant';
 export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api';
 export {
+  AiAssistantApiError,
+  postChat,
+  streamChat,
   uploadFile,
   fetchUrlPreview,
   fetchModels,
@@ -237,7 +242,12 @@ export {
   postServerExport,
   saveRuntimeModelConfig,
 } from './utils/api';
-export type { ModelsListResult, PromptTemplateEntry, PromptTemplatesListResult } from './utils/api';
+export type {
+  ChatRuntimeMeta,
+  ModelsListResult,
+  PromptTemplateEntry,
+  PromptTemplatesListResult,
+} from './utils/api';
 export type { RuntimeModelConfigPayload, RuntimeModelConfigResult } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';

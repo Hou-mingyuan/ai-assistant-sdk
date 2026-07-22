@@ -24,6 +24,7 @@ export function useFabDrag(
   const fabTop = ref<number | null>(null);
   const edgeDock = ref<'none' | 'left' | 'right'>('none');
   const fabDragging = ref(false);
+  const fabPositionCustomized = ref(false);
   const fabDrag = ref<{
     pointerId: number;
     startX: number;
@@ -69,6 +70,13 @@ export function useFabDrag(
         fabLeft.value = c.left;
         fabTop.value = c.top;
         if (o.edgeDock === 'left' || o.edgeDock === 'right') edgeDock.value = o.edgeDock;
+        if (typeof o.customized === 'boolean') {
+          fabPositionCustomized.value = o.customized;
+        } else {
+          const d = defaultFabCoords();
+          fabPositionCustomized.value =
+            edgeDock.value !== 'none' || Math.hypot(c.left - d.left, c.top - d.top) > 2;
+        }
       }
     } catch {
       /* Ignore malformed persisted positions. */
@@ -81,7 +89,14 @@ export function useFabDrag(
     try {
       localStorage.setItem(
         FAB_POS_KEY,
-        JSON.stringify({ left: fabLeft.value, top: fabTop.value, edgeDock: dock }),
+        JSON.stringify({
+          left: fabLeft.value,
+          top: fabTop.value,
+          edgeDock: dock,
+          customized: fabPositionCustomized.value,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        }),
       );
     } catch {
       /* Ignore localStorage write failures. */
@@ -89,6 +104,7 @@ export function useFabDrag(
   }
 
   function dockFab(edge: 'none' | 'left' | 'right') {
+    fabPositionCustomized.value = true;
     if (fabLeft.value === null || fabTop.value === null) {
       const d = defaultFabCoords();
       fabLeft.value = d.left;
@@ -118,6 +134,7 @@ export function useFabDrag(
     const dy = e.clientY - d.startY;
     if (Math.hypot(dx, dy) > DOCK_BREAK_PX) {
       edgeDock.value = 'none';
+      fabPositionCustomized.value = true;
     }
     if (edgeDock.value !== 'none') return;
     const c = clampFabPos(d.originLeft + dx, d.originTop + dy);
@@ -176,6 +193,10 @@ export function useFabDrag(
     fabDragging.value = false;
   }
 
+  function markFabPositionCustomized() {
+    fabPositionCustomized.value = true;
+  }
+
   onUnmounted(cleanupFabDrag);
 
   const edgeDockClass = computed(() => {
@@ -190,11 +211,13 @@ export function useFabDrag(
     fabTop,
     edgeDock,
     fabDragging,
+    fabPositionCustomized,
     edgeDockClass,
     clampFabPos,
     defaultFabCoords,
     loadFabPos,
     saveFabPos,
+    markFabPositionCustomized,
     dockFab,
     onFabPointerDown,
     cleanupFabDrag,

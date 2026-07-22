@@ -74,6 +74,14 @@ describe('AssistantHeader action hierarchy', () => {
     expect(menuText).toContain('Export');
     expect(menuText).toContain('Manage');
     expect(menuText).not.toContain('Fullscreen');
+    const themeAction = wrapper
+      .findAll('.ai-header-settings-item')
+      .find((item) => item.text().includes('Dark mode'));
+    const selectAction = wrapper
+      .findAll('.ai-header-settings-item')
+      .find((item) => item.text().includes('Select messages'));
+    expect(themeAction?.find('svg').exists()).toBe(true);
+    expect(selectAction?.find('svg').exists()).toBe(true);
 
     wrapper.unmount();
   });

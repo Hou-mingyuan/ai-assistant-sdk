@@ -767,7 +767,7 @@
   max-width: 100%;
 }
 
-/* #8 助手头像换成渐变 ✨ */
+/* #8 助手头像使用品牌色标记 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar {
   width: 24px !important;
   height: 24px !important;
@@ -1011,7 +1011,7 @@
   min-height: 200px;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
-  content: '✨';
+  content: '';
   font-size: 40px;
   margin-bottom: 12px;
   background: linear-gradient(
@@ -1307,9 +1307,7 @@
   box-shadow: 0 2px 8px -2px rgba(14, 165, 233, 0.35);
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]::before {
-  content: '🔗';
-  font-size: 0.85em;
-  opacity: 0.8;
+  content: none;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-md a[href]:not(.ai-link-bare) {
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(34, 211, 238, 0.06));

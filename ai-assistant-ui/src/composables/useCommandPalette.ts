@@ -6,6 +6,8 @@ export interface UseCommandPaletteOptions {
   shortcut?: string | false;
   /** Whether to register the global keyboard listener. Default true. */
   registerShortcut?: boolean;
+  /** Optional scope guard for pages that host more than one command palette. */
+  shouldHandleShortcut?: (event: KeyboardEvent) => boolean;
   /** Initial commands to register. More can be added at runtime via register(). */
   commands?: CommandItem[];
 }
@@ -84,6 +86,7 @@ export function useCommandPalette(opts: UseCommandPaletteOptions = {}) {
   function onKeyDown(ev: KeyboardEvent) {
     if (!sc) return;
     if (matchesShortcut(ev, sc)) {
+      if (opts.shouldHandleShortcut?.(ev) === false) return;
       ev.preventDefault();
       toggle();
     }

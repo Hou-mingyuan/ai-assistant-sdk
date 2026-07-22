@@ -22,3 +22,8 @@
 !ai-assistant-observability-support/pom.xml
 !ai-assistant-observability-support/src/
 !ai-assistant-observability-support/src/**
+
+# The root reactor lists the Starter demo module, so Maven must be able to
+# read its POM even though the service image does not compile the demo sources.
+!ai-assistant-demo/
+!ai-assistant-demo/pom.xml

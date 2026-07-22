@@ -36,5 +36,6 @@
         <module>ai-assistant-observability-support</module>
         <module>ai-assistant-service</module>
         <module>ai-assistant-client</module>
+        <module>ai-assistant-demo</module>
     </modules>
 </project>

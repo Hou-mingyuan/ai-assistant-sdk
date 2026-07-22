@@ -104,7 +104,7 @@ public class LlmService {
             ConversationMemoryProvider memoryProvider,
             List<ChatInterceptor> interceptors,
             AuditEventStore auditEventStore) {
-        this.keyRotator = new ApiKeyRotator(properties::resolveApiKeys);
+        this.keyRotator = new ApiKeyRotator(properties::resolveLlmCredentials);
         this.llmCache = new LlmResponseCache();
         this.requestBuilder = new LlmRequestBuilder(properties, objectMapper, toolRegistry);
         this.responseParser = new OpenAiResponseParser(objectMapper);
@@ -199,14 +199,15 @@ public class LlmService {
     }
 
     public String translate(String text, String targetLang, String requestModel) {
+        String normalizedTargetLang = LlmRequestBuilder.normalizeTargetLanguage(targetLang);
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
             String modelId = resolveModelWithRouter(requestModel, "translate");
-            String cacheOp = "translate:" + targetLang + ":" + modelId;
+            String cacheOp = "translate:" + normalizedTargetLang + ":" + modelId;
             String hit = llmCache.get(cacheOp, text);
             if (hit != null) return hit;
-            String systemPrompt = requestBuilder.translatePrompt(targetLang);
+            String systemPrompt = requestBuilder.translatePrompt(normalizedTargetLang);
             String result =
                     callLlm(
                             systemPrompt,
@@ -386,10 +387,11 @@ public class LlmService {
     }
 
     public Flux<String> translateStream(String text, String targetLang, String requestModel) {
+        String normalizedTargetLang = LlmRequestBuilder.normalizeTargetLanguage(targetLang);
         int reserved = checkQuotaAndReserve();
         String tenantId = TenantContext.tenantId();
         try {
-            String systemPrompt = requestBuilder.translatePrompt(targetLang);
+            String systemPrompt = requestBuilder.translatePrompt(normalizedTargetLang);
             String modelId = resolveModelWithRouter(requestModel, "translate");
             return callLlmStream(
                             systemPrompt,

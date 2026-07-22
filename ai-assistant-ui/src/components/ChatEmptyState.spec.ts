@@ -13,17 +13,17 @@ function mountEmptyState() {
       starterSectionLabel: 'Recommended tasks',
       capabilitySectionLabel: 'Capabilities',
       templateSectionLabel: 'Templates',
-      skills: [{ icon: 'W', label: 'Write', tone: 'violet', prompt: 'Write ' }],
+      skills: [{ icon: 'pen-line', label: 'Write', tone: 'violet', prompt: 'Write ' }],
       starters: [
         {
-          icon: 'M',
+          icon: 'briefcase-business',
           title: 'Draft mail',
           desc: 'Polished tone',
           prompt: 'Draft ',
           tone: 'cyan',
         },
       ],
-      capabilityHints: [{ icon: 'C', label: 'Context aware' }],
+      capabilityHints: [{ icon: 'command', label: 'Context aware' }],
       promptTemplates: [{ label: 'Weekly report', template: 'Report' }],
     },
   });
@@ -43,6 +43,7 @@ describe('ChatEmptyState task launcher', () => {
     expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Draft mail');
     expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Capabilities');
     expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Templates');
+    expect(wrapper.findAll('.ai-empty-task-panel [data-assistant-icon]')).toHaveLength(3);
 
     await wrapper.find('.ai-empty-starter').trigger('click');
     expect(wrapper.emitted('apply-starter')?.[0]?.[0]).toMatchObject({ title: 'Draft mail' });

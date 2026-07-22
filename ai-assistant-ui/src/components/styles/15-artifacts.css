@@ -41,9 +41,18 @@
 }
 
 .ai-artifact-card-icon {
-  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: currentColor;
   line-height: 1;
   flex: none;
+}
+
+.ai-artifact-card-icon svg {
+  display: block;
 }
 
 .ai-artifact-card-body {
@@ -156,6 +165,10 @@
 }
 
 .ai-artifact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   font-size: 12px;
   padding: 4px 10px;
   border: 1px solid var(--ai-c-border, #e5e7eb);
@@ -444,9 +457,21 @@
 }
 
 .ai-artifact-runner-error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
-  font-size: 14px;
   line-height: 1;
+}
+
+@media (max-width: 820px) {
+  .ai-artifact-btn,
+  .ai-artifact-runner-error-link,
+  .ai-artifact-runner-error-close,
+  .ai-artifact-console-toggle,
+  .ai-artifact-console-clear {
+    min-height: 44px;
+  }
 }
 
 .ai-artifact-runner-error-body {

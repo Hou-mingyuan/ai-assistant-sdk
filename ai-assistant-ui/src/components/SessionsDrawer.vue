@@ -26,7 +26,7 @@
               :aria-label="t.closePanel"
               @click="$emit('close')"
             >
-              &times;
+              <AssistantIcon name="x" :size="16" />
             </button>
           </div>
 
@@ -73,9 +73,9 @@
                   @click="onPick(s.id)"
                 >
                   <span class="ai-sessions-drawer-item-title">
-                    <span v-if="s.pinned" class="ai-sessions-drawer-item-pin" aria-label="pinned"
-                      >★</span
-                    >
+                    <span v-if="s.pinned" class="ai-sessions-drawer-item-pin" aria-label="pinned">
+                      <AssistantIcon name="star" :size="12" />
+                    </span>
                     {{ s.title || t.newSession || 'New chat' }}
                   </span>
                   <span class="ai-sessions-drawer-item-meta">
@@ -109,7 +109,7 @@
                     :aria-pressed="s.pinned ? 'true' : 'false'"
                     @click.stop="$emit('toggle-pin', s.id)"
                   >
-                    ★
+                    <AssistantIcon name="star" :size="15" />
                   </button>
                   <button
                     type="button"
@@ -118,7 +118,7 @@
                     :aria-label="t.sessionsDrawerRename || 'Rename'"
                     @click.stop="startRename(s)"
                   >
-                    ✎
+                    <AssistantIcon name="pencil" :size="15" />
                   </button>
                   <button
                     v-if="sessions.length > 1"
@@ -127,7 +127,7 @@
                     :aria-label="t.closeSession || 'Delete'"
                     @click.stop="$emit('delete', s.id)"
                   >
-                    &times;
+                    <AssistantIcon name="x" :size="15" />
                   </button>
                 </div>
                 <!-- K39: matched-message snippets shown under each session
@@ -154,7 +154,7 @@
                       @click.stop="onPickMessage(match.sessionId, match.msgIndex)"
                     >
                       <span class="ai-sessions-drawer-match-role">
-                        {{ match.role === 'user' ? '👤' : '🤖' }}
+                        <AssistantIcon :name="match.role === 'user' ? 'user' : 'bot'" :size="14" />
                       </span>
                       <!-- match.snippet is escaped in useCrossSessionSearch; only <mark> is injected. -->
                       <!-- eslint-disable vue/no-v-html -->
@@ -174,6 +174,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, toRef } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SessionEntry } from '../composables/useMultiSession';
 import { useCrossSessionSearch } from '../composables/useCrossSessionSearch';

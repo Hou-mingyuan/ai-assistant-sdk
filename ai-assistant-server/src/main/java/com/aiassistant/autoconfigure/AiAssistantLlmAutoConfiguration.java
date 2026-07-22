@@ -7,7 +7,7 @@ import com.aiassistant.connector.DataConnector;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.service.llm.ChatCompletionClient;
-import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
+import com.aiassistant.service.llm.ProviderAwareChatCompletionClient;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.tool.ToolDefinition;
@@ -32,7 +32,7 @@ public class AiAssistantLlmAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ChatCompletionClient chatCompletionClient(AiAssistantProperties properties) {
-        return new OpenAiCompatibleChatClient(properties);
+        return new ProviderAwareChatCompletionClient(properties);
     }
 
     @Bean

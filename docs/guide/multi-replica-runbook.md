@@ -30,7 +30,7 @@ helm test <release>
 | **RAG 向量库** | ❌ **仍是内存** | — | — |
 
 ::: warning RAG 向量库例外
-RAG 向量库没有 Redis 变体。多副本 + `rag-enabled=true` 时，必须自行提供共享 `VectorStore` bean（Milvus / Qdrant / pgvector），否则各副本索引互不可见。
+RAG 向量库没有 Redis 变体，仓库也不交付外部向量数据库适配器。多副本 + `rag-enabled=true` 时，必须由宿主自行实现并提供共享 `VectorStore` Bean，再通过持久化、租户、维度和故障契约测试；否则各副本索引互不可见。
 :::
 
 四条 Redis 路径（限流 / 会话 / 记忆 / 配额）均为 **fail-open**：Redis 宕机时不抛错拖垮请求，而是优雅降级（限流/配额放行、会话读空、记忆读空、写不持久化），并按 30 秒节流打告警。生产仍需在 API 网关保留一道硬上限兜底。

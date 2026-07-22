@@ -1,7 +1,7 @@
 {
   "name": "ai-assistant-vue-playground",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-assistant/vue": "file:../ai-assistant-ui",
+    "@lucide/vue": "^1.25.0",
     "vue": "^3.4.0"
   },
   "devDependencies": {
@@ -20,7 +21,7 @@
     "html2canvas": "^1.4.1",
     "jsdom": "^25.0.1",
     "typescript": "^5.4.0",
-    "vite": "^5.2.0",
+    "vite": "^6.4.3",
     "vitest": "^3.0.5",
     "vue-tsc": "^2.0.0"
   }

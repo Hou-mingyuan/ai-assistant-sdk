@@ -26,13 +26,14 @@ Do **not** mix Starter and standalone URLs in one frontend without aligning `bas
 ### Prerequisites
 
 - Docker Desktop or Docker Engine + Compose v2
-- A valid LLM provider API key
+- Node.js 22 when running the repository smoke scripts
+- No provider key is required for the explicit deterministic Demo mode; a valid key is required only for a real provider
 
 ### Quick start
 
 ```bash
 copy .env.example .env
-# Edit .env — at minimum set AI_ASSISTANT_API_KEY and (recommended) AI_ASSISTANT_ACCESS_TOKEN
+# .env.example starts in explicit Demo mode. For a real provider, set provider, base URL, model and key.
 docker compose up -d --build
 ```
 
@@ -65,7 +66,7 @@ Full walkthrough: **[docs/DEMO.md](docs/DEMO.md)** (Chinese, portfolio-oriented)
 
 ### Zero-key smoke (no LLM billing)
 
-Service starts without `AI_ASSISTANT_API_KEY`. Health and chat **routing** are verifiable; live streaming chat requires a key.
+The service starts with the explicit deterministic `demo` provider when `AI_ASSISTANT_API_KEY` is empty. Both blocking chat and SSE are exercised through the real application stack; the response is visibly marked as Demo/mock output.
 
 ```bash
 cp .env.example .env
@@ -73,9 +74,9 @@ docker compose up -d --build
 node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
 ```
 
-`POST /chat` returns **HTTP 503** when no provider key is configured — expected for zero-key smoke (proves the endpoint is mounted).
+`POST /chat` and `POST /stream` return HTTP 200 in Demo mode. Health/config responses include Demo/mock metadata, and chat responses include `meta.provider=demo`, so this path cannot be mistaken for a live model.
 
-See [docs/DEMO.md](./docs/DEMO.md#smoke-zero-keymjs-验收清单与脚本一致) for the full six-check matrix aligned with `scripts/smoke-zero-key.mjs`.
+See [docs/DEMO.md](./docs/DEMO.md#单独运行零密钥-smoke) for the eight-check matrix aligned with `scripts/smoke-zero-key.mjs`.
 
 ### One-click Playground demo (`docker-compose.demo.yml`)
 
@@ -89,7 +90,7 @@ See [docs/DEMO.md](./docs/DEMO.md#smoke-zero-keymjs-验收清单与脚本一致)
 
 Opens **http://localhost:3000/** (backend proxied at `/ai-assistant`). Runs `scripts/smoke-demo-compose.mjs` after `up`.
 
-### Full streaming demo (API key required)
+### Real-provider streaming demo (API key required)
 
 1. Set `AI_ASSISTANT_API_KEY` in `.env` and restart compose.
 2. Open the Playground floating assistant → ask a question → confirm SSE on `/stream`.

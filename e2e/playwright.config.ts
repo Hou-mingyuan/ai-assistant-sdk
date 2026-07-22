@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
+const backendOrigin =
+  process.env.AI_ASSISTANT_E2E_BACKEND_ORIGIN || 'http://127.0.0.1:8080'
+
 export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
@@ -24,13 +27,24 @@ export default defineConfig({
    * than silently sliding to 5274 and leaving Playwright probing a port
    * that no one ever bound.
    */
-  webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 5273 --strictPort',
-    cwd: '.',
-    url: 'http://127.0.0.1:5273/',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  webServer: [
+    {
+      command: 'node start-real-backend.mjs',
+      cwd: '.',
+      url: `${backendOrigin}/actuator/health/readiness`,
+      reuseExistingServer: false,
+      timeout: 300_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    {
+      command: 'npm run dev -- --host 127.0.0.1 --port 5273 --strictPort',
+      cwd: '.',
+      url: 'http://127.0.0.1:5273/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+  ],
 })

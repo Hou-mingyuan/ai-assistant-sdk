@@ -1,6 +1,6 @@
-# MCP Server
+# MCP Server（experimental）
 
-MCP Server 用于把 AI Assistant SDK 的能力暴露给支持 Model Context Protocol 的客户端或 Agent。
+该端点把 AI Assistant SDK 的能力暴露为 HTTP JSON-RPC 工具。当前只实现 `initialize`、`tools/list`、`tools/call` 三个方法，不包含其它 MCP 方法、stdio/SSE transport、资源、Prompt、订阅、会话协商或完整客户端兼容认证，因此不承诺符合完整 MCP 规范。
 
 ## 启用
 
@@ -19,9 +19,9 @@ AI_ASSISTANT_MCP_SERVER_ENABLED=true
 
 ## 适用场景
 
-- 让外部 Agent 查询小助手能力列表。
-- 将业务连接器能力暴露为标准工具。
-- 与低代码平台或内部自动化平台集成。
+- 在受控网络内验证工具发现和工具调用协议。
+- 由宿主针对目标客户端补契约测试后，接入内部自动化平台。
+- 不应仅凭本端点存在就宣称某个第三方 MCP 客户端已经兼容。
 
 ## 安全建议
 
@@ -39,3 +39,5 @@ AI_ASSISTANT_MCP_SERVER_ENABLED=true
 3. 暴露的工具范围。
 4. 工具调用是否允许副作用。
 5. 错误和超时如何反馈给客户端。
+
+需要完整 MCP 兼容时，应先补齐目标规范版本、transport、生命周期、鉴权和官方互操作测试；在此之前该能力保持 `experimental`。

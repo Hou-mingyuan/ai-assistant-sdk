@@ -2,9 +2,9 @@ import type { I18nMessages } from './types';
 
 export const zh: I18nMessages = {
   greeting: '你好',
-  translate: '🌐 翻译',
-  summarize: '📝 摘要',
-  chat: '💬 对话',
+  translate: '翻译',
+  summarize: '摘要',
+  chat: '对话',
   placeholder: {
     translate: '粘贴要翻译的文字...',
     summarize: '粘贴要摘要的文字...',

@@ -117,6 +117,7 @@ export interface UseSendStreamDeps {
     token?: string,
     signal?: AbortSignal,
     onMeta?: (meta: ChatRuntimeMeta) => void,
+    tenantId?: string,
   ) => AsyncIterable<string>;
   /** Optional page-link preview fetcher (used to side-attach images). */
   fetchUrlPreview: (baseUrl: string, pageUrl: string, token?: string) => Promise<UrlPreviewResult>;
@@ -734,16 +735,24 @@ export function useSendStream(deps: UseSendStreamDeps) {
     const controller = new AbortController();
     deps.setStreamAbortController(controller);
     try {
-      const fullContent = await applyStreamToAssistantMessage(
-        msgIndex,
-        deps.streamWithFallback(
-          deps.options.baseUrl!,
-          payload,
-          deps.options.accessToken,
-          controller.signal,
-          (meta) => applyRuntimeMeta(msgIndex, meta),
-        ),
-      );
+      const onMeta = (meta: ChatRuntimeMeta) => applyRuntimeMeta(msgIndex, meta);
+      const stream = deps.options.tenantId
+        ? deps.streamWithFallback(
+            deps.options.baseUrl!,
+            payload,
+            deps.options.accessToken,
+            controller.signal,
+            onMeta,
+            deps.options.tenantId,
+          )
+        : deps.streamWithFallback(
+            deps.options.baseUrl!,
+            payload,
+            deps.options.accessToken,
+            controller.signal,
+            onMeta,
+          );
+      const fullContent = await applyStreamToAssistantMessage(msgIndex, stream);
       streamDone = true;
       handleStreamSuccess(fullContent, text, msgIndex, requestStartedAt, urlPreviewImgs);
     } catch (e: unknown) {

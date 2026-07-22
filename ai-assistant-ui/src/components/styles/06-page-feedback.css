@@ -228,6 +228,8 @@
   color: var(--text-muted, var(--ai-c-slate-400));
   margin-top: 2px;
   display: block;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .ai-msg.user .ai-msg-time {
   text-align: right;

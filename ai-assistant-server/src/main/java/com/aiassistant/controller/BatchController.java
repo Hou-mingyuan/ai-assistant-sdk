@@ -106,6 +106,8 @@ public class BatchController {
                         default -> llmService.chat(text, null, null, null);
                     };
             return Map.of("index", index, "result", result, "action", action);
+        } catch (IllegalArgumentException e) {
+            return Map.of("index", index, "code", "INVALID_REQUEST", "error", e.getMessage());
         } catch (Exception e) {
             log.warn("Batch item {} failed: {}", index, e.getMessage());
             return Map.of("index", index, "error", "Processing failed");

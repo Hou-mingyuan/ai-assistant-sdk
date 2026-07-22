@@ -16,6 +16,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Artifact } from '../types/message';
 import { buildShareableHtml } from '../utils/artifactHtml';
+import AssistantIcon from './AssistantIcon.vue';
 
 const props = defineProps<{ artifact: Artifact }>();
 
@@ -31,8 +32,6 @@ const CDN = {
   vue: 'https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js',
   sfcLoader: 'https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js',
 };
-
-const JS_RUN_LANGS = new Set(['js', 'javascript', 'node', 'nodejs', 'mjs', 'ts', 'typescript']);
 
 const channelId = 'airun-' + Math.random().toString(36).slice(2, 10);
 const logs = ref<LogLine[]>([]);
@@ -254,15 +253,19 @@ function openInNewTab() {
         title="在新标签页打开渲染后的预览"
         @click="openInNewTab"
       >
-        ↗ 新标签
+        <AssistantIcon name="external-link" :size="14" />
+        <span>新标签</span>
       </button>
       <button type="button" class="ai-artifact-btn" title="重新运行" @click="rerun">
-        ↻ 重新运行
+        <AssistantIcon name="rotate-ccw" :size="14" />
+        <span>重新运行</span>
       </button>
     </div>
 
     <div v-if="errorCount && !errorDismissed" class="ai-artifact-runner-error" role="alert">
-      <span class="ai-artifact-runner-error-icon" aria-hidden="true">⚠</span>
+      <span class="ai-artifact-runner-error-icon" aria-hidden="true">
+        <AssistantIcon name="triangle-alert" :size="18" />
+      </span>
       <div class="ai-artifact-runner-error-body">
         <strong class="ai-artifact-runner-error-title">运行出错</strong>
         <span class="ai-artifact-runner-error-msg">{{ lastError }}</span>
@@ -277,7 +280,7 @@ function openInNewTab() {
         aria-label="关闭提示"
         @click="errorDismissed = true"
       >
-        ✕
+        <AssistantIcon name="x" :size="15" />
       </button>
     </div>
 
@@ -298,7 +301,7 @@ function openInNewTab() {
           class="ai-artifact-console-toggle"
           @click="consoleOpen = !consoleOpen"
         >
-          <span>{{ consoleOpen ? '▾' : '▸' }}</span>
+          <AssistantIcon :name="consoleOpen ? 'chevron-down' : 'chevron-right'" :size="14" />
           控制台
           <span class="ai-artifact-console-count">{{ logs.length }}</span>
           <span v-if="errorCount" class="ai-artifact-console-errcount">{{ errorCount }} 错误</span>

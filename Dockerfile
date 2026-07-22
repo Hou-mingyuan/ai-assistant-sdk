@@ -26,10 +26,11 @@ COPY ai-assistant-server/pom.xml ai-assistant-server/pom.xml
 COPY ai-assistant-observability-support/pom.xml ai-assistant-observability-support/pom.xml
 COPY ai-assistant-client/pom.xml ai-assistant-client/pom.xml
 COPY ai-assistant-service/pom.xml ai-assistant-service/pom.xml
+COPY ai-assistant-demo/pom.xml ai-assistant-demo/pom.xml
 
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -q -N -DskipTests install \
-    && mvn -q -DskipTests \
+    && mvn -q -pl ai-assistant-service -am -DskipTests \
         -Dspotless.check.skip=true \
         -Dcheckstyle.skip=true \
         -Djacoco.skip=true \
@@ -41,7 +42,7 @@ COPY ai-assistant-client/src ai-assistant-client/src
 COPY ai-assistant-service/src ai-assistant-service/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -q -DskipTests ${MAVEN_ARGS} \
+    mvn -q -pl ai-assistant-service -am -DskipTests ${MAVEN_ARGS} \
         -Dspotless.check.skip=true \
         -Dcheckstyle.skip=true \
         -Djacoco.skip=true \
@@ -62,7 +63,9 @@ LABEL org.opencontainers.image.revision="${VCS_REF}"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.source="https://github.com/Hou-mingyuan/ai-assistant-sdk"
 
-RUN addgroup -S assistant && adduser -S assistant -G assistant
+RUN apk upgrade --no-cache \
+    && addgroup -S assistant \
+    && adduser -S assistant -G assistant
 
 WORKDIR /app
 

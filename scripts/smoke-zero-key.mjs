@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Zero-key portfolio smoke: health, runtime probes, and chat routing without LLM billing.
- * Chat POST is expected to return HTTP 503 when no provider API key is configured — that still
- * proves the /chat pipeline is wired.
+ * Zero-key demo smoke: health, runtime probes, blocking chat, and SSE streaming without an
+ * external provider key. The service must explicitly report the deterministic demo provider;
+ * fixed output is never accepted as a live AI response.
  */
 const rawBaseUrl = process.argv[2] || process.env.AI_ASSISTANT_SMOKE_BASE_URL || 'http://localhost:8080/ai-assistant'
 const timeoutMs = Number.parseInt(process.env.AI_ASSISTANT_SMOKE_TIMEOUT_MS || '5000', 10)
@@ -17,11 +17,21 @@ const checks = [
     name: 'assistant health',
     url: `${baseUrl}/health`,
     expectedStatus: 200,
-    validate: body => body?.success === true && body?.status === 'running',
+    validate: body => body?.success === true
+      && body?.status === 'running'
+      && body?.provider === 'demo'
+      && body?.mode === 'demo'
+      && body?.mock === true,
   },
   {
     name: 'actuator liveness',
     url: `${serviceOrigin}/actuator/health/liveness`,
+    expectedStatus: 200,
+    validate: body => body?.status === 'UP',
+  },
+  {
+    name: 'actuator readiness',
+    url: `${serviceOrigin}/actuator/health/readiness`,
     expectedStatus: 200,
     validate: body => body?.status === 'UP',
   },
@@ -38,19 +48,37 @@ const checks = [
     validate: validateRuntimeConfig,
   },
   {
-    name: 'provider health (no key)',
+    name: 'explicit demo provider health',
     url: `${baseUrl}/health/provider`,
     expectedStatus: 200,
-    validate: body => body?.status === 'DOWN' || body?.status === 'PENDING' || body?.status === 'UNKNOWN',
+    validate: body => body?.status === 'UP'
+      && body?.provider === 'demo'
+      && body?.mode === 'demo'
+      && body?.mock === true,
   },
   {
-    name: 'chat routing without provider key',
+    name: 'deterministic demo chat pipeline',
     method: 'POST',
     url: `${baseUrl}/chat`,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'ping', action: 'chat' }),
-    expectedStatus: 503,
-    validate: body => body?.success === false,
+    body: JSON.stringify({ text: 'ping from zero-key smoke', action: 'chat' }),
+    expectedStatus: 200,
+    validate: body => body?.success === true
+      && body?.result?.includes('[DEMO MODE - deterministic local response, not real AI]')
+      && body?.result?.includes('ping from zero-key smoke')
+      && body?.meta?.provider === 'demo',
+  },
+  {
+    name: 'deterministic demo SSE pipeline',
+    method: 'POST',
+    url: `${baseUrl}/stream`,
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify({ text: 'stream from zero-key smoke', action: 'chat' }),
+    expectedStatus: 200,
+    expectedContentType: 'text/event-stream',
+    responseType: 'text',
+    validate: body => body.includes('[DEMO MODE - deterministic local response, not real AI]')
+      && body.includes('stream from zero-key smoke'),
   },
 ]
 
@@ -58,9 +86,9 @@ try {
   for (const check of checks) {
     await runCheck(check)
   }
-  console.log(`Zero-key smoke passed: ${baseUrl}`)
+  console.log(`Zero-key demo smoke passed: ${baseUrl}`)
 } catch (error) {
-  console.error(`Zero-key smoke failed: ${error.message}`)
+  console.error(`Zero-key demo smoke failed: ${error.message}`)
   process.exitCode = 1
 }
 
@@ -101,7 +129,14 @@ async function runSingleCheck(check) {
     throw new Error(`${check.name} expected HTTP ${check.expectedStatus}, got ${response.status}: ${text.slice(0, 200)}`)
   }
 
-  const body = await parseJson(response)
+  if (check.expectedContentType) {
+    const actualContentType = response.headers.get('content-type') || ''
+    if (!actualContentType.toLowerCase().includes(check.expectedContentType.toLowerCase())) {
+      throw new Error(`${check.name} expected Content-Type ${check.expectedContentType}, got ${actualContentType || '<missing>'}`)
+    }
+  }
+
+  const body = check.responseType === 'text' ? await response.text() : await parseJson(response)
   if (check.validate && !check.validate(body)) {
     throw new Error(`${check.name} returned unexpected body: ${JSON.stringify(body).slice(0, 300)}`)
   }
@@ -119,6 +154,8 @@ function validateRuntimeConfig(body) {
     && body.features
     && body.limits
     && typeof body.service.contextPath === 'string'
+    && body.service.mode === 'demo'
+    && body.service.mockProvider === true
     && typeof body.security.accessTokenConfigured === 'boolean'
 }
 

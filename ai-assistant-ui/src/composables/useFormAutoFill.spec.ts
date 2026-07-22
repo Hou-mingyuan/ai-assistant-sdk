@@ -133,6 +133,26 @@ describe('useFormAutoFill - confirmFill + undo', () => {
     expect(f.toastVisible.value).toBe(true);
   });
 
+  it('keeps undo available beyond five seconds and dismisses after fifteen seconds', () => {
+    vi.useFakeTimers();
+    try {
+      mountForm(`<input name="name" />`);
+      const { deps } = makeDeps();
+      const f = useFormAutoFill(deps);
+      f.inspectPasteText('name: Alice\nx: y');
+      f.confirmFill();
+
+      vi.advanceTimersByTime(5_001);
+      expect(f.toastVisible.value).toBe(true);
+      expect(f.lastFillRecords.value).toHaveLength(1);
+
+      vi.advanceTimersByTime(9_999);
+      expect(f.toastVisible.value).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('undoLastFill restores original values', () => {
     mountForm(`
       <input name="name" value="Original" />

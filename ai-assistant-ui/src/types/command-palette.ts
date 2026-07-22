@@ -11,7 +11,7 @@ export interface CommandItem {
   label: string;
   /** Optional group / category label (right-aligned chip in the list). */
   group?: string;
-  /** Optional emoji or single-glyph icon shown left of the label. */
+  /** Semantic built-in icon name, or a host-provided fallback glyph. */
   icon?: string;
   /** Optional human-readable shortcut, e.g. "Ctrl+Shift+P" -- shown only. */
   shortcut?: string;

@@ -1,10 +1,10 @@
 import type { I18nMessages } from './types';
 
 export const en: I18nMessages = {
-  greeting: '👋 Hi! I can help you:',
-  translate: '🌐 Translate',
-  summarize: '📝 Summarize',
-  chat: '💬 Chat',
+  greeting: 'Hi! I can help you:',
+  translate: 'Translate',
+  summarize: 'Summarize',
+  chat: 'Chat',
   placeholder: {
     translate: 'Paste text to translate...',
     summarize: 'Paste text to summarize...',

@@ -51,7 +51,7 @@ const sizeOverrides = Object.entries(historicalLargeFiles).map(
 );
 
 export default tseslint.config(
-  { ignores: ["dist/", "node_modules/", "*.d.ts"] },
+  { ignores: ["dist/", "node_modules/", "**/*.d.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs["flat/recommended"],

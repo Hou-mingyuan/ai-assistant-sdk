@@ -32,6 +32,7 @@ public final class ProviderDefaults {
     public static String resolveBaseUrl(String provider, String explicitBaseUrl) {
         if (explicitBaseUrl != null && !explicitBaseUrl.isBlank()) return explicitBaseUrl;
         return switch (provider.toLowerCase(Locale.ROOT)) {
+            case "demo" -> "https://demo-provider.invalid/v1";
             case "openai" -> "https://api.openai.com/v1";
             case "deepseek" -> "https://api.deepseek.com/v1";
             case "tongyi", "qwen" -> "https://dashscope.aliyuncs.com/compatible-mode/v1";
@@ -65,6 +66,7 @@ public final class ProviderDefaults {
     public static String resolveDefaultModel(String provider, String explicitModel) {
         if (explicitModel != null && !explicitModel.isBlank()) return explicitModel;
         return switch (provider.toLowerCase(Locale.ROOT)) {
+            case "demo" -> "demo-local";
             case "openai" -> "gpt-5.4-mini";
             case "deepseek" -> "deepseek-v4-flash";
             case "tongyi", "qwen" -> "qwen3.5-plus";

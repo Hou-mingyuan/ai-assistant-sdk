@@ -64,7 +64,7 @@
 
 启动时启动器会判断当前 JVM 是否像多副本部署（命中 `KUBERNETES_SERVICE_HOST` 或 HOSTNAME 形如 `<name>-<hash>-<suffix>` / `<name>-N`），如果是且关键状态组件还在使用默认的 in-memory 实现，会按组件分别打 `WARN`：
 
-- [ ] 如果启用 RAG，已用共享 `VectorStore`（Milvus / Pinecone / Qdrant / pgvector …）替换默认 `InMemoryVectorStore`，避免一副本上的索引在另一副本上不可见。
+- [ ] 如果启用多副本 RAG，宿主已实现并注入经过持久化、租户、维度和故障契约测试的共享 `VectorStore`，替换默认 `InMemoryVectorStore`；仓库本身不交付外部数据库适配器。
 - [ ] 已配置 `spring-data-redis` 让自动装配的 `RedisSessionStore` 接管，或自行注册 `SessionStore` Bean，避免会话只在写入它的副本可见。
 - [ ] 已确认 `TokenUsageTracker` 在多副本下的有效配额是 `quota * replicas`；对硬性配额场景，把额度统计放到上游网关或共享后端。
 - [ ] 已注册 `RedisConversationMemoryProvider` 或自定义 `ConversationMemoryProvider`，让长期事实和滚动历史能跨副本共享。

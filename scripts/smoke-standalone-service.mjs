@@ -22,6 +22,12 @@ const checks = [
     expectedStatus: 200,
     validate: body => body?.status === 'UP',
   },
+  {
+    name: 'actuator readiness',
+    url: `${serviceOrigin}/actuator/health/readiness`,
+    expectedStatus: 200,
+    validate: body => body?.status === 'UP',
+  },
 ]
 
 if (accessToken.trim()) {

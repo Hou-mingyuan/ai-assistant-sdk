@@ -3,10 +3,10 @@ import { en } from './en';
 
 export const ja: I18nMessages = {
   ...en,
-  greeting: '👋 こんにちは！お手伝いします：',
-  translate: '🌐 翻訳',
-  summarize: '📝 要約',
-  chat: '💬 チャット',
+  greeting: 'こんにちは！お手伝いします：',
+  translate: '翻訳',
+  summarize: '要約',
+  chat: 'チャット',
   placeholder: {
     translate: '翻訳するテキストを貼り付け...',
     summarize: '要約するテキストを貼り付け...',

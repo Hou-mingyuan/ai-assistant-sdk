@@ -31,6 +31,7 @@ export interface PanelGeometryDeps {
   fabSize: number;
   isOpen: Ref<boolean>;
   saveFabPos: (overrideEdge?: 'none' | 'left' | 'right') => void;
+  markFabPositionCustomized: () => void;
   defaultPosition: string;
 }
 
@@ -45,7 +46,15 @@ function getViewportCssSize(): { w: number; h: number } {
 
 // eslint-disable-next-line max-lines-per-function
 export function usePanelGeometry(deps: PanelGeometryDeps) {
-  const { fabLeft, fabTop, fabSize, isOpen, saveFabPos, defaultPosition } = deps;
+  const {
+    fabLeft,
+    fabTop,
+    fabSize,
+    isOpen,
+    saveFabPos,
+    markFabPositionCustomized,
+    defaultPosition,
+  } = deps;
 
   const panelExpanded = ref(false);
   const panelUserSize = ref<{ w: number; h: number } | null>(null);
@@ -212,6 +221,11 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     isOpen,
   );
 
+  function onPanelResizePointerDown(e: PointerEvent, edge: PanelResizeEdge) {
+    markFabPositionCustomized();
+    panelResize.onPanelResizePointerDown(e, edge);
+  }
+
   // --- Header drag ---
 
   function cleanupPanelHeaderTentative() {
@@ -280,6 +294,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     panelHeaderDragPendingDx = 0;
     panelHeaderDragPendingDy = 0;
     if (fabLeft.value === null || fabTop.value === null) return;
+    markFabPositionCustomized();
     fabLeft.value += dx;
     fabTop.value += dy;
     if (isOpen.value) panelHeaderDraggedWhileOpen = true;
@@ -404,7 +419,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     resolveFabScreenQuadrant,
     syncFabPixelFromWrapperDom,
     clampPanelSize,
-    onPanelResizePointerDown: panelResize.onPanelResizePointerDown,
+    onPanelResizePointerDown,
     onPanelHeaderPointerDown,
     onPanelOpen,
     onPanelClose,
