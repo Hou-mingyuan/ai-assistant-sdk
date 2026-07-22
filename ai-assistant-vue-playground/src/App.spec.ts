@@ -42,6 +42,7 @@ describe("Playground App", () => {
   });
 
   afterEach(() => {
+    delete document.body.dataset.playgroundRoute;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -209,9 +210,9 @@ describe("Playground App", () => {
     expect(wrapper.findAll(".formfill-snippet").length).toBeGreaterThanOrEqual(
       3,
     );
-    expect(wrapper.findAll(".formfill-snippet svg").length).toBeGreaterThanOrEqual(
-      3,
-    );
+    expect(
+      wrapper.findAll(".formfill-snippet svg").length,
+    ).toBeGreaterThanOrEqual(3);
     expect(wrapper.find("[data-ai-fillable]").exists()).toBe(true);
     expect(wrapper.get(".formfill-control-note strong").text()).toBe("不在");
     expect(wrapper.get(".formfill-table-section-title").text()).toBe(
@@ -260,6 +261,16 @@ describe("Playground App", () => {
 
     await flushPromises();
     expect(wrapper.find(".admin-stub").exists()).toBe(true);
+    expect(document.body.dataset.playgroundRoute).toBe("admin");
+    expect(wrapper.find(".assistant-loader-fab").exists()).toBe(false);
+
+    const assistantBtn = wrapper
+      .findAll(".page-nav-tab")
+      .find((button) => button.text().includes("Assistant"));
+    await assistantBtn!.trigger("click");
+    await flushPromises();
+    expect(document.body.dataset.playgroundRoute).toBe("demo");
+    expect(wrapper.find(".assistant-loader-fab").exists()).toBe(true);
   });
 
   it("runs zero-key smoke checks and marks provider chip ready when UP", async () => {

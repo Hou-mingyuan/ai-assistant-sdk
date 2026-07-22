@@ -8,7 +8,9 @@
           @click="setRoute('demo')"
         >
           <Bot :size="17" :stroke-width="1.8" aria-hidden="true" />
-          <span class="page-nav-label page-nav-label-long">AI Assistant Demo</span>
+          <span class="page-nav-label page-nav-label-long"
+            >AI Assistant Demo</span
+          >
           <span class="page-nav-label page-nav-label-short">Assistant</span>
         </button>
         <button
@@ -59,9 +61,8 @@
       <article v-if="route === 'demo'" class="demo-assistant-page-context">
         <h1>AI Assistant 悬浮球演示</h1>
         <p>
-          启动后端和当前 Playground：<code
-            >.\scripts\demo-standalone.ps1</code
-          >。本地 dev：
+          启动后端和当前
+          Playground：<code>.\scripts\demo-standalone.ps1</code>。本地 dev：
           <code>cd ai-assistant-vue-playground && npm run dev</code>，请求经
           Vite 代理到 <code>/ai-assistant</code>。
         </p>
@@ -137,8 +138,8 @@
           </li>
         </ol>
         <p class="demo-hint">
-          <strong>Admin Console</strong> 提供 7 个标签页，覆盖 15 个管理端点；顶部命令按钮、
-          主题色切换和助手交互均可直接体验。
+          <strong>Admin Console</strong> 提供 7 个标签页，覆盖 15
+          个管理端点；顶部命令按钮、主题色切换和助手交互均可直接体验。
         </p>
       </article>
 
@@ -452,7 +453,7 @@
     </main>
 
     <button
-      v-if="!assistantMounted"
+      v-if="!assistantMounted && route !== 'admin'"
       type="button"
       class="assistant-loader-fab"
       :class="{
@@ -624,7 +625,8 @@ function eventOriginatesInAssistant(event: KeyboardEvent): boolean {
     .composedPath()
     .some(
       (target) =>
-        target instanceof Element && target.classList.contains("ai-assistant-wrapper"),
+        target instanceof Element &&
+        target.classList.contains("ai-assistant-wrapper"),
     );
 }
 
@@ -725,6 +727,25 @@ const cmd = useCommandPalette({
 type Route = "demo" | "admin" | "formfill";
 
 const route = ref<Route>(resolveRoute());
+
+watch(
+  route,
+  (next) => {
+    if (typeof document !== "undefined") {
+      document.body.dataset.playgroundRoute = next;
+    }
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  if (
+    typeof document !== "undefined" &&
+    document.body.dataset.playgroundRoute === route.value
+  ) {
+    delete document.body.dataset.playgroundRoute;
+  }
+});
 
 function resolveRoute(): Route {
   if (typeof window === "undefined") return "demo";
@@ -2499,6 +2520,12 @@ code {
     bottom: 84px;
     left: 16px;
     width: auto;
+  }
+
+  :global(
+    body[data-playground-route="admin"] [data-ai-assistant-auto-mount] .ai-fab
+  ) {
+    display: none !important;
   }
 }
 
