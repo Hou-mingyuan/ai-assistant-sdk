@@ -2,6 +2,27 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+### 阶段 6 恢复与未提交差异审计
+
+- 继续既有 Goal；当前分支为 `agent/v1.0.1-release-candidate`，相对 `origin/agent/v1.0.1-release-candidate` 领先 1 个提交。
+- 工作树仅剩 7 个已跟踪文件差异，集中在 Redis 自动配置顺序、OpenAPI/前端类型漂移保护和 CI 安全扫描；没有未跟踪文件。
+- 审计发现 `ai-assistant-ui/src/utils/api.spec.ts` 的两组回归测试被重复插入，当前差异尚不能提交；先运行定向门禁并去重，再进入干净 clone 验收。
+- `planning-with-files-zh` 的 session catch-up 脚本无未同步报告；本轮继续以当前计划的阶段 6 为唯一进行中阶段。
+- 定向红灯/绿灯：OpenAPI 类型漂移检查按预期失败；生成器测试 `5/5`、前端 API 测试 `62/62`、Redis 自动配置测试 `16/16` 均通过。已删除两组重复前端测试并修正快照缩进，下一步刷新生成类型后复验漂移门禁。
+- 生成类型已刷新并带当前规范化 OpenAPI SHA-256；复验结果：类型漂移通过，生成/刷新脚本 `11/11`、去重后的前端 API `57/57`、Redis 自动配置 `16/16`、`git diff --check` 均通过。首轮 Prettier/Spotless 仅命中本轮两个文件，按锁定工具格式化后关闭。
+- CI 安全任务已校准为 Node 22 下审计 UI、Playground、docs、E2E 四个 npm 锁文件，阈值统一为 `high`；新增静态契约锁定 Redis profile 完整制品、固定版本 Trivy、vuln/secret/misconfig scanners 和阻断退出码。
+- CI 安全契约 `10/10`、YAML 解析、锁定 Prettier 均通过；在显式清除本机 TLS 绕过变量后，UI、Playground、docs、E2E 四个 `npm audit --audit-level=high` 均报告 `0 vulnerabilities`。
+- 跨包 Prettier 误格式化已完全收口：`project-health-check.test.mjs` 当前差异只剩新增安全契约，没有既有行的风格改动；历史干净 Compose 栈来源也已定位到 `.local/clean-clone-*`，最终仍会用新提交重做。
+- 首次提交前全量并行组中，文档构建明确通过，但根 Maven `clean verify` 退出 1；当前六模块 JAR 和 109 份 Surefire XML 均存在。为排除 UI `dist` 并发重建竞争，下一轮先结构化检查报告，再单独串行复跑 Maven。
+- 109 份 Surefire XML 合计 `846` 项、失败/错误为 `0`；隔离复跑最终定位为 PID `58072` 的旧 `19019` 原生验收进程锁住 service JAR，而非测试失败。该 PID 已按完整命令行确认并终止，Docker 与 shared-infra 保持运行。
+- 端口释放后根 Reactor `mvn -B clean verify` 六模块全部 `SUCCESS`，耗时 `03:06`；Starter、observability support、standalone service、Java Client 和 Demo 均从清空 `target` 后完成测试/打包。
+- 串行 `project-health-check --release-check-full` 通过：版本 `1.0.1`、仓库脚本、静态 OpenAPI 类型与快照、UI publish build/27 个导出、依赖足迹、CSS `1787 -> 1787`、bundle 预算与 support dependency boundary 全绿；子进程已清除 TLS 绕过变量。
+- UI ESLint、Prettier 通过，Vitest `100` 个文件 `794/794`；Playground Vitest `2` 个文件 `13/13`。本轮并行组中的 Playground build 与 VitePress build 也均以 0 退出。
+- 真实 Chromium Playwright E2E `31/31` 一次通过（`3.4m`），没有 retry/失败截图/trace；套件重新打包并启动 Starter Demo，覆盖真实租户 Web Component/SSE 与取消、错误、诊断、搜索、模式、会话等交互。
+- 最终 secret/misconfig 扫描准备纳入 Git 候选的 `793` 个文件；首次 PowerShell→tar 管道因编码失败，已停止并准备以 cmd 原生管道重建，不会把该失败记录成扫描结论。
+- NUL 分隔的 793 文件快照已成功生成/解包；首次 Trivy 合并扫描因 Maven Central `429` FATAL，未生成安全结论。下一步拆分 secret/misconfig 与挂载预热 Maven cache 的 offline vuln 扫描。
+- 固定 digest Trivy 在只读挂载预热 Maven 仓库、offline 模式下成功退出 `0`：793 个 Git 候选文件的 HIGH/CRITICAL 漏洞、Secrets 和配置失败项均为 `0`。可下载 checks 缺失时使用镜像内置 checks；`.dockerignore` 误识别提示已记录为工具限制。
+
 ### 阶段 5 最终门禁与提交前终审
 
 - 手机 Auto-Fill 真实完成 `13/13` 匹配与填入：文本、数字、日期、下拉、单选、复选和多行文本均正确，两个 scanner 排除字段保持为空；15 秒窗口内撤销后全部恢复，浏览器 warning/error 为 `0`。

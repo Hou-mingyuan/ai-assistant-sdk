@@ -67,6 +67,47 @@ describe('postChat', () => {
     expect(res.error).toContain('500');
   });
 
+  it('preserves structured backend errors and request ids', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      headers: { get: (name: string) => (name === 'X-Request-Id' ? 'req-chat-error' : null) },
+      json: () => Promise.resolve({ error: 'targetLang is invalid', errorCode: 'INVALID_REQUEST' }),
+    });
+
+    const result = await postChat('/ai', { action: 'translate', text: 'hi' });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: 'targetLang is invalid',
+      errorCode: 'INVALID_REQUEST',
+      requestId: 'req-chat-error',
+    });
+  });
+
+  it('falls back to HTTP details when an error body is not usable JSON', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        json: () => Promise.resolve('not-an-object'),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: 'Unavailable',
+        json: () => Promise.reject(new SyntaxError('invalid JSON')),
+      });
+
+    const nonObject = await postChat('/ai', { action: 'chat', text: 'hi' });
+    const unreadable = await postChat('/ai', { action: 'chat', text: 'hi' });
+
+    expect(nonObject.error).toBe('HTTP 502: Bad Gateway');
+    expect(unreadable.error).toBe('HTTP 503: Unavailable');
+  });
+
   it('sends trimmed X-AI-Token header when provided', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -627,6 +668,29 @@ describe('streamChat', () => {
     });
   });
 
+  it.each([
+    ['[VALIDATION_ERROR] invalid input', 'VALIDATION_ERROR', 'invalid input'],
+    ['[TIMEOUT]', 'TIMEOUT', 'TIMEOUT'],
+    ['[QUOTA_EXCEEDED] quota exhausted', 'QUOTA_EXCEEDED', 'quota exhausted'],
+  ])('throws for a trailing %s SSE error frame', async (frame, errorCode, message) => {
+    mockFetch.mockResolvedValueOnce(streamResponse(['data: ' + frame]));
+
+    let caught: unknown;
+    try {
+      for await (const _chunk of streamChat('/ai', { action: 'chat', text: 'hi' })) {
+        // consume stream
+      }
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      name: 'AiAssistantApiError',
+      errorCode,
+      message,
+    });
+  });
+
   it('reports stream runtime metadata from response headers', async () => {
     const onMeta = vi.fn();
     mockFetch.mockResolvedValueOnce(
@@ -762,6 +826,33 @@ describe('streamChat', () => {
         // consume stream
       }
     }).rejects.toThrow('HTTP 503');
+  });
+
+  it('throws structured details from a failed streaming response', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: { get: (name: string) => (name === 'X-Request-Id' ? 'req-stream-error' : null) },
+      json: () => Promise.resolve({ error: 'token missing', errorCode: 'UNAUTHORIZED' }),
+    });
+
+    let caught: unknown;
+    try {
+      for await (const _chunk of streamChat('/ai', { action: 'chat', text: 'hi' })) {
+        // consume stream
+      }
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      name: 'AiAssistantApiError',
+      status: 401,
+      errorCode: 'UNAUTHORIZED',
+      requestId: 'req-stream-error',
+      message: 'token missing',
+    });
   });
 
   it('throws when response body is missing', async () => {

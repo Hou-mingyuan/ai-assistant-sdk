@@ -2,6 +2,20 @@
 
 ## 2026-07-22 v1.x 发布候选验收
 
+### 阶段 6 恢复发现
+
+- 当前未提交差异不是阶段 1-5 的大范围实现，而是 7 个文件的发布门禁收口；必须在提交前独立验证，不能因历史全绿直接接受。
+- `api.spec.ts` 中结构化 HTTP 错误与尾部 SSE 错误两组测试各出现两次完全相同的定义，属于明确的测试重复，应只保留一份而不降低断言。
+- Redis 自动配置顺序回归、OpenAPI 校验约束、生成类型来源摘要和 CI Dependency-Check fallback 都有可验证意图；是否保留由定向测试、OpenAPI 漂移检查和完整发布门禁决定。
+- 当前 OpenAPI 约束只改变 JSON Schema 的长度/格式限制，`openapi-typescript` 生成的结构类型本身可能不变；给生成文件写入规范化 JSON 摘要，能让约束漂移也被 `--check` 阻断。首次检查已真实红灯，证明门禁有效。
+- 去重后 `api.spec.ts` 从 `62` 项回到 `57` 项，结构化同步错误、不可解析错误体、尾部 SSE 错误和流式 HTTP 错误断言仍全部保留并通过；测试数量下降来自消除重复，不是删除覆盖。
+- 原 CI 安全任务只运行 `ai-assistant-ui` 的 `critical` npm audit，低于本轮四工作区实际使用的 `high` 门禁；统一 CI 口径后，未来 Playground、文档站或 E2E 锁文件引入高危依赖也会阻断 PR。
+- 四个工作区在当前锁文件上的在线 audit 均为 0，且命令子进程已显式移除 `NODE_TLS_REJECT_UNAUTHORIZED=0`；这批结果可以作为当前依赖证据，不依赖不安全 TLS 环境。
+- Windows 上从模块 `target` 直接运行可执行 JAR 会持有独占文件锁；最终 `clean verify` 前必须停止本项目旧原生验收进程。此次失败的 846 项 Surefire 结果全部通过，不能误报为代码红灯。
+- 文件锁释放后相同 `clean verify` 命令完整通过，证明无需代码绕过；根因与修复已闭环。发布检查也证明 OpenAPI 摘要会在静态 codegen 漂移门禁中实际比较，而不是装饰性注释。
+- 当前前端回归总数为 UI `794`、Playground `13`、Chromium `31`，均无跳过或失败重试；本轮新增的结构化错误断言已进入 UI 全量计数。
+- Trivy 的 scanner 选择不会阻止 Java manifest 丰富化访问远端仓库；在 Maven Central 限流环境中，可靠做法是先由 Maven 验证预热依赖，再把仓库只读挂载并启用 offline scan。本轮最终报告为 0 HIGH/CRITICAL、0 secrets、0 failed misconfig，不复用 429 失败轮次。
+
 ### 最终门禁与差异终审结论
 
 - 最终安全结论来自当前工作树 789 文件快照和当前两个镜像，不是复用旧报告：源码依赖/secret/配置以及 `sha256:2450e718...` 服务镜像、`sha256:b60afee6...` Web 镜像均无 HIGH/CRITICAL；四个 npm audit 也均为 0。

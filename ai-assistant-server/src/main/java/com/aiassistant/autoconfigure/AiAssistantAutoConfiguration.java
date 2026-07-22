@@ -1,9 +1,11 @@
 package com.aiassistant.autoconfigure;
 
 import com.aiassistant.config.AiAssistantProperties;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +43,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Configuration 会自动跟随激活。
  */
 @Configuration(proxyBeanMethods = false)
+@AutoConfigureAfter(RedisAutoConfiguration.class)
 @EnableConfigurationProperties(AiAssistantProperties.class)
 @Conditional(AiAssistantAutoConfiguration.ApiKeyConfigured.class)
 @ConditionalOnClass(WebClient.class)

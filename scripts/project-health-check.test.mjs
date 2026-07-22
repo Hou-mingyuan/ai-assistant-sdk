@@ -145,3 +145,18 @@ test('CI OWASP scan uses reviewed, precise, time-bounded suppressions', async ()
   )
   assert.doesNotMatch(suppressions, /<cpe(?=\s|>)/)
 })
+
+test('CI security lane scans the complete Redis artifact and every frontend workspace', async () => {
+  const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
+
+  assert.match(workflow, /mvn -B -pl ai-assistant-service -am -DskipTests -Predis package/)
+  assert.match(workflow, /uses: aquasecurity\/trivy-action@\d+\.\d+\.\d+/)
+  assert.match(workflow, /scanners: vuln,secret,misconfig/)
+  assert.match(workflow, /severity: CRITICAL,HIGH/)
+  assert.match(workflow, /exit-code: 1/)
+  assert.match(workflow, /npm --prefix "\$\{workspace\}" audit --audit-level=high/)
+
+  for (const workspace of ['ai-assistant-ui', 'ai-assistant-vue-playground', 'docs', 'e2e']) {
+    assert.match(workflow, new RegExp(`(?:^|\\s)${workspace}(?:\\s|$)`))
+  }
+})

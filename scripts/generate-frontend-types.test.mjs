@@ -4,7 +4,12 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { loadSpecText, parseArgs } from './generate-frontend-types.mjs';
+import {
+  loadSpecText,
+  openApiSourceDigest,
+  parseArgs,
+  stampGeneratedTypesContent,
+} from './generate-frontend-types.mjs';
 
 test('parseArgs enables drift-check mode without writing to the output file', () => {
   const args = parseArgs([
@@ -50,4 +55,26 @@ test('loadSpecText reads from specFile without fetching the live URL', async () 
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('OpenAPI digest is stable across JSON formatting differences', () => {
+  const compact = '{"openapi":"3.1.0","info":{"title":"API"}}';
+  const pretty = '{\n  "openapi": "3.1.0",\n  "info": { "title": "API" }\n}\n';
+
+  assert.equal(openApiSourceDigest(compact), openApiSourceDigest(pretty));
+});
+
+test('generated types carry and replace the reviewed OpenAPI digest', () => {
+  const first = stampGeneratedTypesContent(
+    '/** generated */\nexport interface paths {}\n',
+    '{"openapi":"3.1.0","info":{"title":"A"}}',
+  );
+  const second = stampGeneratedTypesContent(
+    first,
+    '{"openapi":"3.1.0","info":{"title":"B"}}',
+  );
+
+  assert.match(first, /^\/\*\* OpenAPI source SHA-256: [a-f0-9]{64} \*\//);
+  assert.notEqual(first.split('\n')[0], second.split('\n')[0]);
+  assert.equal(second.match(/OpenAPI source SHA-256/g)?.length, 1);
 });

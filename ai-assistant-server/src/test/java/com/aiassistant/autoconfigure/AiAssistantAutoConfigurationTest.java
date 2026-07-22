@@ -1,6 +1,7 @@
 package com.aiassistant.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.RateLimitFilter;
@@ -33,9 +34,12 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * Smoke-tests {@link AiAssistantAutoConfiguration} via {@link WebApplicationContextRunner}.
@@ -91,6 +95,18 @@ class AiAssistantAutoConfigurationTest {
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
                     .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withSystemProperties("ai.assistant.runtime.config.path=" + runtimeConfigPath);
+
+    private final WebApplicationContextRunner redisAutoConfigurationContextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(
+                            AutoConfigurations.of(
+                                    RedisAutoConfiguration.class,
+                                    AiAssistantAutoConfiguration.class))
+                    .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
+                    .withBean(
+                            RedisConnectionFactory.class, () -> mock(RedisConnectionFactory.class))
                     .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
                     .withSystemProperties("ai.assistant.runtime.config.path=" + runtimeConfigPath);
 
@@ -341,6 +357,29 @@ class AiAssistantAutoConfigurationTest {
                                             context.getBean("aiAssistantRateLimitFilter");
                             assertThat(rateLimitFilter.getFilter())
                                     .isInstanceOf(RateLimitFilter.class);
+                        });
+    }
+
+    @Test
+    void redisAutoConfigurationWinsBeforeInMemoryFallbacksAreRegistered() {
+        redisAutoConfigurationContextRunner
+                .withPropertyValues("ai-assistant.provider=demo")
+                .run(
+                        context -> {
+                            assertThat(context).hasSingleBean(StringRedisTemplate.class);
+                            assertThat(context.getBean(SessionStore.class))
+                                    .isInstanceOf(com.aiassistant.service.RedisSessionStore.class);
+                            assertThat(context.getBean(TokenUsageTracker.class))
+                                    .isInstanceOf(
+                                            com.aiassistant.stats.RedisTokenUsageTracker.class);
+                            assertThat(
+                                            context.getBean(
+                                                    com.aiassistant.spi.ConversationMemoryProvider
+                                                            .class))
+                                    .isInstanceOf(
+                                            com.aiassistant.spi.RedisConversationMemoryProvider
+                                                    .class);
+                            assertThat(context).hasBean("aiAssistantRedisRateLimitFilter");
                         });
     }
 

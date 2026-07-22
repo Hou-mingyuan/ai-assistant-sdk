@@ -50,6 +50,7 @@
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -130,6 +131,28 @@ export async function loadSpecText(args) {
 // ─────────────────────────────────────────────────────────────────────────
 // Run `npx openapi-typescript <spec> -o <out>`
 // ─────────────────────────────────────────────────────────────────────────
+export function openApiSourceDigest(specText) {
+  const normalized = JSON.stringify(JSON.parse(specText));
+  return createHash('sha256').update(normalized).digest('hex');
+}
+
+export function stampGeneratedTypesContent(generatedTypes, specText) {
+  const marker = '/** OpenAPI source SHA-256: ' + openApiSourceDigest(specText) + ' */';
+  const withoutOldMarker = generatedTypes.replace(
+    /^\/\*\* OpenAPI source SHA-256: [a-f0-9]{64} \*\/\r?\n/,
+    '',
+  );
+  return marker + '\n' + withoutOldMarker;
+}
+
+async function stampGeneratedTypes(specPath, outPath) {
+  const [specText, generatedTypes] = await Promise.all([
+    readFile(specPath, 'utf-8'),
+    readFile(outPath, 'utf-8'),
+  ]);
+  await writeFile(outPath, stampGeneratedTypesContent(generatedTypes, specText), 'utf-8');
+}
+
 async function runCodegen(specPath, outPath, pinned) {
   // Use shell: true on Windows for npx.cmd resolution; otherwise direct.
   return new Promise((resolveRun, rejectRun) => {
@@ -143,9 +166,14 @@ async function runCodegen(specPath, outPath, pinned) {
         shell: isWindows,
       },
     );
-    child.on('exit', (code) => {
+    child.on('exit', async (code) => {
       if (code === 0) {
-        resolveRun();
+        try {
+          await stampGeneratedTypes(specPath, outPath);
+          resolveRun();
+        } catch (error) {
+          rejectRun(error);
+        }
       } else {
         rejectRun(new Error(`openapi-typescript exited with code ${code}`));
       }

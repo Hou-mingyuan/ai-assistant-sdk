@@ -319,6 +319,8 @@ jobs:
     name: Security scan
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     steps:
       - uses: actions/checkout@v6
@@ -330,23 +332,66 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: OWASP Dependency-Check (backend)
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            ai-assistant-ui/package-lock.json
+            ai-assistant-vue-playground/package-lock.json
+            docs/package-lock.json
+            e2e/package-lock.json
+
+      - name: Build Redis-capable backend artifact for transitive dependency scanning
+        run: mvn -B -pl ai-assistant-service -am -DskipTests -Predis package
+
+      - name: Cache OWASP Dependency-Check data
+        id: owasp-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('ai-assistant-server/pom.xml') }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
+
+      - name: OWASP Dependency-Check (backend, refresh with NVD key)
+        if: env.NVD_API_KEY != ''
         run: |
           mvn -B org.owasp:dependency-check-maven:check \
             -f ai-assistant-server/pom.xml \
             -DfailBuildOnCVSS=9 \
             -DsuppressionFiles=.github/owasp-suppressions.xml \
-            -DnvdApiKey=${{ secrets.NVD_API_KEY || '' }}
+            -DnvdApiKeyEnvironmentVariable=NVD_API_KEY
 
-      - name: npm audit (frontend)
-        run: npm audit --audit-level=critical
-        working-directory: ai-assistant-ui
+      - name: OWASP Dependency-Check (backend, cached database)
+        if: env.NVD_API_KEY == '' && steps.owasp-cache.outputs.cache-hit == 'true'
+        run: |
+          mvn -B org.owasp:dependency-check-maven:check \
+            -f ai-assistant-server/pom.xml \
+            -DfailBuildOnCVSS=9 \
+            -DsuppressionFiles=.github/owasp-suppressions.xml \
+            -DautoUpdate=false
+
+      - name: Explain OWASP fallback when no NVD database is available
+        if: env.NVD_API_KEY == '' && steps.owasp-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "::notice::NVD_API_KEY and a reusable Dependency-Check database are unavailable; the built service artifact remains gated by Trivy below."
+
+      - name: npm audit (frontend workspaces)
+        run: |
+          for workspace in ai-assistant-ui ai-assistant-vue-playground docs e2e; do
+            echo "::group::npm audit ${workspace}"
+            npm --prefix "${workspace}" audit --audit-level=high
+            echo "::endgroup::"
+          done
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
+          scanners: vuln,secret,misconfig
           severity: CRITICAL,HIGH
           exit-code: 1
           format: table

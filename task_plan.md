@@ -63,8 +63,23 @@
 - 本次恢复的一组并行只读命令因 Windows `find /v /c` 参数格式错误而丢失同组输出；已改为独立 `Get-Content`/`Get-Item` 读取并成功恢复，不重复该组合。随后一次多文件 `apply_patch` 的 hunk 分隔格式错误未应用，已拆分精确补丁成功完成，未产生部分写入。
 - 最终浏览器桌面布局检查首次使用当前受限 evaluate 环境不支持的裸 `performance` 全局，下一次又错误假设失败调用中的变量声明已持久化；两次都未生成页面结论或修改状态。已改为纯 DOM 几何读取与显式 `globalThis` 绑定并成功，不重复这两种调用。
 - 平板 Admin 修复后首次格式并行组错误地把 UI 子包专属 `.prettierrc` 显式应用到根脚本和 Playground 历史文件，整组因风格差异丢失测试输出；未写文件。已按 Playground 既有默认 Prettier 口径与脚本自身风格分别检查并通过，不再跨包套用配置。
+- 本次恢复读取规划文件时，嵌套 `powershell -Command` 中的 `$p` 被外层 PowerShell提前展开，三个只读命令中断且未修改文件；已改为当前 shell 直接执行只读 `Get-Content` 并成功恢复，不再嵌套同类调用。
+- 定位 OpenAPI 相关测试时再次把 `scripts/*.test.mjs` 当作 Windows 字面路径传给 `rg`，该可选查询返回路径错误但未影响同组其他结果；已改为目录加 `rg -g '*.test.mjs'` 并成功定位，后续不再传 shell glob 路径。
+- CI 安全门禁补丁首次因预读片段把实际 `java-version: 21` 误写成带引号形式而未命中，`apply_patch` 整组未应用；已读取精确上下文并拆成小补丁成功写入，没有部分损坏。
+- 首次 `gh pr status` 请求 GitHub GraphQL 时 TLS 握手超时，未取得远端 PR 结论且未改变远端状态；先完成本地门禁，发布阶段再重试，不把网络超时当作无 PR。
+- 阶段 6 再次误用 UI 子包的 Prettier 可执行文件而未显式传根脚本风格，导致 `project-health-check.test.mjs` 出现 354 行无关重排；已立即用正确参数机械恢复，并用 `apply_patch` 精确还原剩余 3 处既有折行，只保留新增安全契约。该错误重复了计划中已有的跨包配置禁令，后续根脚本不再运行子包默认格式命令。
+- 读取验收入口时错误假设存在 `scripts/local-verify.mjs`，并行组因路径不存在丢失输出；已通过 `rg --files` 确认真实入口是 `scripts/project-health-check.mjs --local-verify`，不再按测试描述猜文件名。一次 Docker inspect 模板的嵌套双引号也解析失败，已改用单引号模板成功读取且未改变容器。
+- 提交前首次把根 Maven `clean verify` 与会重建同一 UI `dist` 的 release/UI/Playground 构建并行执行，Maven 最终退出 1；六个 JAR 和 109 份测试报告均已生成，未发现提前测试中断，但完整输出被总量截断。后续改为串行、隔离复跑 Maven 与前端发布门禁，禁止并发写共享产物目录。
+- Maven 隔离复跑后取得精确根因：旧的本项目原生验收进程 PID `58072` 正从 `ai-assistant-service/target/ai-assistant-service-1.0.1.jar` 运行并监听 `19019`，Windows 因文件锁使 `maven-clean-plugin` 无法删除 JAR。已核对命令行后仅终止该进程，未触碰 Docker/shared-infra；下一轮在端口释放后重跑。
+- 检索 Surefire 失败 XML 时又让 PowerShell 提前解析带 `|` 的 `rg` 正则，查询失败但其他只读结果已由 `allSettled` 保留；改用 XML 结构化读取，不再用该正则形式。
+- 最终安全快照首次通过 PowerShell 把 `git ls-files` 管道传给 `tar -T -`，原生管道编码被破坏并生成 17 MB 不完整临时 tar；已确认绝对路径仅为仓库被忽略的 `.local/security-source-stage6-current.tar`，删除该临时产物后改用 `cmd /c` 原生字节管道重建。
+- 安全快照第二次文本管道仍因空记录使 `tar` 退出 1；删除该临时包后，第三次用 `git ls-files -z` + `tar --null` 成功，路线已收敛。
+- 阶段 6 首次 Trivy 合并扫描未生成结论：misconfig checks bundle 的 mirror.gcr.io EOF 已回退内置 checks，但 vuln 解析 Maven BOM 时 Central 返回 429 并 FATAL。按工具输出改为 secret/misconfig 与 vuln 分离，后者只读挂载本机预热 Maven 仓库并使用 offline scan，禁止把 429 记为通过或漏洞。
+- 第二次即使只选 secret/misconfig，Trivy 的 manifest 丰富化仍访问 Maven 并被同一 429 阻断；第三次确认 Jackson/Groovy POM 已在本机仓库后，只读挂载该仓库并用 `--offline-scan --skip-check-update`，三类 scanner 成功退出 0。内置 checks 对实际配置完成扫描；`Dockerfile.dockerignore` 被误当 Dockerfile 的解析提示不代表实际 Dockerfile 跳过，作为工具限制记录。
 
 本轮基线失败记录：
+- CI 安全静态契约首轮功能测试与 YAML 解析均通过，但锁定 Prettier 仅报告新增 `project-health-check.test.mjs` 的折行差异；已只格式化该文件，复验契约与格式全部通过。
+- 阶段 6 首轮 OpenAPI 类型漂移检查按预期失败，证明新增 JSON Schema 约束尚未绑定生成声明；刷新类型并写入规范化来源摘要后复验通过。首轮前端 Prettier 与 Java Spotless 分别只报告本轮 `api.spec.ts` 和 `AiAssistantAutoConfigurationTest.java` 的格式差异；已用锁定工具仅格式化对应文件，未降低测试或扩大批量改动。
 - 手机 `375x812` 命令面板首次实测中，`.ai-cmd-palette-input` 本体只有 `20px` 高；已以最小 CSS 改动补到 `min-height: 44px`，重建后真实浏览器实测 `46px`，面板单实例、无横向溢出且可见交互目标全部达到 `44px`，该缺陷已关闭。
 - 手机 Admin 首轮发现 7 个标签依赖 `722px` 的嵌套横向滚动；已在 `<=700px` 改为两列网格，组件测试与格式检查通过，重建后真实浏览器确认 7 个 `162x44px` 标签无横向滚动且逐项可用，该缺陷已关闭。
 - Starter 首页/纯 HTML Web Component 页首轮手机验收发现链接 `18.4-21.6px`、命令按钮 `32.8px`；已统一静态页样式并补集成测试，重启后两页三视口无横向溢出，手机/平板有效交互目标全部达到 `44px`，同步 Chat 与真实 SSE 均通过，该缺陷已关闭。
