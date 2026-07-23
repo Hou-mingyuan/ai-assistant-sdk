@@ -20,6 +20,17 @@ test('demo compose build inputs remain available in a clean checkout', async () 
   assert.match(compose, /dockerfile: ai-assistant-vue-playground\/Dockerfile/)
 })
 
+test('demo launchers report the same env-aware origin used by smoke', async () => {
+  const smoke = await readFile('scripts/smoke-demo-compose.mjs', 'utf8')
+  assert.match(smoke, /resolveDemoWebOrigin/)
+
+  for (const launcher of ['scripts/demo-standalone.ps1', 'scripts/demo-standalone.sh']) {
+    const source = await readFile(launcher, 'utf8')
+    assert.match(source, /node scripts\/print-demo-web-origin\.mjs/)
+    assert.doesNotMatch(source, /AI_ASSISTANT_WEB_PORT.*3000/)
+  }
+})
+
 test('release-check builds the frontend before reading bundle dist output', async () => {
   const source = await readFile('scripts/project-health-check.mjs', 'utf8')
 
