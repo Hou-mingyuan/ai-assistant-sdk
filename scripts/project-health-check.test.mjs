@@ -105,6 +105,29 @@ test('Spring Boot artifacts exclude PDFBox commons-logging in favor of spring-jc
   }
 })
 
+test('all Spring Boot deliverables pin the patched Netty baseline', async () => {
+  const patchedVersion = '<netty.version>4.1.136.Final</netty.version>'
+
+  for (const pomPath of [
+    'ai-assistant-server/pom.xml',
+    'ai-assistant-service/pom.xml',
+    'ai-assistant-demo/pom.xml',
+  ]) {
+    const pom = await readFile(pomPath, 'utf8')
+    assert.ok(pom.includes(patchedVersion), `${pomPath} must pin ${patchedVersion}`)
+  }
+
+  const starterPom = await readFile('ai-assistant-server/pom.xml', 'utf8')
+  const nettyBom = starterPom.indexOf('<artifactId>netty-bom</artifactId>')
+  const springBootBom = starterPom.indexOf('<artifactId>spring-boot-dependencies</artifactId>')
+
+  assert.ok(nettyBom > 0, 'the Starter must import the Netty BOM')
+  assert.ok(
+    nettyBom < springBootBom,
+    'the patched Netty BOM must take precedence over Spring Boot dependency management',
+  )
+})
+
 test('CI OWASP scan uses reviewed, precise, time-bounded suppressions', async () => {
   const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
   const suppressions = await readFile('.github/owasp-suppressions.xml', 'utf8')

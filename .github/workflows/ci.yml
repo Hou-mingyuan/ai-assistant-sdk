@@ -281,8 +281,8 @@ jobs:
         run: npm ci
         working-directory: ai-assistant-ui
 
-      - name: Build UI package for playground
-        run: npm run build:lib
+      - name: Build publishable UI package for E2E
+        run: npm run build:publish
         working-directory: ai-assistant-ui
 
       - name: Install E2E dependencies

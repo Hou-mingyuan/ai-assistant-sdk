@@ -19,6 +19,7 @@
         <jackson-databind.version>2.21.5</jackson-databind.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <log4j2.version>2.25.5</log4j2.version>
+        <netty.version>4.1.136.Final</netty.version>
         <swagger-ui.version>5.32.8</swagger-ui.version>
         <!-- 5.4.1+：缓解 CVE-2025-31672（OOXML / 重复 zip 条目解析） -->
         <apache.poi.version>5.4.1</apache.poi.version>
@@ -32,6 +33,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>

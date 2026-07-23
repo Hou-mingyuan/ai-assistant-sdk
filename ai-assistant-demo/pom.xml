@@ -21,6 +21,7 @@
         <jackson-bom.version>2.21.5</jackson-bom.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <log4j2.version>2.25.5</log4j2.version>
+        <netty.version>4.1.136.Final</netty.version>
         <apache.poi.version>5.4.1</apache.poi.version>
         <apache.pdfbox.version>3.0.8</apache.pdfbox.version>
     </properties>

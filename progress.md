@@ -2,6 +2,11 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+- 2026-07-23 CI 复核推翻了此前“安全扫描最终为 0”的结论：Trivy 当日更新后的数据库在 Netty `4.1.135.Final` 中识别出 `CVE-2026-59901`、`CVE-2026-55831`、`CVE-2026-55833`、`CVE-2026-56745` 四个 HIGH。旧结论只代表旧数据库快照，不再作为最终证据。
+- 已将 Starter、独立服务和 Demo 的 Netty 基线固定为 `4.1.136.Final`；Starter 在 Spring Boot BOM 前优先导入 Netty BOM。三个模块的实际 Maven dependency tree 均只解析到 `4.1.136.Final`，带 Redis profile 的独立服务 JAR 内 17 个 `netty-*.jar` 也全部为该版本。
+- 远端 E2E 失败根因不是等待时间，而是干净 checkout 只运行 `build:lib`，没有生成 `@ai-assistant/vue/wc` 指向的 `dist/ai-assistant-wc.mjs`。CI 已改用 `build:publish`，并增加静态契约防止退回不完整构建；本地完整发布构建通过，27 个公开导出可解析，真实后端 Web Component 定向 E2E `1/1`、完整零重试 E2E `32/32` 通过。
+- 本轮重新验证：仓库脚本 `98/98`、UI `801/801`、Playground `14/14`、Maven `846/846`，failure/error/skip 均为 `0`；lint 为 `0 error / 17 warning`，Prettier 与 `git diff --check` 通过。远端 E2E/Security CI 仍需以新提交结果作为最终关闭证据。
+- 真实浏览器重新检查当前 `0747ed7` 页面：模型菜单在 `1440x900`、`768x1024`、`375x812` 均位于面板内，与快捷工具间距分别约 `10.5/9/9px`；Obsidian/Cobalt/Pulse/Circuit/Ember 的双闪星实际颜色依次为 `#171717/#2457d6/#0891b2/#0f766e/#c2410c`，切回默认 Obsidian 后恢复黑色。
 - E2E flaky 修复已完成无重试复验：原三项超时文件以 `--retries=0 --repeat-each=2` 得到 `14/14`，随后完整套件以 `--retries=0` 得到 `32/32` 一次通过（`3.2m`）。配置保留产品断言，只把 expect/整例冷启动预算调为 `10s/45s`，本地 worker 从 5 限为 3、CI 限为 1。
 - 当前主工作树 109 份 Surefire XML 按顶层模块重新结构化汇总为 `846/846`：server `827`、Demo `3`、Client `14`、observability support `2`，failure/error/skip 均为 `0`；被忽略的 `.local` 干净 clone 报告未混入计数。
 - 最终安全快照 `.local/security-scan-20260723-final` 覆盖当前 `797` 个 Git 可交付文件（约 `16.6 MB`）：固定版本 Trivy `0.72.0` 的 HIGH/CRITICAL、secret、misconfiguration 均为 `0`；OWASP Dependency-Check `12.2.2` 分析 `1734` 个依赖/`404` 个唯一依赖，vulnerable dependency 与 vulnerability 均为 `0`，仅使用 2 条到 `2026-10-22` 到期的精确 Kotlin runtime 误报 suppression。四个 npm 工作区 audit 均为 `0 vulnerabilities`。

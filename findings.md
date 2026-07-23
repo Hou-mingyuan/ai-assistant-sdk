@@ -2,6 +2,10 @@
 
 ## 2026-07-22 v1.x 发布候选验收
 
+- 2026-07-23 远端 CI 的两项失败都能由干净环境事实解释：E2E 缺少 Web Component 构建产物，Security 则是 Trivy 新数据库识别到 Netty `4.1.135.Final` 的四个 HIGH。前者不是 flaky，后者也不能沿用前一天的“零漏洞”快照。
+- `build:lib` 只生成 Vue library，不能满足 `e2e/src/wc.ts` 的 `@ai-assistant/vue/wc` export；E2E job 必须运行 `build:publish`，同时生成 library、Web Component、声明文件并校验全部 exports。定向真实后端 WC E2E 和完整 `32/32` 零重试结果证明该修复覆盖了实际失败链路。
+- Spring Boot parent 模块可通过 `<netty.version>` 覆盖到 `4.1.136.Final`；独立 BOM 导入的 Starter 需要把 `io.netty:netty-bom` 放在 Spring Boot BOM 前。不能只检查 POM 字面量，最终以三个 dependency tree 和 Redis 独立服务 JAR 内 17 个 Netty 构件为准。
+- 当前本地无法下载 Trivy `0.69.3` Windows 发布包或 Docker 镜像，GitHub/Docker Hub 均出现连接超时/EOF；这不是扫描通过证据。修复提交后的远端 Security job 必须成功后，才能恢复“当前数据库下零 HIGH/CRITICAL”的最终结论。
 - 冷启动 E2E 超时已用同一断言、`retries=0` 关闭：目标三文件重复两轮 `14/14`，完整套件 `32/32` 一次通过。旧远端 PR 的失败运行检出的是合并提交 `5cdb6c2`（分支头 `08dc655`），Web Component 在 5 秒内尚未出现 FAB；当前未推送配置已把 CI 并发限为 1 并将 UI 等待预算校准为 10 秒，需以新提交远端 CI 作为最终证明。
 - ESLint 的 17 项 warning 均为明确维护债而非产品缺陷：一个文件仅超软性行数阈值 2 行，另 16 项只在宿主省略可选个性化配置 prop 时触发静态规则，组件对 theme/audio 有显式缺省隐藏分支，其余输入由受控宿主传入。lint 退出 0，UI `801/801`、构建和 E2E 均通过；触发条件与影响已记录，不将其误报为零警告。
 - 最终安全结论来自同一 `797` 文件候选快照的两类独立工具：Trivy 同时覆盖漏洞、密钥和配置，OWASP Dependency-Check 以更新至 `2026-07-22` 的 NVD 数据分析 Java 依赖；二者均为 0 阻断问题，精确 suppression 仅覆盖已人工核对的 Kotlin runtime 元数据误报并设置到期日。
