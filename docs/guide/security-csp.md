@@ -134,7 +134,7 @@ Content-Security-Policy:
 
 CSP 是**浏览器侧的纵深防御**，不能替代下列服务端措施：
 
-- `AdminAuthFilter`（SDK 自带）：保护 `/admin/**`
+- `AdminAuthFilter`（SDK 自带）：保护默认路径 `/ai-assistant/admin/**`（前缀随 `context-path` 变化）
 - `ContentFilter`：PII 脱敏
 - `SsrfPolicy` / `UrlFetchSafety`：URL 预览/抓取防 SSRF
 - 后端 CORS：浏览器同源策略的服务端补充

@@ -75,6 +75,24 @@ class SseStreamControllerTest {
     }
 
     @Test
+    void sse_invalidTranslationRequestReturnsTyped400Error() {
+        when(llmService.translateStream("hello", "bad target", null))
+                .thenThrow(new IllegalArgumentException("targetLang must be a valid language tag"));
+        ChatRequest req = new ChatRequest();
+        req.setText("hello");
+        req.setAction("translate");
+        req.setTargetLang("bad target");
+
+        var response = controller.sse(req);
+        var events = response.getBody().collectList().block();
+
+        assertEquals(400, response.getStatusCode().value());
+        assertNotNull(events);
+        assertEquals("error", events.get(0).event());
+        assertEquals("targetLang must be a valid language tag", events.get(0).data());
+    }
+
+    @Test
     void sse_translatePassesRequestedModel() {
         when(llmService.translateStream("hello", "zh")).thenReturn(Flux.just("你好"));
         when(llmService.translateStream("hello", "zh", "MiniMax-M2.7")).thenReturn(Flux.just("你好"));

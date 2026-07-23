@@ -22,6 +22,20 @@ describe('MessageList image thumbnails', () => {
   });
 });
 
+describe('MessageList error actions', () => {
+  it('renders retry with a semantic icon', () => {
+    const wrapper = mountList([{ role: 'assistant', content: 'request failed' }], {
+      isErrorMessage: () => true,
+    });
+
+    expect(wrapper.find('.ai-assistant-avatar-icon').attributes('data-assistant-icon')).toBe(
+      'sparkles',
+    );
+    expect(wrapper.find('.ai-retry-btn svg').exists()).toBe(true);
+    expect(wrapper.find('.ai-retry-btn').text()).toContain('Retry');
+  });
+});
+
 describe('MessageList assistant metadata', () => {
   it('renders primary latency pill but defers TTFT behind a details toggle', async () => {
     const wrapper = mountList([

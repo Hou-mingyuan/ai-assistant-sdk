@@ -66,9 +66,16 @@ Include affected version/commit, reproduction steps, impact, and redacted logs.
 CI (`.github/workflows/ci.yml`) runs OWASP Dependency-Check, `npm audit`, and Trivy on release paths. Locally:
 
 ```bash
-cd ai-assistant-server && mvn org.owasp:dependency-check-maven:check
-cd ai-assistant-ui && npm audit
+mvn -B org.owasp:dependency-check-maven:check \
+  -f ai-assistant-server/pom.xml \
+  -DfailBuildOnCVSS=9 \
+  -DsuppressionFiles=.github/owasp-suppressions.xml
+cd ai-assistant-ui && npm audit --audit-level=high
 ```
+
+Dependency-Check suppressions are reviewed exceptions, not blanket exclusions. Each entry must document its rationale,
+use an exact package URL match, include an expiry date, and be removed or re-reviewed before expiry. Broad CPE
+suppressions are not accepted.
 
 ## Disclosure
 

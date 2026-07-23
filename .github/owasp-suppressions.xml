@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress until="2026-10-22Z">
+        <notes><![CDATA[
+            Reviewed 2026-07-22. CVE-2020-29582 affects Kotlin versions before 1.4.21,
+            while this runtime is 1.9.25. CVE-2026-53914 affects Kotlin compiler build-cache
+            metadata deserialization; the optional OkHttp runtime dependency contains only
+            kotlin-stdlib and the JAR has no compiler or build-cache implementation classes.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib(?:-(?:common|jdk[78]))?@1\.9\.25$</packageUrl>
+        <cve>CVE-2020-29582</cve>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+</suppressions>

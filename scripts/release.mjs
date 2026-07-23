@@ -7,8 +7,7 @@
  *   1. 检查工作区干净（除非 --allow-dirty）
  *   2. 读取当前所有模块 version（maven + npm），确认一致
  *   3. 计算新版本号（--version <semver> 显式指定，或 --patch/--minor/--major 自增）
- *   4. 同步写回根 pom.xml、ai-assistant-server/service/client 的 pom.xml
- *      + ai-assistant-ui/package.json + ai-assistant-ui/package-lock.json
+ *   4. 同步写回全部 Maven 模块与 Vue/Playground package 版本
  *   5. 跑 check-version-consistency.mjs --release 验证一致
  *   6. 用 generate-changelog.mjs --since-tag 生成新版段落，插入 CHANGELOG.md 顶部
  *   7. git add 改动 + commit "chore(release): vX.Y.Z" + git tag vX.Y.Z
@@ -42,9 +41,20 @@ const POMS = [
   'ai-assistant-server/pom.xml',
   'ai-assistant-service/pom.xml',
   'ai-assistant-client/pom.xml',
+  'ai-assistant-demo/pom.xml',
 ];
-const PKG = 'ai-assistant-ui/package.json';
-const PKG_LOCK = 'ai-assistant-ui/package-lock.json';
+const INHERITED_PARENT_POMS = ['ai-assistant-observability-support/pom.xml'];
+const PACKAGES = [
+  ['ai-assistant-ui/package.json', 'ai-assistant-ui/package-lock.json'],
+  ['ai-assistant-vue-playground/package.json', 'ai-assistant-vue-playground/package-lock.json'],
+];
+const EMBEDDED_VERSION_FILES = [
+  ['helm/ai-assistant/Chart.yaml', /(appVersion:\s*")[^"]+(")/],
+  ['helm/ai-assistant/values.yaml', /(\n\s*tag:\s*")[^"]+(")/],
+  ['ai-assistant-server/src/main/java/com/aiassistant/mcp/McpServerController.java', /(SERVER_VERSION\s*=\s*")[^"]+(")/],
+  ['ai-assistant-server/src/main/java/com/aiassistant/config/OpenApiConfiguration.java', /(\.version\(")[^"]+("\))/],
+  ['ai-assistant-observability-support/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java', /(\.version\(")[^"]+("\))/],
+];
 const CHANGELOG_FILE = 'CHANGELOG.md';
 
 function parseArgs(argv) {
@@ -127,6 +137,23 @@ function writeMavenVersion(rel, newVersion) {
       `$1${newVersion}$2`,
     );
   writeFile(rel, restored);
+}
+
+function writeAiAssistantParentVersion(rel, newVersion) {
+  const xml = readFile(rel);
+  const pattern =
+    /(<parent>[\s\S]*?<artifactId>ai-assistant-sdk<\/artifactId>\s*<version>)[^<]+(<\/version>[\s\S]*?<\/parent>)/;
+  if (!pattern.test(xml)) throw new Error(`Could not update AI Assistant parent version in ${rel}`);
+  writeFile(rel, xml.replace(pattern, `$1${newVersion}$2`));
+}
+
+function writeEmbeddedVersion(rel, pattern, newVersion) {
+  const content = readFile(rel);
+  if (!pattern.test(content)) throw new Error(`Could not update embedded version in ${rel}`);
+  writeFile(
+    rel,
+    content.replace(pattern, (_match, prefix, suffix) => `${prefix}${newVersion}${suffix}`),
+  );
 }
 
 function bumpSemver(current, kind) {
@@ -213,13 +240,13 @@ function updatePackageLock(rel, newVersion) {
 ensureCleanWorktree();
 
 const rawMavenVersions = POMS.map((p) => readMavenVersion(p));
-const npmVersion = JSON.parse(readFile(PKG)).version;
+const npmVersions = PACKAGES.map(([pkg]) => JSON.parse(readFile(pkg)).version);
 /* Maven 习惯加 -SNAPSHOT 标记开发版；npm 通常不带。比较时统一去后缀。 */
 const stripSnapshot = (v) => v.replace(/-SNAPSHOT$/, '');
-const normalized = new Set([...rawMavenVersions, npmVersion].map(stripSnapshot));
+const normalized = new Set([...rawMavenVersions, ...npmVersions].map(stripSnapshot));
 if (normalized.size > 1) {
   console.error(
-    `error: existing versions are inconsistent: maven=[${rawMavenVersions.join(', ')}] npm=${npmVersion}`,
+    `error: existing versions are inconsistent: maven=[${rawMavenVersions.join(', ')}] npm=[${npmVersions.join(', ')}]`,
   );
   console.error('Run `node scripts/check-version-consistency.mjs` for details first.');
   process.exit(2);
@@ -235,8 +262,14 @@ if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(newVersion)) {
 console.log(`Releasing ${currentVersion} → ${newVersion}${args.dryRun ? ' (dry-run)' : ''}`);
 
 for (const pom of POMS) writeMavenVersion(pom, newVersion);
-updatePackageJson(PKG, newVersion);
-updatePackageLock(PKG_LOCK, newVersion);
+for (const pom of INHERITED_PARENT_POMS) writeAiAssistantParentVersion(pom, newVersion);
+for (const [pkg, lock] of PACKAGES) {
+  updatePackageJson(pkg, newVersion);
+  updatePackageLock(lock, newVersion);
+}
+for (const [file, pattern] of EMBEDDED_VERSION_FILES) {
+  writeEmbeddedVersion(file, pattern, newVersion);
+}
 
 /* Sanity check consistency */
 if (!args.dryRun) {
@@ -255,7 +288,13 @@ if (args.noCommit) {
   process.exit(0);
 }
 
-const filesToCommit = [...POMS, PKG, PKG_LOCK, CHANGELOG_FILE]
+const filesToCommit = [
+  ...POMS,
+  ...INHERITED_PARENT_POMS,
+  ...PACKAGES.flat(),
+  ...EMBEDDED_VERSION_FILES.map(([file]) => file),
+  CHANGELOG_FILE,
+]
   .filter((f) => fs.existsSync(path.join(root, f)));
 shCheck(['git', 'add', ...filesToCommit]);
 shCheck(['git', 'commit', '-m', `chore(release): v${newVersion}`]);

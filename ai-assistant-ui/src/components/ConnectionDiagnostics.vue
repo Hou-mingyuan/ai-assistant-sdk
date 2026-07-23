@@ -483,7 +483,7 @@ function formatTiming(value: number) {
 }
 
 .ai-diagnostics-latency-total {
-  background: rgba(99, 102, 241, 0.45);
+  background: rgba(17, 17, 17, 0.45);
 }
 
 .ai-diagnostics-latency-ttft {

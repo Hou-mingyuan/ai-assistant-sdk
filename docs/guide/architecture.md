@@ -24,14 +24,14 @@ flowchart LR
     end
 
     llm[("LLM Provider<br/>OpenAI / DeepSeek / Tongyi /<br/>Doubao / Kimi / Gemini / ...<br/>16 家内置 + OpenAI 兼容")]
-    vector[("Vector Store<br/>InMemory / Milvus / Pinecone / Qdrant<br/>(可选)")]
+    vector[("Vector Store<br/>InMemory（仓库内）<br/>外部实现通过 SPI 注入")]
     redis[("Redis<br/>分布式限流 / Session / Memory<br/>(可选)")]
     jdbc[("JDBC 数据源<br/>业务数据接入工具<br/>(可选)")]
     webhook[("Webhook 接收端<br/>异步任务回调<br/>(可选)")]
     mcpclient[("MCP 客户端<br/>Cursor / Claude Desktop / ...<br/>(可选)")]
 
     user -- "Vue 插件 / Web Component<br/>SSE / WS / REST" --> ai
-    admin -- "/admin/* REST<br/>X-AI-Token" --> ai
+    admin -- "/ai-assistant/admin/* REST<br/>X-AI-Token" --> ai
     host -- "嵌入 ai-assistant-spring-boot-starter<br/>(@ConditionalOnMissingBean 接管点)" --> ai
 
     ai -- "OpenAI 兼容 HTTP<br/>SSE 流" --> llm
@@ -146,7 +146,7 @@ flowchart TB
         f_req["RequestIdFilter<br/>(-1)"]
         f_rate["RateLimit / RedisRateLimit<br/>(0)"]
         f_auth["AiAssistantAuthFilter<br/>(1)"]
-        f_admin["AdminAuthFilter<br/>(2 · /admin/*)"]
+        f_admin["AdminAuthFilter<br/>(2 · /ai-assistant/admin/*)"]
     end
 
     subgraph controllers ["Controllers"]
@@ -155,7 +155,7 @@ flowchart TB
         c_ws["AiAssistantWebSocketHandler<br/>WebSocket (可选)"]
         c_file["FileUploadController<br/>/file/summarize /file/translate"]
         c_export["AssistantExportController<br/>/export (xlsx/docx/pdf)"]
-        c_admin["AdminDashboardController<br/>/admin/*"]
+        c_admin["AdminDashboardController<br/>/ai-assistant/admin/*"]
         c_async["AsyncTaskController<br/>/async/chat → 202 + 轮询"]
         c_capability["CapabilityController<br/>/capabilities"]
         c_session["SessionController<br/>/session/*"]
@@ -183,7 +183,7 @@ flowchart TB
 
     subgraph capabilities ["能力扩展"]
         cap_tool["ToolRegistry<br/>+ ToolDefinition"]
-        cap_agent["AgentExecutor<br/>(ReAct 多步)"]
+        cap_agent["AgentExecutor<br/>(执行调用方给定步骤)"]
         cap_router["ModelRouter<br/>(任务 / 成本 / A/B)"]
         cap_rag["RagService<br/>+ VectorStore + EmbeddingProvider"]
         cap_memory["ConversationMemoryProvider<br/>(Redis > JDBC > InMemory)"]

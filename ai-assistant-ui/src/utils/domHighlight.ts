@@ -78,14 +78,14 @@ export function injectHighlightStyles(): void {
   style.setAttribute('data-ai-highlight-styles', '');
   style.textContent = `
     .${HIGHLIGHT_CLASS} {
-      outline: 3px solid #6366f1 !important;
+      outline: 3px solid #181818 !important;
       outline-offset: 4px !important;
       border-radius: 4px !important;
       animation: ai-highlight-pulse 1s ease-in-out 2 !important;
     }
     @keyframes ai-highlight-pulse {
-      0%, 100% { outline-color: #6366f1; }
-      50% { outline-color: #818cf8; }
+      0%, 100% { outline-color: #181818; }
+      50% { outline-color: #a3a3a3; }
     }
   `;
   document.head.appendChild(style);

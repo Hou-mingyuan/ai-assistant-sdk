@@ -122,7 +122,7 @@
               </label>
             </div>
           </div>
-          <div class="ai-personalize-model-section">
+          <div v-if="providerConfigEnabled !== false" class="ai-personalize-model-section">
             <div class="ai-personalize-audio-head">
               <span class="ai-personalize-audio-label">
                 {{ t.providerConfigTitle || 'Model provider connection' }}
@@ -285,7 +285,20 @@
               {{ t.providerConfigSaveAndRefresh || 'Save model config and refresh list' }}
             </button>
           </div>
-          <div class="ai-personalize-model-section">
+          <div v-else class="ai-personalize-model-section">
+            <div class="ai-personalize-audio-head">
+              <span class="ai-personalize-audio-label">
+                {{ t.providerConfigTitle || 'Model provider connection' }}
+              </span>
+            </div>
+            <p class="ai-personalize-permission" role="status">
+              {{
+                t.providerConfigPermissionRequired ||
+                'Configure an admin or access token in the host application to manage providers.'
+              }}
+            </p>
+          </div>
+          <div v-if="providerConfigEnabled !== false" class="ai-personalize-model-section">
             <div class="ai-personalize-audio-head">
               <span class="ai-personalize-audio-label">
                 {{ t.webSearchLabel || 'Web search' }}
@@ -408,33 +421,38 @@ export interface PersonalizeAudioPrefs {
   voices: { voiceURI: string; name: string; lang: string }[];
 }
 
-const props = defineProps<{
-  open: boolean;
-  modelValue: string;
-  isDark: boolean;
-  disabled: boolean;
-  maxChars: number;
-  t: I18nMessages;
-  /** K25: optional theme id (sky / sunset / forest / plum / graphite). */
-  theme?: string;
-  /** K37: optional audio preferences; section hidden if undefined or unsupported. */
-  audio?: PersonalizeAudioPrefs;
-  providerInput?: string;
-  providerBaseUrlInput?: string;
-  providerApiKeyInput?: string;
-  providerModelInput?: string;
-  providerAllowedModelsInput?: string;
-  warmupEnabledInput?: boolean;
-  webSearchProviderInput?: string;
-  webSearchApiKeyInput?: string;
-  webSearchMaxResultsInput?: string;
-  webSearchAllowedDomainsInput?: string;
-  webSearchBlockedDomainsInput?: string;
-  fastRouteMaxCharsInput?: string;
-  slowTtftThresholdMsInput?: string;
-  slowTotalThresholdMsInput?: string;
-  slowRequestWarningStreakInput?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    modelValue: string;
+    isDark: boolean;
+    disabled: boolean;
+    maxChars: number;
+    t: I18nMessages;
+    /** K25: optional theme id (sky / sunset / forest / plum / graphite). */
+    theme?: string;
+    /** K37: optional audio preferences; section hidden if undefined or unsupported. */
+    audio?: PersonalizeAudioPrefs;
+    /** Runtime provider controls require a host-provided admin or fallback access token. */
+    providerConfigEnabled?: boolean;
+    providerInput?: string;
+    providerBaseUrlInput?: string;
+    providerApiKeyInput?: string;
+    providerModelInput?: string;
+    providerAllowedModelsInput?: string;
+    warmupEnabledInput?: boolean;
+    webSearchProviderInput?: string;
+    webSearchApiKeyInput?: string;
+    webSearchMaxResultsInput?: string;
+    webSearchAllowedDomainsInput?: string;
+    webSearchBlockedDomainsInput?: string;
+    fastRouteMaxCharsInput?: string;
+    slowTtftThresholdMsInput?: string;
+    slowTotalThresholdMsInput?: string;
+    slowRequestWarningStreakInput?: string;
+  }>(),
+  { providerConfigEnabled: true },
+);
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -518,35 +536,46 @@ watch(
 
 .ai-personalize-theme-label {
   font-size: 13px;
-  color: #475569;
+  color: #52525b;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .ai-dark .ai-personalize-theme-label {
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 
 /* K37: AudioOutput section ------------------------------------------------ */
 .ai-personalize-audio-section {
   margin-top: 14px;
   padding: 10px 12px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid rgba(161, 161, 170, 0.25);
   border-radius: 10px;
-  background: rgba(241, 245, 249, 0.45);
+  background: rgba(244, 244, 245, 0.45);
 }
 
 .ai-personalize-model-section {
   margin-top: 14px;
   padding: 10px 12px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid rgba(161, 161, 170, 0.25);
   border-radius: 10px;
-  background: rgba(241, 245, 249, 0.45);
+  background: rgba(244, 244, 245, 0.45);
 }
 
 .ai-dark .ai-personalize-model-section {
-  border-color: rgba(71, 85, 105, 0.55);
-  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(82, 82, 91, 0.55);
+  background: rgba(39, 39, 42, 0.45);
+}
+
+.ai-personalize-permission {
+  margin: 0;
+  color: #52525b;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.ai-dark .ai-personalize-permission {
+  color: #d4d4d8;
 }
 
 .ai-personalize-model-field {
@@ -556,7 +585,7 @@ watch(
   gap: 10px;
   margin-top: 8px;
   font-size: 12.5px;
-  color: #475569;
+  color: #52525b;
 }
 
 .ai-personalize-model-presets {
@@ -567,43 +596,43 @@ watch(
 }
 
 .ai-personalize-model-presets button {
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid rgba(161, 161, 170, 0.35);
   border-radius: 999px;
   padding: 5px 10px;
   background: white;
-  color: #334155;
+  color: #3f3f46;
   cursor: pointer;
   font-size: 12px;
 }
 
 .ai-dark .ai-personalize-model-presets button {
-  background: #1e293b;
-  color: #e2e8f0;
-  border-color: rgba(71, 85, 105, 0.6);
+  background: #27272a;
+  color: #e4e4e7;
+  border-color: rgba(82, 82, 91, 0.6);
 }
 
 .ai-personalize-model-field input {
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid rgba(161, 161, 170, 0.4);
   border-radius: 6px;
-  color: #1e293b;
+  color: #27272a;
   background: white;
 }
 
 .ai-dark .ai-personalize-model-field {
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 
 .ai-dark .ai-personalize-model-field input {
-  background: #1e293b;
-  color: #e2e8f0;
-  border-color: rgba(71, 85, 105, 0.6);
+  background: #27272a;
+  color: #e4e4e7;
+  border-color: rgba(82, 82, 91, 0.6);
 }
 
 .ai-dark .ai-personalize-audio-section {
-  border-color: rgba(71, 85, 105, 0.55);
-  background: rgba(30, 41, 59, 0.45);
+  border-color: rgba(82, 82, 91, 0.55);
+  background: rgba(39, 39, 42, 0.45);
 }
 
 .ai-personalize-audio-head {
@@ -616,12 +645,12 @@ watch(
 .ai-personalize-audio-label {
   font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: #27272a;
   letter-spacing: 0.01em;
 }
 
 .ai-dark .ai-personalize-audio-label {
-  color: #e2e8f0;
+  color: #e4e4e7;
 }
 
 .ai-personalize-audio-row {
@@ -634,13 +663,13 @@ watch(
 .ai-personalize-audio-row-label {
   width: 64px;
   font-size: 12.5px;
-  color: #475569;
+  color: #52525b;
   font-weight: 500;
   flex-shrink: 0;
 }
 
 .ai-dark .ai-personalize-audio-row-label {
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 
 .ai-personalize-audio-voice {
@@ -648,40 +677,40 @@ watch(
   min-width: 0;
   padding: 5px 8px;
   font-size: 12.5px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  border: 1px solid rgba(161, 161, 170, 0.4);
   border-radius: 6px;
   background: white;
-  color: #1e293b;
+  color: #27272a;
   outline: none;
 }
 
 .ai-personalize-audio-voice:focus-visible {
-  border-color: rgba(59, 130, 246, 0.7);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+  border-color: var(--ai-color-primary, #171717);
+  box-shadow: 0 0 0 2px var(--ai-color-primary-soft, rgba(17, 17, 17, 0.18));
 }
 
 .ai-dark .ai-personalize-audio-voice {
-  background: #1e293b;
-  color: #e2e8f0;
-  border-color: rgba(71, 85, 105, 0.6);
+  background: #27272a;
+  color: #e4e4e7;
+  border-color: rgba(82, 82, 91, 0.6);
 }
 
 .ai-personalize-audio-rate {
   flex: 1;
   min-width: 0;
-  accent-color: #3b82f6;
+  accent-color: var(--ai-color-primary, #171717);
 }
 
 .ai-personalize-audio-rate-value {
   width: 36px;
   text-align: right;
   font-size: 12px;
-  color: #475569;
+  color: #52525b;
   font-variant-numeric: tabular-nums;
 }
 
 .ai-dark .ai-personalize-audio-rate-value {
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 
 .ai-personalize-audio-row-toggle {
@@ -694,17 +723,17 @@ watch(
   align-items: center;
   gap: 6px;
   font-size: 12.5px;
-  color: #475569;
+  color: #52525b;
   cursor: pointer;
   user-select: none;
 }
 
 .ai-personalize-audio-toggle input[type='checkbox'] {
-  accent-color: #3b82f6;
+  accent-color: var(--ai-color-primary, #171717);
   cursor: pointer;
 }
 
 .ai-dark .ai-personalize-audio-toggle {
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 </style>

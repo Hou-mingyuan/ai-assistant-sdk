@@ -27,6 +27,7 @@ class OpenApiSupportAutoConfigurationTest {
                             OpenAPI openApi = context.getBean(OpenAPI.class);
                             assertThat(openApi.getInfo().getTitle())
                                     .isEqualTo("AI Assistant SDK API");
+                            assertThat(openApi.getInfo().getVersion()).isEqualTo("1.0.1");
                             assertThat(openApi.getServers())
                                     .anySatisfy(
                                             server ->

@@ -2,15 +2,25 @@
   <section class="admin-app" :class="{ 'admin-app--collapsed': !expanded }">
     <header class="admin-app-head">
       <div class="admin-app-title">
-        <span class="admin-app-icon" aria-hidden="true">🛠</span>
+        <Settings2
+          class="admin-app-icon"
+          :size="22"
+          :stroke-width="1.8"
+          aria-hidden="true"
+        />
         <h2>Admin Console</h2>
-        <span v-if="lastCall" class="admin-app-badge" :class="lastCall.success ? 'ok' : 'err'">
-          {{ lastCall.success ? '✓' : '✗' }} last
+        <span
+          v-if="lastCall"
+          class="admin-app-badge"
+          :class="lastCall.success ? 'ok' : 'err'"
+        >
+          {{ lastCall.success ? "✓" : "✗" }} 最近
         </span>
       </div>
       <div class="admin-app-actions">
         <span class="admin-app-hint">
-          调用 <code>/ai-assistant/admin/*</code> · 需要 <code>X-Admin-Token</code>
+          调用 <code>/ai-assistant/admin/*</code> · 需要
+          <code>X-Admin-Token</code>
         </span>
         <button
           type="button"
@@ -18,7 +28,7 @@
           :aria-expanded="expanded"
           @click="expanded = !expanded"
         >
-          {{ expanded ? '收起' : '展开' }}
+          {{ expanded ? "收起" : "展开" }}
         </button>
       </div>
     </header>
@@ -42,7 +52,7 @@
       </div>
 
       <!-- Tab nav -->
-      <nav class="admin-app-tabs" role="tablist">
+      <nav class="admin-app-tabs" role="tablist" aria-label="Admin sections">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -52,7 +62,13 @@
           :aria-selected="currentTab === tab.id"
           @click="currentTab = tab.id"
         >
-          <span class="admin-app-tab-emoji" aria-hidden="true">{{ tab.emoji }}</span>
+          <component
+            :is="tab.icon"
+            class="admin-app-tab-icon"
+            :size="16"
+            :stroke-width="1.8"
+            aria-hidden="true"
+          />
           {{ tab.label }}
         </button>
       </nav>
@@ -61,16 +77,36 @@
       <div class="admin-app-panel" role="tabpanel">
         <!-- Overview -->
         <div v-if="currentTab === 'overview'" class="admin-app-grid">
-          <button type="button" class="admin-btn" :disabled="busy" @click="callOverview">
+          <button
+            type="button"
+            class="admin-btn"
+            :disabled="busy"
+            @click="callOverview"
+          >
             GET /admin/overview
           </button>
-          <button type="button" class="admin-btn" :disabled="busy" @click="callSystem">
+          <button
+            type="button"
+            class="admin-btn"
+            :disabled="busy"
+            @click="callSystem"
+          >
             GET /admin/system
           </button>
-          <button type="button" class="admin-btn" :disabled="busy" @click="callPlugins">
+          <button
+            type="button"
+            class="admin-btn"
+            :disabled="busy"
+            @click="callPlugins"
+          >
             GET /admin/plugins
           </button>
-          <button type="button" class="admin-btn" :disabled="busy" @click="callTools">
+          <button
+            type="button"
+            class="admin-btn"
+            :disabled="busy"
+            @click="callTools"
+          >
             GET /admin/tools
           </button>
         </div>
@@ -80,20 +116,38 @@
           <div class="admin-app-row">
             <label class="admin-app-field admin-app-field--grow">
               <span>Tenant ID (optional)</span>
-              <input v-model="tokensTenantId" type="text" placeholder="empty = all tenants" />
+              <input
+                v-model="tokensTenantId"
+                type="text"
+                placeholder="empty = all tenants"
+              />
             </label>
-            <button type="button" class="admin-btn" :disabled="busy" @click="callTokens">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callTokens"
+            >
               List tokens
             </button>
           </div>
           <div class="admin-app-row">
             <label class="admin-app-field admin-app-field--grow">
               <span>Set quota: Tenant</span>
-              <input v-model="quotaTenantId" type="text" placeholder="required" />
+              <input
+                v-model="quotaTenantId"
+                type="text"
+                placeholder="required"
+              />
             </label>
             <label class="admin-app-field">
               <span>Daily limit</span>
-              <input v-model.number="quotaDailyLimit" type="number" min="0" placeholder="100000" />
+              <input
+                v-model.number="quotaDailyLimit"
+                type="number"
+                min="0"
+                placeholder="100000"
+              />
             </label>
             <button
               type="button"
@@ -109,18 +163,31 @@
         <!-- Prompts -->
         <div v-else-if="currentTab === 'prompts'" class="admin-app-form">
           <div class="admin-app-row">
-            <button type="button" class="admin-btn" :disabled="busy" @click="callPrompts">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callPrompts"
+            >
               List prompts
             </button>
           </div>
           <div class="admin-app-row admin-app-row--stack">
             <label class="admin-app-field admin-app-field--grow">
               <span>Name</span>
-              <input v-model="promptName" type="text" placeholder="my-template" />
+              <input
+                v-model="promptName"
+                type="text"
+                placeholder="my-template"
+              />
             </label>
             <label class="admin-app-field admin-app-field--grow">
               <span>Template (supports &#123;&#123;var&#125;&#125;)</span>
-              <textarea v-model="promptTemplate" rows="3" placeholder="Hello &#123;&#123;name&#125;&#125;"></textarea>
+              <textarea
+                v-model="promptTemplate"
+                rows="3"
+                placeholder="Hello &#123;&#123;name&#125;&#125;"
+              ></textarea>
             </label>
             <button
               type="button"
@@ -140,7 +207,12 @@
               <span>Namespace (optional)</span>
               <input v-model="ragNamespace" type="text" placeholder="default" />
             </label>
-            <button type="button" class="admin-btn" :disabled="busy" @click="callRagStats">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callRagStats"
+            >
               GET stats
             </button>
           </div>
@@ -171,7 +243,12 @@
         <!-- A/B Tests -->
         <div v-else-if="currentTab === 'ab'" class="admin-app-form">
           <div class="admin-app-row">
-            <button type="button" class="admin-btn" :disabled="busy" @click="callListAb">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callListAb"
+            >
               List A/B tests
             </button>
           </div>
@@ -186,11 +263,20 @@
             </label>
             <label class="admin-app-field">
               <span>Model B</span>
-              <input v-model="abModelB" type="text" placeholder="claude-3-haiku" />
+              <input
+                v-model="abModelB"
+                type="text"
+                placeholder="claude-3-haiku"
+              />
             </label>
             <label class="admin-app-field admin-app-field--narrow">
               <span>% A</span>
-              <input v-model.number="abPercentA" type="number" min="0" max="100" />
+              <input
+                v-model.number="abPercentA"
+                type="number"
+                min="0"
+                max="100"
+              />
             </label>
             <button
               type="button"
@@ -206,7 +292,12 @@
         <!-- Fallback chain -->
         <div v-else-if="currentTab === 'fallback'" class="admin-app-form">
           <div class="admin-app-row">
-            <button type="button" class="admin-btn" :disabled="busy" @click="callFallback">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callFallback"
+            >
               GET chain
             </button>
           </div>
@@ -233,14 +324,23 @@
         <!-- Plugins -->
         <div v-else-if="currentTab === 'plugins'" class="admin-app-form">
           <div class="admin-app-row">
-            <button type="button" class="admin-btn" :disabled="busy" @click="callPlugins">
+            <button
+              type="button"
+              class="admin-btn"
+              :disabled="busy"
+              @click="callPlugins"
+            >
               List plugins
             </button>
           </div>
           <div class="admin-app-row">
             <label class="admin-app-field admin-app-field--grow">
               <span>Plugin ID</span>
-              <input v-model="pluginId" type="text" placeholder="plugin id to unload" />
+              <input
+                v-model="pluginId"
+                type="text"
+                placeholder="plugin id to unload"
+              />
             </label>
             <button
               type="button"
@@ -258,11 +358,15 @@
       <div v-if="lastCall" class="admin-app-result">
         <div class="admin-app-meta">
           <span class="admin-app-meta-endpoint">
-            <span :class="['admin-app-status', lastCall.success ? 'ok' : 'err']">
-              {{ lastCall.success ? '✓ OK' : '✗ FAIL' }}
+            <span
+              :class="['admin-app-status', lastCall.success ? 'ok' : 'err']"
+            >
+              {{ lastCall.success ? "✓ 成功" : "✗ 失败" }}
             </span>
             <code>{{ lastCall.endpoint }}</code>
-            <span v-if="lastCall.status" class="admin-app-http">HTTP {{ lastCall.status }}</span>
+            <span v-if="lastCall.status" class="admin-app-http"
+              >HTTP {{ lastCall.status }}</span
+            >
           </span>
           <span class="admin-app-elapsed">{{ lastCall.elapsedMs }} ms</span>
         </div>
@@ -273,7 +377,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, type Component } from "vue";
+import {
+  Database,
+  FileText,
+  Gauge,
+  GitFork,
+  KeyRound,
+  Plug,
+  Scale,
+  Settings2,
+} from "@lucide/vue";
 import {
   adminOverview,
   adminListTokens,
@@ -291,49 +405,51 @@ import {
   adminUnloadPlugin,
   adminSystemInfo,
   type AdminResult,
-} from '../../ai-assistant-ui/src/entries/admin';
+} from "../../ai-assistant-ui/src/entries/admin";
 
 interface TabDef {
-  id: 'overview' | 'tokens' | 'prompts' | 'rag' | 'ab' | 'fallback' | 'plugins';
+  id: "overview" | "tokens" | "prompts" | "rag" | "ab" | "fallback" | "plugins";
   label: string;
-  emoji: string;
+  icon: Component;
 }
 
 const tabs: TabDef[] = [
-  { id: 'overview', label: 'Overview', emoji: '📊' },
-  { id: 'tokens', label: 'Tokens & Quota', emoji: '🔑' },
-  { id: 'prompts', label: 'Prompts', emoji: '📝' },
-  { id: 'rag', label: 'RAG', emoji: '🧠' },
-  { id: 'ab', label: 'A/B Tests', emoji: '⚖️' },
-  { id: 'fallback', label: 'Fallback', emoji: '🪂' },
-  { id: 'plugins', label: 'Plugins', emoji: '🧩' },
+  { id: "overview", label: "Overview", icon: Gauge },
+  { id: "tokens", label: "Tokens & Quota", icon: KeyRound },
+  { id: "prompts", label: "Prompts", icon: FileText },
+  { id: "rag", label: "RAG", icon: Database },
+  { id: "ab", label: "A/B Tests", icon: Scale },
+  { id: "fallback", label: "Fallback", icon: GitFork },
+  { id: "plugins", label: "Plugins", icon: Plug },
 ];
 
 const expanded = ref(true);
-const currentTab = ref<TabDef['id']>('overview');
-const baseUrl = ref(import.meta.env.VITE_AI_ASSISTANT_BASE_URL || '/ai-assistant');
-const adminToken = ref('');
+const currentTab = ref<TabDef["id"]>("overview");
+const baseUrl = ref(
+  import.meta.env.VITE_AI_ASSISTANT_BASE_URL || "/ai-assistant",
+);
+const adminToken = ref("");
 const busy = ref(false);
 
-const tokensTenantId = ref('');
-const quotaTenantId = ref('');
+const tokensTenantId = ref("");
+const quotaTenantId = ref("");
 const quotaDailyLimit = ref<number>(100000);
 
-const promptName = ref('');
-const promptTemplate = ref('');
+const promptName = ref("");
+const promptTemplate = ref("");
 
-const ragNamespace = ref('');
-const ragDocId = ref('');
-const ragContent = ref('');
+const ragNamespace = ref("");
+const ragDocId = ref("");
+const ragContent = ref("");
 
-const abName = ref('');
-const abModelA = ref('');
-const abModelB = ref('');
+const abName = ref("");
+const abModelA = ref("");
+const abModelB = ref("");
 const abPercentA = ref<number>(50);
 
-const fallbackChain = ref('');
+const fallbackChain = ref("");
 
-const pluginId = ref('');
+const pluginId = ref("");
 
 interface CallRecord {
   endpoint: string;
@@ -351,7 +467,7 @@ async function run(endpoint: string, fn: () => Promise<AdminResult<unknown>>) {
       endpoint,
       success: false,
       elapsedMs: 0,
-      payload: { error: '请先在顶部填写 Admin Token' },
+      payload: { error: "请先在顶部填写 Admin Token" },
     };
     return;
   }
@@ -379,17 +495,27 @@ async function run(endpoint: string, fn: () => Promise<AdminResult<unknown>>) {
 }
 
 const callOverview = () =>
-  run('GET /admin/overview', () => adminOverview(baseUrl.value, adminToken.value));
+  run("GET /admin/overview", () =>
+    adminOverview(baseUrl.value, adminToken.value),
+  );
 const callSystem = () =>
-  run('GET /admin/system', () => adminSystemInfo(baseUrl.value, adminToken.value));
+  run("GET /admin/system", () =>
+    adminSystemInfo(baseUrl.value, adminToken.value),
+  );
 const callTools = () =>
-  run('GET /admin/tools', () => adminListTools(baseUrl.value, adminToken.value));
+  run("GET /admin/tools", () =>
+    adminListTools(baseUrl.value, adminToken.value),
+  );
 const callTokens = () =>
-  run('GET /admin/tokens', () =>
-    adminListTokens(baseUrl.value, adminToken.value, tokensTenantId.value.trim() || undefined),
+  run("GET /admin/tokens", () =>
+    adminListTokens(
+      baseUrl.value,
+      adminToken.value,
+      tokensTenantId.value.trim() || undefined,
+    ),
   );
 const callSetQuota = () =>
-  run('POST /admin/tokens/quota', () =>
+  run("POST /admin/tokens/quota", () =>
     adminSetTokenQuota(
       baseUrl.value,
       adminToken.value,
@@ -398,26 +524,39 @@ const callSetQuota = () =>
     ),
   );
 const callPrompts = () =>
-  run('GET /admin/prompts', () => adminListPrompts(baseUrl.value, adminToken.value));
+  run("GET /admin/prompts", () =>
+    adminListPrompts(baseUrl.value, adminToken.value),
+  );
 const callCreatePrompt = () =>
-  run('POST /admin/prompts', () =>
-    adminCreatePrompt(baseUrl.value, adminToken.value, promptName.value, promptTemplate.value),
+  run("POST /admin/prompts", () =>
+    adminCreatePrompt(
+      baseUrl.value,
+      adminToken.value,
+      promptName.value,
+      promptTemplate.value,
+    ),
   );
 const callRagStats = () =>
-  run('GET /admin/rag/stats', () =>
-    adminRagStats(baseUrl.value, adminToken.value, ragNamespace.value.trim() || undefined),
+  run("GET /admin/rag/stats", () =>
+    adminRagStats(
+      baseUrl.value,
+      adminToken.value,
+      ragNamespace.value.trim() || undefined,
+    ),
   );
 const callIngestRag = () =>
-  run('POST /admin/rag/ingest', () =>
+  run("POST /admin/rag/ingest", () =>
     adminIngestRag(baseUrl.value, adminToken.value, ragContent.value, {
       namespace: ragNamespace.value.trim() || undefined,
       docId: ragDocId.value.trim() || undefined,
     }),
   );
 const callListAb = () =>
-  run('GET /admin/ab-test', () => adminListAbTests(baseUrl.value, adminToken.value));
+  run("GET /admin/ab-test", () =>
+    adminListAbTests(baseUrl.value, adminToken.value),
+  );
 const callConfigAb = () =>
-  run('POST /admin/ab-test', () =>
+  run("POST /admin/ab-test", () =>
     adminConfigureAbTest(
       baseUrl.value,
       adminToken.value,
@@ -428,22 +567,24 @@ const callConfigAb = () =>
     ),
   );
 const callFallback = () =>
-  run('GET /admin/fallback-chain', () =>
+  run("GET /admin/fallback-chain", () =>
     adminGetFallbackChain(baseUrl.value, adminToken.value),
   );
 const callSetFallback = () => {
   const chain = fallbackChain.value
-    .split(',')
+    .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return run('POST /admin/fallback-chain', () =>
+  return run("POST /admin/fallback-chain", () =>
     adminSetFallbackChain(baseUrl.value, adminToken.value, chain),
   );
 };
 const callPlugins = () =>
-  run('GET /admin/plugins', () => adminListPlugins(baseUrl.value, adminToken.value));
+  run("GET /admin/plugins", () =>
+    adminListPlugins(baseUrl.value, adminToken.value),
+  );
 const callUnloadPlugin = () =>
-  run('POST /admin/plugins/{id}/unload', () =>
+  run("POST /admin/plugins/{id}/unload", () =>
     adminUnloadPlugin(baseUrl.value, adminToken.value, pluginId.value.trim()),
   );
 
@@ -460,11 +601,17 @@ function pretty(v: unknown): string {
 .admin-app {
   margin: 2rem 0 0;
   padding: 1.25rem 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e5e5;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(6, 182, 212, 0.03));
-  box-shadow: 0 4px 16px -8px rgba(14, 165, 233, 0.18);
-  font-family: system-ui, sans-serif;
+  background: linear-gradient(
+    135deg,
+    rgba(17, 17, 17, 0.06),
+    rgba(38, 38, 38, 0.03)
+  );
+  box-shadow: 0 4px 16px -8px rgba(17, 17, 17, 0.18);
+  font-family:
+    "Geist", "Segoe UI Variable", "Aptos", "PingFang SC", "Microsoft YaHei UI",
+    sans-serif;
 }
 .admin-app--collapsed {
   padding: 0.75rem 1rem;
@@ -485,7 +632,7 @@ function pretty(v: unknown): string {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -516,10 +663,10 @@ function pretty(v: unknown): string {
 }
 .admin-app-hint {
   font-size: 0.78rem;
-  color: #64748b;
+  color: #737373;
 }
 .admin-app-hint code {
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(17, 17, 17, 0.06);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.74rem;
@@ -529,15 +676,15 @@ function pretty(v: unknown): string {
   font-size: 12px;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid #94a3b8;
+  border: 1px solid #a3a3a3;
   background: #fff;
-  color: #334155;
+  color: #404040;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .admin-app-toggle:hover {
-  border-color: #0ea5e9;
-  color: #0ea5e9;
+  border-color: #111111;
+  color: #111111;
 }
 .admin-app-body {
   margin-top: 16px;
@@ -564,7 +711,7 @@ function pretty(v: unknown): string {
   min-width: 70px;
 }
 .admin-app-field span {
-  color: #475569;
+  color: #525252;
   font-weight: 500;
   font-size: 0.74rem;
   text-transform: uppercase;
@@ -573,7 +720,7 @@ function pretty(v: unknown): string {
 .admin-app-field input,
 .admin-app-field textarea {
   padding: 6px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d4d4d4;
   border-radius: 6px;
   font-size: 0.85rem;
   font-family: ui-monospace, Menlo, Consolas, monospace;
@@ -585,15 +732,15 @@ function pretty(v: unknown): string {
 }
 .admin-app-field input:focus,
 .admin-app-field textarea:focus {
-  outline: 2px solid rgba(14, 165, 233, 0.3);
+  outline: 2px solid rgba(17, 17, 17, 0.3);
   outline-offset: 1px;
-  border-color: #0ea5e9;
+  border-color: #111111;
 }
 .admin-app-tabs {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e5e5e5;
   padding-bottom: 8px;
 }
 .admin-app-tab {
@@ -607,19 +754,19 @@ function pretty(v: unknown): string {
   border: 1px solid transparent;
   border-bottom: none;
   background: transparent;
-  color: #64748b;
+  color: #737373;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .admin-app-tab:hover {
-  background: rgba(14, 165, 233, 0.06);
-  color: #0ea5e9;
+  background: rgba(17, 17, 17, 0.06);
+  color: #111111;
 }
 .admin-app-tab.active {
   background: #fff;
-  border-color: #e2e8f0;
-  color: #0ea5e9;
-  box-shadow: 0 -2px 0 0 #0ea5e9 inset;
+  border-color: #e5e5e5;
+  color: #111111;
+  box-shadow: 0 -2px 0 0 #111111 inset;
 }
 .admin-app-tab-emoji {
   font-size: 1rem;
@@ -628,7 +775,7 @@ function pretty(v: unknown): string {
   background: #fff;
   border-radius: 10px;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e5e5;
 }
 .admin-app-grid {
   display: grid;
@@ -657,25 +804,25 @@ function pretty(v: unknown): string {
   font-size: 0.82rem;
   font-weight: 500;
   border-radius: 8px;
-  border: 1px solid #0ea5e9;
+  border: 1px solid #111111;
   background: #fff;
-  color: #0ea5e9;
+  color: #111111;
   cursor: pointer;
   transition: all 0.18s ease;
   white-space: nowrap;
 }
 .admin-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px -4px rgba(14, 165, 233, 0.5);
+  box-shadow: 0 4px 10px -4px rgba(17, 17, 17, 0.5);
 }
 .admin-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .admin-btn--primary {
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   color: #fff;
   border-color: transparent;
 }
@@ -691,11 +838,11 @@ function pretty(v: unknown): string {
   color: #fff;
 }
 .admin-app-result {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #171717;
+  color: #e5e5e5;
   border-radius: 10px;
   padding: 12px 14px;
-  border: 1px solid #1e293b;
+  border: 1px solid #262626;
 }
 .admin-app-meta {
   display: flex;
@@ -724,7 +871,7 @@ function pretty(v: unknown): string {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.78rem;
-  color: #93c5fd;
+  color: #d4d4d4;
 }
 .admin-app-http {
   padding: 2px 6px;
@@ -735,7 +882,7 @@ function pretty(v: unknown): string {
   font-size: 0.74rem;
 }
 .admin-app-elapsed {
-  color: #94a3b8;
+  color: #a3a3a3;
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
 }
@@ -748,5 +895,314 @@ function pretty(v: unknown): string {
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+@media (max-width: 700px) {
+  .admin-app {
+    margin-top: 20px;
+    padding: 16px;
+    min-width: 0;
+  }
+
+  .admin-app--collapsed {
+    padding: 12px;
+  }
+
+  .admin-app-toggle,
+  .admin-app-tab,
+  .admin-btn {
+    min-height: 40px;
+  }
+
+  .admin-app-field input {
+    min-height: 42px;
+  }
+
+  .admin-app-panel {
+    padding: 12px;
+    min-width: 0;
+  }
+
+  .admin-app-body,
+  .admin-app-form,
+  .admin-app-row {
+    min-width: 0;
+  }
+
+  .admin-app-row {
+    flex-wrap: wrap;
+  }
+
+  .admin-app-field {
+    flex: 1 1 160px;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* Release-candidate admin workbench. */
+.admin-app {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #262626;
+  font-family:
+    "Geist", "Segoe UI Variable", "Aptos", "PingFang SC", "Microsoft YaHei UI",
+    sans-serif;
+}
+
+.admin-app--collapsed {
+  padding: 0;
+}
+
+.admin-app-head {
+  min-height: 56px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #d9dee7;
+}
+
+.admin-app-title h2 {
+  color: #171717;
+  background: none;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.admin-app-icon {
+  color: #171717;
+}
+
+.admin-app-badge,
+.admin-app-field span {
+  letter-spacing: 0;
+}
+
+.admin-app-actions {
+  min-width: 0;
+}
+
+.admin-app-toggle {
+  min-height: 44px;
+  padding: 0 14px;
+  border-color: #b9c2cf;
+  border-radius: 5px;
+  color: #333333;
+  font-weight: 600;
+}
+
+.admin-app-toggle:hover {
+  color: #171717;
+  border-color: #8793a5;
+  background: #fafafa;
+}
+
+.admin-app-body {
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.admin-app-conn {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d9dee7;
+  border-radius: 6px;
+  background: #eef1f5;
+}
+
+.admin-app-field {
+  min-width: 0;
+}
+
+.admin-app-field input,
+.admin-app-field textarea {
+  box-sizing: border-box;
+  min-height: 44px;
+  border-color: #b9c2cf;
+  border-radius: 5px;
+  color: #171717;
+  background: #ffffff;
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.admin-app-field textarea {
+  min-height: 88px;
+}
+
+.admin-app-tabs {
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 0;
+  overflow-x: auto;
+  border-bottom-color: #cfd5de;
+  scrollbar-width: thin;
+}
+
+.admin-app-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #666666;
+  background: transparent;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.admin-app-tab:hover {
+  color: #171717;
+  background: #eef1f5;
+}
+
+.admin-app-tab.active {
+  color: #171717;
+  border-color: #171717;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-app-tab-icon {
+  flex: 0 0 auto;
+}
+
+.admin-app-panel {
+  min-width: 0;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.admin-app-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.admin-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-color: #aeb8c6;
+  border-radius: 5px;
+  color: #333333;
+  background: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.admin-btn:hover:not(:disabled) {
+  color: #171717;
+  border-color: #778397;
+  background: #f5f7fa;
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-btn--primary {
+  color: #ffffff;
+  border-color: #171717;
+  background: #171717;
+}
+
+.admin-btn--primary:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #090909;
+  background: #090909;
+  filter: none;
+}
+
+.admin-btn--danger {
+  color: #b42318;
+  border-color: #e3aaa4;
+}
+
+.admin-btn--danger:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #b42318;
+  background: #b42318;
+}
+
+.admin-app-result {
+  border-radius: 6px;
+  background: #18212f;
+}
+
+@media (max-width: 820px) {
+  .admin-app-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    overflow-x: visible;
+    border-bottom: 0;
+  }
+
+  .admin-app-tab {
+    min-width: 0;
+    justify-content: flex-start;
+    padding: 0 10px;
+    border: 1px solid #cfd5de;
+    border-radius: 5px;
+  }
+
+  .admin-app-tab.active {
+    border-color: #171717;
+    background: #f5f5f5;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-app,
+  .admin-app--collapsed {
+    margin: 0;
+    padding: 0;
+  }
+
+  .admin-app-head,
+  .admin-app-actions {
+    align-items: flex-start;
+  }
+
+  .admin-app-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-app-hint {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-app-conn {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .admin-app-toggle,
+  .admin-app-tab,
+  .admin-btn,
+  .admin-app-field input {
+    min-height: 44px;
+  }
+
+  .admin-app-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-app-row {
+    align-items: stretch;
+  }
+
+  .admin-app-row > .admin-btn {
+    flex: 1 1 140px;
+  }
+
+  .admin-app-meta-endpoint {
+    flex-wrap: wrap;
+  }
 }
 </style>

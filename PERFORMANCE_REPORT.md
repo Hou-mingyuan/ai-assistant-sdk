@@ -1,104 +1,88 @@
-# AI Assistant SDK · 性能压测报告（Health Smoke）
+# AI Assistant SDK 性能验收报告
 
-> **范围**：仅探测 **health / liveness** 端点，**不调用** `/chat`、`/stream` 等 LLM 接口，避免密钥消耗。
+本报告记录可复现的本地基线。结果用于发现明显回退，不代表真实上游模型的生产延迟或容量。
 
-## 目标端点
+## 2026-07-22 最终验收结果
 
-| 端点 | 说明 |
-| --- | --- |
-| `GET {BASE}/health` | 应用健康（默认 `BASE=http://host:8080/ai-assistant`） |
-| `GET {ORIGIN}/actuator/health/liveness` | Spring Actuator 存活探针 |
+环境：Windows 11、Docker Desktop、JDK 21、Node.js 22、Chromium 150、Lighthouse 13.4.1。`docker-compose.demo.yml` 使用显式 `demo` provider，由生产 Nginx 在被忽略的本地端口 `19014` 反代真实 Spring Boot 服务；未修改产品默认端口，也未启动重复的数据库或缓存容器。
 
-Hub Profile 默认：`BASE=http://localhost:18080/ai-assistant`
+### 本地接口
 
-## 预期指标（Smoke）
+| 路径 | 样本与并发 | p50 | p95 | p99 | 最大值 | 门槛 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `GET /ai-assistant/health` | 100，5 并发 | 11.44 ms | **16.34 ms** | 18.67 ms | 30.42 ms | p95 < 400 ms |
+| `POST /ai-assistant/chat` | 30，3 并发 | 17.78 ms | **22.90 ms** | 23.23 ms | 23.23 ms | p95 < 1,000 ms |
+| `POST /ai-assistant/stream` 首个 SSE 事件 | 30，3 并发 | 28.66 ms | **35.00 ms** | 36.74 ms | 36.74 ms | p95 < 1,000 ms |
 
-| 指标 | p95 目标 | 说明 |
-| --- | --- | --- |
-| `/ai-assistant/health` | **< 400 ms** | 本地 / Hub 单实例 |
-| `/actuator/health/liveness` | **< 400 ms** | 同上 |
-| HTTP 失败率 | **< 1%** | k6 `http_req_failed` |
-| 并发 | 5 VU × 30s | 默认可重复 smoke |
+130 次普通 HTTP 请求和 30 次 SSE 请求全部成功。阻塞与 SSE 响应都校验了明确的 Demo 标识和原始输入回显。与 2026-07-20 的本机基线相比，健康、阻塞对话和 SSE 首事件 p95 分别由 23.59 ms、27.59 ms、77.40 ms 降至 16.34 ms、22.90 ms、35.00 ms；本次路径额外包含生产 Nginx 反代，因此只用于回归判断，不外推到真实模型。
 
-> `/chat`、`/stream` 依赖上游 LLM，延迟与配额相关，**不在本 smoke 门槛内**。容量规划见 [PERFORMANCE.md](./PERFORMANCE.md)。
+### Lighthouse
 
-## 运行方式
+Playground 是开发者工具页面，不考核 SEO；其余三类指标按统一完成标准验收。
 
-### 1. 启动服务
+| 配置 | Performance | Accessibility | Best Practices | FCP | LCP | TBT | CLS | 传输量 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 移动端（默认模拟，首次） | **80** | **100** | **100** | 1.36 s | 1.80 s | 825 ms | 0 | 52 KiB |
+| 移动端（默认模拟，复跑） | **84** | **100** | **100** | 1.30 s | 1.64 s | 630 ms | 0 | 52 KiB |
+| 桌面端（desktop preset） | **99** | **100** | **100** | 0.32 s | 0.38 s | 85 ms | 0 | 52 KiB |
+
+桌面端三项稳定达到门槛；移动端 Accessibility 与 Best Practices 为 100，Performance 两次为 80-84。两次移动报告都包含 Lighthouse 的 CPU 校准告警：测试设备比默认移动模拟预期更慢，可能压低 Performance 分数；桌面报告无运行警告。以上结果来自无扩展、无登录状态的全新无头 Chromium 会话，保留两次移动结果，不用单次高分替代波动范围。
+
+## 2026-07-20 基线
+
+环境：Windows 11、Java 21、独立服务、显式 `demo` provider、本地回环网络。验收通过被忽略的本地配置运行在 `19010`，未修改产品默认端口。
+
+| 路径 | 样本与并发 | p50 | p95 | p99 | 最大值 | 门槛 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `GET /ai-assistant/health` | 100，5 并发 | 11.03 ms | **23.59 ms** | 28.43 ms | 30.13 ms | p95 < 400 ms |
+| `POST /ai-assistant/chat` | 30，3 并发 | 14.69 ms | **27.59 ms** | 28.10 ms | 28.10 ms | p95 < 1,000 ms |
+| `POST /ai-assistant/stream` 首个 SSE 事件 | 30，3 并发 | 50.76 ms | **77.40 ms** | 77.97 ms | 77.97 ms | p95 < 1,000 ms |
+
+所有请求均成功，且阻塞与 SSE 响应都校验了明确的 Demo 标识和原始输入回显。`/chat` 与 `/stream` 数据只反映确定性的本地 Demo 实现；真实 provider 必须在目标网络、模型与配额条件下另行压测。
+
+## 复现
+
+先以显式 Demo provider 启动服务，再运行。也可以把地址替换为生产 Playground 的同源反代地址：
 
 ```bash
-# 独立 Docker
-docker compose up -d --build
-
-# 或 Hub Profile（端口 18080）
-cd ai-portfolio/docker
-docker compose -f docker-compose.profiles.yml --profile ai-assistant-sdk up -d --build
+node performance/demo-contract-benchmark.mjs http://127.0.0.1:8080/ai-assistant
 ```
 
-### 2. Node smoke（无 k6）
+可选第二个参数会保存 JSON 结果：
 
 ```bash
-node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant
-# Hub:
-node scripts/smoke-standalone-service.mjs http://localhost:18080/ai-assistant
+node performance/demo-contract-benchmark.mjs \
+  http://127.0.0.1:8080/ai-assistant \
+  performance-result.json
 ```
 
-### 3. k6 smoke
+脚本先预热，然后测量 100 次健康请求、30 次阻塞请求和 30 次 SSE 请求；任一 p95 超过报告中的门槛时退出码非零。
+
+生产 Playground 的 Lighthouse 复现命令：
 
 ```bash
-k6 run performance/k6-smoke.js
-# Hub:
-k6 run performance/k6-smoke.js -e BASE_URL=http://localhost:18080/ai-assistant
+npx lighthouse http://127.0.0.1:3000/ \
+  --only-categories=performance,accessibility,best-practices \
+  --output=json --output-path=mobile.json
+
+npx lighthouse http://127.0.0.1:3000/ --preset=desktop \
+  --only-categories=performance,accessibility,best-practices \
+  --output=json --output-path=desktop.json
 ```
 
-## 文件
+## 健康端点负载烟测
 
-| 文件 | 用途 |
-| --- | --- |
-| `performance/k6-smoke.js` | k6 health + liveness 压测 |
-| `scripts/smoke-standalone-service.mjs` | Node 多功能 smoke（含 stats/runtime） |
-| `PERFORMANCE.md` | 容量与生产调优说明 |
-
-## 结果记录
-
-| 日期 | 环境 | BASE | health p95 | liveness p95 | 失败率 | 备注 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 2026-07-06 | Hub Profile | :18080 | **30.8 ms** | **25.2 ms** | **0%** | k6 docker · 5 VU × 30s · verify-all 可达 |
-| 2026-07-06 | Hub Profile (Round-5) | :18080 | **176.8 ms** | **198.3 ms** | **0%** | project-hub-2 复跑 · 399 iter · 0 失败 · 阈值全过 |
-| 2026-07-06 | Hub Profile (Round-5) | :18080 | **50.6 ms** | **45.9 ms** | **0%** | project-hub-1 复跑 · 532 iter · 阈值全过 · verify-all 可达 |
-| 2026-07-06 | local docker | :8080 | _pending-local_ | _pending-local_ | — | `k6 run performance/k6-smoke.js`（栈未在本轮启动） |
-
-### Hub :18080 复测命令（已通过）
-
-```powershell
-docker run --rm `
-  -e BASE_URL=http://host.docker.internal:18080/ai-assistant `
-  -v D:/project-hub/ai-assistant-sdk/performance:/scripts `
-  grafana/k6:latest run /scripts/k6-smoke.js
-```
-
-### Local :8080 复测命令（pending-local）
-
-> **pending-local** 含义：命令与阈值已文档化，Hub `:18080` 已有 Round-5 实测；本地 `:8080` 需在 `docker compose up` 且端口未被占用时自行复跑，将 p95 回填上表。协作 CI / 多项目并行时若 8080 冲突，可跳过实跑、仅保留本块。
-
-**前置**：`curl -sf http://localhost:8080/ai-assistant/health` 返回 200。
+`performance/k6-smoke.js` 保留 5 VU × 30 秒的健康端点烟测，默认门槛为 p95 < 400 ms、失败率 < 1%。它不调用聊天接口，不产生真实模型费用：
 
 ```bash
 k6 run performance/k6-smoke.js
-# 等价：k6 run performance/k6-smoke.js -e BASE_URL=http://localhost:8080/ai-assistant
 ```
 
-```powershell
-docker compose up -d --build
-docker run --rm `
-  -e BASE_URL=http://host.docker.internal:8080/ai-assistant `
-  -v D:/project-hub/ai-assistant-sdk/performance:/scripts `
-  grafana/k6:latest run /scripts/k6-smoke.js
-```
+## 未覆盖范围
 
-回填格式：将上表 `:8080` 行的 `_pending-local_` 替换为实测 p95（ms）与失败率。
+- 真实 OpenAI-compatible provider 的网络延迟、限额和价格；
+- RAG 大规模向量库、Redis 多副本和长会话容量；
+- 生产网关、TLS、代理缓冲与地域网络；
+- 长时间 soak、峰值并发和故障注入。
 
-## 限制
-
-- 未覆盖 SSE 长连接、RAG 检索、多副本 Redis 会话。
-- 生产压测前请配合网关限流与 LLM 配额监控。
+生产压测应在隔离环境中使用受控配额，并同步观察 CPU、堆内存、上游 429/5xx、SSE 断流和恢复行为。

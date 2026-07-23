@@ -128,7 +128,7 @@ export interface UseFormAutoFillReturn {
   selectedIndices: Ref<Set<number>>;
   /** 最近一次填入的所有 FillRecord，供 `undoLastFill` 使用 */
   lastFillRecords: Ref<FillRecord[]>;
-  /** 填完后的轻量 toast 是否显示（5s 内可撤销） */
+  /** 填完后的轻量 toast 是否显示（15s 内可撤销） */
   toastVisible: Ref<boolean>;
   /** toast 上展示的总结字符串（{filled}/{failed}） */
   toastSummary: Ref<{ filled: number; failed: number } | null>;
@@ -158,7 +158,7 @@ export interface UseFormAutoFillDeps {
   options: ComputedRef<FormAutoFillOptions> | Ref<FormAutoFillOptions>;
 }
 
-const TOAST_AUTO_DISMISS_MS = 5000;
+const TOAST_AUTO_DISMISS_MS = 15_000;
 
 // eslint-disable-next-line max-lines-per-function
 export function useFormAutoFill(deps: UseFormAutoFillDeps): UseFormAutoFillReturn {

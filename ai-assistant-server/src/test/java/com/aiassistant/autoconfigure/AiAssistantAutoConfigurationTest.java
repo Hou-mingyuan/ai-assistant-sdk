@@ -1,6 +1,7 @@
 package com.aiassistant.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.RateLimitFilter;
@@ -9,8 +10,10 @@ import com.aiassistant.controller.AssistantExportController;
 import com.aiassistant.controller.CapabilityController;
 import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.RuntimeConfigController;
+import com.aiassistant.controller.RuntimeModelConfigController;
 import com.aiassistant.controller.SseStreamController;
 import com.aiassistant.controller.StatsController;
+import com.aiassistant.observability.AiAssistantMetrics;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.security.DefaultSsrfPolicy;
@@ -21,6 +24,7 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.service.SessionStore;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.service.llm.ChatCompletionClient;
+import com.aiassistant.service.llm.DemoChatCompletionClient;
 import com.aiassistant.service.llm.OpenAiCompatibleChatClient;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.stats.UsageStats;
@@ -30,9 +34,12 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * Smoke-tests {@link AiAssistantAutoConfiguration} via {@link WebApplicationContextRunner}.
@@ -91,6 +98,27 @@ class AiAssistantAutoConfigurationTest {
                     .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
                     .withSystemProperties("ai.assistant.runtime.config.path=" + runtimeConfigPath);
 
+    private final WebApplicationContextRunner redisAutoConfigurationContextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(
+                            AutoConfigurations.of(
+                                    RedisAutoConfiguration.class,
+                                    AiAssistantAutoConfiguration.class))
+                    .withClassLoader(new FilteredClassLoader("com.microsoft.playwright.Playwright"))
+                    .withBean(
+                            RedisConnectionFactory.class, () -> mock(RedisConnectionFactory.class))
+                    .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withSystemProperties("ai.assistant.runtime.config.path=" + runtimeConfigPath);
+
+    private final WebApplicationContextRunner noMeterRegistryContextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
+                    .withClassLoader(
+                            new FilteredClassLoader(
+                                    "org.springframework.data.redis.core.StringRedisTemplate",
+                                    "com.microsoft.playwright.Playwright"))
+                    .withSystemProperties("ai.assistant.runtime.config.path=" + runtimeConfigPath);
+
     private final WebApplicationContextRunner coreOnlyContextRunner =
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(AiAssistantAutoConfiguration.class))
@@ -112,6 +140,37 @@ class AiAssistantAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(LlmService.class);
                     assertThat(context).doesNotHaveBean(AiAssistantProperties.class);
                 });
+    }
+
+    @Test
+    void explicitDemoProviderActivatesWithoutApiKeyAndCompletesChatPipeline() {
+        contextRunner
+                .withPropertyValues("ai-assistant.provider=demo")
+                .run(
+                        context -> {
+                            assertThat(context).hasSingleBean(LlmService.class);
+                            assertThat(
+                                            context.getBean(AiAssistantProperties.class)
+                                                    .resolveApiKeys())
+                                    .isEmpty();
+                            assertThat(context.getBean(LlmService.class).chat("hello"))
+                                    .startsWith(DemoChatCompletionClient.RESPONSE_MARKER)
+                                    .contains("hello");
+                        });
+    }
+
+    @Test
+    void explicitDemoProviderStartsWhenMicrometerIsPresentWithoutMeterRegistryBean() {
+        noMeterRegistryContextRunner
+                .withPropertyValues("ai-assistant.provider=demo")
+                .run(
+                        context -> {
+                            assertThat(context).hasSingleBean(LlmService.class);
+                            assertThat(context).doesNotHaveBean(AiAssistantMetrics.class);
+                            assertThat(context.getBean(LlmService.class).chat("hello"))
+                                    .startsWith(DemoChatCompletionClient.RESPONSE_MARKER)
+                                    .contains("hello");
+                        });
     }
 
     @Test
@@ -179,6 +238,7 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context).hasSingleBean(SseStreamController.class);
                             assertThat(context).hasSingleBean(StatsController.class);
                             assertThat(context).hasSingleBean(RuntimeConfigController.class);
+                            assertThat(context).doesNotHaveBean(RuntimeModelConfigController.class);
                             assertThat(context).hasSingleBean(CapabilityController.class);
                             assertThat(context).hasSingleBean(FileUploadController.class);
                             assertThat(context).hasSingleBean(AssistantExportController.class);
@@ -194,6 +254,22 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context.getBean(SsrfPolicy.class))
                                     .isInstanceOf(DefaultSsrfPolicy.class);
                         });
+    }
+
+    @Test
+    void runtimeModelConfigIsOnlyRegisteredWhenAdminApiIsExplicitlyEnabled() {
+        contextRunner
+                .withPropertyValues(
+                        "ai-assistant.api-key=sk-test-admin",
+                        "ai-assistant.admin-enabled=true",
+                        "ai-assistant.admin-token=admin-secret")
+                .run(
+                        context ->
+                                assertThat(context)
+                                        .hasSingleBean(RuntimeModelConfigController.class)
+                                        .hasSingleBean(
+                                                com.aiassistant.config.RuntimeModelConfigService
+                                                        .class));
     }
 
     @Test
@@ -281,6 +357,29 @@ class AiAssistantAutoConfigurationTest {
                                             context.getBean("aiAssistantRateLimitFilter");
                             assertThat(rateLimitFilter.getFilter())
                                     .isInstanceOf(RateLimitFilter.class);
+                        });
+    }
+
+    @Test
+    void redisAutoConfigurationWinsBeforeInMemoryFallbacksAreRegistered() {
+        redisAutoConfigurationContextRunner
+                .withPropertyValues("ai-assistant.provider=demo")
+                .run(
+                        context -> {
+                            assertThat(context).hasSingleBean(StringRedisTemplate.class);
+                            assertThat(context.getBean(SessionStore.class))
+                                    .isInstanceOf(com.aiassistant.service.RedisSessionStore.class);
+                            assertThat(context.getBean(TokenUsageTracker.class))
+                                    .isInstanceOf(
+                                            com.aiassistant.stats.RedisTokenUsageTracker.class);
+                            assertThat(
+                                            context.getBean(
+                                                    com.aiassistant.spi.ConversationMemoryProvider
+                                                            .class))
+                                    .isInstanceOf(
+                                            com.aiassistant.spi.RedisConversationMemoryProvider
+                                                    .class);
+                            assertThat(context).hasBean("aiAssistantRedisRateLimitFilter");
                         });
     }
 

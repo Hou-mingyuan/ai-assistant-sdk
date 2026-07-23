@@ -12,8 +12,40 @@ import com.aiassistant.service.LlmService;
 import com.aiassistant.stats.UsageStats;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 class FileUploadControllerTest {
+
+    @Test
+    void summarizeRejectsEmptyFile() {
+        FileParserService parser = mock(FileParserService.class);
+        LlmService llm = mock(LlmService.class);
+        FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
+        MockMultipartFile file =
+                new MockMultipartFile("file", "notes.txt", "text/plain", new byte[0]);
+
+        var response = controller.summarizeFile(file);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertTrue(response.getBody().getError().contains("empty"));
+        verifyNoInteractions(parser, llm);
+    }
+
+    @Test
+    void summarizeRejectsFileLargerThanTenMegabytes() {
+        FileParserService parser = mock(FileParserService.class);
+        LlmService llm = mock(LlmService.class);
+        FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getSize()).thenReturn(10L * 1024 * 1024 + 1);
+
+        var response = controller.summarizeFile(file);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertTrue(response.getBody().getError().contains("10MB"));
+        verifyNoInteractions(parser, llm);
+    }
 
     @Test
     void summarizeRejectsContentTypeExtensionMismatch() {

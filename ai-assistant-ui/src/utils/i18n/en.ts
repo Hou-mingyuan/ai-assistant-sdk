@@ -1,10 +1,10 @@
 import type { I18nMessages } from './types';
 
 export const en: I18nMessages = {
-  greeting: '👋 Hi! I can help you:',
-  translate: '🌐 Translate',
-  summarize: '📝 Summarize',
-  chat: '💬 Chat',
+  greeting: 'Hi! I can help you:',
+  translate: 'Translate',
+  summarize: 'Summarize',
+  chat: 'Chat',
   placeholder: {
     translate: 'Paste text to translate...',
     summarize: 'Paste text to summarize...',
@@ -339,6 +339,8 @@ export const en: I18nMessages = {
   personalizeAudioRate: 'Speed',
   personalizeAudioAutoRead: 'Auto-read assistant replies',
   providerConfigTitle: 'Model provider connection',
+  providerConfigPermissionRequired:
+    'Configure an admin or access token in the host application to manage models and web search.',
   providerConfigPresetMinimax: 'MiniMax',
   providerConfigPresetOpenai: 'OpenAI',
   providerConfigPresetDeepseek: 'DeepSeek',

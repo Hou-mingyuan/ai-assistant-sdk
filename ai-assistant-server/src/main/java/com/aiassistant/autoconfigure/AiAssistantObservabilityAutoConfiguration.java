@@ -7,6 +7,7 @@ import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -108,6 +109,7 @@ public class AiAssistantObservabilityAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.micrometer.core.instrument.MeterRegistry")
+    @ConditionalOnBean(type = "io.micrometer.core.instrument.MeterRegistry")
     static class AiAssistantMetricsAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean(name = "aiAssistantMetrics")

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>AI Assistant Demo</title>
+        <link rel="icon" href="data:," />
+        <style>
+            :root {
+                color-scheme: light;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                min-width: 320px;
+                margin: 0;
+                color: #111827;
+                background: #f4f6f8;
+                font-family:
+                    Inter,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif;
+            }
+            .container {
+                width: min(100%, 840px);
+                margin: 0 auto;
+                padding: 48px 20px 64px;
+            }
+            h1 {
+                margin: 0 0 12px;
+                color: #111827;
+                font-size: 30px;
+                line-height: 1.2;
+                letter-spacing: 0;
+            }
+            .intro {
+                margin: 0 0 8px;
+                color: #4b5563;
+                line-height: 1.65;
+            }
+            .page-link {
+                margin: 0 0 20px;
+            }
+            .page-link a,
+            .back-link {
+                display: inline-flex;
+                min-height: 44px;
+                align-items: center;
+                color: #1d4ed8;
+                font-weight: 600;
+                text-decoration-thickness: 1px;
+                text-underline-offset: 3px;
+            }
+            .card {
+                margin-bottom: 16px;
+                padding: 22px;
+                border: 1px solid #d9dee7;
+                border-radius: 6px;
+                background: #fff;
+                box-shadow: 0 4px 14px rgba(17, 24, 39, 0.05);
+            }
+            .card h3 {
+                margin: 0 0 10px;
+                color: #111827;
+                font-size: 16px;
+            }
+            .card code {
+                padding: 2px 6px;
+                border-radius: 4px;
+                background: #eef1f5;
+                font-size: 13px;
+            }
+            .status {
+                display: inline-flex;
+                min-height: 32px;
+                align-items: center;
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            .status.ok {
+                color: #166534;
+                background: #dcfce7;
+            }
+            .status.demo {
+                color: #92400e;
+                background: #fef3c7;
+            }
+            .status.err {
+                color: #b42318;
+                background: #fee4e2;
+            }
+            #health-status {
+                min-height: 32px;
+            }
+            .test-area {
+                margin-top: 14px;
+            }
+            .field-label {
+                display: block;
+                margin-bottom: 6px;
+                color: #374151;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            textarea {
+                width: 100%;
+                min-height: 96px;
+                padding: 12px;
+                resize: vertical;
+                border: 1px solid #b9c2cf;
+                border-radius: 5px;
+                color: #111827;
+                background: #fff;
+                font:
+                    14px/1.5 "Cascadia Code",
+                    Consolas,
+                    monospace;
+                letter-spacing: 0;
+            }
+            .button-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 12px;
+            }
+            button {
+                min-height: 44px;
+                padding: 0 16px;
+                border: 1px solid #1d4ed8;
+                border-radius: 5px;
+                color: #fff;
+                background: #1d4ed8;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 700;
+                letter-spacing: 0;
+            }
+            button:hover {
+                border-color: #1e40af;
+                background: #1e40af;
+            }
+            button:disabled {
+                cursor: wait;
+                opacity: 0.65;
+            }
+            a:focus-visible,
+            button:focus-visible,
+            textarea:focus-visible {
+                outline: 3px solid rgba(29, 78, 216, 0.3);
+                outline-offset: 2px;
+            }
+            #result,
+            #stats {
+                margin-top: 12px;
+                padding: 12px;
+                overflow-wrap: anywhere;
+                border: 1px solid #e2e8f0;
+                border-radius: 5px;
+                background: #f8fafc;
+                white-space: pre-wrap;
+                font:
+                    13px/1.6 "Cascadia Code",
+                    Consolas,
+                    monospace;
+            }
+            #result {
+                min-height: 48px;
+            }
+            #result:empty::before {
+                color: #64748b;
+                content: "结果将显示在这里";
+            }
+            @media (max-width: 520px) {
+                .container {
+                    padding: 28px 16px 48px;
+                }
+                h1 {
+                    font-size: 26px;
+                }
+                .card {
+                    padding: 18px;
+                }
+                .button-row {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                button {
+                    width: 100%;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>AI Assistant SDK Demo</h1>
+            <p class="intro">
+                Starter 的同步 API 验证页。零密钥默认使用有明确标识的确定性 Demo
+                Provider，不会冒充真实模型。
+            </p>
+            <p class="page-link">
+                <a href="/assistant-demo.html"
+                    >打开 Web Component + SSE 演示页 →</a
+                >
+            </p>
+
+            <div class="card">
+                <h3>Health Check</h3>
+                <div id="health-status" role="status" aria-live="polite">
+                    Checking...
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>API Test</h3>
+                <div class="test-area">
+                    <label class="field-label" for="input">Request text</label>
+                    <textarea id="input" placeholder="输入文字进行测试...">
+Hello, how are you?</textarea
+                    >
+                    <div class="button-row">
+                        <button type="button" onclick="testApi('chat')">
+                            Chat
+                        </button>
+                        <button type="button" onclick="testApi('translate')">
+                            Translate to Chinese
+                        </button>
+                        <button type="button" onclick="testApi('summarize')">
+                            Summarize
+                        </button>
+                    </div>
+                    <div id="result" role="status" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Stats</h3>
+                <div id="stats" role="status" aria-live="polite">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <script>
+            async function checkHealth() {
+                const statusEl = document.getElementById("health-status");
+                try {
+                    const res = await fetch("/ai-assistant/health");
+                    const data = await res.json();
+                    const status = document.createElement("span");
+                    status.className = data.mock
+                        ? "status demo"
+                        : data.success
+                          ? "status ok"
+                          : "status err";
+                    status.textContent = data.mock
+                        ? "DEMO MODE - provider=demo, mock=true"
+                        : data.success
+                          ? `UP - provider=${data.provider || "configured"}`
+                          : "FAIL";
+                    statusEl.replaceChildren(status);
+                } catch (e) {
+                    const status = document.createElement("span");
+                    status.className = "status err";
+                    status.textContent = `ERROR: ${e.message}`;
+                    statusEl.replaceChildren(status);
+                }
+            }
+
+            async function loadStats() {
+                try {
+                    const res = await fetch("/ai-assistant/stats");
+                    const data = await res.json();
+                    document.getElementById("stats").textContent =
+                        JSON.stringify(data, null, 2);
+                } catch (e) {
+                    document.getElementById("stats").textContent =
+                        "Error: " + e.message;
+                }
+            }
+
+            async function testApi(action) {
+                const text = document.getElementById("input").value.trim();
+                if (!text) return;
+                const resultEl = document.getElementById("result");
+                const buttons = Array.from(
+                    document.querySelectorAll(".test-area button"),
+                );
+                resultEl.textContent = "Loading...";
+                buttons.forEach((button) => {
+                    button.disabled = true;
+                });
+
+                try {
+                    const res = await fetch("/ai-assistant/chat", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            action,
+                            text,
+                            targetLang: "zh",
+                        }),
+                    });
+                    const data = await res.json();
+                    resultEl.textContent = data.success
+                        ? data.result
+                        : "Error: " + data.error;
+                    loadStats();
+                } catch (e) {
+                    resultEl.textContent = "Error: " + e.message;
+                } finally {
+                    buttons.forEach((button) => {
+                        button.disabled = false;
+                    });
+                }
+            }
+
+            checkHealth();
+            loadStats();
+        </script>
+    </body>
+</html>

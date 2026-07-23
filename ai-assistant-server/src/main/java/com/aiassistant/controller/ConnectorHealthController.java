@@ -100,6 +100,9 @@ public class ConnectorHealthController {
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("status", result.success() ? "UP" : "DOWN");
         resp.put("provider", result.provider());
+        boolean demoMode = "demo".equalsIgnoreCase(result.provider());
+        resp.put("mode", demoMode ? "demo" : "live");
+        resp.put("mock", demoMode);
         if (result.success()) {
             resp.put("maskedKey", result.maskedKey());
             resp.put("latencyMs", result.latencyMs());

@@ -22,12 +22,7 @@
     @dragleave.prevent="(ev: DragEvent) => emit('drag-leave', ev)"
     @drop.prevent="(ev: DragEvent) => emit('drop', ev)"
   >
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <!-- Sparkle / star with 4 rays — modern AI assistant icon -->
-      <path
-        d="M12 2.5l1.95 5.85a1 1 0 0 0 .7.7L20.5 11l-5.85 1.95a1 1 0 0 0-.7.7L12 19.5l-1.95-5.85a1 1 0 0 0-.7-.7L3.5 11l5.85-1.95a1 1 0 0 0 .7-.7L12 2.5z"
-      />
-    </svg>
+    <Sparkles class="ai-fab-sparkle" :size="32" :stroke-width="1.8" aria-hidden="true" />
     <span v-if="fabDropActive" class="ai-fab-drop-hint" role="status" aria-live="polite">
       {{ dropHintText }}
     </span>
@@ -35,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import { Sparkles } from '@lucide/vue';
 import { ref, type CSSProperties } from 'vue';
 
 defineProps<{

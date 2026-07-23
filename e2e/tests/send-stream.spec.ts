@@ -24,6 +24,36 @@ async function openPanelAndType(page: Page, text: string) {
 }
 
 test.describe('useSendStream end-to-end', () => {
+  test('mobile user timestamp stays on one line without widening the page', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.route(STREAM_URL, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream; charset=utf-8',
+        headers: { 'cache-control': 'no-cache' },
+        body: 'data: mobile response\n\ndata: [DONE]\n\n',
+      })
+    })
+
+    await openPanelAndType(page, 'Keep the timestamp readable on a narrow viewport')
+    await page.locator('.ai-send').click()
+
+    const timestamp = page.locator('.ai-msg.user .ai-msg-time')
+    await expect(timestamp).toBeVisible()
+    await expect(timestamp).toHaveCSS('white-space', 'nowrap')
+    const layout = await timestamp.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        height: rect.height,
+        fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+        rootScrollWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+      }
+    })
+    expect(layout.height).toBeLessThan(layout.fontSize * 1.8)
+    expect(layout.rootScrollWidth).toBe(layout.viewportWidth)
+  })
+
   test('clicking send creates user + assistant bubbles and toggles loading', async ({ page }) => {
     /* Hold the request open for a beat so we can observe the loading state
      * before the stream is allowed to finish. */

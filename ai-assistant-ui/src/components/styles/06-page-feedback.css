@@ -31,7 +31,7 @@
   transition: background 0.12s;
 }
 .ai-page-sel-btn:hover {
-  background: var(--primary, #6366f1);
+  background: var(--primary, #181818);
   color: var(--ai-c-white);
 }
 .ai-page-sel-enter-active {
@@ -59,9 +59,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(17, 17, 17, 0.12);
   backdrop-filter: blur(2px);
-  border: 2px dashed var(--primary, #6366f1);
+  border: 2px dashed var(--primary, #181818);
   border-radius: 12px;
   pointer-events: none;
 }
@@ -71,11 +71,11 @@
   width: 16px;
   height: 16px;
   margin-top: 8px;
-  accent-color: var(--primary, #6366f1);
+  accent-color: var(--primary, #181818);
   cursor: pointer;
 }
 .ai-msg-selected {
-  background: color-mix(in srgb, var(--primary, #6366f1) 8%, transparent);
+  background: color-mix(in srgb, var(--primary, #181818) 8%, transparent);
   border-radius: 8px;
   padding: 4px;
   margin: -4px;
@@ -98,7 +98,7 @@
 .ai-batch-delete-count {
   font-size: 13px;
   font-weight: 600;
-  color: var(--primary, #6366f1);
+  color: var(--primary, #181818);
   min-width: 24px;
 }
 .ai-batch-delete-btn {
@@ -142,7 +142,7 @@
   color: var(--text, #1e293b);
 }
 .ai-header-btn.active {
-  color: var(--primary, #6366f1);
+  color: var(--primary, #181818);
 }
 
 /* 鈹€鈹€ Upload progress bar 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ */
@@ -159,7 +159,7 @@
 .ai-upload-progress-bar {
   width: 40%;
   height: 100%;
-  background: var(--primary, #6366f1);
+  background: var(--primary, #181818);
   border-radius: 2px;
   animation: ai-upload-slide 1.2s ease-in-out infinite;
 }
@@ -180,7 +180,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: var(--primary, #6366f1);
+  color: var(--primary, #181818);
   font-size: 14px;
   font-weight: 600;
 }
@@ -228,6 +228,8 @@
   color: var(--text-muted, var(--ai-c-slate-400));
   margin-top: 2px;
   display: block;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .ai-msg.user .ai-msg-time {
   text-align: right;
@@ -302,8 +304,8 @@
   border-color: var(--text-muted, var(--ai-c-slate-400));
 }
 .ai-ctrl-enter-toggle.active {
-  color: var(--primary, #6366f1);
-  border-color: var(--primary, #6366f1);
+  color: var(--primary, #181818);
+  border-color: var(--primary, #181818);
 }
 .ai-dark .ai-ctrl-enter-toggle {
   border-color: var(--border, #334155);
@@ -528,7 +530,7 @@
   color: #e6ffec;
 }
 .ai-session-tab:focus-visible {
-  outline: 2px solid var(--primary, #6366f1);
+  outline: 2px solid var(--primary, #181818);
   outline-offset: 2px;
 }
 .ai-session-tab.active {

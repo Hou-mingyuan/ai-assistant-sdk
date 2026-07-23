@@ -5,7 +5,7 @@
 1. [同步对话 `/chat`](#1-同步对话-chat)
 2. [流式输出 `/stream`（SSE）](#2-流式输出-streamsse)
 3. [RAG 检索增强](#3-rag-检索增强)
-4. [ReAct Agent 多步工具调用](#4-react-agent-多步工具调用)
+4. [调用方计划驱动的多步执行](#4-调用方计划驱动的多步执行)
 
 每条链路都标注了 **请求耗时占比** 与 **可观测点**（Metrics / Audit / Event），便于排障与性能优化。
 
@@ -203,10 +203,10 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Admin as Admin API<br/>/admin/rag/ingest
+    participant Admin as Admin API<br/>/ai-assistant/admin/rag/ingest
     participant Rag as RagService
     participant Embed as EmbeddingProvider<br/>(OpenAiEmbeddingProvider)
-    participant Vector as VectorStore<br/>(InMemory / Milvus / ...)
+    participant Vector as VectorStore<br/>(仓库内实现：InMemory)
 
     rect rgb(245, 245, 235)
     Note over Admin,Vector: 阶段 A：文档录入（一次性，离线）
@@ -237,7 +237,7 @@ sequenceDiagram
     Rag->>Embed: embed(query)
     Embed-->>Rag: float[1536]
     Rag->>Vector: searchSimilar(queryVector, tenant, topK)
-    Note over Vector: InMemory: cosine similarity 全表扫<br/>Milvus/Pinecone: ANN 索引（HNSW/IVF）
+    Note over Vector: InMemory: cosine similarity 全表扫描
     Vector-->>Rag: List<VectorEntry> + scores
     Rag-->>-Enrich: relevantChunks
 
@@ -253,13 +253,7 @@ sequenceDiagram
     end
 ```
 
-**生产升级路线**：
-- **InMemoryVectorStore**：开发 / 小数据集（< 10k chunks）
-- **Milvus**：开源 distributed vector DB，自建首选
-- **Pinecone**：托管，多租户 SaaS
-- **Qdrant**：Rust 实现，性能优秀，filter + vector hybrid 查询
-
-替换方式：实现 `VectorStore` SPI 并注册为 Bean，`@ConditionalOnMissingBean` 让位默认 InMemory。
+**实现边界**：仓库只交付 `InMemoryVectorStore`。Milvus、Pinecone、Qdrant、pgvector 等名称仅表示可由宿主实现的方向，不代表仓库内已有适配器。替换时需要自行实现 `VectorStore` SPI、注册 Bean，并补充持久化、租户过滤、维度兼容和多副本契约测试。
 
 **Token 成本控制**：
 - 每次检索 topK 默认 5，每 chunk 平均 ~500 字符 → 注入约 2500 字符 / 请求
@@ -267,92 +261,35 @@ sequenceDiagram
 
 ---
 
-## 4. ReAct Agent 多步工具调用
+## 4. 调用方计划驱动的多步执行
 
-`AgentExecutor.execute(plan)` 执行多步规划：LLM 思考 → 调用工具 → 观察结果 → 再思考 → ...
+`AgentExecutor.execute(List<AgentStep>)` 依次执行调用方已经构造好的步骤列表。它不会调用 LLM 生成计划，也不会根据工具结果自主追加或修改步骤，因此当前状态为 `experimental`，不能描述为自主 ReAct Agent。
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Caller as 调用方<br/>(Admin / 业务代码)
-    participant Agent as AgentExecutor<br/>(ReAct 多步)
+    actor Caller as 宿主业务代码
+    participant Agent as AgentExecutor
     participant Tool as ToolRegistry
-    participant Llm as LlmService
-    participant DataConn as DataConnector<br/>(JDBC/Informat/REST)
-    participant Webhook as WebhookDelivery<br/>(可选)
 
-    Caller->>+Agent: execute(plan: AgentPlan)
-    Note over Agent: plan = {goal, maxSteps=10, availableTools}
-
-    loop maxSteps 次（命中 STOP 提前结束）
-        Agent->>+Llm: think(currentState)
-        Note over Llm: system prompt = ReAct 模板<br/>tools = ToolRegistry.list().toJsonSchema()
-        Llm->>Llm: chat with tool_calls 模式
-        Llm-->>-Agent: AgentStep{thought, action, actionInput}
-
-        alt action == "STOP"
-            Agent->>Agent: 记录最终答案
-            Note over Agent: 推出循环
-        else action == 工具名
-            Agent->>+Tool: invoke(toolName, args)
-            alt tool == "query_data"（DataConnector）
-                Tool->>+DataConn: query(sql / endpoint, params)
-                DataConn->>DataConn: 校验 allowedTables / SQL 注入
-                DataConn->>DataConn: 执行查询（HikariCP / OkHttp）
-                DataConn-->>-Tool: 结果集
-            else tool == "list_modules"
-                Tool->>DataConn: listModules()
-                DataConn-->>Tool: 数据源 schema 信息
-            else 其它自定义工具
-                Tool->>Tool: invoke ToolDefinition.executor
-            end
-            Tool-->>-Agent: ToolResult{output, error}
-
-            Agent->>Agent: appendExecutionTrace(step, result)
-
-            opt 当步耗时 > 30s 或 result.bytes > 100k
-                Agent->>Agent: truncate observation
-            end
+    Caller->>+Agent: execute(List<AgentStep>)
+    loop min(plan.size, maxRounds)
+        Agent->>Agent: 读取下一条调用方步骤
+        alt step.toolName 非空
+            Agent->>+Tool: execute(toolName, parsedArguments)
+            Tool-->>-Agent: output 或 exception
+        else 无工具步骤
+            Agent->>Agent: 将 description 作为输出
+        end
+        Agent->>Agent: 记录 StepResult
+        opt 失败且 stopOnError=true
+            Agent->>Agent: 停止后续步骤
         end
     end
-
-    opt plan.webhookUrl != null
-        Agent->>+Webhook: deliver(plan.webhookUrl, finalResult, signature)
-        Webhook->>Webhook: HMAC-SHA256(secret, body)
-        Webhook->>Webhook: POST with retries (1s/3s/9s)
-        Webhook-->>-Agent: ack
-    end
-
-    Agent-->>-Caller: AgentExecutionResult<br/>{finalAnswer, trace, totalTokens, stepCount}
+    Agent-->>-Caller: ExecutionTrace{steps,totalElapsedMs}
 ```
 
-**ReAct 提示词模板**（简化）：
-```
-You can use the following tools to answer the question:
-{tools_json_schema}
-
-Use this format:
-Thought: I need to ...
-Action: tool_name
-Action Input: {...}
-Observation: tool result
-... (repeat)
-Thought: I now have the answer
-Action: STOP
-Final Answer: ...
-```
-
-**安全控制**：
-- **maxSteps 默认 10**，防止 LLM 循环 / 无限工具调用
-- **每步 observation 截断**：单次工具返回 > 100k 字符自动 trim，避免上下文爆炸
-- **工具白名单**：`AgentPlan.availableTools` 显式列出本次允许的工具子集；不在白名单的工具调用直接拒绝
-- **Audit**：每次 `invoke(tool, args)` 写 AuditEvent，便于事后回放调用链
-- **Webhook 签名**：HMAC-SHA256，接收端必须验证防伪造
-
-**典型场景**：
-- "查询本月运单数 + 同比" → `list_modules` → `get_schema` → `query_data`（SQL）→ STOP
-- "找出 3 个最高 fuel 消耗的航次，并生成翻译" → `query_data` → translate capability → STOP
-- "周报生成"：从 Informat 拉数据 → summarize → 渲染 PromptTemplate → export PDF
+真实的模型多轮工具选择由 `ToolCallingLoop` / `StreamingToolCallingLoop` 完成，并受最大轮次限制。若宿主需要自主规划 Agent，还必须自行实现计划生成、权限白名单、循环检测、观察截断、敏感动作确认和审计；这些能力不由 `AgentExecutor` 自动提供。
 
 ---
 

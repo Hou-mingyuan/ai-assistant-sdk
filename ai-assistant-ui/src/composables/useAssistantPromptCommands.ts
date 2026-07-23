@@ -59,7 +59,7 @@ export function useAssistantPromptCommands(options: UseAssistantPromptCommandsOp
       id: 'ai.open-prompt-templates',
       label: 'Prompt templates / 模板库',
       group: 'Prompt',
-      icon: '🧩',
+      icon: 'layout-template',
       keywords: ['prompt', 'template', '模板', '提示词'],
       action: () => {
         options.openPromptTemplateDialog();
@@ -69,7 +69,7 @@ export function useAssistantPromptCommands(options: UseAssistantPromptCommandsOp
       id: `ai.quick-prompt.${index}`,
       label: prompt.label,
       group: 'Prompt',
-      icon: '⚡',
+      icon: 'zap',
       keywords: ['quick', 'prompt', '快捷', '提示词', prompt.text],
       action: () => {
         applyQuickPrompt(prompt);

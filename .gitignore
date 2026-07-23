@@ -16,17 +16,20 @@ docs/.vitepress/dist/
 .DS_Store
 .env
 .env.local
+.local/
+.playwright-cli/
+e2e/playwright.local.config.ts
 
 # Cursor 本地规则与 MCP（勿提交）
 .cursor/
 
-# 本地示例不参与版本库（需要者自备或另仓维护）
-ai-assistant-demo/
-
 # Playground 提交最小源码与配置；依赖、构建产物和 IDE 本地文件仍忽略
 ai-assistant-vue-playground/*
 !ai-assistant-vue-playground/.env.example
+!ai-assistant-vue-playground/Dockerfile
+!ai-assistant-vue-playground/Dockerfile.dockerignore
 !ai-assistant-vue-playground/index.html
+!ai-assistant-vue-playground/nginx.conf
 !ai-assistant-vue-playground/package.json
 !ai-assistant-vue-playground/package-lock.json
 !ai-assistant-vue-playground/src/
@@ -34,6 +37,7 @@ ai-assistant-vue-playground/*
 !ai-assistant-vue-playground/tsconfig.json
 !ai-assistant-vue-playground/tsconfig.node.json
 !ai-assistant-vue-playground/vite.config.ts
+!ai-assistant-vue-playground/vitest.config.ts
 ai-assistant-vue-playground/.idea/
 ai-assistant-vue-playground/dist/
 ai-assistant-vue-playground/node_modules/

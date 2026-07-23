@@ -94,6 +94,8 @@ public class RuntimeConfigController {
         Map<String, Object> service = new LinkedHashMap<>();
         service.put("contextPath", properties.getContextPath());
         service.put("provider", properties.getProvider());
+        service.put("mode", properties.isDemoProvider() ? "demo" : "live");
+        service.put("mockProvider", properties.isDemoProvider());
         service.put("model", properties.resolveModel());
         service.put("models", properties.listModelsForClient());
         service.put("customBaseUrlConfigured", hasText(properties.getBaseUrl()));

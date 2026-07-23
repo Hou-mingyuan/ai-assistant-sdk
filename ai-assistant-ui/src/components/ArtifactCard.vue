@@ -4,29 +4,31 @@
  * 通过 inject 拿到 ArtifactsController（由 AiAssistant.vue provide）。
  */
 import { computed, inject } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { Artifact } from '../types/message';
+import type { AssistantIconName } from '../utils/assistantIcons';
 import { ARTIFACTS_KEY } from '../composables/useArtifacts';
 
 const props = defineProps<{ artifact: Artifact }>();
 
 const controller = inject(ARTIFACTS_KEY, null);
 
-const typeIcon = computed(() => {
+const typeIcon = computed<AssistantIconName>(() => {
   switch (props.artifact.type) {
     case 'markdown':
-      return '📄';
+      return 'file-text';
     case 'html':
-      return '🌐';
+      return 'globe-2';
     case 'svg':
-      return '🖼️';
+      return 'image';
     case 'mermaid':
-      return '📊';
+      return 'chart-no-axes-combined';
     case 'react':
-      return '⚛️';
+      return 'atom';
     case 'vue':
-      return '🟩';
+      return 'braces';
     default:
-      return '💻';
+      return 'code-xml';
   }
 });
 
@@ -52,7 +54,9 @@ function open() {
     :disabled="isStreaming"
     @click="open"
   >
-    <span class="ai-artifact-card-icon" aria-hidden="true">{{ typeIcon }}</span>
+    <span class="ai-artifact-card-icon" aria-hidden="true">
+      <AssistantIcon :name="typeIcon" :size="19" />
+    </span>
     <span class="ai-artifact-card-body">
       <span class="ai-artifact-card-title">{{ artifact.title }}</span>
       <span class="ai-artifact-card-meta">

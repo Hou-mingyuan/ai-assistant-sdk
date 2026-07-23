@@ -1,6 +1,6 @@
 /**
  * ArtifactRunner P2 增强的组件级测试：
- *  - 工具条「↗ 新标签」按钮存在，点击用渲染后的自包含 HTML 调 window.open；
+ *  - 工具条「新标签」按钮存在，点击用渲染后的自包含 HTML 调 window.open；
  *  - 沙箱回传 error 日志后，顶部出现「运行出错」友好横幅并显示首条错误；
  *  - 点击横幅「查看控制台」会展开控制台并隐藏横幅。
  *
@@ -39,7 +39,9 @@ describe('ArtifactRunner P2 增强', () => {
 
   it('工具条包含「新标签」打开按钮', () => {
     const wrapper = mount(ArtifactRunner, { props: { artifact: reactArtifact } });
-    expect(wrapper.findAll('button').some((b) => b.text().includes('新标签'))).toBe(true);
+    const button = wrapper.findAll('button').find((b) => b.text().includes('新标签'));
+    expect(button?.exists()).toBe(true);
+    expect(button?.find('svg').exists()).toBe(true);
   });
 
   it('点击「新标签」用渲染后的 HTML 调 window.open', async () => {
@@ -64,6 +66,7 @@ describe('ArtifactRunner P2 增强', () => {
     await nextTick();
 
     expect(wrapper.find('.ai-artifact-runner-error').exists()).toBe(true);
+    expect(wrapper.find('.ai-artifact-runner-error-icon svg').exists()).toBe(true);
     expect(wrapper.text()).toContain('运行出错');
     expect(wrapper.text()).toContain('boom is not defined');
   });

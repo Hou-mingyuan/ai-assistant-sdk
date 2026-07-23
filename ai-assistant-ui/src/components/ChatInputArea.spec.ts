@@ -256,6 +256,7 @@ describe('ChatInputArea (K44)', () => {
 
       expect(tabs).toHaveLength(3);
       expect(tabs.every((tab) => (tab.element as HTMLButtonElement).disabled)).toBe(true);
+      expect(tabs.every((tab) => tab.find('svg').exists())).toBe(true);
       w.unmount();
     });
   });
@@ -270,6 +271,7 @@ describe('ChatInputArea (K44)', () => {
 
       expect(w.find('.ai-footer-quick-toggles').exists()).toBe(true);
       expect(w.find('.ai-md-toolbar').exists()).toBe(false);
+      expect(w.findAll('.ai-quick-toggle-icon svg')).toHaveLength(3);
 
       await w.find('.ai-quick-toggle-deepthink').trigger('click');
       await w.find('.ai-quick-toggle-websearch').trigger('click');

@@ -62,7 +62,8 @@ export function classifyBundleEntry(relativePath) {
     if (
         WC_ENTRY_FILES.has(relativePath) ||
         relativePath.startsWith("AiAssistant-") ||
-        relativePath.startsWith("vue.runtime.esm-bundler-")
+        relativePath.startsWith("vue.runtime.esm-bundler-") ||
+        relativePath.startsWith("runtime-dom.esm-bundler-")
     ) {
         return "wc";
     }

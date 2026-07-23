@@ -43,7 +43,9 @@
         'ai-assistant-avatar-loading': isActiveStreaming(displayOffset + renderedStart + idx, msg),
       }"
       aria-hidden="true"
-    ></span>
+    >
+      <AssistantIcon class="ai-assistant-avatar-icon" name="sparkles" :size="22" />
+    </span>
     <template v-if="editingIdx === displayOffset + renderedStart + idx">
       <div class="ai-bubble ai-bubble-editing">
         <textarea
@@ -384,7 +386,7 @@
           {{ t.responseMetaFallback || 'Model switched' }}
         </span>
         <span v-if="msg.meta.webSearchEnabled" class="ai-msg-meta-pill">
-          {{ t.responseMetaWebSearch || 'Web' }} {{ webSearchProviderLabel(msg.meta) }}
+          {{ t.responseMetaWebSearch || 'Web' }} {{ msg.meta?.webSearchProvider?.trim() || '' }}
         </span>
         <span v-if="msg.meta.webSearchResultCount != null" class="ai-msg-meta-pill">
           {{ webSearchResultLabel(msg.meta.webSearchResultCount) }}
@@ -484,7 +486,8 @@
       class="ai-retry-btn"
       @click="emit('retry-last-error', displayOffset + renderedStart + idx)"
     >
-      🔄 {{ t.retryError }}
+      <AssistantIcon name="rotate-ccw" :size="15" />
+      <span>{{ t.retryError }}</span>
     </button>
   </div>
   <div
@@ -500,12 +503,14 @@ import type { PropType } from 'vue';
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+import type { VirtualWindow } from '../composables/useMessageVirtualScroll';
 import MessageReadingPreview from './MessageReadingPreview.vue';
 import MessageThinkingBlocks from './MessageThinkingBlocks.vue';
 import MessageToolCalls from './MessageToolCalls.vue';
 import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
 import ResearchTimeline from './ResearchTimeline.vue';
 import ArtifactCard from './ArtifactCard.vue';
+import AssistantIcon from './AssistantIcon.vue';
 import { linkifyCitations } from '../utils/citations';
 /* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
  * under each assistant message. Lazy-imported so the chunk only loads when
@@ -523,10 +528,6 @@ function runtimeModelLabel(msg: Message) {
   if (!effective) return '';
   const selected = msg.meta?.model?.trim() || msg.meta?.requestedModel?.trim();
   return selected && selected === effective ? '' : effective;
-}
-
-function webSearchProviderLabel(meta: Message['meta']) {
-  return meta?.webSearchProvider?.trim() || '';
 }
 
 function webSearchResultLabel(count: number) {
@@ -637,18 +638,6 @@ function streamStageText(globalIdx: number, msg: Message) {
   return props.t.streamStageConnecting || props.t.replying;
 }
 
-/** C10: Virtual scroll slice passed from the parent. When `enabled` is true,
- *  MessageList only renders `[startIndex, endIndex)` of `messages` and pads
- *  the surrounding scroll area with two spacer divs to preserve scrollbar
- *  geometry. Defaults to undefined → full render (legacy behaviour). */
-export interface VirtualSlice {
-  enabled: boolean;
-  startIndex: number;
-  endIndex: number;
-  topSpacer: number;
-  bottomSpacer: number;
-}
-
 const props = defineProps({
   messages: {
     type: Array as PropType<Message[]>,
@@ -727,7 +716,7 @@ const props = defineProps({
     required: true,
   },
   virtualSlice: {
-    type: Object as PropType<VirtualSlice | null>,
+    type: Object as PropType<VirtualWindow | null>,
     default: null,
   },
   streamStartedAt: {

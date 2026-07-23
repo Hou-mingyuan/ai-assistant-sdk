@@ -45,7 +45,7 @@ info:
 # ============================================================
 ai-assistant:
   # ── LLM Provider（必填）──────────────────────────────────
-  provider: ${AI_ASSISTANT_PROVIDER:openai}        # openai/deepseek/tongyi/zhipu/volcengine/...
+  provider: ${AI_ASSISTANT_PROVIDER:demo}          # demo（明确模拟）/openai/deepseek/tongyi/...
   api-key: ${AI_ASSISTANT_API_KEY:}                # 必填：模型 API Key（生产请走 Vault / K8s Secret）
   base-url: ${AI_ASSISTANT_BASE_URL:}              # 可选：自定义 API 地址，缺省按 provider 推断
   model: ${AI_ASSISTANT_MODEL:}                    # 可选：默认模型；不填则使用 provider 默认值

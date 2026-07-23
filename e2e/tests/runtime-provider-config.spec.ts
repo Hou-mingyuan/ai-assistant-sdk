@@ -11,7 +11,15 @@ async function openPersonalizeDialog(page: Page) {
 
 test.describe('runtime provider configuration', () => {
   test('detects provider models and refreshes model picker from personalization', async ({ page }) => {
+    const adminToken = 'e2e-runtime-provider-admin-token'
+    await page.addInitScript((token) => {
+      ;(
+        window as typeof window & { __AI_ASSISTANT_E2E_ADMIN_TOKEN__?: string }
+      ).__AI_ASSISTANT_E2E_ADMIN_TOKEN__ = token
+    }, adminToken)
+
     await page.route('**/ai-assistant/admin/runtime/model-config', async (route) => {
+      expect(route.request().headers()['x-admin-token']).toBe(adminToken)
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
@@ -41,6 +49,7 @@ test.describe('runtime provider configuration', () => {
       })
     })
     await page.route('**/ai-assistant/admin/runtime/model-config/discover-models', async (route) => {
+      expect(route.request().headers()['x-admin-token']).toBe(adminToken)
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

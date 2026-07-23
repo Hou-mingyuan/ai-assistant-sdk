@@ -128,6 +128,59 @@ describe('useStreamWithFallback', () => {
     expect(mockedStreamChat).not.toHaveBeenCalled();
   });
 
+  it('forces tenant-scoped requests back to SSE after a previous WS fallback', async () => {
+    async function* sseStream() {
+      yield 'tenant sse';
+    }
+    mockedStreamChat.mockReturnValue(sseStream());
+
+    const { streamWithFallback, preferredProtocol } = useStreamWithFallback();
+    preferredProtocol.value = 'ws';
+
+    const payload = { action: 'chat' as const, text: 'tenant request' };
+    const chunks = await collectAsync(
+      streamWithFallback('http://test', payload, 'token', undefined, undefined, 'tenant-a'),
+    );
+
+    expect(chunks).toEqual(['tenant sse']);
+    expect(preferredProtocol.value).toBe('sse');
+    expect(mockedStreamChat).toHaveBeenCalledWith(
+      'http://test',
+      payload,
+      'token',
+      undefined,
+      undefined,
+      'tenant-a',
+    );
+    expect(mockedWsStreamChat).not.toHaveBeenCalled();
+  });
+
+  it('never falls back to WS when a tenant-scoped SSE request fails', async () => {
+    async function* failingStream(): AsyncGenerator<string> {
+      yield* [];
+      throw new TypeError('Network failure');
+    }
+    mockedStreamChat.mockReturnValue(failingStream());
+
+    const { streamWithFallback, preferredProtocol } = useStreamWithFallback();
+    preferredProtocol.value = 'ws';
+
+    await expect(
+      collectAsync(
+        streamWithFallback(
+          'http://test',
+          { action: 'chat', text: 'tenant request' },
+          undefined,
+          undefined,
+          undefined,
+          'tenant-a',
+        ),
+      ),
+    ).rejects.toThrow('cannot preserve X-Tenant-Id');
+    expect(preferredProtocol.value).toBe('sse');
+    expect(mockedWsStreamChat).not.toHaveBeenCalled();
+  });
+
   it('resets to SSE when direct WS streaming fails', async () => {
     async function* wsStream(): AsyncGenerator<string> {
       yield* [];

@@ -12,14 +12,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - UI：K36–K48 系列（prompt 历史回放、TTS 朗读、KB 拖放入库、跨会话搜索、N-way Compare 等）
+- 发布候选：新增可直接运行的 Starter Demo、独立服务零密钥 Demo Provider、Web Component 真实后端 E2E 与公开包消费检查
 
 ### Changed
 
 - UI：K36a Prettier 格式化 53 个前端文件（无行为变更）
+- 安全与依赖：Spring Boot 升级至 3.5.16，Java Client 的 Jackson 声明升级至 2.18.9，容器构建升级 Alpine 运行时安全补丁
+- 独立服务的隐式默认 Provider 从 `openai` 改为明确标识的 `demo`，保证 `.env.example` 可零密钥启动；生产 Compose 仍默认 `openai`。依赖旧隐式行为的部署必须显式设置 `AI_ASSISTANT_PROVIDER=openai` 和 API Key
 
 ### Fixed
 
 - UI：K44 修复 K36 长期被 Vue Boolean 默认 `false` 静默禁用的 bug
+- 构建：修复 bundle 体积门禁将 `runtime-dom.esm-bundler` chunk 误归类为 Vue 组件的问题
+- 协议：统一 REST、两种 SSE、Java Client、Vue 与 Web Component 的租户、request id 和结构化错误语义
+
+### Security
+
+- 严格校验调用方追踪字段和翻译语言代码，避免 MDC 日志污染与 system prompt 拼接注入
+- CORS 显式禁用 credentials；上传日志不再记录原始文件名；Provider 连通性错误会脱敏 Key、URL 与上游凭据字段
+- 将 Tomcat、Jackson、PDFBox、Commons Lang、Log4j 与 Swagger UI 升级到已发布的 CVE 修复版本；Kotlin runtime 的 ODC 误报采用限定包版本且 90 天到期的复核例外
+- 将 Starter、独立服务和 Demo 的 Netty 统一升级至 `4.1.136.Final`，修复 `CVE-2026-59901`、`CVE-2026-55831`、`CVE-2026-55833`、`CVE-2026-56745`
+- 流式响应的下游取消现在单独记录为 `CANCELLED`，不再污染审计错误率
 
 ## [1.0.1] - 2026-05-13
 

@@ -9,10 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Multi-step agent executor implementing a ReAct-style loop. The agent can plan, execute tools,
- * observe results, and iterate until it reaches a final answer or hits the max rounds limit.
+ * Executes a caller-supplied list of tool steps and records an execution trace.
  *
- * <p>Execution trace is maintained for auditability and debugging.
+ * <p>This class does not ask an LLM to plan or revise steps and therefore is not an autonomous
+ * ReAct planner. Use {@link #executeTool(String, String)} from the LLM function-calling loop when
+ * the model is responsible for selecting one tool call at a time.
  */
 public class AgentExecutor {
 

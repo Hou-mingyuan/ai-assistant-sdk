@@ -23,13 +23,16 @@ hero:
     - theme: alt
       text: 上线清单
       link: /guide/production-checklist
+    - theme: alt
+      text: 能力矩阵
+      link: /CAPABILITY-MATRIX
 features:
   - title: 即插即用
     details: 一个 Maven 依赖 + 一行配置即可启用，支持 OpenAI / DeepSeek / 通义千问 / GLM 等多种 LLM
   - title: MCP Server
-    details: 内置 MCP 协议支持，可直接对接织信等低代码平台的 AI Agent
+    details: 实验性的 HTTP JSON-RPC 子集，仅含 initialize、tools/list、tools/call，默认关闭
   - title: 可扩展 SPI
     details: ChatInterceptor / AssistantCapability / ConversationMemoryProvider 三大扩展点，深度定制
-  - title: 生产就绪
-    details: 内置限流、多租户、Token 配额、A/B 测试、Actuator 健康检查、Docker + Helm 部署
+  - title: 可验证的发布候选版
+    details: 核心 REST/SSE 有自动化与浏览器测试；上线前仍需按安全、容量和供应商条件逐项验收
 ---

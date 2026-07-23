@@ -29,8 +29,9 @@ export interface FetchModelsOptions {
   probe?: boolean;
 }
 
-export type ChatResult = ApiSchemas['ChatResponse'];
+export type ChatResult = ApiSchemas['ChatResponse'] & { requestId?: string };
 export type ChatRuntimeMeta = ApiSchemas['RuntimeMeta'] & {
+  requestId?: string;
   webSearchFailureReason?: string;
   webSearchDurationMs?: number;
   webSearchStableDurationMs?: number;
@@ -79,6 +80,10 @@ export type UrlPreviewResult = ApiSchemas['UrlPreviewResponse'];
 
 export interface HealthResult {
   success?: boolean;
+  provider?: string;
+  model?: string;
+  mode?: 'demo' | 'live';
+  mock?: boolean;
   webSearchProvider?: string;
   webSearchStableProviderConfigured?: boolean;
   webSearchMaxResults?: number;
@@ -106,10 +111,12 @@ export type RuntimeDiscoverModelsResult = JsonResponse<
   'post'
 >;
 
-function buildHeaders(token?: string): Record<string, string> {
+function buildHeaders(token?: string, tenantId?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const normalizedToken = normalizeToken(token);
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
+  const normalizedTenantId = normalizeTenantId(tenantId);
+  if (normalizedTenantId) headers['X-Tenant-Id'] = normalizedTenantId;
   return headers;
 }
 
@@ -128,6 +135,27 @@ function buildRuntimeConfigHeaders(token?: string, adminToken?: string): Record<
 function normalizeToken(token?: string): string | undefined {
   const trimmed = token?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function normalizeTenantId(tenantId?: string): string | undefined {
+  const trimmed = tenantId?.trim();
+  if (!trimmed) return undefined;
+  if (!/^[a-zA-Z0-9_.:-]{1,64}$/.test(trimmed)) {
+    throw new Error('tenantId must be 1-64 characters using letters, digits, _, ., :, or -');
+  }
+  return trimmed;
+}
+
+async function readJsonError(response: Response): Promise<Record<string, unknown> | undefined> {
+  if (typeof response.json !== 'function') return undefined;
+  try {
+    const value: unknown = await response.json();
+    return value != null && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function apiUrl(baseUrl: string, path: string): string {
@@ -161,6 +189,7 @@ function streamMetaFromHeaders(headers?: Headers): ChatRuntimeMeta | undefined {
   const serverDispatchEpochMsRaw = headers.get('X-AI-Server-Dispatch-Epoch-Ms');
   const serverQueueMsRaw = headers.get('X-AI-Server-Queue-Ms');
   const meta: ChatRuntimeMeta = {
+    requestId: headers.get('X-Request-Id') || undefined,
     requestedModel: headers.get('X-AI-Requested-Model') || undefined,
     effectiveModel: headers.get('X-AI-Effective-Model') || undefined,
     provider: headers.get('X-AI-Provider') || undefined,
@@ -508,17 +537,26 @@ export async function postChat(
   baseUrl: string,
   payload: ChatPayload,
   token?: string,
+  tenantId?: string,
 ): Promise<ChatResult> {
   const res = await fetch(apiUrl(baseUrl, '/chat'), {
     method: 'POST',
-    headers: buildHeaders(token),
+    headers: buildHeaders(token, tenantId),
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   });
+  const requestId = res.headers?.get?.('X-Request-Id') || undefined;
   if (!res.ok) {
-    return { success: false, error: `HTTP ${res.status}: ${res.statusText}` };
+    const body = await readJsonError(res);
+    return {
+      success: false,
+      error:
+        (typeof body?.error === 'string' && body.error) || `HTTP ${res.status}: ${res.statusText}`,
+      errorCode: typeof body?.errorCode === 'string' ? body.errorCode : undefined,
+      requestId,
+    };
   }
-  return res.json();
+  return { ...(await res.json()), requestId };
 }
 
 /** Upload a file for summarization or translation. */
@@ -562,15 +600,22 @@ export async function* streamChat(
   token?: string,
   signal?: AbortSignal,
   onMeta?: (meta: ChatRuntimeMeta) => void,
+  tenantId?: string,
 ): AsyncGenerator<string> {
   const res = await fetch(apiUrl(baseUrl, '/stream'), {
     method: 'POST',
-    headers: buildHeaders(token),
+    headers: buildHeaders(token, tenantId),
     body: JSON.stringify(payload),
     signal,
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const body = await readJsonError(res);
+    throw new AiAssistantApiError(
+      (typeof body?.error === 'string' && body.error) || `HTTP ${res.status}: ${res.statusText}`,
+      res.status,
+      typeof body?.errorCode === 'string' ? body.errorCode : undefined,
+      res.headers?.get?.('X-Request-Id') || undefined,
+    );
   }
 
   const meta = streamMetaFromHeaders(res.headers);
@@ -587,7 +632,10 @@ export async function* streamChat(
       const { done, value } = await reader.read();
       if (done) {
         const trailing = parseSseDataEvent(buffer);
-        if (trailing) yield trailing;
+        if (trailing) {
+          throwForStreamErrorFrame(trailing, meta?.requestId);
+          yield trailing;
+        }
         break;
       }
 
@@ -598,11 +646,40 @@ export async function* streamChat(
         const event = buffer.slice(0, eventEnd);
         buffer = buffer.slice(eventEnd + 2);
         const data = parseSseDataEvent(event);
-        if (data) yield data;
+        if (data) {
+          throwForStreamErrorFrame(data, meta?.requestId);
+          yield data;
+        }
         eventEnd = buffer.indexOf('\n\n');
       }
     }
   } finally {
     reader.cancel().catch(() => {});
+  }
+}
+
+export class AiAssistantApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly errorCode?: string,
+    public readonly requestId?: string,
+  ) {
+    super(message);
+    this.name = 'AiAssistantApiError';
+  }
+}
+
+function throwForStreamErrorFrame(data: string, requestId?: string): void {
+  const match = data.match(/^\[([A-Z_]+)]\s*(.*)$/s);
+  if (!match) return;
+  const [, code, message] = match;
+  if (
+    code?.endsWith('ERROR') ||
+    code === 'RATE_LIMITED' ||
+    code === 'TIMEOUT' ||
+    code === 'QUOTA_EXCEEDED'
+  ) {
+    throw new AiAssistantApiError(message || code, 200, code, requestId);
   }
 }

@@ -106,6 +106,7 @@ public class AiAssistantWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "admin-enabled", havingValue = "true")
     public com.aiassistant.config.RuntimeModelConfigService runtimeModelConfigService(
             AiAssistantProperties properties) {
         return new com.aiassistant.config.RuntimeModelConfigService(properties);
@@ -113,6 +114,7 @@ public class AiAssistantWebAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "ai-assistant", name = "admin-enabled", havingValue = "true")
     public com.aiassistant.controller.RuntimeModelConfigController runtimeModelConfigController(
             com.aiassistant.config.RuntimeModelConfigService runtimeModelConfigService) {
         return new com.aiassistant.controller.RuntimeModelConfigController(

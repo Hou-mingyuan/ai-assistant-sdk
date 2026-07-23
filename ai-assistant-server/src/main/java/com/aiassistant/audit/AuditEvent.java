@@ -23,6 +23,7 @@ public record AuditEvent(
     public enum Outcome {
         SUCCESS,
         ERROR,
+        CANCELLED,
         QUOTA_EXCEEDED,
         FILTERED
     }

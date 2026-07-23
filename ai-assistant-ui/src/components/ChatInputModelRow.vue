@@ -8,9 +8,12 @@
         :class="{ active: mode === 'chat' }"
         :disabled="loading"
         :aria-selected="mode === 'chat' ? 'true' : 'false'"
+        :aria-label="t.chat"
+        :title="t.chat"
         @click="$emit('changeMode', 'chat')"
       >
-        {{ t.chat }}
+        <AssistantIcon class="ai-mode-segment-icon" name="message-circle" :size="13" />
+        <span class="ai-mode-segment-label">{{ t.chat }}</span>
       </button>
       <button
         type="button"
@@ -19,9 +22,12 @@
         :class="{ active: mode === 'translate' }"
         :disabled="loading"
         :aria-selected="mode === 'translate' ? 'true' : 'false'"
+        :aria-label="t.translate"
+        :title="t.translate"
         @click="$emit('changeMode', 'translate')"
       >
-        {{ t.translate }}
+        <AssistantIcon class="ai-mode-segment-icon" name="languages" :size="13" />
+        <span class="ai-mode-segment-label">{{ t.translate }}</span>
       </button>
       <button
         type="button"
@@ -30,9 +36,12 @@
         :class="{ active: mode === 'summarize' }"
         :disabled="loading"
         :aria-selected="mode === 'summarize' ? 'true' : 'false'"
+        :aria-label="t.summarize"
+        :title="t.summarize"
         @click="$emit('changeMode', 'summarize')"
       >
-        {{ t.summarize }}
+        <AssistantIcon class="ai-mode-segment-icon" name="file-text" :size="13" />
+        <span class="ai-mode-segment-label">{{ t.summarize }}</span>
       </button>
     </div>
     <div
@@ -144,6 +153,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { I18nMessages } from '../utils/i18n';
 
 const props = defineProps<{

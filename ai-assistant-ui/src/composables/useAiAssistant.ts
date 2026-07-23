@@ -22,7 +22,7 @@ export function useAiAssistant() {
     error.value = '';
     result.value = '';
     try {
-      const res = await postChat(options.baseUrl!, payload, options.accessToken);
+      const res = await postChat(options.baseUrl!, payload, options.accessToken, options.tenantId);
       if (res.success) result.value = res.result ?? '';
       else error.value = res.error || fallbackError;
     } catch (e: unknown) {
@@ -55,6 +55,8 @@ export function useAiAssistant() {
         { action, text, targetLang },
         options.accessToken,
         signal,
+        undefined,
+        options.tenantId,
       )) {
         if (signal.aborted) break;
         result.value += chunk;

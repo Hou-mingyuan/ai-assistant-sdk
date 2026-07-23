@@ -56,7 +56,8 @@ public class FileParserService {
 
         assertMagicMatchesExtension(file, ext);
 
-        log.info("Parsing file: {} ({}KB)", filename, file.getSize() / 1024);
+        String fileType = ext.isEmpty() ? "unknown" : ext.substring(1);
+        log.info("Parsing uploaded file (type={}, size={}KB)", fileType, file.getSize() / 1024);
 
         try {
             String text =
@@ -84,24 +85,24 @@ public class FileParserService {
                                                         + ext
                                                         + ". Supported: txt, md, csv, pdf, docx, doc, xlsx, xls, json, xml, html, yml");
                     };
-            text = limitExtractedText(text, filename);
-            log.info("Extracted {} characters from {}", text.length(), filename);
+            text = limitExtractedText(text, fileType);
+            log.info("Extracted {} characters from uploaded {} file", text.length(), fileType);
             return text;
         } catch (IllegalArgumentException | IllegalStateException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to extract text from file: {}", filename, e);
+            log.error("Failed to extract text from uploaded {} file", fileType, e);
             throw new RuntimeException("Failed to read file: " + e.getMessage(), e);
         }
     }
 
-    private String limitExtractedText(String text, String filename) {
+    private String limitExtractedText(String text, String fileType) {
         if (text == null || maxExtractedChars <= 0 || text.length() <= maxExtractedChars) {
             return text;
         }
         log.warn(
-                "Extracted text from {} exceeded {} characters and was truncated",
-                filename,
+                "Extracted text from uploaded {} file exceeded {} characters and was truncated",
+                fileType,
                 maxExtractedChars);
         return text.substring(0, maxExtractedChars);
     }

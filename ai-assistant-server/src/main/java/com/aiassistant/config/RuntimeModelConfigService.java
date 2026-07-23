@@ -44,13 +44,20 @@ public class RuntimeModelConfigService {
     private final ProviderModelDiscovery modelDiscovery = new ProviderModelDiscovery();
 
     public RuntimeModelConfigService(AiAssistantProperties properties) {
-        this(properties, defaultStoragePath());
+        this(properties, defaultStoragePath(), properties.isAdminEnabled());
     }
 
     RuntimeModelConfigService(AiAssistantProperties properties, Path storagePath) {
+        this(properties, storagePath, true);
+    }
+
+    private RuntimeModelConfigService(
+            AiAssistantProperties properties, Path storagePath, boolean loadPersisted) {
         this.properties = properties;
         this.storagePath = storagePath;
-        loadPersistedConfig();
+        if (loadPersisted) {
+            loadPersistedConfig();
+        }
     }
 
     public synchronized Snapshot snapshot() {

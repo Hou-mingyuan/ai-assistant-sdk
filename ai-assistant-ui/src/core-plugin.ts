@@ -1,54 +1,13 @@
 import type { App } from 'vue';
 import { createApp } from 'vue';
 import AiAssistant from './components/AiAssistant.vue';
-import type { PageContextBlock } from './utils/pageContextDom';
-import type { FormAutoFillOptions } from './composables/useFormAutoFill';
+import type { AiAssistantOptions } from './index';
 
-export interface AiAssistantOptions {
-  baseUrl?: string;
-  primaryColor?: string;
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-  theme?: 'light' | 'dark' | 'auto';
-  /** 阅读主题：限宽正文 + 衬线标题 + 暖白表面 + 升字号（默认关闭）。 */
-  readingMode?: boolean;
-  persistHistory?: boolean;
-  persistFabPosition?: boolean;
-  locale?: 'en' | 'zh' | 'ja' | 'ko';
-  accessToken?: string;
-  adminToken?: string;
-  onAssistantError?: (payload: { source: string; message: string }) => void;
-  onReaction?: (payload: { messageIndex: number; emoji: string; toggled: boolean }) => void;
-  quickPrompts?: { label: string; text: string }[];
-  promptTemplates?: {
-    label: string;
-    template: string;
-    variables?: { name: string; label: string; default?: string }[];
-  }[];
-  openCodeInIde?: (payload: { code: string; language?: string }) => void;
-  toggleShortcut?: string | false;
-  autoMountToBody?: boolean;
-  enableSessionExport?: boolean;
-  maxMessagesInMemory?: number;
-  maxTotalCharsInMemory?: number;
-  maxUserMessageChars?: number;
-  showSystemPromptEditor?: boolean;
-  systemPromptStorageKey?: string;
-  systemPromptMaxInputChars?: number;
-  showModelPicker?: boolean;
-  selectedModelStorageKey?: string;
-  visionCapableModels?: RegExp[];
-  pageContextBlocks?: PageContextBlock[];
-  smartPageContext?: boolean;
-  pageContextMinUserChars?: number;
-  pageContextMaxCharsPerBlock?: number;
-  pageContextMaxTotalChars?: number;
-  virtualScroll?: boolean | { threshold?: number; estimatedItemHeight?: number };
-  formAutoFill?: boolean | FormAutoFillOptions;
-}
+export type { AiAssistantOptions } from './index';
 
 const defaultOptions: AiAssistantOptions = {
   baseUrl: '/ai-assistant',
-  primaryColor: '#6366f1',
+  primaryColor: '#181818',
   position: 'bottom-right',
   theme: 'light',
   persistHistory: false,

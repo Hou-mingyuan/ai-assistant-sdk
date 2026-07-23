@@ -16,10 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * MCP (Model Context Protocol) Server endpoint. Exposes assistant capabilities as MCP tools,
- * compatible with platforms like 织信 (Informat) that support MCP Client connections.
+ * Experimental HTTP JSON-RPC endpoint that exposes assistant capabilities using a small MCP method
+ * subset.
  *
- * <p>Implements the JSON-RPC based MCP protocol with methods:
+ * <p>This is not a complete MCP transport or protocol implementation. It currently implements:
  *
  * <ul>
  *   <li>tools/list — discover available tools
@@ -34,7 +34,7 @@ public class McpServerController {
     private static final Logger log = LoggerFactory.getLogger(McpServerController.class);
     private static final String MCP_VERSION = "2025-03-26";
     private static final String SERVER_NAME = "ai-assistant-sdk";
-    private static final String SERVER_VERSION = "1.0.0";
+    private static final String SERVER_VERSION = "1.0.1";
 
     private final List<AssistantCapability> capabilities;
     private final ObjectMapper mapper = new ObjectMapper();

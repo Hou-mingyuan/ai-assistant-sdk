@@ -194,6 +194,7 @@ export interface I18nMessages {
   personalizeAudioRate?: string;
   personalizeAudioAutoRead?: string;
   providerConfigTitle?: string;
+  providerConfigPermissionRequired?: string;
   providerConfigPresetMinimax?: string;
   providerConfigPresetOpenai?: string;
   providerConfigPresetDeepseek?: string;

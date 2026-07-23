@@ -14,6 +14,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 const missing = [];
 const checked = [];
+const browserUnsafe = [];
 
 function collectExportTargets(value, trail = []) {
   if (typeof value === 'string') {
@@ -47,6 +48,20 @@ if (missing.length > 0) {
   console.error('Package export check failed. Missing files:');
   for (const item of missing) console.error(`  - ${item}`);
   console.error('\nRun `npm run build` in ai-assistant-ui before publishing.');
+  process.exit(1);
+}
+
+const webComponentUmdPath = path.join(packageDir, 'dist', 'ai-assistant-wc.umd.cjs');
+if (fs.existsSync(webComponentUmdPath)) {
+  const webComponentUmd = fs.readFileSync(webComponentUmdPath, 'utf8');
+  if (/\bprocess\.env\b/.test(webComponentUmd)) {
+    browserUnsafe.push('dist/ai-assistant-wc.umd.cjs contains unresolved process.env references');
+  }
+}
+
+if (browserUnsafe.length > 0) {
+  console.error('Package browser runtime check failed:');
+  for (const item of browserUnsafe) console.error(`  - ${item}`);
   process.exit(1);
 }
 

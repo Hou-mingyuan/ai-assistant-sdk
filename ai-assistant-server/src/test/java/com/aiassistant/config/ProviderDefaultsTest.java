@@ -22,6 +22,7 @@ class ProviderDefaultsTest {
 
         @ParameterizedTest(name = "{0} → {1}")
         @CsvSource({
+            "demo,           https://demo-provider.invalid/v1",
             "openai,         https://api.openai.com/v1",
             "deepseek,       https://api.deepseek.com/v1",
             "tongyi,         https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -95,6 +96,7 @@ class ProviderDefaultsTest {
 
         @ParameterizedTest(name = "{0} → {1}")
         @CsvSource({
+            "demo,           demo-local",
             "openai,         gpt-5.4-mini",
             "deepseek,       deepseek-v4-flash",
             "tongyi,         qwen3.5-plus",

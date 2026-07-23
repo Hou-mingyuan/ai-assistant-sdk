@@ -2,8 +2,11 @@ import { computed, ref } from 'vue';
 import { describe, expect, it } from 'vitest';
 import { useWrapperStyles, type FabScreenQuadrant } from './useWrapperStyles';
 
-function setup(o: { mounted?: boolean; fabLeft?: number | null; fabTop?: number | null } = {}) {
+function setup(
+  o: { mounted?: boolean; mobile?: boolean; fabLeft?: number | null; fabTop?: number | null } = {},
+) {
   const panelMountedForLayout = ref(o.mounted ?? false);
+  const isMobileViewport = ref(o.mobile ?? false);
   const fabLeft = ref<number | null>(o.fabLeft ?? null);
   const fabTop = ref<number | null>(o.fabTop ?? null);
   const openPanelQuadrant = ref<FabScreenQuadrant>('br');
@@ -11,6 +14,7 @@ function setup(o: { mounted?: boolean; fabLeft?: number | null; fabTop?: number 
     color: computed(() => '#123456'),
     themePaletteVars: computed(() => ({ '--ai-theme-from': '#aabbcc' })),
     panelMountedForLayout,
+    isMobileViewport,
     effectivePanelWidthPx: () => 480,
     effectivePanelHeightPx: () => 520,
     fabLeft,
@@ -31,6 +35,33 @@ describe('useWrapperStyles', () => {
     const { wrapperStyle } = setup({ mounted: true });
     expect(wrapperStyle.value.width).toBe('480px');
     expect(wrapperStyle.value.height).toBe('520px');
+  });
+
+  it('uses exact viewport edges for a mounted mobile panel', () => {
+    const { wrapperStyle, panelStyle } = setup({
+      mounted: true,
+      mobile: true,
+      fabLeft: 100,
+      fabTop: 200,
+    });
+    expect(wrapperStyle.value).toMatchObject({
+      position: 'fixed',
+      inset: '0',
+      width: 'auto',
+      height: 'auto',
+      maxWidth: 'none',
+      maxHeight: 'none',
+    });
+    expect(wrapperStyle.value).not.toHaveProperty('left');
+    expect(wrapperStyle.value).not.toHaveProperty('top');
+    expect(panelStyle.value).toMatchObject({
+      inset: '0',
+      boxSizing: 'border-box',
+      width: '100%',
+      height: '100%',
+      maxWidth: '100%',
+      maxHeight: '100%',
+    });
   });
 
   it('wrapperStyle pins to the fab position when fab coords are set', () => {

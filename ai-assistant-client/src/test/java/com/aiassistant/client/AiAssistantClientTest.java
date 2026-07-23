@@ -33,6 +33,7 @@ class AiAssistantClientTest {
                 exchange -> {
                     assertEquals("/ai-assistant/chat", exchange.getRequestURI().getPath());
                     assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
+                    assertEquals("tenant-a", exchange.getRequestHeaders().getFirst("X-Tenant-Id"));
                     respond(exchange, 200, "{\"success\":true,\"result\":\"hello\"}");
                 });
 
@@ -62,14 +63,17 @@ class AiAssistantClientTest {
     @Test
     void chatThrowsApiExceptionForHttpErrorResponse() throws Exception {
         startServer(
-                exchange ->
-                        respond(exchange, 401, "{\"success\":false,\"error\":\"Unauthorized\"}"));
+                exchange -> {
+                    exchange.getResponseHeaders().add("X-Request-Id", "req-http-error");
+                    respond(exchange, 401, "{\"success\":false,\"error\":\"Unauthorized\"}");
+                });
 
         AiAssistantClient client = client();
 
         AiAssistantClient.ApiException ex =
                 assertThrows(AiAssistantClient.ApiException.class, () -> client.chat("hi"));
         assertEquals(401, ex.statusCode());
+        assertEquals("req-http-error", ex.requestId());
         assertTrue(ex.getMessage().contains("Unauthorized"));
     }
 
@@ -145,6 +149,16 @@ class AiAssistantClientTest {
     }
 
     @Test
+    void builderRejectsUnsafeTenantId() {
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> AiAssistantClient.builder().tenantId("tenant/escape").build());
+
+        assertTrue(ex.getMessage().contains("tenantId"));
+    }
+
+    @Test
     void chatStreamRejectsNullConsumerBeforeSendingRequest() {
         AiAssistantClient client =
                 AiAssistantClient.builder()
@@ -188,6 +202,7 @@ class AiAssistantClientTest {
                 "/ai-assistant/stream",
                 exchange -> {
                     assertEquals("secret", exchange.getRequestHeaders().getFirst("X-AI-Token"));
+                    assertEquals("tenant-a", exchange.getRequestHeaders().getFirst("X-Tenant-Id"));
                     String body =
                             new String(
                                     exchange.getRequestBody().readAllBytes(),
@@ -211,10 +226,39 @@ class AiAssistantClientTest {
         assertEquals(List.of("ok"), chunks);
     }
 
+    @Test
+    void chatStreamJoinsMultilineSseDataAndExposesStructuredStreamErrors() throws Exception {
+        startServer(
+                "/ai-assistant/stream",
+                exchange -> {
+                    exchange.getResponseHeaders().add("X-Request-Id", "req-stream-error");
+                    respond(
+                            exchange,
+                            200,
+                            "data: first line\ndata: second line\n\n"
+                                    + "data: [RATE_LIMITED] provider busy\n\n",
+                            "text/event-stream;charset=UTF-8");
+                });
+
+        AiAssistantClient client = client();
+        List<String> chunks = new ArrayList<>();
+
+        AiAssistantClient.ApiException ex =
+                assertThrows(
+                        AiAssistantClient.ApiException.class,
+                        () -> client.chatStream("hi", chunks::add));
+
+        assertEquals(List.of("first line\nsecond line"), chunks);
+        assertEquals("RATE_LIMITED", ex.errorCode());
+        assertEquals("req-stream-error", ex.requestId());
+        assertEquals("provider busy", ex.getMessage());
+    }
+
     private AiAssistantClient client() {
         return AiAssistantClient.builder()
                 .baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/ai-assistant")
                 .token("secret")
+                .tenantId("tenant-a")
                 .timeout(Duration.ofSeconds(5))
                 .build();
     }

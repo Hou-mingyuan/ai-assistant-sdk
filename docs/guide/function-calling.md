@@ -40,3 +40,8 @@ public class WeatherTool implements ToolDefinition {
 
 Data Connector 会自动注册 `list_modules`、`get_schema`、`query_data` 等工具。自定义 Function Calling 更适合业务特定动作，例如审批、通知、查询订单详情等。
 
+## 与 AgentExecutor 的边界
+
+`ToolCallingLoop` / `StreamingToolCallingLoop` 负责模型驱动的多轮工具选择，并限制最大轮次。`AgentExecutor.execute(List<AgentStep>)` 则只按顺序执行调用方已经生成的步骤，记录成功、失败和耗时；它不会让 LLM 自主生成计划或根据观察结果重新规划。
+
+因此当前 Agent 步骤执行器为 `experimental`，自主 ReAct 规划为 `documented-only`。如果宿主实现自主 Agent，还必须自行补齐工具白名单、循环检测、敏感动作确认、观察截断、权限与审计。

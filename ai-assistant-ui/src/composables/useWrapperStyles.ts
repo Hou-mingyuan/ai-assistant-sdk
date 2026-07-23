@@ -16,6 +16,7 @@ export interface UseWrapperStylesOptions {
   color: ComputedRef<string>;
   themePaletteVars: ComputedRef<Record<string, string>>;
   panelMountedForLayout: Ref<boolean>;
+  isMobileViewport: Ref<boolean>;
   effectivePanelWidthPx: () => number;
   effectivePanelHeightPx: () => number;
   fabLeft: Ref<number | null>;
@@ -30,6 +31,7 @@ export function useWrapperStyles(deps: UseWrapperStylesOptions) {
     color,
     themePaletteVars,
     panelMountedForLayout,
+    isMobileViewport,
     effectivePanelWidthPx,
     effectivePanelHeightPx,
     fabLeft,
@@ -41,11 +43,21 @@ export function useWrapperStyles(deps: UseWrapperStylesOptions) {
 
   const wrapperStyle = computed(() => {
     const st: Record<string, string> = { '--primary': color.value, ...themePaletteVars.value };
-    if (panelMountedForLayout.value) {
+    const mobilePanel = panelMountedForLayout.value && isMobileViewport.value;
+    if (mobilePanel) {
+      Object.assign(st, {
+        position: 'fixed',
+        inset: '0',
+        width: 'auto',
+        height: 'auto',
+        maxWidth: 'none',
+        maxHeight: 'none',
+      });
+    } else if (panelMountedForLayout.value) {
       st.width = `${effectivePanelWidthPx()}px`;
       st.height = `${effectivePanelHeightPx()}px`;
     }
-    if (fabLeft.value !== null && fabTop.value !== null) {
+    if (!mobilePanel && fabLeft.value !== null && fabTop.value !== null) {
       let L = fabLeft.value;
       let T = fabTop.value;
       if (panelMountedForLayout.value) {
@@ -61,13 +73,23 @@ export function useWrapperStyles(deps: UseWrapperStylesOptions) {
     return st;
   });
 
-  const panelStyle = computed(
-    () =>
-      ({
-        '--primary': color.value,
-        transformOrigin: panelTransformOrigin.value,
-      }) as Record<string, string>,
-  );
+  const panelStyle = computed(() => {
+    const st: Record<string, string> = {
+      '--primary': color.value,
+      transformOrigin: panelTransformOrigin.value,
+    };
+    if (panelMountedForLayout.value && isMobileViewport.value) {
+      Object.assign(st, {
+        inset: '0',
+        boxSizing: 'border-box',
+        width: '100%',
+        height: '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+      });
+    }
+    return st;
+  });
 
   return { wrapperStyle, panelStyle };
 }

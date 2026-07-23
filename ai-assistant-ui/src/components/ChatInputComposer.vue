@@ -93,7 +93,9 @@
       "
       @click="$emit('toggleDeepThink', !deepThinkEnabled)"
     >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">🧠</span>
+      <span class="ai-quick-toggle-icon" aria-hidden="true">
+        <AssistantIcon name="brain" :size="15" />
+      </span>
       <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
     </button>
     <button
@@ -106,7 +108,9 @@
       "
       @click="$emit('toggleWebSearch', !webSearchEnabled)"
     >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">🌐</span>
+      <span class="ai-quick-toggle-icon" aria-hidden="true">
+        <AssistantIcon name="globe-2" :size="15" />
+      </span>
       <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
     </button>
     <button
@@ -119,7 +123,9 @@
       "
       @click="$emit('toggleFastReply', !fastReplyEnabled)"
     >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">⚡</span>
+      <span class="ai-quick-toggle-icon" aria-hidden="true">
+        <AssistantIcon name="zap" :size="15" />
+      </span>
       <span class="ai-quick-toggle-label">{{ t.fastReplyLabel || '快速回答' }}</span>
     </button>
   </div>
@@ -271,6 +277,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { SlashCommand } from '../composables/useSlashCommands';
 import type { I18nMessages } from '../utils/i18n';
 

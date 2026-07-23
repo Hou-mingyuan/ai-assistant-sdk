@@ -1,181 +1,157 @@
-# AI Assistant SDK — 作品集演示指南
+# AI Assistant SDK 演示指南
 
-> 目标：在 **不依赖宿主业务项目** 的前提下，用独立 Docker 服务 + Vue Playground 完成作品集验收。  
-> 部署细节见 [DEPLOYMENT.md](../DEPLOYMENT.md)；接入手册见 [USAGE.md](./USAGE.md)。
+本指南提供两条可重复演示路径：独立服务 + Playground，以及 Spring Boot Starter 宿主。默认 `demo` Provider 不需要外部 Key，但会经过真实的 REST/SSE 控制器、过滤器、服务层和前端请求链路。
 
----
+> Demo 输出是确定性测试数据，响应和页面都会明确标识 `Demo / mock`，不能用来评价真实模型质量。真实 Provider 不可用时，服务不会把 Demo 输出伪装成成功结果。
 
-## 两种演示路径
+## 环境
 
-| 路径 | 需要 LLM Key | 验收内容 |
-| --- | --- | --- |
-| **零密钥 smoke（推荐 CI / 作品集基线）** | 否 | health、stats、runtime、`/chat` 路由（503 表示未配置 Key，链路仍通） |
-| **完整 UI 演示** | 是 | Playground 悬浮球 → SSE 流式对话 |
+- Docker Engine/Desktop + Compose v2
+- Node.js 22（运行自动 smoke；Playground 由 Docker 从源码构建）
+- Starter 路径额外需要 JDK 21、Maven 3.9+
+- Demo 无账号；启用访问令牌后，调用方需发送 `X-AI-Token`
 
-与 [ai-service-agent](https://github.com/Hou-mingyuan/ai-service-agent) 的内置 Mock 不同，本 SDK 的 **真实 LLM 对话** 需配置 `AI_ASSISTANT_API_KEY`；零密钥路径覆盖 **服务可用性 + 聊天 API 接线**，不调用上游计费。
+## 路径 A：独立服务与 Playground
 
----
+### 一键脚本
 
-## 一键 Demo（双容器 · Playground + 后端）
-
-Docker Desktop 中显示为 **`ai-assistant-demo`** 分组（`docker-compose.demo.yml`）。
-
-### Windows
+Windows：
 
 ```powershell
-cd d:\project-hub\ai-assistant-sdk
 .\scripts\demo-standalone.ps1
 ```
 
-### Linux / macOS
+Linux / macOS：
 
 ```bash
-cd ai-assistant-sdk
 chmod +x scripts/demo-standalone.sh
 ./scripts/demo-standalone.sh
 ```
 
-脚本会：
+脚本会复制缺失的 `.env`，由 Docker 从源码构建服务和 Playground，启动 `docker-compose.demo.yml`，再执行自动 smoke。
 
-1. 若无 `.env` 则从 `.env.example` 复制（**Key 可留空**，仅跑 smoke）
-2. 若缺少 `ai-assistant-vue-playground/dist/`，自动 `npm install && npm run build`
-3. `docker compose -f docker-compose.demo.yml up -d --build`
-4. 执行 `node scripts/smoke-demo-compose.mjs`
+默认入口：
 
-默认访问：
-
-| 端点 | URL |
+| 入口 | 地址 |
 | --- | --- |
-| Playground | http://localhost:3000/ |
-| 健康检查（经 nginx 反代） | http://localhost:3000/ai-assistant/health |
+| Playground | `http://localhost:3000/` |
+| 后端健康（经 Playground 反代） | `http://localhost:3000/ai-assistant/health` |
+| Actuator 存活探针 | `http://localhost:3000/actuator/health/liveness` |
 
-端口可通过 `.env` 中 `AI_ASSISTANT_WEB_PORT` 覆盖。
+端口可在本地 `.env` 覆盖。不要提交包含密钥的 `.env`。
 
 ### 手动等价命令
 
 ```bash
 cp .env.example .env
-cd ai-assistant-vue-playground && npm install && npm run build && cd ..
 docker compose -f docker-compose.demo.yml up -d --build
 node scripts/smoke-demo-compose.mjs
 ```
 
-Hub Profile 验证记录：[ai-portfolio/docker/verify-ai-assistant-sdk.md](../../ai-portfolio/docker/verify-ai-assistant-sdk.md)
+Windows Command Prompt 将第一行换成 `copy .env.example .env`。
 
----
+## 路径 B：Starter 示例
 
-## 零密钥 smoke（单容器后端）
+`ai-assistant-demo` 是纳入仓库的最小 Spring Boot 宿主，静态页面使用实际 Web Component 包，不依赖外部 CDN。
 
-仅启动独立服务（无 Playground UI）：
+```powershell
+# Windows
+.\scripts\demo-starter.ps1
+```
+
+```bash
+# Linux / macOS
+bash scripts/demo-starter.sh
+```
+
+脚本使用 lockfile 构建真实 Web Component，再打包并启动 Starter 宿主。可用 `AI_ASSISTANT_DEMO_PORT` 覆盖本地端口。
+
+打开 `http://localhost:8080/`。页面可检查健康状态，并进入 Web Component 对话页。
+
+真实 HTTP 集成测试：
+
+```bash
+mvn -pl ai-assistant-demo -am test
+```
+
+该测试在随机端口启动宿主，验证 Demo Provider 健康、`/chat` 和 `/stream`，不会占用固定端口。
+
+## 单独运行零密钥 smoke
 
 ```bash
 cp .env.example .env
-# AI_ASSISTANT_API_KEY 可留空
 docker compose up -d --build
 node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
 ```
 
-### curl 验收
+脚本依次执行 8 项检查；任何一项失败都会非零退出：
+
+| # | 检查 | 预期 |
+| ---: | --- | --- |
+| 1 | `GET {base}/health` | HTTP 200；`success=true`、`status=running`、`provider=demo`、`mode=demo`、`mock=true` |
+| 2 | `GET {origin}/actuator/health/liveness` | HTTP 200；`status=UP` |
+| 3 | `GET {origin}/actuator/health/readiness` | HTTP 200；`status=UP` |
+| 4 | `GET {base}/stats` | HTTP 200；JSON 对象 |
+| 5 | `GET {base}/runtime/config` | HTTP 200；包含 `service`、`security`、`features`、`limits`，且运行模式为 Demo |
+| 6 | `GET {base}/health/provider` | HTTP 200；`status=UP`、`provider=demo`、`mock=true` |
+| 7 | `POST {base}/chat` | HTTP 200；包含 Demo 标识、原输入和 `meta.provider=demo` |
+| 8 | `POST {base}/stream` | HTTP 200、`text/event-stream`；流中包含 Demo 标识和原输入 |
+
+等价 curl 示例：
 
 ```bash
-# 健康
 curl -sf http://localhost:8080/ai-assistant/health
-
-# Provider 探测（无 Key 时为 DOWN，属预期）
 curl -sf http://localhost:8080/ai-assistant/health/provider
-
-# Chat 路由（无 Key 时 HTTP 503，success=false — 证明 /chat 已挂载，未调用 LLM）
 curl -sf -X POST http://localhost:8080/ai-assistant/chat \
   -H "Content-Type: application/json" \
-  -d '{"text":"ping","action":"chat"}' || true
+  -d '{"text":"ping","action":"chat"}'
+curl -N -X POST http://localhost:8080/ai-assistant/stream \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"text":"stream ping","action":"chat"}'
 ```
 
-最后一行在无 Key 时 curl 会因 503 非零退出；smoke 脚本已按 **503 + JSON** 判定通过。
+## 3–5 分钟核心演示
 
-### `smoke-zero-key.mjs` 验收清单（与脚本一致）
+1. 打开 Playground，确认状态条显示后端已连接、Provider 为 Demo。
+2. 打开右下角助手，发送一条消息，观察 `/ai-assistant/stream` 的逐段响应。
+3. 在响应中确认清晰的 Demo 标识；点击停止或重试，检查交互反馈。
+4. 打开 Form Fill，复制样例、粘贴到助手、预览字段映射、填充并撤销。
+5. 切换到 Admin 页面；未提供 Admin Token 时，页面应明确提示且不发送受保护请求。
 
-`node scripts/smoke-zero-key.mjs <baseUrl>` 依次探测以下端点（默认 `http://localhost:8080/ai-assistant`，Hub 为 `http://localhost:18080/ai-assistant`）：
+## 切换真实 Provider
 
-| # | 检查项 | 请求 | 预期 |
-| ---: | --- | --- | --- |
-| 1 | assistant health | `GET {base}/health` | HTTP 200，`success=true` 且 `status=running` |
-| 2 | actuator liveness | `GET {origin}/actuator/health/liveness` | HTTP 200，`status=UP` |
-| 3 | stats | `GET {base}/stats` | HTTP 200，JSON 对象 |
-| 4 | runtime config | `GET {base}/runtime/config` | HTTP 200，`success=true` 且含 `service` / `security` / `features` / `limits` |
-| 5 | provider health (no key) | `GET {base}/health/provider` | HTTP 200，`status` 为 `DOWN` / `PENDING` / `UNKNOWN` |
-| 6 | chat routing | `POST {base}/chat` body `{"text":"ping","action":"chat"}` | HTTP **503**，`success=false`（证明 `/chat` 已挂载、未调用 LLM） |
+编辑本地 `.env`：
 
-全部通过后输出 `Zero-key smoke passed: …`。Playground 演示页会探测 #1 与 #5，显示「后端已连接 · 未配置 API Key」或「Provider UP · 可体验 SSE 流式对话」。
+```dotenv
+AI_ASSISTANT_PROVIDER=openai
+AI_ASSISTANT_BASE_URL=https://api.openai.com/v1
+AI_ASSISTANT_MODEL=gpt-4o-mini
+AI_ASSISTANT_API_KEY=<由本地密钥存储注入>
+```
 
-### 带 Access Token 的 smoke（可选）
+然后重建服务：
 
 ```bash
-node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant your-token
+docker compose -f docker-compose.demo.yml up -d --build
 ```
 
----
-
-## 完整流式对话演示（需 API Key）
-
-1. 编辑 `.env`，填入 `AI_ASSISTANT_API_KEY`（及可选 `AI_ASSISTANT_PROVIDER` / `AI_ASSISTANT_MODEL`）
-2. 重启：`docker compose -f docker-compose.demo.yml up -d --build`
-3. 打开 http://localhost:3000/ ，点击右下角悬浮球提问
-4. Network 面板应看到 `POST /ai-assistant/stream` 返回 `text/event-stream`
-
-**5 分钟演示路线：**
-
-1. 自由对话 — 验证 SSE 打字机
-2. 切换翻译 / 摘要模式
-3. （可选）上传文档或启用 RAG — 见 [配置说明](guide/configuration.md)
-
----
-
-## Project Hub Profile
-
-Portfolio 统一编排（端口 **18080**）：
-
-```powershell
-# 一键（推荐）：启动 Hub Profile + 零密钥 smoke
-cd ai-assistant-sdk
-.\scripts\demo-hub.ps1
-# 或双击 scripts\一键Hub演示.bat
-```
-
-手动等价：
-
-```powershell
-cd ai-portfolio/docker
-docker compose -f docker-compose.profiles.yml --profile ai-assistant-sdk up -d --build
-curl http://localhost:18080/ai-assistant/health
-node ../../ai-assistant-sdk/scripts/smoke-zero-key.mjs http://localhost:18080/ai-assistant
-```
-
-Playground 流式 UI（本地 dev，代理到 Hub 18080）：
-
-```powershell
-cd ai-assistant-sdk/ai-assistant-vue-playground
-npm run dev
-```
-
-页面会自动探测 `/health` 与 `/health/provider`，显示连接状态与 SSE 体验步骤。
-
-与 `docker-compose.demo.yml`（默认 **3000**）端口段不同，可并行运行。
-
----
+浏览器 Network 中应看到 `POST /ai-assistant/stream` 返回 `text/event-stream`。实际模型质量、配额和地区可用性取决于所选供应商，仓库的离线验收不声明公网调用已经成功。
 
 ## 停止与清理
 
 ```bash
 docker compose -f docker-compose.demo.yml down
-# 或单容器：
 docker compose down
 ```
 
----
-
 ## 相关文档
 
-- [DEPLOYMENT.md](../DEPLOYMENT.md) — 部署模式与运维
-- [docs/guide/standalone-service.md](guide/standalone-service.md) — 独立服务详解
-- [docs/guide/frontend-standalone.md](guide/frontend-standalone.md) — 前端连远程后端
-- [PERFORMANCE.md](../PERFORMANCE.md) — k6 smoke 与容量调优
+- [能力矩阵](./CAPABILITY-MATRIX.md)
+- [独立服务](./guide/standalone-service.md)
+- [前端连接独立服务](./guide/frontend-standalone.md)
+- [配置说明](./guide/configuration.md)
+- [生产检查清单](./guide/production-checklist.md)
+- [根目录部署文档](https://github.com/Hou-mingyuan/ai-assistant-sdk/blob/main/DEPLOYMENT.md)
+- [根目录安全文档](https://github.com/Hou-mingyuan/ai-assistant-sdk/blob/main/SECURITY.md)
+- [根目录性能文档](https://github.com/Hou-mingyuan/ai-assistant-sdk/blob/main/PERFORMANCE.md)

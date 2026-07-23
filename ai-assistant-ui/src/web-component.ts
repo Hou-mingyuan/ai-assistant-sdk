@@ -2,7 +2,7 @@
  * Framework-agnostic Web Component wrapper for the AI Assistant.
  *
  * Usage in any HTML page:
- *   <script src="ai-assistant-wc.umd.js"></script>
+ *   <script src="ai-assistant-wc.umd.cjs"></script>
  *   <ai-assistant endpoint="/ai-assistant" token="xxx"></ai-assistant>
  *
  * Works in Vue 2, React, Angular, vanilla HTML — no framework dependency at runtime.
@@ -15,6 +15,7 @@ const ATTR_MAP: Record<string, keyof AiAssistantOptions> = {
   'base-url': 'baseUrl',
   token: 'accessToken',
   'access-token': 'accessToken',
+  'tenant-id': 'tenantId',
   'admin-token': 'adminToken',
   'primary-color': 'primaryColor',
   position: 'position',
@@ -33,7 +34,7 @@ const INT_ATTRS = new Set(['max-messages']);
 
 const DEFAULT_OPTIONS: AiAssistantOptions = {
   baseUrl: '/ai-assistant',
-  primaryColor: '#6366f1',
+  primaryColor: '#181818',
   position: 'bottom-right',
   theme: 'light',
   persistHistory: false,
@@ -118,20 +119,33 @@ class AiAssistantElement extends HTMLElement {
   private _syncOptions() {
     if (!this._options) return;
     const target = this._options as Record<string, unknown>;
-
     const defaults = DEFAULT_OPTIONS as Record<string, unknown>;
-    for (const [attr, prop] of Object.entries(ATTR_MAP)) {
-      const val = this.getAttribute(attr);
-      if (val === null) {
+    const entries = Object.entries(ATTR_MAP) as Array<[string, keyof AiAssistantOptions]>;
+    const syncedProps = new Set<keyof AiAssistantOptions>();
+
+    for (const [, prop] of entries) {
+      if (syncedProps.has(prop)) continue;
+      syncedProps.add(prop);
+
+      // Later aliases are canonical (`base-url` over `endpoint`, `access-token` over `token`).
+      // An absent alias must not erase a value supplied through its sibling alias.
+      const sourceAttr = entries
+        .filter(([, candidateProp]) => candidateProp === prop)
+        .map(([attr]) => attr)
+        .reverse()
+        .find((attr) => this.hasAttribute(attr));
+      if (!sourceAttr) {
         target[prop] = defaults[prop];
         continue;
       }
 
-      if (BOOLEAN_ATTRS.has(attr)) {
+      const val = this.getAttribute(sourceAttr) ?? '';
+
+      if (BOOLEAN_ATTRS.has(sourceAttr)) {
         target[prop] = val !== 'false' && val !== '0';
-      } else if (INT_ATTRS.has(attr)) {
+      } else if (INT_ATTRS.has(sourceAttr)) {
         const num = parseInt(val, 10);
-        if (!isNaN(num)) target[prop] = num;
+        target[prop] = Number.isNaN(num) ? defaults[prop] : num;
       } else {
         target[prop] = val;
       }

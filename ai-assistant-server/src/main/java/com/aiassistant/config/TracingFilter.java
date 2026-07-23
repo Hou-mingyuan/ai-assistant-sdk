@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -14,6 +16,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * trace headers (W3C traceparent, X-Request-Id) or generates new ones.
  */
 public class TracingFilter extends OncePerRequestFilter {
+
+    private static final String ZERO_TRACE_ID = "00000000000000000000000000000000";
+    private static final String ZERO_PARENT_ID = "0000000000000000";
+    private static final Pattern TRACEPARENT_V00 =
+            Pattern.compile("^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$");
+    private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[a-zA-Z0-9_\\-]{1,64}");
+    private static final Pattern SAFE_CONTEXT_ID = Pattern.compile("[a-zA-Z0-9_.:\\-]{1,64}");
 
     @Override
     protected void doFilterInternal(
@@ -26,13 +35,13 @@ public class TracingFilter extends OncePerRequestFilter {
             MDC.put("traceId", traceId);
             MDC.put("spanId", spanId);
 
-            String tenantId = request.getHeader("X-Tenant-Id");
-            if (tenantId != null && !tenantId.isBlank()) {
+            String tenantId = normalizeHeader(request.getHeader("X-Tenant-Id"), SAFE_CONTEXT_ID);
+            if (tenantId != null) {
                 MDC.put("tenantId", tenantId);
             }
 
-            String userId = request.getHeader("X-User-Id");
-            if (userId != null && !userId.isBlank()) {
+            String userId = normalizeHeader(request.getHeader("X-User-Id"), SAFE_CONTEXT_ID);
+            if (userId != null) {
                 MDC.put("userId", userId);
             }
 
@@ -45,14 +54,27 @@ public class TracingFilter extends OncePerRequestFilter {
 
     private String extractTraceId(HttpServletRequest request) {
         String traceparent = request.getHeader("traceparent");
-        if (traceparent != null && traceparent.length() >= 55) {
-            return traceparent.substring(3, 35);
+        if (traceparent != null) {
+            Matcher matcher = TRACEPARENT_V00.matcher(traceparent);
+            if (matcher.matches()
+                    && !ZERO_TRACE_ID.equals(matcher.group(1))
+                    && !ZERO_PARENT_ID.equals(matcher.group(2))) {
+                return matcher.group(1);
+            }
         }
-        String requestId = request.getHeader("X-Request-Id");
-        if (requestId != null && !requestId.isBlank()) {
+        String requestId = normalizeHeader(request.getHeader("X-Request-Id"), SAFE_REQUEST_ID);
+        if (requestId != null) {
             return requestId;
         }
         return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private String normalizeHeader(String value, Pattern allowed) {
+        if (value == null || value.isBlank() || value.length() > 64) {
+            return null;
+        }
+        String normalized = value.trim();
+        return allowed.matcher(normalized).matches() ? normalized : null;
     }
 
     private String generateSpanId() {

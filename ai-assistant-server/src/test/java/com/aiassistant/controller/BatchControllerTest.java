@@ -76,4 +76,31 @@ class BatchControllerTest {
         assertEquals("unsupported action: delete", results.get(0).get("error"));
         verifyNoInteractions(llmService);
     }
+
+    @Test
+    void batchProcessReportsInvalidTranslationInputPerItem() {
+        LlmService llmService = mock(LlmService.class);
+        BatchController controller = new BatchController(llmService, new UsageStats());
+        when(llmService.translate("hello", "bad target"))
+                .thenThrow(new IllegalArgumentException("targetLang must be a valid language tag"));
+
+        var response =
+                controller.batchProcess(
+                        Map.of(
+                                "requests",
+                                List.of(
+                                        Map.of(
+                                                "action",
+                                                "translate",
+                                                "text",
+                                                "hello",
+                                                "targetLang",
+                                                "bad target"))));
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> results =
+                (List<Map<String, Object>>) response.getBody().get("results");
+        assertEquals("INVALID_REQUEST", results.get(0).get("code"));
+        assertEquals("targetLang must be a valid language tag", results.get(0).get("error"));
+    }
 }

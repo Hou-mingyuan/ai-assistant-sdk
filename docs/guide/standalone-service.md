@@ -14,7 +14,9 @@
 copy .env.example .env
 ```
 
-至少修改以下配置：
+`.env.example` 默认是零密钥 Demo，可直接启动。Demo Provider 会走完整 `/chat` 与 `/stream` 链路，同时在健康、元数据和正文中明确标识为 mock。
+
+切换真实 Provider 时再修改：
 
 ```text
 AI_ASSISTANT_API_KEY=sk-your-key
@@ -42,7 +44,13 @@ curl http://localhost:8080/ai-assistant/health
 curl http://localhost:8080/actuator/health
 ```
 
-本地烟测：
+Demo 模式自动烟测（8 项，包含存活/就绪探针、同步聊天和 SSE）：
+
+```bash
+node scripts/smoke-zero-key.mjs http://localhost:8080/ai-assistant
+```
+
+启用 Access Token 后的服务烟测：
 
 ```bash
 node scripts/smoke-standalone-service.mjs http://localhost:8080/ai-assistant change-me

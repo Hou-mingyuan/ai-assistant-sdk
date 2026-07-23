@@ -7,8 +7,8 @@
  *
  * 触发场景：
  * - 多实例部署，但 .env 里只用了进程内限流（`AI_ASSISTANT_RATE_LIMIT > 0` 且没有 Redis）
- * - 多实例部署，但 session 存储是进程内 InMemorySessionStore
- * - 多实例部署，但 RAG vector store 是 InMemoryVectorStore
+ * - 多实例部署，但没有可识别的 Spring Data Redis 连接配置
+ * - 多实例部署且开启 RAG（仓库只交付 InMemoryVectorStore）
  *
  * 默认 dry-run，只打印告警；加 `--strict` 时遇到任何高严重度问题 exit 1
  * （适合 CI 中阻塞 PR）。
@@ -44,24 +44,34 @@ const filesToCheck = filesArg
 
 const findings = []
 
-for (const file of filesToCheck) {
-  if (!existsSync(file)) continue
-  const raw = readFileSync(file, 'utf8')
+const readableFiles = filesToCheck
+  .filter(file => existsSync(file))
+  .map(file => ({ file, raw: readFileSync(file, 'utf8') }))
+
+const detectedReplicasAcrossFiles = readableFiles.reduce((max, { file, raw }) => {
+  if (!file.endsWith('.yml') && !file.endsWith('.yaml')) return max
+  const match = raw.match(/\b(?:replicas|replicaCount):\s*(\d+)/)
+  return match ? Math.max(max, Number.parseInt(match[1], 10)) : max
+}, 0)
+
+for (const { file, raw } of readableFiles) {
   const env = file.endsWith('.env') || file.endsWith('.env.example')
   const yaml = file.endsWith('.yml') || file.endsWith('.yaml')
 
   let detectedReplicas = 0
   if (yaml) {
-    const m = raw.match(/\breplicas:\s*(\d+)/)
+    const m = raw.match(/\b(?:replicas|replicaCount):\s*(\d+)/)
     if (m) detectedReplicas = parseInt(m[1], 10)
   }
-  const effectiveReplicas = Math.max(replicas, detectedReplicas)
+  const effectiveReplicas = Math.max(replicas, detectedReplicasAcrossFiles)
 
   if (env) {
     const rateLimit = pickEnv(raw, 'AI_ASSISTANT_RATE_LIMIT')
-    const sessionStore = pickEnv(raw, 'AI_ASSISTANT_SESSION_STORE')
     const ragEnabled = pickEnv(raw, 'AI_ASSISTANT_RAG_ENABLED')
-    const ragStoreType = pickEnv(raw, 'AI_ASSISTANT_RAG_VECTOR_STORE')
+    const redisHost = pickEnv(raw, 'SPRING_DATA_REDIS_HOST')
+    const redisUrl = pickEnv(raw, 'SPRING_DATA_REDIS_URL')
+    const distributedRateLimit = pickEnv(raw, 'AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED')
+    const hasRedisConfig = Boolean(redisHost || redisUrl)
 
     const limit = rateLimit ? parseInt(rateLimit, 10) : NaN
 
@@ -69,7 +79,7 @@ for (const file of filesToCheck) {
       (effectiveReplicas > 1 || replicas === 0) &&
       Number.isFinite(limit) &&
       limit > 0 &&
-      !raw.toLowerCase().includes('redis')
+      !(hasRedisConfig && distributedRateLimit === 'true')
     ) {
       findings.push({
         file,
@@ -77,36 +87,35 @@ for (const file of filesToCheck) {
         rule: 'in-process-rate-limit',
         message:
           `AI_ASSISTANT_RATE_LIMIT=${limit} 是进程内限流，多实例部署时各副本各算各的；` +
-          '生产请改在 API 网关或 Redis (RedisRateLimitFilter) 上做配额',
+          '生产请在 API 网关限流，或同时提供 Spring Data Redis 运行时、连接配置并确认 RedisRateLimitFilter 已接管',
       })
     }
 
     if (
       (effectiveReplicas > 1 || replicas === 0) &&
-      (sessionStore == null || sessionStore.toLowerCase() === 'inmemory')
+      !hasRedisConfig
     ) {
       findings.push({
         file,
         severity: effectiveReplicas > 1 ? 'high' : 'info',
         rule: 'in-memory-session-store',
         message:
-          'session store 未声明，默认 InMemorySessionStore；多实例部署会话粘连不稳定，' +
-          '请配 AI_ASSISTANT_SESSION_STORE=redis 并提供 redis URL',
+          '未发现 SPRING_DATA_REDIS_HOST/URL，默认 InMemorySessionStore；多实例部署会话不共享。' +
+          '请让运行时包含 Spring Data Redis、配置连接，并从启动日志/Bean 检查确认 RedisSessionStore 已接管',
       })
     }
 
     if (
       (effectiveReplicas > 1 || replicas === 0) &&
-      ragEnabled === 'true' &&
-      (ragStoreType == null || ragStoreType.toLowerCase() === 'inmemory')
+      ragEnabled === 'true'
     ) {
       findings.push({
         file,
         severity: effectiveReplicas > 1 ? 'high' : 'warn',
         rule: 'in-memory-rag-store',
         message:
-          'RAG 已开启但 vector store 是 InMemoryVectorStore；多实例间检索结果不一致，' +
-          '生产应换成 Milvus / Pinecone / Qdrant',
+          'RAG 已开启；仓库只交付 InMemoryVectorStore，多实例间索引不共享。' +
+          '必须由宿主注入经过契约测试的共享 VectorStore；设置一个未被应用读取的环境变量不能消除此风险',
       })
     }
   }
@@ -116,7 +125,7 @@ for (const file of filesToCheck) {
       file,
       severity: 'info',
       rule: 'detected-multi-replica',
-      message: `检测到 replicas: ${detectedReplicas}；请确认 .env 中的限流/会话/RAG 已切到分布式存储`,
+      message: `检测到副本数 ${detectedReplicas}；请确认限流、会话、用量、记忆和 RAG 已切到共享实现`,
     })
   }
 }

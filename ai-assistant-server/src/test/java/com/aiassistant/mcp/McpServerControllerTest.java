@@ -53,6 +53,7 @@ class McpServerControllerTest {
         assertEquals(1, r.path("id").asInt());
         assertEquals("2.0", r.path("jsonrpc").asText());
         assertEquals("ai-assistant-sdk", r.path("result").path("serverInfo").path("name").asText());
+        assertEquals("1.0.1", r.path("result").path("serverInfo").path("version").asText());
         assertTrue(r.path("result").path("capabilities").has("tools"));
     }
 

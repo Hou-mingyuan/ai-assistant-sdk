@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 class StreamingLlmCallExecutorTest {
@@ -99,6 +100,27 @@ class StreamingLlmCallExecutorTest {
                 .hasMessageContaining("upstream");
         verify(rotator, atLeastOnce()).markFailed("key-2");
         assertThat(outcomeRef.get()).isEqualTo(AuditEvent.Outcome.ERROR);
+    }
+
+    @Test
+    void downstreamCancellationAuditsCancelledWithoutMarkingKeyBad() {
+        ChatCompletionClient client = mock(ChatCompletionClient.class);
+        when(client.completeStream(any(), anyString())).thenReturn(Flux.never());
+
+        ApiKeyRotator rotator = mock(ApiKeyRotator.class);
+        when(rotator.nextKey()).thenReturn("key-cancelled");
+
+        AtomicReference<AuditEvent.Outcome> outcomeRef = new AtomicReference<>();
+        StreamingLlmCallExecutor exec =
+                newExecutor(
+                        client, rotator, (op, model, p, c, ms, outcome) -> outcomeRef.set(outcome));
+
+        Disposable subscription =
+                exec.stream("sys", "hi", null, "chat", "gpt-x", (List<String>) null).subscribe();
+        subscription.dispose();
+
+        assertThat(outcomeRef.get()).isEqualTo(AuditEvent.Outcome.CANCELLED);
+        verify(rotator, never()).markFailed(anyString());
     }
 
     @Test

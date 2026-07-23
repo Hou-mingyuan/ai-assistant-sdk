@@ -45,7 +45,13 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     token?: string,
     signal?: AbortSignal,
     onMeta?: (meta: ChatRuntimeMeta) => void,
+    tenantId?: string,
   ): AsyncGenerator<string> {
+    if (tenantId && preferredProtocol.value === 'ws') {
+      preferredProtocol.value = 'sse';
+      sseFailCount = 0;
+    }
+
     if (preferredProtocol.value === 'ws') {
       try {
         yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal);
@@ -59,7 +65,10 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
 
     try {
       let gotChunk = false;
-      for await (const chunk of streamChat(baseUrl, payload, token, signal, onMeta)) {
+      const stream = tenantId
+        ? streamChat(baseUrl, payload, token, signal, onMeta, tenantId)
+        : streamChat(baseUrl, payload, token, signal, onMeta);
+      for await (const chunk of stream) {
         gotChunk = true;
         yield chunk;
       }
@@ -73,6 +82,10 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     }
 
     if (signal?.aborted) return;
+
+    if (tenantId) {
+      throw new Error('SSE failed; WebSocket fallback cannot preserve X-Tenant-Id');
+    }
 
     sseFailCount++;
     if (sseFailCount >= SSE_RETRY_THRESHOLD) {

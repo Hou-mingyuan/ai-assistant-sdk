@@ -1,9 +1,11 @@
 package com.aiassistant.autoconfigure;
 
 import com.aiassistant.config.AiAssistantProperties;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +13,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * Spring Boot 自动配置入口：当 {@code ai-assistant.api-key} 或 {@code ai-assistant.api-keys} 任一存在 且
- * classpath 含 WebClient 时激活。
+ * Spring Boot 自动配置入口：当 {@code ai-assistant.api-key}、{@code ai-assistant.api-keys} 任一存在， 或显式选择
+ * {@code provider=demo}，且 classpath 含 WebClient 时激活。
  *
  * <p>Refactor (T2)：原本 909 行单文件已按职能拆为 7 份兄弟 Configuration，通过 {@link Import} 聚合：
  *
@@ -41,6 +43,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Configuration 会自动跟随激活。
  */
 @Configuration(proxyBeanMethods = false)
+@AutoConfigureAfter(RedisAutoConfiguration.class)
 @EnableConfigurationProperties(AiAssistantProperties.class)
 @Conditional(AiAssistantAutoConfiguration.ApiKeyConfigured.class)
 @ConditionalOnClass(WebClient.class)
@@ -55,7 +58,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 })
 public class AiAssistantAutoConfiguration {
 
-    /** 触发条件：api-key 或 api-keys[0] 任一存在即启用整套 AI Assistant 装配。 */
+    /** 触发条件：配置真实凭据，或显式选择无外部调用的 demo provider。 */
     static class ApiKeyConfigured extends AnyNestedCondition {
         ApiKeyConfigured() {
             super(ConfigurationPhase.PARSE_CONFIGURATION);
@@ -66,5 +69,8 @@ public class AiAssistantAutoConfiguration {
 
         @ConditionalOnProperty(prefix = "ai-assistant", name = "api-keys[0]")
         static class HasApiKeys {}
+
+        @ConditionalOnProperty(prefix = "ai-assistant", name = "provider", havingValue = "demo")
+        static class HasDemoProvider {}
     }
 }

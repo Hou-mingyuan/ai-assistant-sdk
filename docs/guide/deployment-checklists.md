@@ -127,7 +127,7 @@ app.use(AiAssistant, {
 | --- | --- | --- | --- |
 | 限流 | `RateLimitFilter`（进程内 Bucket） | 每副本独立计数，总配额 = 副本数 × 单副本配额 | 注册 `RedisRateLimitFilter` Bean，或把限流前移到 API 网关 |
 | 会话存储 | `InMemorySessionStore` | 同一会话被路由到不同副本时丢失上下文 | 切换为 `RedisSessionStore` 或自定义 `SessionStore` 实现 |
-| 向量存储（RAG） | `InMemoryVectorStore` | 每副本各持一份索引，不共享 | 注入 Milvus / Pinecone / Qdrant 等 `VectorStore` 实现 |
+| 向量存储（RAG） | `InMemoryVectorStore` | 每副本各持一份索引，不共享 | 由宿主注入经过契约测试的共享 `VectorStore`；仓库不交付外部数据库适配器 |
 | Token 用量 | `TokenUsageTracker`（进程内） | 每副本独立计数，配额超额检测可能不准 | 替换为基于 Redis / 数据库的实现 |
 | 对话记忆 | `ConversationMemory`（进程内） | 同一会话被路由到不同副本时记忆不一致 | 实现 `ConversationMemoryProvider` 持久化 |
 

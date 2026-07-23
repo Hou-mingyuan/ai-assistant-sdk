@@ -23,18 +23,18 @@ AI_ASSISTANT_ACCESS_TOKEN=change-me
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | `/admin/overview` | 系统概览。 |
-| `GET` | `/admin/tokens` | 查询 Token 用量。 |
-| `POST` | `/admin/tokens/quota` | 设置租户每日配额。 |
-| `GET` | `/admin/prompts` | 查看 Prompt 模板。 |
-| `POST` | `/admin/prompts` | 注册 Prompt 模板。 |
-| `GET` | `/admin/tools` | 查看已注册工具。 |
-| `POST` | `/admin/rag/ingest` | 录入 RAG 文档。 |
-| `GET` | `/admin/rag/stats` | 查询 RAG 统计。 |
-| `POST` | `/admin/ab-test` | 配置 A/B 测试。 |
-| `GET` | `/admin/runtime/model-config` | 查看运行时模型供应商配置（不返回 API key）。 |
-| `POST` | `/admin/runtime/model-config` | 更新运行时模型供应商配置。 |
-| `POST` | `/admin/runtime/model-config/discover-models` | 使用当前运行时配置检测上游模型列表。 |
+| `GET` | `/ai-assistant/admin/overview` | 系统概览。 |
+| `GET` | `/ai-assistant/admin/tokens` | 查询 Token 用量。 |
+| `POST` | `/ai-assistant/admin/tokens/quota` | 设置租户每日配额。 |
+| `GET` | `/ai-assistant/admin/prompts` | 查看 Prompt 模板。 |
+| `POST` | `/ai-assistant/admin/prompts` | 注册 Prompt 模板。 |
+| `GET` | `/ai-assistant/admin/tools` | 查看已注册工具。 |
+| `POST` | `/ai-assistant/admin/rag/ingest` | 录入 RAG 文档。仅在 RAG 显式启用后可用。 |
+| `GET` | `/ai-assistant/admin/rag/stats` | 查询 RAG 统计。仅在 RAG 显式启用后可用。 |
+| `POST` | `/ai-assistant/admin/ab-test` | 配置 A/B 测试。 |
+| `GET` | `/ai-assistant/admin/runtime/model-config` | 查看运行时模型供应商配置（不返回 API key）。 |
+| `POST` | `/ai-assistant/admin/runtime/model-config` | 更新运行时模型供应商配置。 |
+| `POST` | `/ai-assistant/admin/runtime/model-config/discover-models` | 使用当前运行时配置检测上游模型列表。 |
 
 ## 安全建议
 
@@ -44,3 +44,5 @@ AI_ASSISTANT_ACCESS_TOKEN=change-me
 - Admin API 建议只在内网、网关或管理后台后方暴露。
 - 涉及配额、Prompt、RAG 文档写入的接口应记录审计日志。
 - 不要把 Admin API 暴露给普通终端用户。
+
+表中使用默认 `context-path=/ai-assistant`。如果修改了 `ai-assistant.context-path`，所有路径的前缀随之变化。

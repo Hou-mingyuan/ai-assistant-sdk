@@ -8,7 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +21,9 @@ import org.slf4j.LoggerFactory;
 public class LlmRequestBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(LlmRequestBuilder.class);
+
+    private static final Pattern TARGET_LANGUAGE_TAG =
+            Pattern.compile("[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8}){0,3}");
 
     private static final Map<String, String> TRANSLATE_PROMPTS =
             Map.of(
@@ -52,11 +57,23 @@ public class LlmRequestBuilder {
     }
 
     public String translatePrompt(String targetLang) {
+        String normalizedTargetLang = normalizeTargetLanguage(targetLang);
         return TRANSLATE_PROMPTS.getOrDefault(
-                targetLang,
+                normalizedTargetLang,
                 "You are a skilled translator. Translate the following into natural, idiomatic "
-                        + targetLang
+                        + normalizedTargetLang
                         + " (conversational where appropriate). Output only the translation, no explanation.");
+    }
+
+    static String normalizeTargetLanguage(String targetLang) {
+        if (targetLang == null || targetLang.isBlank()) {
+            return "zh";
+        }
+        String normalized = targetLang.trim();
+        if (!TARGET_LANGUAGE_TAG.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("targetLang must be a valid language tag");
+        }
+        return normalized.toLowerCase(Locale.ROOT);
     }
 
     public String summarizePrompt() {

@@ -13,6 +13,7 @@ import hljs, { ensureLanguage } from '../utils/hljsRegistered';
 import { diffLines, type SideBySideRow } from '../composables/useLineDiff';
 import type { Artifact } from '../types/message';
 import { buildShareableHtml, shareableFileName } from '../utils/artifactHtml';
+import AssistantIcon from './AssistantIcon.vue';
 import ArtifactRunner from './ArtifactRunner.vue';
 
 const props = defineProps<{ artifact: Artifact | null; versions?: Artifact[] }>();
@@ -50,7 +51,7 @@ const isRunnableCode = computed(() => {
 });
 const isRunnable = computed(() => isLivePreviewType.value || isRunnableCode.value);
 /** 运行按钮文案：react/vue 叫"预览"，可运行 JS 叫"运行"。 */
-const runLabel = computed(() => (isLivePreviewType.value ? '预览' : '▶ 运行'));
+const runLabel = computed(() => (isLivePreviewType.value ? '预览' : '运行'));
 
 /* 切换打开的 artifact / 新版本到来时，跳到最新版并复位面板状态。 */
 watch(
@@ -272,7 +273,10 @@ function applyResend() {
           :title="previewMode ? '查看源码' : '在沙箱运行 / 预览'"
           @click="previewMode = !previewMode"
         >
-          {{ previewMode ? '查看代码' : runLabel }}
+          <span class="ai-artifact-run-icon" aria-hidden="true">
+            <AssistantIcon :name="previewMode ? 'code-xml' : 'play'" :size="14" />
+          </span>
+          <span>{{ previewMode ? '查看代码' : runLabel }}</span>
         </button>
         <button
           v-if="!editing"
@@ -281,7 +285,9 @@ function applyResend() {
           title="在新标签页打开渲染后的预览"
           @click="openInNewTab"
         >
-          ↗
+          <span class="ai-artifact-external-icon" aria-hidden="true">
+            <AssistantIcon name="external-link" :size="14" />
+          </span>
         </button>
         <button
           v-if="!editing"
@@ -290,7 +296,8 @@ function applyResend() {
           title="编辑后重发"
           @click="startEdit"
         >
-          编辑
+          <AssistantIcon name="pencil" :size="14" />
+          <span>编辑</span>
         </button>
         <button
           v-if="canDiff && !editing"
@@ -300,7 +307,8 @@ function applyResend() {
           title="对比上一版"
           @click="showDiff = !showDiff"
         >
-          对比
+          <AssistantIcon name="git-compare-arrows" :size="14" />
+          <span>对比</span>
         </button>
         <button
           type="button"
@@ -308,10 +316,12 @@ function applyResend() {
           :title="copied ? '已复制' : '复制'"
           @click="copyContent"
         >
-          {{ copied ? '已复制' : '复制' }}
+          <AssistantIcon :name="copied ? 'check' : 'copy'" :size="14" />
+          <span>{{ copied ? '已复制' : '复制' }}</span>
         </button>
         <button type="button" class="ai-artifact-btn" title="下载源码文件" @click="downloadContent">
-          下载
+          <AssistantIcon name="file-down" :size="14" />
+          <span>下载</span>
         </button>
         <button
           type="button"
@@ -319,7 +329,8 @@ function applyResend() {
           title="导出自包含 HTML（可分享 / 发布）"
           @click="shareDownload"
         >
-          分享
+          <AssistantIcon name="share-2" :size="14" />
+          <span>分享</span>
         </button>
         <button
           type="button"
@@ -328,7 +339,7 @@ function applyResend() {
           aria-label="关闭"
           @click="emit('close')"
         >
-          ✕
+          <AssistantIcon name="x" :size="15" />
         </button>
       </div>
     </header>
@@ -337,7 +348,7 @@ function applyResend() {
     <div v-if="hasVersions" class="ai-artifact-versions">
       <span class="ai-artifact-versions-label">版本</span>
       <button
-        v-for="(v, i) in versions"
+        v-for="(_, i) in versions"
         :key="i"
         type="button"
         class="ai-artifact-version-pill"
@@ -393,16 +404,19 @@ function applyResend() {
         title="Artifact preview"
       ></iframe>
 
+      <!--
+        Mermaid 使用 securityLevel=strict，Markdown 经 DOMPurify 清洗，highlight.js
+        输出会转义原始代码。下面三个 v-html 入口只接收这些受控结果。
+      -->
+      <!-- eslint-disable vue/no-v-html -->
       <!-- Mermaid 渲染 -->
       <div v-else-if="displayed?.type === 'mermaid'" class="ai-artifact-mermaid">
         <p v-if="mermaidError" class="ai-artifact-mermaid-err">图渲染失败：{{ mermaidError }}</p>
-        <!-- eslint-disable-next-line vue/no-v-html -- mermaid securityLevel=strict 输出 -->
         <div v-else-if="mermaidSvg" v-html="mermaidSvg"></div>
         <p v-else class="ai-artifact-mermaid-loading">图渲染中…</p>
       </div>
 
       <!-- Markdown -->
-      <!-- eslint-disable-next-line vue/no-v-html -- 已用 DOMPurify 清洗 -->
       <div
         v-else-if="displayed?.type === 'markdown'"
         class="ai-artifact-md"
@@ -410,10 +424,8 @@ function applyResend() {
       ></div>
 
       <!-- Code -->
-      <pre
-        v-else
-        class="ai-artifact-code"
-      ><!-- eslint-disable-next-line vue/no-v-html -- hljs 安全高亮 --><code v-html="highlightedCode"></code></pre>
+      <pre v-else class="ai-artifact-code"><code v-html="highlightedCode"></code></pre>
+      <!-- eslint-enable vue/no-v-html -->
     </div>
   </section>
 </template>

@@ -111,4 +111,28 @@ describe('PersonalizeDialog provider configuration', () => {
 
     wrapper.unmount();
   });
+
+  it('shows an explicit permission state instead of provider controls when disabled', () => {
+    const wrapper = mount(PersonalizeDialog, {
+      props: {
+        open: true,
+        modelValue: '',
+        isDark: false,
+        disabled: false,
+        maxChars: 4000,
+        t: {
+          ...t,
+          providerConfigPermissionRequired: 'Admin credentials are required.',
+        },
+        providerConfigEnabled: false,
+      },
+      attachTo: document.body,
+    });
+
+    expect(document.body.textContent).toContain('Admin credentials are required.');
+    expect(document.body.querySelector('.ai-personalize-model-presets')).toBeNull();
+    expect(document.body.querySelector('input[placeholder="duckduckgo / tavily"]')).toBeNull();
+
+    wrapper.unmount();
+  });
 });

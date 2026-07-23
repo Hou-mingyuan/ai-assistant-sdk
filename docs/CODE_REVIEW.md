@@ -2,7 +2,7 @@
 
 > 审查范围：后端 `ai-assistant-server`（161 个 Java 文件）+ 前端 `ai-assistant-ui`（262 个 Vue/TS 文件）。
 > 方式：对核心链路做**深度抽样审查**（LLM 编排、限流、熔断、配额、SSRF、HTTP 抓取、前端 API 层与主组件），非逐行全量。
-> 结论先行：**这是一个生产级、高质量的代码库**，工程纪律好（零 `printStackTrace`/`TODO`/调试残留、大量提取可测类、完善的 a11y）。下面的优化项多为"锦上添花"，按维度 + 优先级列出。
+> 本文是一次静态代码审查记录，不代表生产就绪认证。当前可发布范围、实验能力和已知边界以[能力矩阵](./CAPABILITY-MATRIX.md)及当次验收结果为准。
 
 > **📌 本轮已修复（后端，编译 + 14 项单测全绿）**
 > - ✅ **S1 无界 Map 内存 DoS** — `InMemoryTokenUsageTracker` 增加 `MAX_TENANTS=100k` 上限 + LRU 淘汰；`RateLimitFilter` 限流表满时改为 LRU 淘汰而非对新客户端 429。（更正：`X-Tenant-Id` 原本**已由** `TenantFilter.SAFE_TENANT_ID`=`[a-zA-Z0-9_.:-]{1,64}` 做格式/长度校验，真正缺的是「条目数量上限」，已补。）

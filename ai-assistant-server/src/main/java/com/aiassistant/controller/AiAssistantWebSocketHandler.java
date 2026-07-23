@@ -111,6 +111,10 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
         String pageContext = json.has("pageContext") ? json.get("pageContext").asText(null) : null;
         String sessionId = json.has("sessionId") ? json.get("sessionId").asText(null) : null;
 
+        if (!List.of("chat", "translate", "summarize").contains(action)) {
+            sendInvalidRequest(session, "action must be one of: translate, summarize, chat");
+            return;
+        }
         if (text.isBlank()) {
             session.sendMessage(new TextMessage("{\"error\":\"text is required\"}"));
             return;
@@ -211,6 +215,12 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                                     })
                             .subscribe();
             session.getAttributes().put("streamDisposable", disposable);
+        } catch (IllegalArgumentException e) {
+            usageStats.recordError();
+            log.debug("ws request rejected: {}", e.getMessage());
+            if (session.isOpen()) {
+                sendInvalidRequest(session, e.getMessage());
+            }
         } catch (Exception e) {
             usageStats.recordError();
             log.warn("ws handler error", e);
@@ -223,6 +233,12 @@ public class AiAssistantWebSocketHandler extends TextWebSocketHandler {
                 session.sendMessage(new TextMessage(errJson));
             }
         }
+    }
+
+    private void sendInvalidRequest(WebSocketSession session, String message) throws IOException {
+        String errJson =
+                mapper.writeValueAsString(Map.of("code", "INVALID_REQUEST", "error", message));
+        session.sendMessage(new TextMessage(errJson));
     }
 
     private List<String> readImageDataList(JsonNode json, String imageData) {

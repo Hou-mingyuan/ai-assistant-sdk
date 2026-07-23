@@ -22,11 +22,20 @@ const mavenVersion = releaseMode
 
 syncPackageJson('../ai-assistant-ui/package.json', releaseVersion)
 syncPackageLock('../ai-assistant-ui/package-lock.json', releaseVersion)
+syncPackageJson('../ai-assistant-vue-playground/package.json', releaseVersion)
+syncPackageLock('../ai-assistant-vue-playground/package-lock.json', releaseVersion)
 
 syncPomProjectVersion('../pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-server/pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-service/pom.xml', mavenVersion)
 syncPomProjectVersion('../ai-assistant-client/pom.xml', mavenVersion)
+syncPomProjectVersion('../ai-assistant-demo/pom.xml', mavenVersion)
+syncPomParentVersion('../ai-assistant-observability-support/pom.xml', mavenVersion)
+syncEmbeddedVersion('../helm/ai-assistant/Chart.yaml', /(appVersion:\s*")[^"]+(")/, releaseVersion)
+syncEmbeddedVersion('../helm/ai-assistant/values.yaml', /(\n\s*tag:\s*")[^"]+(")/, releaseVersion)
+syncEmbeddedVersion('../ai-assistant-server/src/main/java/com/aiassistant/mcp/McpServerController.java', /(SERVER_VERSION\s*=\s*")[^"]+(")/, releaseVersion)
+syncEmbeddedVersion('../ai-assistant-server/src/main/java/com/aiassistant/config/OpenApiConfiguration.java', /(\.version\(")[^"]+("\))/, releaseVersion)
+syncEmbeddedVersion('../ai-assistant-observability-support/src/main/java/com/aiassistant/autoconfigure/AiAssistantOpenApiAutoConfiguration.java', /(\.version\(")[^"]+("\))/, releaseVersion)
 
 console.log(`npm packages → ${releaseVersion}`)
 console.log(`Maven modules → ${mavenVersion}`)
@@ -67,4 +76,27 @@ function syncPomProjectVersion(relativePath, nextVersion) {
       `$1${nextVersion}$2`,
     )
   fs.writeFileSync(file, pom)
+}
+
+function syncPomParentVersion(relativePath, nextVersion) {
+  const file = path.resolve(__dirname, relativePath)
+  const pom = fs.readFileSync(file, 'utf-8')
+  const pattern =
+    /(<parent>[\s\S]*?<artifactId>ai-assistant-sdk<\/artifactId>\s*<version>)[^<]+(<\/version>[\s\S]*?<\/parent>)/
+  if (!pattern.test(pom)) {
+    throw new Error(`Unable to update AI Assistant parent version in ${relativePath}`)
+  }
+  fs.writeFileSync(file, pom.replace(pattern, `$1${nextVersion}$2`))
+}
+
+function syncEmbeddedVersion(relativePath, pattern, nextVersion) {
+  const file = path.resolve(__dirname, relativePath)
+  const content = fs.readFileSync(file, 'utf-8')
+  if (!pattern.test(content)) {
+    throw new Error(`Unable to update embedded version in ${relativePath}`)
+  }
+  fs.writeFileSync(
+    file,
+    content.replace(pattern, (_match, prefix, suffix) => `${prefix}${nextVersion}${suffix}`),
+  )
 }

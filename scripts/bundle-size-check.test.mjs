@@ -9,13 +9,14 @@ test("groupBundleEntries catches main, wc, secondary, and shared chunk growth se
         { relative: "style.css", gzip: 40 },
         { relative: "ai-assistant-wc.umd.cjs", gzip: 200 },
         { relative: "vue.runtime.esm-bundler-abc.js", gzip: 90 },
+        { relative: "runtime-dom.esm-bundler-def.js", gzip: 70 },
         { relative: "plugin.mjs", gzip: 10 },
         { relative: "assets/markdownHljs.worker-abc.js", gzip: 5 },
     ]);
 
     assert.deepEqual(groups, {
         main: { files: 2, gzip: 140 },
-        wc: { files: 2, gzip: 290 },
+        wc: { files: 3, gzip: 360 },
         secondary: { files: 1, gzip: 10 },
         chunks: { files: 1, gzip: 5 },
     });

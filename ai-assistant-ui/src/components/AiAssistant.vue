@@ -369,18 +369,20 @@
               class="ai-code-wall-toggle"
               :class="{ active: !codeWallDisabled }"
               title="Code Wall"
+              aria-label="Code Wall"
               @click="onToggleCodeWall"
             >
-              ✦
+              <AssistantIcon name="brick-wall" :size="14" />
             </button>
             <button
               type="button"
               class="ai-code-wall-toggle"
               :class="{ active: soundEnabled }"
               :title="soundEnabled ? t.soundOn : t.soundOff"
+              :aria-label="soundEnabled ? t.soundOn : t.soundOff"
               @click="soundEnabled = !soundEnabled"
             >
-              {{ soundEnabled ? '🔔' : '🔕' }}
+              <AssistantIcon :name="soundEnabled ? 'volume-2' : 'volume-x'" :size="14" />
             </button>
           </template>
         </ChatInputArea>
@@ -470,6 +472,7 @@
       :t="t"
       :theme="themePalette"
       :audio="audioPrefs"
+      :provider-config-enabled="runtimeProviderConfigEnabled"
       :provider-input="providerInput"
       :provider-base-url-input="providerBaseUrlInput"
       :provider-api-key-input="providerApiKeyInput"
@@ -716,6 +719,7 @@ import MessageContextMenu from './MessageContextMenu.vue';
 import MessageList from './MessageList.vue';
 import AssistantHeader from './AssistantHeader.vue';
 import ChatInputArea from './ChatInputArea.vue';
+import AssistantIcon from './AssistantIcon.vue';
 import SessionTabs from './SessionTabs.vue';
 /* Refactor (T1)：从 AiAssistant.vue 抽出的 5 个子组件 */
 import FabButton from './FabButton.vue';
@@ -885,7 +889,7 @@ const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
 const options = reactive(
   inject<AiAssistantOptions>('ai-assistant-options', {
     baseUrl: '/ai-assistant',
-    primaryColor: '#6366f1',
+    primaryColor: '#181818',
     position: 'bottom-right',
     theme: 'light',
     persistHistory: false,
@@ -1052,6 +1056,9 @@ const {
 const chatSystemPrompt = ref('');
 const personalizeOpen = ref(false);
 const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false);
+const runtimeProviderConfigEnabled = computed(() =>
+  Boolean(options.adminToken?.trim() || options.accessToken?.trim()),
+);
 const systemPromptMaxInputCharsResolved = computed(() => {
   const n = options.systemPromptMaxInputChars;
   if (n !== undefined && n > 0) {
@@ -1428,7 +1435,7 @@ const audioPrefs = computed(() => ({
 watch(personalizeOpen, (open) => {
   if (open) {
     tts.refreshVoices();
-    void refreshRuntimeModelConfig();
+    if (runtimeProviderConfigEnabled.value) void refreshRuntimeModelConfig();
   }
 });
 function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
@@ -1789,26 +1796,59 @@ const a11yStatusText = computed(() => {
   return '';
 });
 
-const color = computed(() => options.primaryColor || '#6366f1');
+const color = computed(() => options.primaryColor || '#111111');
 
 /* K25: ColorThemeSwitcher state ------------------------------------------------
- * `themePalette` chooses one of 5 preset gradients. The choice is persisted in
+ * `themePalette` chooses one of five technology accent presets. The choice is persisted in
  * localStorage under THEME_STORAGE_KEY (so the same user keeps their palette
  * across page reloads). Three CSS custom properties are then injected on the
- * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to), which the styles/
- * suite already reads for the v2 sky-tech-blue accents and gradient ring.
+ * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to). Historical ids
+ * remain stable so existing localStorage values keep working after the palette refresh.
  *
- * Default 'sky' = current sky tech blue palette (unchanged from K3 era so
- * existing visual style is preserved if user never opens the switcher).
+ * Default 'graphite' = the darkest Obsidian preset.
  */
 const THEME_STORAGE_KEY = 'ai-assistant.theme.palette.v1';
+const THEME_SYNC_EVENT = 'ai-assistant-theme-change';
 type ThemePresetId = 'sky' | 'sunset' | 'forest' | 'plum' | 'graphite';
-const THEME_PRESETS: Record<ThemePresetId, { from: string; via: string; to: string }> = {
-  sky: { from: '#0ea5e9', via: '#06b6d4', to: '#3b82f6' },
-  sunset: { from: '#f59e0b', via: '#f43f5e', to: '#a855f7' },
-  forest: { from: '#10b981', via: '#14b8a6', to: '#06b6d4' },
-  plum: { from: '#a855f7', via: '#ec4899', to: '#f43f5e' },
-  graphite: { from: '#64748b', via: '#475569', to: '#334155' },
+const THEME_PRESETS: Record<
+  ThemePresetId,
+  { from: string; via: string; to: string; mark: string; darkMark: string }
+> = {
+  sky: {
+    from: '#163b8c',
+    via: '#2457d6',
+    to: '#5b8def',
+    mark: '#2457d6',
+    darkMark: '#8fb4ff',
+  },
+  sunset: {
+    from: '#9a3412',
+    via: '#c2410c',
+    to: '#f97316',
+    mark: '#c2410c',
+    darkMark: '#fdba74',
+  },
+  forest: {
+    from: '#065f46',
+    via: '#0f766e',
+    to: '#2dd4bf',
+    mark: '#0f766e',
+    darkMark: '#5eead4',
+  },
+  plum: {
+    from: '#075985',
+    via: '#0891b2',
+    to: '#22d3ee',
+    mark: '#0891b2',
+    darkMark: '#67e8f9',
+  },
+  graphite: {
+    from: '#050505',
+    via: '#171717',
+    to: '#2b2b2b',
+    mark: '#171717',
+    darkMark: '#fafafa',
+  },
 };
 const themePalette = ref<ThemePresetId>(
   (() => {
@@ -1818,7 +1858,7 @@ const themePalette = ref<ThemePresetId>(
     } catch {
       /* SSR / disabled localStorage — fall through to default */
     }
-    return 'sky';
+    return 'graphite';
   })(),
 );
 watch(themePalette, (v) => {
@@ -1827,13 +1867,30 @@ watch(themePalette, (v) => {
   } catch {
     /* ignore */
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(THEME_SYNC_EVENT, {
+        detail: { theme: v, source: 'assistant' },
+      }),
+    );
+  }
 });
+function onExternalThemeChange(event: Event) {
+  const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
+    | ThemePresetId
+    | undefined;
+  if (next && next in THEME_PRESETS && next !== themePalette.value) {
+    themePalette.value = next;
+  }
+}
 const themePaletteVars = computed<Record<string, string>>(() => {
   const p = THEME_PRESETS[themePalette.value];
   return {
     '--ai-theme-from': p.from,
     '--ai-theme-via': p.via,
     '--ai-theme-to': p.to,
+    '--ai-theme-mark': p.mark,
+    '--ai-theme-mark-dark': p.darkMark,
   };
 });
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
@@ -1868,11 +1925,13 @@ const {
   fabTop,
   edgeDock,
   fabDragging,
+  fabPositionCustomized,
   edgeDockClass: fabEdgeDockClass,
   clampFabPos,
   defaultFabCoords,
   loadFabPos,
   saveFabPos,
+  markFabPositionCustomized,
   FAB_SIZE,
 } = fab;
 const panelGeo = usePanelGeometry({
@@ -1881,6 +1940,7 @@ const panelGeo = usePanelGeometry({
   fabSize: FAB_SIZE,
   isOpen,
   saveFabPos,
+  markFabPositionCustomized,
   defaultPosition: options.position || 'bottom-right',
 });
 const {
@@ -2004,6 +2064,7 @@ function onFabPointerMove(e: PointerEvent) {
   const movedFromStart = Math.hypot(dx, dy);
   if (movedFromStart > DOCK_BREAK_PX) {
     edgeDock.value = 'none';
+    markFabPositionCustomized();
   }
   /* 仍在贴边且位移未超过阈值：不移动球，避免误触拖动 */
   if (edgeDock.value !== 'none') {
@@ -2069,10 +2130,14 @@ const fabLayoutStyle = computed(() => {
   };
   return { ...base, ...(map[p] || map['bottom-right']) };
 });
+const isMobileViewport = ref(
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches,
+);
 const { wrapperStyle, panelStyle } = useWrapperStyles({
   color,
   themePaletteVars,
   panelMountedForLayout,
+  isMobileViewport,
   effectivePanelWidthPx,
   effectivePanelHeightPx,
   fabLeft,
@@ -2194,7 +2259,35 @@ watch(panelExpanded, () => {
   }
 });
 
+const mobileScrollLockClass = 'ai-assistant-mobile-scroll-locked';
+let mobileScrollLockOwned = false;
+
+function releaseMobileBodyScrollLock() {
+  if (!mobileScrollLockOwned || typeof document === 'undefined') return;
+  mobileScrollLockOwned = false;
+  const anotherOpenPanel = Array.from(
+    document.querySelectorAll('.ai-assistant-wrapper .ai-panel'),
+  ).some((panel) => !wrapperRef.value?.contains(panel));
+  if (!anotherOpenPanel) {
+    document.documentElement.classList.remove(mobileScrollLockClass);
+    document.body.classList.remove(mobileScrollLockClass);
+  }
+}
+
+function syncMobileBodyScrollLock(open: boolean) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const shouldLock = open && isMobileViewport.value;
+  if (!shouldLock) {
+    releaseMobileBodyScrollLock();
+    return;
+  }
+  document.documentElement.classList.add(mobileScrollLockClass);
+  document.body.classList.add(mobileScrollLockClass);
+  mobileScrollLockOwned = true;
+}
+
 watch(isOpen, (open) => {
+  syncMobileBodyScrollLock(open);
   if (open) {
     void refreshChatModels();
     if (fabLeft.value !== null && fabTop.value !== null) {
@@ -2242,9 +2335,19 @@ watch(isOpen, (open) => {
 });
 
 function onWinResize() {
+  isMobileViewport.value = window.matchMedia('(max-width: 600px)').matches;
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
   winResizeRaf = requestAnimationFrame(() => {
     winResizeRaf = 0;
+    syncMobileBodyScrollLock(isOpen.value);
+    if (!fabPositionCustomized.value && edgeDock.value === 'none') {
+      const nextDefault = defaultFabCoords();
+      fabLeft.value = nextDefault.left;
+      fabTop.value = nextDefault.top;
+      if (fabFreePosBeforePanel.value) {
+        fabFreePosBeforePanel.value = nextDefault;
+      }
+    }
     if (fabLeft.value === null || fabTop.value === null) return;
     const c = clampFabPos(fabLeft.value, fabTop.value);
     fabLeft.value = c.left;
@@ -2459,7 +2562,7 @@ async function processFileUpload(file: File) {
   if (!file || loading.value || !options.baseUrl) return;
 
   const action = mode.value === 'translate' ? ('translate' as const) : ('summarize' as const);
-  const label = `📎 ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+  const label = `${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
   messages.value.push({ role: 'user', content: label, timestamp: Date.now() });
   loading.value = true;
   fileUploading.value = true;
@@ -2637,6 +2740,7 @@ onMounted(() => {
     }
   });
   window.addEventListener('resize', onWinResize);
+  window.addEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);
   window.addEventListener('keydown', onEscKeydown, true);
@@ -2647,6 +2751,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  releaseMobileBodyScrollLock();
   pendingTimers.forEach(clearTimeout);
   pendingTimers.length = 0;
   streamAbortController?.abort();
@@ -2659,6 +2764,7 @@ onUnmounted(() => {
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   window.removeEventListener('resize', onWinResize);
+  window.removeEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange);
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange);
   window.removeEventListener('keydown', onEscKeydown, true);

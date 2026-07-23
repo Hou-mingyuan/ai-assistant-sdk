@@ -110,6 +110,7 @@ Q1: 已有 Spring Boot 业务后端？
 | Kubernetes / Helm | [Kubernetes](./kubernetes) |
 | 多副本部署上线（Redis 接线 / 故障演练 / 回滚） | [Multi-Replica Runbook](./multi-replica-runbook) |
 | REST API | [API Overview](../api/) |
+| 稳定、实验与仅文档能力边界 | [Capability Matrix](../CAPABILITY-MATRIX) |
 
 ## 核心特性
 
@@ -117,13 +118,13 @@ Q1: 已有 Spring Boot 业务后端？
 |------|------|
 | 多 LLM 支持 | OpenAI / DeepSeek / 通义千问 / GLM / Gemini |
 | SSE 流式 | 标准化 ServerSentEvent 端点 |
-| MCP Server | 兼容织信等平台的 MCP 协议 |
+| MCP Server | 实验性的 HTTP JSON-RPC 子集：`initialize`、`tools/list`、`tools/call` |
 | Function Calling | AssistantCapability 自动注册为 LLM 工具 |
 | 插件系统 | 运行时热加载 JAR 插件 |
-| 多租户 | X-Tenant-Id 隔离 + Token 配额 |
+| 租户上下文 | `X-Tenant-Id` 请求上下文 + Token 配额；资源级授权由宿主负责 |
 | 可观测性 | Micrometer + Actuator HealthIndicator |
 | 事件总线 | Spring ApplicationEvent 解耦 |
-| RBAC | 可插拔的权限模型 |
+| RBAC | 可插拔接口；默认 `AllowAll`，生产必须由宿主替换或在网关强制授权 |
 | 独立部署 | Docker Compose + GHCR 镜像 + 健康检查 |
 
 ## 架构

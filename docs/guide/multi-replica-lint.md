@@ -1,104 +1,52 @@
 # 多实例部署配置 Lint
 
-当独立服务以多副本（Helm `replicaCount > 1` / `docker compose up -d --scale ai-assistant=N`）部署时，进程内状态会出现一致性问题。仓库提供轻量 lint 脚本扫 `.env` / `docker-compose*.yml` / `helm/values.yaml`，对已知风险给出 warn 或 high 级别 finding。
+多副本部署时，默认的进程内限流、会话、Token 用量、记忆和 RAG 索引不会在副本间共享。`scripts/multi-replica-config-lint.mjs` 只做静态风险提示，不能证明 Redis、自定义 Bean 或外部存储真实可用。
 
-## 检测的高风险组合
+## 检测规则
 
-| 规则 ID | 触发条件 | 严重度 | 建议 |
-|---------|----------|--------|------|
-| `in-process-rate-limit` | `AI_ASSISTANT_RATE_LIMIT > 0` 且未配 Redis，且 replicas > 1 | **high** | 改在 API 网关限流，或在 Starter 宿主中提供 `StringRedisTemplate` 让 `RedisRateLimitFilter` 接管 |
-| `in-memory-session-store` | 未声明 `AI_ASSISTANT_SESSION_STORE` 且 replicas > 1 | **high** | 切到 `AI_ASSISTANT_SESSION_STORE=redis` |
-| `in-memory-rag-store` | `AI_ASSISTANT_RAG_ENABLED=true` 且 vector store 为内存，replicas > 1 | **high** | 换 Milvus / Pinecone / Qdrant |
-| `detected-multi-replica` | YAML 中 `replicas: N` (N>1) | info | 提醒检查 .env 状态 |
+| 规则 | 触发条件 | 多副本严重度 | 处理方式 |
+| --- | --- | --- | --- |
+| `in-process-rate-limit` | 限流开启，但未同时看到 Redis 连接配置和分布式限流开关 | `high` | 在网关限流，或让运行时包含 Spring Data Redis 并确认 `RedisRateLimitFilter` 接管。 |
+| `in-memory-session-store` | 未看到 `SPRING_DATA_REDIS_HOST` / `SPRING_DATA_REDIS_URL` | `high` | 配置 Redis 依赖与连接，并从启动状态确认 `RedisSessionStore` 接管。 |
+| `in-memory-rag-store` | 多副本且 `AI_ASSISTANT_RAG_ENABLED=true` | `high` | 宿主实现并注入共享 `VectorStore`，再执行持久化、租户和维度契约测试。仓库不交付外部向量库适配器。 |
+| `detected-multi-replica` | YAML 出现 `replicas` 或 `replicaCount > 1` | `info` | 提醒继续核验用量、记忆和其它共享状态。 |
+
+脚本会先汇总所有被检查 YAML 的副本数，再检查 `.env`，避免 Helm 已设置多副本但环境文件只得到普通警告。
 
 ## 用法
 
 ```bash
-# 仅警告，不阻塞
+# 当前仓库配置；只打印风险
 node scripts/multi-replica-config-lint.mjs
 
-# 高严重度 finding 阻塞 CI (exit 1)
+# high finding 非零退出
 node scripts/multi-replica-config-lint.mjs --strict
 
-# 指定单个文件
-node scripts/multi-replica-config-lint.mjs --file path/to/.env
-
-# 显式声明副本数（绕过 YAML 自动检测）
+# 明确按 3 副本检查
 node scripts/multi-replica-config-lint.mjs --replicas 3 --strict
+
+# 检查单个环境文件；建议同时传实际副本数
+node scripts/multi-replica-config-lint.mjs --file path/to/.env --replicas 3 --strict
 ```
 
-## CI 集成
+## Redis 接线边界
 
-集成到 `project-health-check.mjs`：
+以下环境变量只提供连接和行为配置，运行产物仍必须包含 Spring Data Redis 依赖：
 
-```bash
-node scripts/project-health-check.mjs --multi-replica          # 仅警告
-node scripts/project-health-check.mjs --multi-replica --strict # CI 阻塞
-node scripts/project-health-check.mjs --all                    # 跑所有 lane
-```
-
-在 `.github/workflows/ci.yml` 的 frontend job 末尾追加一步即可：
-
-```yaml
-- name: Multi-replica config lint
-  run: node scripts/multi-replica-config-lint.mjs --strict
-```
-
-注意：本仓库默认的 `.env.example` 故意保留单实例配置作为起点；lint 默认对单文件不报 high（除非 yaml 检测出 `replicas > 1` 或显式 `--replicas`）。
-
-## 例：触发与解决
-
-`.env`：
-
-```text
-AI_ASSISTANT_RATE_LIMIT=60
-AI_ASSISTANT_RAG_ENABLED=true
-```
-
-`helm/values.yaml`：
-
-```yaml
-replicaCount: 3
-```
-
-跑 lint：
-
-```text
-[HIGH] .env — in-process-rate-limit
-  AI_ASSISTANT_RATE_LIMIT=60 是进程内限流，多实例部署时各副本各算各的；
-  生产请改在 API 网关或 Redis (RedisRateLimitFilter) 上做配额
-
-[HIGH] .env — in-memory-session-store
-  session store 未声明，默认 InMemorySessionStore；多实例部署会话粘连不稳定，
-  请配 AI_ASSISTANT_SESSION_STORE=redis 并提供 redis URL
-
-[HIGH] .env — in-memory-rag-store
-  RAG 已开启但 vector store 是 InMemoryVectorStore；多实例间检索结果不一致，
-  生产应换成 Milvus / Pinecone / Qdrant
-
-Found 3 finding(s); high-severity: 3
-```
-
-修复后 `.env`（示例，用于表达多副本必须接入共享状态；实际连接参数以宿主 Spring Boot / 平台配置为准）：
-
-```text
-AI_ASSISTANT_SESSION_STORE=redis
+```dotenv
 SPRING_DATA_REDIS_HOST=redis
 SPRING_DATA_REDIS_PORT=6379
 AI_ASSISTANT_RATE_LIMIT_DISTRIBUTED=true
-AI_ASSISTANT_RAG_VECTOR_STORE=milvus
 ```
 
-对于独立服务镜像，如果没有把 Redis 客户端依赖和连接配置一起纳入运行环境，优先把限流前移到 API 网关；不要仅靠写一个 `AI_ASSISTANT_*` 环境变量假设进程内限流已经变成分布式限流。
+独立服务可用 Maven `redis` profile 构建 Redis 运行时；Starter 宿主可自行引入 `spring-boot-starter-data-redis`。启动后应确认实际 Bean 类型，而不是仅因环境变量存在就认为已经分布式化。
 
-再跑：
+## RAG 边界
 
-```text
-multi-replica-config-lint: no issues found
-```
+仓库当前只有 `InMemoryVectorStore`。不存在可通过 `AI_ASSISTANT_RAG_VECTOR_STORE=milvus` 一类变量自动启用的实现。多副本 RAG 必须由宿主提供共享 `VectorStore` Bean；在完成前应保持 RAG 关闭或保持单副本。
 
 ## 局限
 
-- 不检测真实运行中的 redis / milvus 是否能连通；只看配置项。
-- 仅识别 `AI_ASSISTANT_*` 前缀的环境变量；自定义命名不在覆盖范围。
-- YAML 检测 `replicas: N` 的简单正则；未来如换 HPA 动态副本，应改用 K8s API 实际查询。
+- 静态 lint 不连接 Redis，也不实例化 Spring Bean。
+- 它不能识别网关限流、自定义依赖或宿主代码里的共享存储实现。
+- 通过 lint 不等于多副本验收通过；还需故障、切流和跨副本会话测试。

@@ -2,6 +2,10 @@ import { createApp, h } from 'vue'
 import AiAssistant from '@ai-assistant/vue'
 import '@ai-assistant/vue/dist/style.css'
 
+const e2eAdminToken = (
+  window as typeof window & { __AI_ASSISTANT_E2E_ADMIN_TOKEN__?: string }
+).__AI_ASSISTANT_E2E_ADMIN_TOKEN__
+
 createApp({
   setup() {
     return () =>
@@ -19,6 +23,7 @@ createApp({
   .use(AiAssistant, {
     autoMountToBody: true,
     baseUrl: '/ai-assistant',
+    adminToken: e2eAdminToken,
     persistHistory: false,
     showModelPicker: true,
     theme: 'light',

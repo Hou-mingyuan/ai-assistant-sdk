@@ -1,5 +1,277 @@
 # AI Assistant SDK 优化进度
 
+## 2026-07-22 v1.x 发布候选 Goal
+
+- 2026-07-23 从全新本地 clone 检出远端 `42b2631`，仅在被忽略的 `.env` 中把宿主端口设为 `19010`，容器内部保持 `8080`；README Compose 构建启动成功（`584.8s`），随后健康状态为 `healthy`，零密钥 HTTP/SSE smoke `8/8`，实际镜像内 17 个 Netty 构件均为 `4.1.136.Final`。同一远端提交的 GitHub Actions 干净 checkout 用时约 2 分钟完成 Compose 构建、健康等待和 `8/8` smoke。
+- 运行日志复核发现正常 SSE 下游结束被审计成 `ERROR`；已新增 `CANCELLED` 结果与取消回归测试。Starter 全量 `verify`、仓库发布门禁 `98/98` 均通过；当前源码重建到宿主 `19011` 后再次 smoke `8/8`，审计日志明确为 `SUCCESS/CANCELLED/SUCCESS` 且无假错误。
+- 远端 `42b2631` 的 CI、Standalone Docker、Docs、Helm 全绿：E2E `32/32`，完整 publish 构建生成 Web Component 并校验 27 个导出，Trivy Security、Backend、Frontend、Playground、Compose smoke 均通过。新增审计修复仍需最后一轮远端 CI 复验。
+- 2026-07-23 CI 复核推翻了此前“安全扫描最终为 0”的结论：Trivy 当日更新后的数据库在 Netty `4.1.135.Final` 中识别出 `CVE-2026-59901`、`CVE-2026-55831`、`CVE-2026-55833`、`CVE-2026-56745` 四个 HIGH。旧结论只代表旧数据库快照，不再作为最终证据。
+- 已将 Starter、独立服务和 Demo 的 Netty 基线固定为 `4.1.136.Final`；Starter 在 Spring Boot BOM 前优先导入 Netty BOM。三个模块的实际 Maven dependency tree 均只解析到 `4.1.136.Final`，带 Redis profile 的独立服务 JAR 内 17 个 `netty-*.jar` 也全部为该版本。
+- 远端 E2E 失败根因不是等待时间，而是干净 checkout 只运行 `build:lib`，没有生成 `@ai-assistant/vue/wc` 指向的 `dist/ai-assistant-wc.mjs`。CI 已改用 `build:publish`，并增加静态契约防止退回不完整构建；本地完整发布构建通过，27 个公开导出可解析，真实后端 Web Component 定向 E2E `1/1`、完整零重试 E2E `32/32` 通过。
+- 本轮重新验证：仓库脚本 `98/98`、UI `801/801`、Playground `14/14`、Maven `846/846`，failure/error/skip 均为 `0`；lint 为 `0 error / 17 warning`，Prettier 与 `git diff --check` 通过。远端 E2E/Security CI 仍需以新提交结果作为最终关闭证据。
+- 真实浏览器重新检查当前 `0747ed7` 页面：模型菜单在 `1440x900`、`768x1024`、`375x812` 均位于面板内，与快捷工具间距分别约 `10.5/9/9px`；Obsidian/Cobalt/Pulse/Circuit/Ember 的双闪星实际颜色依次为 `#171717/#2457d6/#0891b2/#0f766e/#c2410c`，切回默认 Obsidian 后恢复黑色。
+- E2E flaky 修复已完成无重试复验：原三项超时文件以 `--retries=0 --repeat-each=2` 得到 `14/14`，随后完整套件以 `--retries=0` 得到 `32/32` 一次通过（`3.2m`）。配置保留产品断言，只把 expect/整例冷启动预算调为 `10s/45s`，本地 worker 从 5 限为 3、CI 限为 1。
+- 当前主工作树 109 份 Surefire XML 按顶层模块重新结构化汇总为 `846/846`：server `827`、Demo `3`、Client `14`、observability support `2`，failure/error/skip 均为 `0`；被忽略的 `.local` 干净 clone 报告未混入计数。
+- 最终安全快照 `.local/security-scan-20260723-final` 覆盖当前 `797` 个 Git 可交付文件（约 `16.6 MB`）：固定版本 Trivy `0.72.0` 的 HIGH/CRITICAL、secret、misconfiguration 均为 `0`；OWASP Dependency-Check `12.2.2` 分析 `1734` 个依赖/`404` 个唯一依赖，vulnerable dependency 与 vulnerability 均为 `0`，仅使用 2 条到 `2026-10-22` 到期的精确 Kotlin runtime 误报 suppression。四个 npm 工作区 audit 均为 `0 vulnerabilities`。
+- UI ESLint 最新结果为 `0 error / 17 warning` 并正常退出：`MessageList.vue` 仅比 800 行维护阈值多 2 行；`PersonalizeDialog.vue` 的 16 项为可选 prop 未声明 default，调用方已有传值/显式缺省分支。它们不影响构建、运行、类型或核心流程，不构成 P0/P1/P2；作为低风险维护项保留，避免在最终浏览器验收后引入无业务价值的行为改动。
+- 主工作树首轮最终 E2E 共 `32` 项，退出码为 0，但 Web Component、runtime provider、prompt history 三项在 5-worker 冷启动首轮分别因 5 秒元素等待或 30 秒整例上限超时，重试后通过；未把该轮记为全绿。失败截图显示目标 UI 随后均已渲染，已将本地 worker 限为 3、expect 调为 10 秒、整例调为 45 秒，断言和 retry 策略不变，进入 `retries=0` 复验。
+- 用户截图中的模型下拉排版判定为不合理：旧版桌面与快捷工具重叠约 `22px`，手机重叠约 `44px` 且右侧越界约 `32px`，属于明确可用性缺陷而非主观审美。已在 `99-enterprise-overhaul.css` 将菜单改为 `border-box`、右对齐 `220px` 宽并按响应式高度额外避让 `18px`，同时加入 E2E 与静态几何回归。
+- 修复后真实 Chromium 三视口复验通过：`1440x900` 菜单与快捷工具间距约 `10.5px`，`768x1024` 约 `9px`，`375x812` 约 `9px` 且左右边界完整位于面板内；console `0 error / 0 warning`，templates/models 动态请求均为 `200`。证据位于 `.local/acceptance-fe361f8-19015/output/playwright/final-fe361f8/`。
+- 最终干净 clone `.local/acceptance-0747ed7-19013` 初始 HEAD 精确为 `0747ed7`、Git 干净，`node_modules/dist/target=0`；被忽略的本地配置仅发布 `19013 -> 8080`，后端只在容器内 `8080`，未启动或修改 MySQL、Redis、Chroma。README `demo-standalone.ps1` 在排除旧本项目 Vite 端口占用后 `66.5s` 通过，zero-key `8/8` 与 standalone `5/5` 全绿。
+- 同一干净 clone 中，清除 `NODE_TLS_REJECT_UNAUTHORIZED` 后真实 `@ai-assistant/vue@1.0.1` tarball 安装到全新系统临时项目并解析 ESM/CJS/Web Component/CSS 共 `8` 个公开入口，耗时 `97.5s`，未再出现 TLS 绕过警告。
+- Java Client 文档命令 `mvn -f ai-assistant-client/pom.xml verify` 通过：`14/14`，JAR 与 Spotless 全绿；Starter reactor `mvn -pl ai-assistant-demo -am verify` 通过：server `827/827`、Demo `3/3`，覆盖静态页面、health、liveness/readiness、同步 Chat 和 SSE。
+- README Starter 一键脚本在空闲端口 `19012` 完成 `npm ci`、Vue/Web Component publish build、Starter JAR 打包与真实启动；首页和 Web Component 页均为 `200`、本地 bundle 生效、远程资源为 false，zero-key health/probes/stats/runtime/provider/chat/SSE `8/8` 通过。验收后只停止该 JAR 进程并确认 `19012` 已关闭，`19013` 独立服务容器保持运行。
+- 2026-07-22 续跑确认：Goal 仍为 active，当前 Compose 页面为 `http://127.0.0.1:19014/`；真实 Chromium 快照确认 Obsidian 默认选中、五套主题与助手入口均可见。下一步验证切换主题后 Playground、标题和回复头像三处双闪星同步变色。
+- 真实 Chromium 已展开助手面板；标题区、空状态、模式切换、输入框与发送控件完整可见。继续以浏览器计算样式和持久化值验证 Obsidian -> Circuit/Cobalt 的主题联动。
+- 已核对主题同步实现：Playground 与组件共享两个 localStorage key 和 `ai-assistant-theme-change` 事件，主题 mark 随 Obsidian/Cobalt/Pulse/Circuit/Ember 变化。进入计算样式与真实 SSE 回复头像验证。
+- 一次 Sparkles 源码组合检索因 Windows 引号转义失败，未产生改动；已改为单一字面量检索路线。
+- 真实 Chromium 切换到 Circuit 后，`playground-theme` 与 `ai-assistant.theme.palette.v1` 均为 `forest`；Playground CSS 为 `#065f46 -> #2dd4bf`，组件 CSS 为 `#065f46/#0f766e/#2dd4bf`，标题/空状态/FAB Sparkles 计算 stroke 均为 `rgb(15, 118, 110)`。
+- Circuit radio 的真实浏览器选中态已确认；输入真实 SSE 验收消息后发送按钮由 disabled 变为可点击，准备发起后端流式请求。
+- 当前 `19014` 后端真实 SSE 完成并返回明确 `[DEMO MODE - deterministic local response, not real AI]` 响应，耗时 UI 显示 `0.3s`；回复头像 Sparkles 已出现，标题与头像的实际 stroke 均为 Circuit 的 `rgb(15, 118, 110)`，两个 storage key 保持 `forest`。
+- 同一浏览器会话切换 Cobalt 后，两个 storage key 同步为 `sky`，`--ai-brand-mark=#2457d6`；标题、回复头像与 FAB Sparkles 的实际 color/stroke 全部同步为 `rgb(36, 87, 214)` 且 `fill=none`。
+- Pulse 主题浏览器联动通过：两个 key 均为兼容值 `plum`，mark=`#0891b2`，标题/头像/FAB 三处 Sparkles stroke 均为 `rgb(8, 145, 178)`。
+- Ember 主题浏览器联动通过：两个 key 均为兼容值 `sunset`，mark=`#c2410c`，标题/头像/FAB 三处 Sparkles stroke 均为 `rgb(194, 65, 12)`。
+- 切回 Obsidian 后两个 key 均恢复 `graphite`，mark=`#171717`，标题/头像/FAB 三处 Sparkles color/stroke 均恢复 `rgb(23, 23, 23)` 且 `fill=none`；五套主题联动闭环完成。
+- 已确认浏览器验收工具可直接设置精确 viewport、保存命名截图、读取 console 与请求明细；接下来产出 `1440x900`、`768x1024`、`375x812` 当前构建证据。
+- 当前构建 Obsidian 桌面 `1440x900` 截图 `output/playwright/tech-themes-obsidian-19014-1440x900.png` 已人工检查：默认 Sparkles 近黑，页面/面板主视觉为黑白灰，主题色仅作为可选 accent，未见紫色品牌残留、文字截断或横向溢出。
+- Circuit 平板 `768x1024` 截图 `output/playwright/tech-themes-circuit-19014-768x1024.png` 已生成；页面与面板宽度、主题色和导航响应式正常。截图中快捷模板区与末条回复底部视觉距离很近，先以 DOM 几何确认是否真实遮挡，未确认前不记为通过或缺陷。
+- 平板布局修复后的真实 SSE 复验通过：`768x1024` 消息可见区域与快捷模板交集为 `0`，间距 `4px`，回复操作栏和 reaction bar 均完整可见；最终截图为 `output/playwright/tech-themes-circuit-19014-768x1024-final.png`。
+- 手机 `375x812` Pulse 主题复验通过：`plum/plum` 存储与 `#0891b2` 品牌令牌一致，标题/历史头像/FAB 双闪星同步，面板无横向溢出、可见控件全部至少 `44px`；截图为 `output/playwright/tech-themes-pulse-19014-375x812-recheck.png`。
+- 桌面 `1440x900` Obsidian 主题复验通过：`graphite/graphite` 存储、`#171717` 品牌令牌和三处 Sparkles 计算样式一致；面板完整落入视口、无横向溢出或消息/模板遮挡，截图为 `output/playwright/tech-themes-obsidian-19014-1440x900-final.png`。
+- 真实 Chromium 三页回归结束：Demo/Admin/Form Auto-Fill 均可进入，控制台 `0 error / 0 warning`，动态接口与真实 SSE 均为 `200`；`theme-current-19014` 会话已关闭。
+- 完整 release check 通过：95 个脚本测试、OpenAPI 类型/快照、UI 发布构建、27 个导出、bundle/依赖/CSS 预算全部通过；`!important` 从基线 1787 降到 1776。
+- Maven 六模块 `clean verify` 通过，109 份 Surefire 报告汇总为 `846/846`、0 failure/error/skip；UI `801/801`、Playground `14/14`、Playwright E2E `31/31`，UI lint 为 0 error，格式、Playground 和 docs 构建均通过。
+- npm 全新临时消费项目成功解析 8 个公开导出；`19014` zero-key `8/8`、standalone `5/5`。最新 Demo benchmark 160/160 成功，health/chat/SSE TTFT p95 为 `16.34/22.90/35.00ms`。
+- 四个 npm 工作区 audit 均为 0 vulnerabilities；当前 797 个 Git 可交付文件的固定 digest Trivy 0.72 离线扫描为 `HIGH/CRITICAL=0`、secret=0、misconfiguration=0。OWASP Dependency-Check 12.2.2 使用本地 2026-07-22 数据库、`CVSS >= 9` 和精确 suppression 后 `BUILD SUCCESS`。
+- Lighthouse 主题版真实 JSON 已如实同步到 `PERFORMANCE_REPORT.md`：移动两次 Performance `80/84`、Accessibility/Best Practices `100/100`，均带慢 CPU 校准告警；桌面 `99/100/100` 且无运行告警。
+- 提交前人工差异复查补掉暗色粒子层最后一处紫色 RGB，并把暗面板背景改为中性黑；主题契约补充遗漏色值后 `5/5`，全源紫色字面量扫描无匹配。
+- 暗色残留修复后的 `project-health-check --release-check-full` 重新通过：95 个仓库脚本、OpenAPI、UI 发布构建、27 个导出、bundle、依赖、CSS 和 support boundary 全绿；该轮才作为主题阶段最终自动化证据。
+- DOM 几何确认 P2：`.ai-footer-quick-toggles` 与末条助手 bubble 垂直重叠 `22.85px`；根因是末端 CSS 将快捷模板行绝对定位到 footer 上方且不预留布局空间。进入最小样式修复与回归测试。
+- 新增布局契约首次因测试闭合符号错误未进入断言；语法已修正，重新获取缺少预留空间的有效红灯。
+- 有效 RED：主题/布局契约 `4/5`，仅“快捷模板必须预留响应式布局行”失败。CSS 改为保留绝对悬浮视觉，同时 footer 通过 `--ai-quick-toggle-min-height + 8px` 预留空间并锁定单行；GREEN `5/5`。
+- 修复后定向验证：`ChatInputArea.spec.ts` `28/28`、目标 CSS Prettier、脚本 `node --check` 与 `git diff --check` 全部通过；准备重建 `19014` 当前源码容器做真实浏览器复验。
+- 当前源码 Compose 重建完成（159.2s）：仅 `ai-assistant`/`web`，两容器 healthy；Web 镜像 `sha256:f648de12...`，后端保持内部 `8080`，宿主仅 `19014 -> 8080`。启动无 error，demo 环境保留预期空 token/CORS 警告。
+- 新构建平板几何确认 CSS 生效：footer `margin-top=52px`，消息 viewport `bottom=766.2`，快捷模板 `top=770.2`，可见区域间隔 `4px`，页面横向溢出 `0`。原始 bubble rect 延伸到滚动容器裁剪区外，需用裁剪后矩形和 scroll-bottom 状态复核。
+- 修复后平板 scroll 已在底部（距底 `1.2px`），但面板固定 `520px`、消息 viewport 仅 `180px`，截图只露出回复操作栏；继续定位 `useWrapperStyles`/平板断点扩大消息可见区。一次只读检索包含不存在路径，已记录并收窄。
+- 随后一次可选测试检索返回码 1 又使并行组丢失输出，未改产品文件；停止并行可选查询，改为逐条读取已确认路径。
+- `usePanelGeometry.spec.ts` 路径假设再次失败；已确认实现默认 `PANEL_H=520`，下一步从实际测试文件清单定位覆盖位置。
+- 新增纯 geometry 测试有效 RED `0/3`（helper 不存在）；实现平板 `601-820px` 默认高度 `680px`、低视口 `height-80px` clamp 后，geometry/resize/wrapper 定向 `12/12`、主题布局契约 `5/5`、目标 Prettier 与 diff check 均通过。
+- 平板高度版 Web 镜像重建为 `sha256:f379c452...`，两容器 healthy、宿主仍仅 `19014`。Compose 因依赖关系同时重建后端 manifest 并重建容器，但 Maven/运行层全缓存且后端镜像创建时间未变；未触碰 shared-infra。
+
+### 用户追加黑色主题统一要求
+
+- 已把“黑色双闪星 + 全局黑白灰科技主题 + 清除紫色品牌残留”纳入完成门槛；现有黑色图标提交不视为完成。
+- 初步代码审计确认 Playground 和 UI 历史样式仍存在可见紫色/靛蓝品牌色，下一步从主题变量、Playground 页面层和 Web Component 最终样式层精确收敛，并补测试和真实浏览器证据。
+- 当前分支 `agent/v1.0.1-release-candidate` 工作树干净，相对远端 ahead 3 / behind 2；保留全部现有提交，最终以非破坏性整合处理分叉。
+- 已定位三层根因：组件默认 `sky`/彩色预设、最终 CSS 的紫色硬编码、Playground 页面自己的紫/青渐变。后续采用统一 ink/graphite 中性色令牌，状态语义色保持独立。
+- 已检查历史真实运行图 `entry-desktop.png` 与 `panel-empty-desktop.png`，确认蓝色星形、紫色面板光晕和彩色主题色块均可见；这些截图作为修改前视觉基线。
+- 一次递归图片检索误扫入本地干净 clone 的 Git 对象并在 10 秒超时，未修改文件；已收窄为已确认的截图路径，不再重复宽范围递归查询。
+- 已读主题核心实现：`00-enterprise-tokens.css`、`09-modern-overhaul.css`、`ColorThemeSwitcher.vue`、`AiAssistant.vue` 和 Playground 主题状态；决定修改源令牌并保留历史主题 ID，而不是增加高优先级补丁层。
+- 颜色计数确认最终 CSS 仍有大量可见靛蓝/紫色硬编码；将以确定性颜色映射和静态扫描测试收敛，而不是只更新默认变量。
+- 测试检索再次把 `ColorThemeSwitcher*` / `AiAssistant*.spec.ts` 作为 Windows 字面 glob 传给 `rg`，返回路径语法错误且未修改文件；后续只使用已确认目录与 `rg -g`，不再使用字面 glob。
+- 新增 `scripts/frontend-ink-theme.test.mjs`，首轮 `0/4` 按预期失败；完成基础令牌、五个中性预设、Playground/Admin 品牌色和字体栈修改后复跑为 `2/4`。
+- 当前剩余失败为 `AiAssistant.vue` 的旧默认 fallback 与 Sparkles 仍引用主题变量；全源扫描另发现多个功能弹窗的靛紫 RGB 字面量，下一步统一映射并把静态契约扩大到整个 UI 源目录。
+- 已通过 `apply_patch` 对整个 `ai-assistant-ui/src` 清理 311 行紫色字面量，并同步组件/Playground/Admin 源令牌与中性色预设；未增加 `!important`，未改公共事件和业务逻辑。
+- `node --test scripts/frontend-ink-theme.test.mjs` 已从 `0/4`、`2/4`、`3/4` 收敛到 `4/4` 全绿；下一步验证格式、组件测试、构建和浏览器视觉。
+- 新增 `ColorThemeSwitcher.spec.ts`，验证 5 个中性色 radio、Obsidian 选中态和切换事件；UI 全量为 `102` 个文件、`796/796` 通过。
+- UI Prettier 通过，ESLint 0 error（仅 `MessageList.vue` 既有 802 行 warning），`git diff --check` 通过；Playground 组件测试 `13/13` 通过。
+
+### 用户追加星形品牌视觉
+
+- 已核对两张参考图和当前未提交差异：入口已改用 Lucide `Sparkles`，本轮继续将标题栏、空状态和助手消息头像统一为无圆底星形，并保留原布局占位与可点击区域。
+- 恢复阶段首次把 `cmd /c` 的 `&&` 交给外层 PowerShell 解析而失败，随后拆成独立命令；另两次把 Windows 不支持的 `*.spec.ts`/`icons*` 字面 glob 传给 `rg`，已改用 `rg -g` 和已确认路径，不再重复这些调用形式。
+- 标题栏、空状态和助手消息头像已渲染真实 `AssistantIcon sparkles`；末端样式已禁用旧品牌伪元素，并清除头像的渐变背景、边框、圆角、球状阴影和旧 loading 动画。定向 UI `23/23`、Playground `9/9`、两包定向 Prettier 均通过；定向 ESLint 0 error，仅有 `MessageList.vue` 既有 max-lines warning。
+- 全量复验通过：UI `101` 个文件 `795/795`、Playground `2` 个文件 `13/13`、UI Prettier、ESLint 0 error。Vue ESM/CJS、Web Component、类型声明和 `27` 个公共导出构建通过，Playground `5842` 模块生产构建通过；仅保留既有 max-lines 与 Vite 大 chunk warning，均无新增运行错误。
+- 首轮 `--release-check-full` 的 90 项脚本测试、OpenAPI、前端构建、包导出、bundle 和依赖边界均通过，但 CSS 强制覆盖预算真实失败：`1787 -> 1815`。未放宽基线；已改为直接把既有紫球/豆形规则替换成星形规则，并从末端新规则移除全部新增 `!important`，等待相同门禁复验。
+- 相同 `--release-check-full` 已复验通过：90 项仓库脚本、OpenAPI 类型/快照、发布构建、27 个导出、bundle、依赖足迹、CSS 和 support boundary 全绿；CSS `!important` 从基线 `1787` 降至 `1773`，`style.css` 为 `418.00 kB` / gzip `62.16 kB`，没有放宽任何预算。
+
+### 阶段 6 恢复与未提交差异审计
+
+- 继续既有 Goal；当前分支为 `agent/v1.0.1-release-candidate`，相对 `origin/agent/v1.0.1-release-candidate` 领先 1 个提交。
+- 工作树仅剩 7 个已跟踪文件差异，集中在 Redis 自动配置顺序、OpenAPI/前端类型漂移保护和 CI 安全扫描；没有未跟踪文件。
+- 审计发现 `ai-assistant-ui/src/utils/api.spec.ts` 的两组回归测试被重复插入，当前差异尚不能提交；先运行定向门禁并去重，再进入干净 clone 验收。
+- `planning-with-files-zh` 的 session catch-up 脚本无未同步报告；本轮继续以当前计划的阶段 6 为唯一进行中阶段。
+- 定向红灯/绿灯：OpenAPI 类型漂移检查按预期失败；生成器测试 `5/5`、前端 API 测试 `62/62`、Redis 自动配置测试 `16/16` 均通过。已删除两组重复前端测试并修正快照缩进，下一步刷新生成类型后复验漂移门禁。
+- 生成类型已刷新并带当前规范化 OpenAPI SHA-256；复验结果：类型漂移通过，生成/刷新脚本 `11/11`、去重后的前端 API `57/57`、Redis 自动配置 `16/16`、`git diff --check` 均通过。首轮 Prettier/Spotless 仅命中本轮两个文件，按锁定工具格式化后关闭。
+- CI 安全任务已校准为 Node 22 下审计 UI、Playground、docs、E2E 四个 npm 锁文件，阈值统一为 `high`；新增静态契约锁定 Redis profile 完整制品、固定版本 Trivy、vuln/secret/misconfig scanners 和阻断退出码。
+- CI 安全契约 `10/10`、YAML 解析、锁定 Prettier 均通过；在显式清除本机 TLS 绕过变量后，UI、Playground、docs、E2E 四个 `npm audit --audit-level=high` 均报告 `0 vulnerabilities`。
+- 跨包 Prettier 误格式化已完全收口：`project-health-check.test.mjs` 当前差异只剩新增安全契约，没有既有行的风格改动；历史干净 Compose 栈来源也已定位到 `.local/clean-clone-*`，最终仍会用新提交重做。
+- 首次提交前全量并行组中，文档构建明确通过，但根 Maven `clean verify` 退出 1；当前六模块 JAR 和 109 份 Surefire XML 均存在。为排除 UI `dist` 并发重建竞争，下一轮先结构化检查报告，再单独串行复跑 Maven。
+- 109 份 Surefire XML 合计 `846` 项、失败/错误为 `0`；隔离复跑最终定位为 PID `58072` 的旧 `19019` 原生验收进程锁住 service JAR，而非测试失败。该 PID 已按完整命令行确认并终止，Docker 与 shared-infra 保持运行。
+- 端口释放后根 Reactor `mvn -B clean verify` 六模块全部 `SUCCESS`，耗时 `03:06`；Starter、observability support、standalone service、Java Client 和 Demo 均从清空 `target` 后完成测试/打包。
+- 串行 `project-health-check --release-check-full` 通过：版本 `1.0.1`、仓库脚本、静态 OpenAPI 类型与快照、UI publish build/27 个导出、依赖足迹、CSS `1787 -> 1787`、bundle 预算与 support dependency boundary 全绿；子进程已清除 TLS 绕过变量。
+- UI ESLint、Prettier 通过，Vitest `100` 个文件 `794/794`；Playground Vitest `2` 个文件 `13/13`。本轮并行组中的 Playground build 与 VitePress build 也均以 0 退出。
+- 真实 Chromium Playwright E2E `31/31` 一次通过（`3.4m`），没有 retry/失败截图/trace；套件重新打包并启动 Starter Demo，覆盖真实租户 Web Component/SSE 与取消、错误、诊断、搜索、模式、会话等交互。
+- 最终 secret/misconfig 扫描准备纳入 Git 候选的 `793` 个文件；首次 PowerShell→tar 管道因编码失败，已停止并准备以 cmd 原生管道重建，不会把该失败记录成扫描结论。
+- NUL 分隔的 793 文件快照已成功生成/解包；首次 Trivy 合并扫描因 Maven Central `429` FATAL，未生成安全结论。下一步拆分 secret/misconfig 与挂载预热 Maven cache 的 offline vuln 扫描。
+- 固定 digest Trivy 在只读挂载预热 Maven 仓库、offline 模式下成功退出 `0`：793 个 Git 候选文件的 HIGH/CRITICAL 漏洞、Secrets 和配置失败项均为 `0`。可下载 checks 缺失时使用镜像内置 checks；`.dockerignore` 误识别提示已记录为工具限制。
+
+### 阶段 5 最终门禁与提交前终审
+
+- 手机 Auto-Fill 真实完成 `13/13` 匹配与填入：文本、数字、日期、下拉、单选、复选和多行文本均正确，两个 scanner 排除字段保持为空；15 秒窗口内撤销后全部恢复，浏览器 warning/error 为 `0`。
+- Admin 平板断点修复后的 Playground 全量测试 `13/13`、生产构建和 VitePress 文档构建通过；最终首屏图片已换为本轮真实 SSE 对话截图，并校验为 `1425x891` 的真实 PNG。
+- 显式清除本机 `NODE_TLS_REJECT_UNAUTHORIZED` 后，最终 `project-health-check --release-check-full` 通过：仓库脚本 `86/86`、OpenAPI 无漂移、发布构建、27 条包导出、依赖边界、CSS 与 bundle 预算均通过；总 gzip `1235.62 KB`，相对基线 `+1.7%`。
+- 当前 789 个源码/配置文件重新生成独立快照；固定 digest 的 Trivy 0.72 报告 `HIGH/CRITICAL=0`、secret `0`、失败配置 `0`。当前服务镜像 `sha256:2450e718...` 与 Web 镜像 `sha256:b60afee6...` 分别复扫，`HIGH/CRITICAL=0`。
+- OWASP Dependency-Check 12.2.2 使用 2026-07-22 数据库、`CVSS >= 9` 和精确限时 suppression 再次 `BUILD SUCCESS`；UI、Playground、docs、E2E 四个 npm 工作区均为 `0 vulnerabilities`。
+- 最终性能 JSON 已同步到报告：health p95 `13.43ms`、同步 Chat p95 `17.83ms`、SSE TTFT p95 `35.22ms`，160 个样本业务错误为 `0`。
+- 差异终审确认 `.local`、`.env`、`node_modules`、`target`、`dist` 和安全报告均被忽略；`git diff --check` 通过，只有本机行尾归一提示，没有 line-ending-only diff。
+- 首轮 Trivy 因 Maven Central `429`、默认 Java DB 镜像 EOF 和缓存并发锁未生成结论；按工具建议只读挂载预热 Maven 缓存、固定 GHCR 源并串行复验后取得上述有效结果。浏览器截图工具返回 JPEG 字节但沿用 `.png` 名称，提交前已用 ImageMagick 转为真实 PNG 并检查签名。
+- 阶段 5 完成；当前无已知 P0/P1 或核心流程可复现 P2，进入远端提交与干净 clone 验收。
+
+### 阶段 5 OWASP 例外契约收口
+
+- 安全补丁后 Chromium E2E 再次 `31/31` 通过，耗时约 1.7 分钟；真实 Starter Demo 使用 Tomcat `10.1.57`，覆盖租户 Web Component SSE、取消、移动布局、设置、诊断、搜索、模式和会话。
+- 最终可见浏览器桌面基线 `1440x900`：`scrollWidth=clientWidth=1440`、越界元素 `0`、可见交互目标无小于 `32px`；导航、状态区、SSE 路径、正文和悬浮球无重叠。截图为 `.local/acceptance/playground-1440-final.png`。
+- 桌面页面内 zero-key smoke 真实点击后 6 项全部显示通过；随后打开助手、输入 `final browser acceptance` 并发送，真实 SSE 返回明确 `[DEMO MODE - deterministic local response, not real AI]` 标识、原始输入和真实 Provider 配置提示，UI 显示耗时 `0.1s`。
+- 桌面助手约 `481.6x521.6px`，边界 `(295,268)-(776.6,789.6)` 完整位于 `1440x900`；document 横向溢出 `0`，浏览器 warning/error 日志 `0`。对话截图为 `.local/acceptance/playground-1440-chat-final.png`。
+- CDP 从页面刷新前游标开始捕获到 10 个完整响应，事件未截断；页面 smoke 对应的 `/health`、Actuator liveness、`/stats`、`/runtime/config`、Provider health 和 `/chat` 全为 HTTP `200`，失败响应 `0`。
+- 最终可见浏览器平板基线 `768x1024`：`scrollWidth=clientWidth=768`、越界元素 `0`，首屏 12 个可见交互目标全部至少 `44px`；导航拆为主入口与工具两行，正文、smoke、SSE 路径和悬浮球无重叠。截图为 `.local/acceptance/playground-768-final.png`。
+- 平板 Admin 7 个标签均真实切换成功且选中状态正确，每个高 `44px`，document `scrollWidth=clientWidth=768`。截图发现 tablist 自身 `scrollWidth=722/clientWidth=720`，产生 2px 的无必要横向滚动条；功能不阻断，但作为可复现响应式 P2 待最小修复后复验。
+- 已把 Admin 非滚动网格断点扩到 `<=820px`：平板四列、手机两列，并新增仓库静态契约。定向脚本 `8/8`、Admin 组件 `4/4`、Playground 默认 Prettier 和 diff check 通过；Web 镜像重建后真实平板 tablist 为四列 `177px`、两行高 `92px`、`scrollWidth=clientWidth=720`，7 个 tab 均为 `44px` 高，滚动条消失。最终截图为 `.local/acceptance/admin-768-final-fixed.png`，该 P2 已关闭。
+- 平板 Admin 空 Token 点击 `GET /admin/overview` 后在前端 `0ms` 明确显示失败和“请先在顶部填写 Admin Token”，最近状态为失败，没有伪造成服务成功；截图为 `.local/acceptance/admin-768-auth-guard-final.png`。
+- 最终手机 Admin `375x812`：滚动条后 document `clientWidth=scrollWidth=360`、越界元素 `0`；两列 tablist `clientWidth=scrollWidth=328`、列宽 `162px`、7 个标签完整，首屏 23 个可见交互目标全部至少 `44px`。截图为 `.local/acceptance/admin-375-final.png`。
+- 手机从 Admin 切回 Assistant 并打开助手成功；`dialog "AI 助手"`、Header 四项动作、三种模式、模型、页面上下文、三项快捷模板、输入区与发送区均在真实浏览器可访问树中，等待几何与发送复验。
+- 手机助手几何为 `(0,0)-(375.2,812)`，完整覆盖 `375x812` 视口；document `clientWidth=scrollWidth=375`、面板子元素越界 `0`，19 个可见交互目标全部至少 `44px`。截图为 `.local/acceptance/playground-375-assistant-final.png`。
+- 手机输入 `mobile final acceptance` 后真实 SSE 在 UI 显示 `0.1s`，返回明确 Demo 标识、原始输入和真实 Provider 配置提示，发送完成后输入与按钮状态恢复正常。
+- 手机消息搜索输入 `mobile` 后显示 `1/2` 并正确高亮用户与助手文本；`.ai-chat-search-input` 为 `209x44px`，两个 `.ai-search-nav` 与设置按钮均为 `44x44px`，document 横向溢出 `0`。截图为 `.local/acceptance/playground-375-search-final.png`。
+- 手机搜索框内按 `Ctrl+K` 后只出现 1 个 `命令面板 / Command Palette`，没有重复 Playground 面板；命令搜索输入 `242.4x46px`，15 个 option 均至少 `44px`，面板 `clientWidth=scrollWidth=375`。截图为 `.local/acceptance/playground-375-command-final.png`。
+- 命令面板内再次按 `Ctrl+K` 后 Command Palette 数量从 `1` 变为 `0`，助手 dialog 保持 `1`；点击关闭并等待过渡后助手 dialog 也变为 `0`，页面恢复完整导航状态。
+- 手机 Auto-Fill 页面在真实浏览器中完整提供 13 个业务字段、两个 scanner 排除字段和 3x3 批量表格；点击中文示例后剪贴板为 13 行，包含姓名与备注，页面明确显示复制成功反馈。
+- 一次定向并行检查错误地显式套用 `ai-assistant-ui/.prettierrc` 到根脚本与 Playground 历史文件，导致整文件风格差异并丢失同组测试输出；命令只读未写文件。确认 Playground 的既有口径为锁定 Prettier 默认配置后单独复跑通过，不重复跨包配置。
+- 桌面布局首次 evaluate 使用了当前受限浏览器未暴露的裸 `performance` 全局，调用在返回页面结论前失败；改为纯 DOM 几何检查。随后一次失败调用中的变量声明没有持久化，改用明确的 `globalThis` 绑定后成功；两次均未修改页面或源码，不再重复这两种调用方式。
+- 清除 `NODE_TLS_REJECT_UNAUTHORIZED` 后，`project-health-check --release-check-full` 再次通过：版本、仓库脚本、OpenAPI、前端发布构建、27 条导出、依赖/CSS/bundle/support 边界全部通过；总 gzip `1235.62 KB`，相对 baseline `+1.7%`，未超预算。
+- UI 包在新的系统临时目录安装成功，8 个 ESM/CJS/Web Component/CSS 公开入口全部解析；安装 35 个包，未出现 TLS 绕过警告。
+- 使用被忽略的 `.env.local` 从当前工作树重建 `ai-assistant-demo` 两个无状态容器；后端镜像 `sha256:2450e7...`、Web 镜像 `sha256:137f4d...`，后端仅容器内 `8080`，Web 唯一宿主发布 `19014 -> 8080`，没有启动或修改基础设施容器。
+- 新容器均 healthy，运行日志确认 Spring Boot `3.5.16`、Tomcat `10.1.57`、显式 `provider=demo`；仅有与本地公开 Demo 配置一致的 CORS/token/SpringDoc 提示，没有启动错误。
+- 新运行态 zero-key `8/8`、standalone `5/5` 通过，覆盖 health、liveness/readiness、stats、runtime config、Provider 状态、同步 Chat 和 SSE。
+- 160 个请求样本的 Demo contract benchmark 通过：health p95 `13.43ms`、同步 Chat p95 `17.83ms`、SSE TTFT p95 `35.22ms`，均低于 `400/1000/1000ms` 门槛；证据写入 `.local/acceptance/demo-contract-benchmark-final.json`。
+- 把仓库健康测试从错误的“零 suppression”口径改为“已复核、精确、限时”口径：要求每个完整条目都有未过期的 `until`，只允许当前 Kotlin runtime 的精确 `packageUrl regex`，禁止宽泛 CPE，并固定两项已说明的 CVE。
+- `SECURITY.md` 的本地 OWASP 命令已与 CI 对齐，从仓库根引用 `.github/owasp-suppressions.xml`；同时说明例外必须有理由、精确匹配、限时复核，不能作为 blanket exclusion。
+- 定向 Node 测试 `7/7` 通过，两个文件的 `git diff --check` 通过。一次把默认 Prettier 配置用于根目录历史文件只得到整文件风格差异，不作为产品失败；未让该命令写文件。
+- 恢复上下文时一组并行只读命令因 `find /v /c` 参数格式错误而丢弃其他输出，随后已拆分为独立只读命令；一次多文件补丁因 hunk 分隔格式错误未应用，拆为两个精确补丁后成功，均未损坏文件。
+
+### 阶段 5 搜索触控回归收口
+
+- 真实浏览器在 `375x812`、消息已出现状态下测得 `.ai-chat-search-input` 为 `342.6x26px`；这不是 Playground 旧包，浏览器匹配规则确认源码末尾 Round 32 的 `26px !important` 覆盖了移动端 `--ai-search-input-height: 44px`。
+- 已把紧凑搜索输入和搜索导航的最终高度改为读取既有 `--ai-search-input-height` / `--ai-search-nav-size`，桌面 fallback 仍为 `26px`，移动端为 `44px`，`!important` 数量不增加。
+- 已在 `scripts/project-health-check.test.mjs` 增加仓库健康契约，固定移动触控变量必须贯穿最终紧凑规则。Prettier、CSS 预算 `1787 -> 1787`、仓库契约 `12/12`、相关组件 `21/21`、UI 发布构建和 `27` 条导出路径均通过。
+- 源码 Playground 真实浏览器复验通过：输入框 `209x44px`；输入查询后上一个、下一个和设置按钮均为 `44x44px`；面板内小目标 `0`、document 横向溢出 `0`、console warning/error `0`。截图为 `.local/acceptance/playground-375-search-touch-final.png`。
+- 最终全量 UI 门禁通过：lint、`100` 个 Vitest 文件、`788/788`；Playground `13/13` 和 build、docs build、全新临时目录 npm 包安装 `8` 个入口均通过。
+- `project-health-check --release-check-full` 通过：脚本契约 `83/83`、OpenAPI 无漂移、依赖边界与 CSS 预算通过；bundle 总 gzip `1235.62 KB`，相对基线 `+20.19 KB (+1.7%)`，未刷新 baseline。
+- 清除 `NODE_TLS_REJECT_UNAUTHORIZED` 后，以 `19010` 启动真实 Starter Demo 并运行 Chromium E2E，`31/31` 通过；覆盖真实 Demo SSE、租户 Web Component、取消、移动适配、设置、诊断、搜索、模式与会话操作。
+- 安全扫描首轮未进入扫描：Windows `cmd` 把 OWASP 的 suppression 属性误解析为 Maven phase；Docker Hub 拉取 Trivy `latest` 清单返回 EOF。两者均不是漏洞结果，后续分别改用 PowerShell 直接参数与 GHCR 镜像源，不重复原调用。
+- OWASP 第二次已进入数据库更新，但工具等待 20 分钟超时；其 Java 子进程仍正常运行并持续写入本轮数据库，未生成报告前不记通过。Trivy 工具镜像已从 GHCR 固定到 digest `sha256:cffe3f...dd6f`，首次数据库下载又因默认 `mirror.gcr.io` EOF 失败，下一次改为 GHCR 数据库源。
+- Trivy 从 GHCR 成功下载当前漏洞库，但 Windows bind mount 下的绝对 `--skip-dirs` 未排除构建缓存，读取约 1.4 GB 后超过等待窗口；已只停止本轮扫描容器，Demo/shared-infra 未动。下一次使用 `**/node_modules`、`**/target`、`**/dist` 跨平台 glob，不重复无效参数。
+- Trivy 的 glob 在 Windows bind mount 下仍读取构建缓存；改为从 `git ls-files -co --exclude-standard` 生成 789 文件、约 16 MB 的当前工作树快照，并挂载本机只读 Maven 缓存后，固定 digest 的 Trivy 0.72 对 Maven/npm 与 secrets 扫描退出码为 0，`HIGH/CRITICAL=0`、密钥命中 0。
+- OWASP Dependency-Check 12.2.2 使用 2026-07-22 新数据库发现真实红灯：Tomcat 10.1.55 与 Kotlin CPE 映射达到 CVSS 9+，另有可修复的 Jackson/PDFBox/Commons Lang/Log4j/Swagger UI 命中。已确认修复版本和依赖路径，开始最小安全补丁；Kotlin两项只针对 runtime stdlib 的误报将用 90 天精确 suppression 复核，不做宽泛 CVE 屏蔽。
+- 首轮补丁依赖树发现 `observability-support` 自己的 Boot BOM 会把 Starter 传入的 `tomcat-embed-el` 压回 10.1.55；已给支持包增加同一 10.1.57 精确管理，避免支持包单独消费时出现 Tomcat 家族版本不一致。
+- 第二轮 ODC 已清除 Tomcat/Jackson/PDFBox/Commons Lang/Swagger UI 命中，但暴露 Boot BOM 中另一 Log4j 构件 `log4j-to-slf4j` 仍为 2.24.3，以及同一 Kotlin runtime 的空兼容构件 `kotlin-stdlib-jdk7`。前者补到 2.25.5；后者把既有精确例外扩到同版本 `stdlib/jdk7/jdk8`，到期时间不变。四个 npm 工作区 `audit --audit-level=high` 均为 0 漏洞。
+- 第三轮 ODC 已确认 Log4j 全部收敛为 2.25.5，仅继续暴露同一 Kotlin runtime 家族的 `kotlin-stdlib-common@1.9.25`；精确包正则补入 `common`，仍不匹配 Kotlin compiler/Gradle/plugin 等真正受 CVE-2026-53914 影响的构件。
+- 最终 ODC 复验通过：Dependency-Check 12.2.2 分析 404 个依赖，active vulnerability 为 0；仅有经说明、精确包版本匹配且 2026-10-22 到期的 Kotlin runtime 两条 suppressed false positive。Tomcat/Jackson/PDFBox/Commons Lang/Log4j/Swagger UI 均已解析到修复版本。
+- 安全补丁后根 Reactor `mvn -B clean verify` 六模块全部 `SUCCESS`，耗时 2 分 16 秒；Starter Demo 实际启动为 Apache Tomcat 10.1.57。JaCoCo 为 line `71.29%`、branch `56.05%`，高于 `65%/50%` 门禁；Spotless、Checkstyle 与测试均通过。
+- 一次记录补丁误带了只存在于 `progress.md`、不在 `task_plan.md` 的上下文，`apply_patch` 整体未应用；已拆除错误 hunk后重新写入，代码和配置没有受影响。
+
+### 阶段 4 恢复继续
+
+- 桌面真实交互中页面内 zero-key smoke `6/6`、Demo SSE 消息、对话/翻译/摘要模式切换及深度思考开关均通过；Demo 回复明确标记为 deterministic local response，不冒充真实 AI。
+- 手工探索发现 `Ctrl+K` 双重命令面板缺陷：助手获得焦点时同时打开助手与 Playground 两个模态。已保存截图并暂停后续通过结论，下一步修复事件作用域、补 Playground 回归测试后重建复验。
+- `Ctrl+K` 缺陷已按根因修复：`useCommandPalette` 支持事件作用域守卫，Playground 忽略助手区域事件，打开的命令面板消费快捷键并停止冒泡；两组回归先红后绿，UI `13/13`、Playground `9/9`。
+- 重建 Web 容器后的真实浏览器回归通过：助手输入框按 `Ctrl+K` 时命令面板计数为 `1`，面板搜索框内再次按快捷键后计数为 `0`，页面级面板未误开；截至该流程浏览器 console warning/error 均为 `0`。
+- Admin Console 无 Token 调用真实显示“请先在顶部填写 Admin Token”，没有静默失败。Form Auto-Fill 真实完成复制、粘贴解析、`13/13` 预览、填入 `13`/失败 `0` 和 15 秒窗口内撤销；撤销后所有目标字段恢复为空，两个排除字段始终未填，console warning/error 仍为 `0`。
+- 平板 `768x1024` 真实验收通过：Demo、Admin、Form Auto-Fill 均无横向越界，Demo/Admin 首屏可见交互目标全部至少 `44px`；助手 `482x522` 完整落在视口内，内部可见交互目标也无小于 `44px`。截图保存至 `.local/acceptance/playground-768x1024.png` 与 `playground-chat-768x1024.png`。
+- 手机 `375x812` Demo 与助手全屏均无横向滚动；页面与助手可见核心控件全部至少 `44px`，内置模式/快捷动作无旧 emoji。真实 SSE 返回后消息气泡位于 `60.8-340px`，没有内容裁切；命令面板只有一个实例并位于 `(17,97)-(359,712)`。
+- 手机命令面板最新 Web 镜像复验通过：搜索 input 从 `20px` 提升为 `46px`，面板单实例，document/面板横向溢出均为 `0`，面板内可见 input/button/option 无小于 `44px`。命令项最右内容边界 `332.8px` 小于 item 右边界 `344.8px`，截图中的右侧文字仅是 Codex 图片预览裁切，不是页面 DOM 裁切。
+- 手机 Admin 首轮发现 7 个标签依赖 `722px` 横向滚动条；已改为 `<=700px` 两列网格并增加 `Admin sections` 可访问名称。定向测试 `4/4`、格式检查通过；重建后标签栏 `scrollWidth=clientWidth=328`，7 个标签均为 `162x44px`，逐项真实切换 Overview、Tokens、Prompts、RAG、A/B、Fallback、Plugins 均显示对应控件，console warning/error 为 `0`。
+- 手机 Form Auto-Fill 全页 `scrollWidth=clientWidth=360`，无越界或嵌套横向滚动；普通表单、排除字段、3x3 批量表格和操作区完整。原生 radio/checkbox 为 `18px`，但对应可点击 label 均为 `44px` 高；截图已保存到 `.local/acceptance/playground-form-375x812-*.png`，console warning/error 为 `0`。
+- Starter 首页手机首轮确认入口链接仅 `21.6px`、三个命令按钮仅 `32.8px`；已统一两个静态页为中性开发者工作台，链接/按钮最小 `44px`、手机按钮单列、卡片圆角 `6px`，并为输入和动态状态补 label/aria-live。HTML 格式检查通过；Starter Reactor 测试为 server `827/827`、Demo `3/3`。
+- 真实 Starter 以项目一键脚本在本机 `19010` 重启后，首页与 Web Component 页在 `375x812`、`768x1024`、`1440x900` 均无横向溢出；手机/平板可见交互目标无小于 `44px`。手机同步 Chat 更新 stats，Web Component 同源 SSE 返回明确 Demo 标识；助手手机全屏，平板/桌面均为 `480x520` 且在视口内，console warning/error 为 `0`。
+- Starter 与 Web Component 截图保存至 `.local/acceptance/starter-index-*`、`starter-wc-*` 和 `starter-wc-chat-*`；阶段 4 浏览器验收完成，进入阶段 5 全量门禁。
+- 使用 `.env.local` 和 `docker-compose.demo.yml` 重建 `ai-assistant-demo`：仅应用与 Web 两个容器，本次新建后均 healthy；宿主只发布 `19014 -> web:8080`，后端保持容器内 `8080`，未启动或修改 Redis/MySQL。
+- 新容器运行态 zero-key smoke `8/8` 通过，覆盖健康、liveness/readiness、stats、运行配置、Provider 健康、同步 chat 与真实 SSE；首页响应含 CSP、nosniff、SAMEORIGIN、Referrer/Permissions Policy。
+- 真实浏览器 `1440x900` 首轮通过：document `scrollWidth=clientWidth=1440`、横向越界元素 `0`、内置控件旧 emoji `0`，main/article 宽 `1216px`；截图保存至被忽略的 `.local/acceptance/playground-1440x900.png`。
+- UI 图标迁移后的最终全量门禁通过：Vitest `100` 个文件、`787/787`；ESLint、Prettier 与 publish build 全部通过，ESM/CJS/Web Component/type declarations 均生成，包导出 `27` 路径检查通过。
+- 最新 bundle gate 通过：总 gzip `1235.30 KB`，较当前 baseline 增长 `19.88 KB (+1.6%)`；chunks 增长 `27.76 KB (+4.8%)`，Web Component group 下降 `8.54 KB (-1.5%)`。尚未刷新 baseline，待 Lighthouse 与首屏性能复验后判断。
+- 新增集中 `AssistantIcon` 映射并替换模式、快捷工具、四语言空状态、内置命令面板和 Artifact 的可见 emoji；四语言模式标签只保留纯文案，移动端图标按钮继续提供 aria-label/title。
+- UI 包新增官方 `@lucide/vue@1.25.0`，锁文件安装审计 0 漏洞；语义图标定向回归先红后绿，最终 6 个文件、43/43 通过。
+- UI Prettier 首轮只命中 `useEmptyStateContent.ts`，锁定版本单文件格式化后全量格式检查与 ESLint 均通过；`git diff --check` 无空白错误，仅有既有换行提示。
+- 扩大 Unicode 可见图标审计后，将 Header、声音、Code Wall、Artifact 工具栏、重试和会话抽屉纳入第二批迁移；reaction、图片消息前缀与工具调用文本仍保持原协议。
+- 第二批内置控件已全部改用集中 Lucide 映射；新增 Artifact Canvas、会话抽屉测试并扩展 Header/Runner/MessageList/问候语断言。会话夹具补齐 200ms debounce 后单测通过。
+- 再次同步 active Goal、三份持久记录、工作区差异和阶段 4 范围；没有覆盖或回退既有修改。
+- 完成助手可见 emoji 全入口审计，决定统一使用官方 Lucide；reaction 与协议/消息数据保持不变。下一步先补组件测试，再实施图标映射并运行 UI 定向门禁。
+- 重新核对完整验收原文、Goal 状态、端到端验收规则、文件化规划规则与当前工作树；Goal 保持 `active/executing`，未覆盖任何既有改动。
+- 当前完成标准不变：先关闭自动填表撤销窗口、Playground 视觉与三视口触控缺陷，再重建容器并取得新的真实浏览器证据。
+- 自动填表撤销窗口已从 5 秒延长到 15 秒；新增定时器回归证明 5.001 秒仍可撤销、15 秒后自动收起，`useFormAutoFill.spec.ts` 27/27 通过。
+- Playground 视觉方案已按真实浏览器缺陷收敛为中性、密集的开发者工作台：1280px 内容上限、无渐变、减少 section 卡片、Lucide 图标、平板导航重排、移动交互目标至少 44px；业务协议和默认端口不变。
+- 已落地 Playground/App/Admin 视觉层：官方 `@lucide/vue@1.25.0` 替换可见导航/Admin/复制/命令/外链/加载 emoji，新增 Form Auto-Fill 命令入口，主工作区与两级响应式布局完成；npm 安装审计 0 漏洞，待前端测试、构建和浏览器复验。
+- Playground Vitest 2 文件 12/12 通过且 stderr 为空；`npm run build` 通过。构建仅保留 Mermaid/Wardley 两个既有懒加载 chunk 的 500kB 提示，阶段 5 将按项目 bundle/performance 预算复核。
+- 助手 375/768 触控令牌与搜索、消息动作、详情、reaction 精确覆盖已落地；`ai-assistant-ui npm run build` 通过，ESM/UMD/Web Component/类型声明均生成，包导出 27 路径检查通过。
+- UI 全量门禁通过：Vitest 95 个文件、780/780；ESLint 通过；Prettier `format:check` 通过。
+- 当前源码 Compose 镜像重建成功；仅 `ai-assistant` 与 `web` 两个容器运行且 healthy，宿主仅发布 `19014 -> web:8080`，后端保持容器内 `8080`，无 Redis/MySQL 容器。
+- 重建后首页 200 且 CSP/nosniff/SAMEORIGIN 等响应头存在；脚本 zero-key 8/8、页面内 smoke 6/6。桌面 1440×900 无溢出并真实打开助手，发现内部模式/快捷动作 emoji 尚需收敛。
+- 内部视觉整改范围已限定：reaction 作为用户数据保留；Mode 四语言文案去除 emoji；ChatInputComposer 三个快捷工具使用官方 Lucide 图标。不会改模式值、事件或 i18n key。
+
+### 会话恢复与阶段 3 继续
+
+- 完整重读“全项目统一完成标准”和“1. AI Assistant SDK”原文（第 21-111 行），确认当前计划未遗漏验收类别。
+- 读取 `acceptance-orchestrator` 与 `planning-with-files-zh` 规则并恢复 Goal；Goal 保持 `active/executing`。
+- 定位 `TracingFilter` 的未规范化调用方追踪字段问题；已记录根因，下一步补回归测试并修复。
+- 已严格校验追踪/上下文头并新增 8 个 `TracingFilter` 回归场景；与 Tenant/Request ID 相关测试合计 19/19 通过。
+- 首次 Spotless 门禁仅发现新增测试的 3 处换行差异，已按输出精确修正，尚待复验。
+- Spotless 复验通过（265 个 Java 文件，0 个需修改）；Checkstyle 完成且 error 级违规为 0。
+- CORS、上传、内容过滤、语言代码与既有 LLM 翻译相关测试 41/41 通过；CORS 明确 credentials=false，浏览器可读取 request/trace ID。
+- 上传日志已移除原始文件名；空文件、10 MiB 上限、PDF/OOXML 魔数新增回归覆盖。
+- 非法语言输入的 DTO/服务/REST/兼容 SSE/标准 SSE/批处理错误契约测试 59/59 通过；一次 WebSocket catch 定位编译错误已修复并复验通过。
+- 本轮 Java Spotless 复验通过（267 文件、0 需修改），Checkstyle error 级违规为 0。
+- 安全回归组 151/151 通过；最终全量阶段需以 `clean` 清除增量 JaCoCo 数据后重建覆盖率报告。
+- Provider 连通性脱敏使用真实本地 HTTP 上游验证，相关配置测试 12/12 通过；原始 Key、上游 secret、endpoint 主机和控制字符均未出现在结果中。
+- WebSocket 处理器与握手测试 7/7 通过；非法 JSON/action/targetLang 和成功流均有真实帧级回归。Java Spotless/Checkstyle 复验通过。
+- OpenAI-compatible、Demo Provider、健康检查与自动装配契约整组 43/43 通过，覆盖 Bearer 认证、同步/SSE、401、429 与 503；曾有一个 503 契约用例受 Windows 下 Reactor/Netty 冷启动影响超过测试专用 2 秒，隔离复跑确认真实收到 503 后将测试时限调整为 5 秒，生产 60 秒默认值和状态码断言均未降低。
+- 三个声明 Spotless 的 Java 模块共 274 个 Java 文件格式门禁通过，server Checkstyle error 级违规为 0。
+- 可观测性定向组 31/31 通过：健康指标 4、自动装配 15、追踪边界 8、Micrometer gauge 2、support artifact 2；独立服务已启用 liveness/readiness probes，tracing 与结构化日志保持显式可选。
+- 阶段 3 完成；进入 Playground、Starter 页面、Vue 与 Web Component 的真实浏览器三视口验收。
+- 通过被忽略的 `.env.local` 以 `demo`、空 Key、宿主 `19014` 重建 `docker-compose.demo.yml`；仅重建应用与 Web 两个容器，内部端口均保持 `8080`，未启动或修改 shared-infra。
+- 当前源码镜像构建成功，应用与 Web 容器均为新建且 healthy；零密钥 Compose smoke 9/9 通过，覆盖首页、应用健康、Actuator liveness/readiness、stats、运行配置、Provider 健康、同步聊天和真实 SSE 链路。
+- 工具异常：一组 `cmd.exe` 并行只读检索被 Windows 应用控制策略拦截，已记录并切换到直接只读 `rg`。
+
+### 已完成
+
+- 读取并逐行核对“全项目统一完成标准”和“1. AI Assistant SDK”。
+- 读取适用执行技能、恢复三份持久化记录、检查 Goal 状态、分支、近期提交和工作树 diff 规模。
+- 建立本轮七阶段验收计划；旧记录只作背景，所有验收项将重新产生新证据。
+
+### 当前进行
+
+- 运行 Maven、UI、Playground、文档、脚本与 E2E 基线，先修阻断缺陷。
+
+### 文档审计进展
+
+- 已完整读取 README、README_EN、DEPLOYMENT、SECURITY、PERFORMANCE、PERFORMANCE_REPORT 与风险登记册；CHANGELOG 的发布摘要和 Unreleased 已核对，自动生成历史明细只作背景。
+- 已确认 README 的两条接入路径、零密钥边界、环境要求和主演示命令；这些声明将在代码、构建和运行阶段逐项复验。
+- 已读取 `docs/CAPABILITY-MATRIX.md`、根 Maven POM 和四个前端/文档 package scripts；确认版本目标为 `1.0.1`，并把 stable/experimental/mock-only/documented-only 声明转为待验收清单。
+- 已记录当前 130 个已跟踪文件差异及未跟踪实现/测试的审计范围；没有覆盖或回退任何既有改动。
+- 已审计新增 Starter Demo、根 Dockerfile、四套 Compose、零密钥环境示例和 CI 主流程；确认 Demo 使用真实 HTTP/SSE，且本地验收无需重复启动 Redis/MySQL。
+- 已识别待验证点：干净环境下 UI 产物到 Starter 的构建顺序、Client/Service/Demo 根 Reactor 测试覆盖、Starter 静态页三视口与可访问性。
+- 已审计 Demo/live Provider 分流、Java Client 认证/租户/SSE/错误模型和 Admin runtime config 装配；现有代码有针对性测试，待本轮基线实际执行。
+- 已记录默认 Provider 从 `openai` 到 `demo` 的兼容性审查项，后续核对迁移说明和真实 Provider 失败契约。
+- 已审计 Vue API、SSE/WS fallback、Web Component 属性别名与租户传递；确认新增协议字段有针对性测试，待前端全量基线执行。
+- 已确认 Playground 存在三类可操作视图和真实后端 smoke 状态；视觉、响应式和控制台质量仍待浏览器实测。
+- 已审计 E2E 真实/替身边界、Starter 后端启动器、Standalone/Starter 一键脚本和 zero-key smoke；确认真实 Web Component + SSE 用例存在，Starter 干净启动仍需补本轮运行证据。
+- 完成阶段 1 审计；本机工具版本符合 README，版本一致性与 diff check 通过，既有 `19014` Demo 栈的 8 项 zero-key smoke 通过（仅作为旧构建基线）。
+- 当前工作树首轮基线通过：Java server/client/demo 共 `809` 项测试、Vue 高风险协议 `64` 项、fast release gate `82` 项全部零失败。
+- 发现本机 Node 进程环境存在 `NODE_TLS_REJECT_UNAUTHORIZED=0` 警告；已列为环境清理后复验项，不据此得出安全通过结论。
+- 完整前端基线首轮在 Prettier gate 失败，唯一命中文件为 `useStreamWithFallback.spec.ts`；尚未把同组 lint/UI test/Playground test 记为通过，先修格式后独立复跑。
+- 已用锁定 Prettier 修复唯一格式阻断；复跑 UI lint/format、UI `779` 项、Playground `12` 项全部通过。
+- 根 Maven `package` 六模块通过；Vue publish/WC/types 构建和 `27` 条包导出检查通过。
+- Playground build、文档 build、全新临时目录 npm 包消费 smoke 均通过；8 个公开消费入口可解析。
+- 记录 Playground 大型按需 Mermaid/Wardley chunk 警告，待 full bundle gate 与浏览器性能审计确认。
+- 清除不安全 TLS 环境变量后，full release gate 通过；bundle 总 gzip 较 baseline 下降约 0.8%。
+- 完整 Playwright `31/31` 通过，包含真实 Starter Demo + Web Component 租户 SSE；阶段 2 完成，进入协议/安全/可观测性专项。
+
+### 已遇到问题
+
+- `create_goal` 检测到同一任务已有 active Goal；已继续原 Goal。
+- 长文件组合读取触发输出截断；改为按标题和文件分段读取，未据截断内容下结论。
+
 > **状态：历史归档。** 本文件是历轮优化的进度流水，不再逐次同步。**最新进度以 `git log`
 > 与 `CHANGELOG.md` 为准。** 与 `task_plan.md`、`findings.md` 一并视为历史记录；后续如继续
 > 演进，优先用 CHANGELOG + 提交信息承载，避免本文件（已 1700+ 行）持续膨胀。

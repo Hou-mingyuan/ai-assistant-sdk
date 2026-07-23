@@ -11,8 +11,19 @@ type FabScreenQuadrant = 'tl' | 'tr' | 'bl' | 'br';
 
 const PANEL_W = 480;
 const PANEL_H = 520;
+const TABLET_PANEL_H = 680;
+const TABLET_MIN_WIDTH = 601;
+const TABLET_MAX_WIDTH = 820;
 const PANEL_VIEWPORT_MARGIN = 16;
 const DRAG_CLICK_PX = 8;
+
+export function defaultPanelHeightForViewport(viewportWidth: number, viewportHeight: number) {
+  const preferredHeight =
+    viewportWidth >= TABLET_MIN_WIDTH && viewportWidth <= TABLET_MAX_WIDTH
+      ? TABLET_PANEL_H
+      : PANEL_H;
+  return Math.min(preferredHeight, Math.max(200, viewportHeight - 80));
+}
 
 export const RESIZE_ZONES: { edge: PanelResizeEdge; cls: string }[] = [
   { edge: 'n', cls: 'ai-rz-n' },
@@ -31,6 +42,7 @@ export interface PanelGeometryDeps {
   fabSize: number;
   isOpen: Ref<boolean>;
   saveFabPos: (overrideEdge?: 'none' | 'left' | 'right') => void;
+  markFabPositionCustomized: () => void;
   defaultPosition: string;
 }
 
@@ -45,7 +57,15 @@ function getViewportCssSize(): { w: number; h: number } {
 
 // eslint-disable-next-line max-lines-per-function
 export function usePanelGeometry(deps: PanelGeometryDeps) {
-  const { fabLeft, fabTop, fabSize, isOpen, saveFabPos, defaultPosition } = deps;
+  const {
+    fabLeft,
+    fabTop,
+    fabSize,
+    isOpen,
+    saveFabPos,
+    markFabPositionCustomized,
+    defaultPosition,
+  } = deps;
 
   const panelExpanded = ref(false);
   const panelUserSize = ref<{ w: number; h: number } | null>(null);
@@ -90,10 +110,10 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
 
   function effectivePanelHeightPx(): number {
     if (panelUserSize.value) return panelUserSize.value.h;
-    const { h: vh } = getViewportCssSize();
+    const { w: vw, h: vh } = getViewportCssSize();
     return panelExpanded.value
       ? Math.max(280, vh - 2 * PANEL_VIEWPORT_MARGIN)
-      : Math.min(PANEL_H, Math.max(200, vh - 80));
+      : defaultPanelHeightForViewport(vw, vh);
   }
 
   function togglePanelExpand() {
@@ -212,6 +232,11 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     isOpen,
   );
 
+  function onPanelResizePointerDown(e: PointerEvent, edge: PanelResizeEdge) {
+    markFabPositionCustomized();
+    panelResize.onPanelResizePointerDown(e, edge);
+  }
+
   // --- Header drag ---
 
   function cleanupPanelHeaderTentative() {
@@ -280,6 +305,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     panelHeaderDragPendingDx = 0;
     panelHeaderDragPendingDy = 0;
     if (fabLeft.value === null || fabTop.value === null) return;
+    markFabPositionCustomized();
     fabLeft.value += dx;
     fabTop.value += dy;
     if (isOpen.value) panelHeaderDraggedWhileOpen = true;
@@ -404,7 +430,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     resolveFabScreenQuadrant,
     syncFabPixelFromWrapperDom,
     clampPanelSize,
-    onPanelResizePointerDown: panelResize.onPanelResizePointerDown,
+    onPanelResizePointerDown,
     onPanelHeaderPointerDown,
     onPanelOpen,
     onPanelClose,

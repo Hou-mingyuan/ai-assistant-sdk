@@ -6,23 +6,13 @@ cd "$ROOT"
 
 if [[ ! -f .env ]]; then
   cp .env.example .env
-  echo "Created .env from .env.example (API key optional for zero-key smoke; required for live chat)."
+  echo "Created .env from .env.example (explicit deterministic Demo provider; no external key required)."
 fi
 
-DIST="$ROOT/ai-assistant-vue-playground/dist/index.html"
-if [[ ! -f "$DIST" ]]; then
-  echo "Building ai-assistant-vue-playground/dist (required by demo web image)..."
-  (
-    cd ai-assistant-vue-playground
-    npm install
-    npm run build
-  )
-fi
-
-echo "Starting docker-compose.demo.yml (project: ai-assistant-demo)..."
+echo "Building and starting docker-compose.demo.yml from source (project: ai-assistant-demo)..."
 docker compose -f docker-compose.demo.yml up -d --build
 
-echo "Running demo smoke (zero-key health + chat routing)..."
+echo "Running demo smoke (health + blocking chat + SSE in explicit Demo mode)..."
 node scripts/smoke-demo-compose.mjs
 
 WEB_PORT="${AI_ASSISTANT_WEB_PORT:-3000}"
@@ -32,6 +22,6 @@ Demo is up.
   Web UI:  http://localhost:${WEB_PORT}/
   Health:  http://localhost:${WEB_PORT}/ai-assistant/health
 
-Add AI_ASSISTANT_API_KEY to .env and restart for live streaming chat.
+Demo mode already supports the full SSE path. Set provider/base URL/model/key in .env only for a real model.
 Stop: docker compose -f docker-compose.demo.yml down
 EOF

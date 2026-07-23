@@ -2,16 +2,16 @@
 
 > 目标：把这个「内容很硬但没曝光」的项目，推到对的人面前，拿下第一批 100 → 1000 Star。
 >
-> 现状诊断：项目质量高、README 详实，但 ① 无演示图 ② 原本无英文（已补 README_EN）③ 无对外曝光 ④ 仓库元数据未优化。下面按「投入产出比」从高到低排序。
+> 现状诊断：项目质量高，README 已有真实演示截图和中英文说明；当前主要缺口是对外曝光与仓库元数据优化。下面按「投入产出比」从高到低排序。
 
 ## 第 0 步：仓库元数据（10 分钟，必做）
 
 在 GitHub 仓库首页右上角 **About** 齿轮里设置：
 
 - **Description**（一句话，带关键词，决定搜索命中）：
-  > 可嵌入任意 Java + Vue 项目的企业级 AI 助手：16 家大模型、RAG、Agent、多租户，一个 Spring Boot Starter 开箱即用。
+  > 面向 Spring Boot 3 与 Vue 3 的可嵌入 AI 助手 SDK：Starter、独立服务、Java Client、SSE 与 Web Component，附零密钥 Demo。
 
-  英文：`Embeddable enterprise AI assistant for any Java + Vue app: 16 LLM providers, RAG, agents, multi-tenant. One Spring Boot starter.`
+  英文：`Embeddable assistant SDK for Spring Boot 3 and Vue 3: Starter, standalone service, Java client, SSE, Web Component, and an explicit zero-key demo.`
 - **Website**：填文档站地址（若用 GitHub Pages 部署 VitePress）。
 - **Topics**（标签，极大影响被搜到）：
 
@@ -20,7 +20,7 @@
 
 ## 第 1 步：README 视觉（1–2 小时，ROI 最高）
 
-- [ ] 录制 `docs/assets/demo.gif` 首屏动图（见 `docs/assets/README.md`）
+- [x] README 首屏加入 `docs/assets/demo.png` 真实运行截图（见 `docs/assets/README.md`）
 - [ ] 补 3–4 张核心截图（对话 / RAG / 管理后台）
 - [ ] （可选）做一张 banner / social preview 图
 
@@ -44,11 +44,11 @@
 - Twitter/X：带 `#buildinpublic` `#opensource` `#LLM`
 
 **文章标题参考**：
-- 《我把企业级 AI 助手做成了 Spring Boot Starter，一行接入 16 家大模型》
-- 《5 分钟给你的 Vue 项目加一个带 RAG 的 AI 助手》
-- 《支持多租户 + PII 脱敏的 AI 助手 SDK 是怎么设计的》
+- 《把 AI 助手做成 Spring Boot Starter：REST、SSE 与错误契约如何统一》
+- 《从 Vue 组件到 Web Component：同一套 AI 助手如何跨宿主接入》
+- 《零密钥 Demo 不冒充真实 AI：一条可重复的 SDK 验收链路》
 
-**文章结构模板**：痛点（每个项目都想加 AI，但重复造轮子）→ 演示 GIF → 5 分钟接入代码 → 亮点（多模型 / RAG / Agent / 企业能力）→ 架构图 → GitHub 链接 + 求 Star。
+**文章结构模板**：痛点 → 真实演示截图或 GIF → 两条接入路径 → 稳定能力与实验能力边界 → 测试和性能证据 → 架构图 → GitHub 链接。
 
 ## 第 4 步：收录到 Awesome 列表（长尾流量）
 
@@ -64,4 +64,4 @@
 
 ## 一句话优先级
 
-先补 **demo.gif + 元数据 + 英文 README（已完成）**，再发 **1 篇中文长文 + 1 个 Show HN**，就能看到第一波明显增长。
+先补齐 **仓库元数据**，再发 **1 篇中文长文 + 1 个 Show HN**；真实截图和英文 README 已完成，可直接复用。

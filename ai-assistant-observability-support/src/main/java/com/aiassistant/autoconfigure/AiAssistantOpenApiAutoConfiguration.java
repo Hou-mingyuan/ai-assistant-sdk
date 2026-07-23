@@ -45,7 +45,7 @@ public class AiAssistantOpenApiAutoConfiguration {
                                         + " Starter and the standalone service. Use this schema to"
                                         + " generate type-safe clients (see"
                                         + " docs/guide/openapi-typescript-codegen.md).")
-                        .version("1.0.x")
+                        .version("1.0.1")
                         .license(
                                 new License()
                                         .name("MIT")

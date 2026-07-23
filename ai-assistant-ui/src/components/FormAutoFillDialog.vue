@@ -58,7 +58,12 @@
             <span class="ai-form-fill-counter"> {{ selectedCount }} / {{ matchedCount }} </span>
           </div>
 
-          <div class="ai-form-fill-table-wrapper">
+          <div
+            class="ai-form-fill-table-wrapper"
+            role="region"
+            :aria-label="t.formFillDialogTitle || 'Form field preview'"
+            tabindex="0"
+          >
             <table class="ai-form-fill-table">
               <thead>
                 <tr>
@@ -316,8 +321,8 @@ function confidenceDots(score: number): number {
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #4338ca;
+  background: rgba(17, 17, 17, 0.12);
+  color: #090909;
   width: fit-content;
 }
 .ai-form-fill-table-warn {
@@ -344,12 +349,15 @@ function confidenceDots(score: number): number {
 .ai-form-fill-table-wrapper {
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   margin: 0 16px;
   border: 1px solid var(--ai-color-border, #e5e7eb);
   border-radius: 8px;
 }
 .ai-form-fill-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -476,13 +484,39 @@ function confidenceDots(score: number): number {
   border-color: var(--ai-color-border, #e5e7eb);
 }
 .ai-form-fill-btn-primary {
-  background: var(--ai-color-primary, #6366f1);
+  background: var(--ai-color-primary, #181818);
   color: #fff;
 }
 .ai-form-fill-btn-primary:disabled {
   background: var(--ai-color-border, #d1d5db);
   color: #6b7280;
   cursor: not-allowed;
+}
+@media (max-width: 600px) {
+  .ai-form-fill-dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .ai-form-fill-summary {
+    margin-inline: 12px;
+  }
+  .ai-form-fill-toolbar {
+    padding-inline: 12px;
+  }
+  .ai-form-fill-check,
+  .ai-form-fill-field-picker {
+    min-height: 32px;
+  }
+  .ai-form-fill-table-wrapper {
+    margin-inline: 12px;
+  }
+  .ai-form-fill-footer {
+    padding: 10px 12px;
+  }
+  .ai-form-fill-btn-secondary,
+  .ai-form-fill-btn-primary {
+    min-height: 40px;
+  }
 }
 .ai-dark.ai-form-fill-overlay .ai-form-fill-table th {
   background: rgba(255, 255, 255, 0.04);
