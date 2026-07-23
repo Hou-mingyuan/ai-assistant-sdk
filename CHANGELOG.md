@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UI：K44 修复 K36 长期被 Vue Boolean 默认 `false` 静默禁用的 bug
 - 构建：修复 bundle 体积门禁将 `runtime-dom.esm-bundler` chunk 误归类为 Vue 组件的问题
 - 协议：统一 REST、两种 SSE、Java Client、Vue 与 Web Component 的租户、request id 和结构化错误语义
+- 开箱启动：Demo smoke 与 Windows/Linux 一键脚本现在共同读取被忽略的根 `.env` 中 `AI_ASSISTANT_WEB_PORT`，自定义宿主端口不再误请求或打印默认 `3000`
 
 ### Security
 

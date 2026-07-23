@@ -2,6 +2,7 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+- 2026-07-23 合并提交 `5352a4e` 已从 GitHub 重新 clone 到无历史生成物目录。默认独立服务 Compose 约 `49s` 构建启动、`19010 -> 8080` 健康且 zero-key `8/8`；随后按 `scripts\demo-standalone.ps1` 启动 Playground + 后端，页面与 HTTP/SSE 共 `9` 项 smoke 通过。该复验发现脚本只从进程环境读取 Web 端口，忽略被忽略的根 `.env` 并错误打印 `3000`；现已统一为共享解析器，Windows/Linux 启动脚本、smoke 和最终入口都正确使用 `19010`，新增解析/启动契约回归测试。
 - 2026-07-23 从全新本地 clone 检出远端 `42b2631`，仅在被忽略的 `.env` 中把宿主端口设为 `19010`，容器内部保持 `8080`；README Compose 构建启动成功（`584.8s`），随后健康状态为 `healthy`，零密钥 HTTP/SSE smoke `8/8`，实际镜像内 17 个 Netty 构件均为 `4.1.136.Final`。同一远端提交的 GitHub Actions 干净 checkout 用时约 2 分钟完成 Compose 构建、健康等待和 `8/8` smoke。
 - 运行日志复核发现正常 SSE 下游结束被审计成 `ERROR`；已新增 `CANCELLED` 结果与取消回归测试。Starter 全量 `verify`、仓库发布门禁 `98/98` 均通过；当前源码重建到宿主 `19011` 后再次 smoke `8/8`，审计日志明确为 `SUCCESS/CANCELLED/SUCCESS` 且无假错误。
 - 远端 `42b2631` 的 CI、Standalone Docker、Docs、Helm 全绿：E2E `32/32`，完整 publish 构建生成 Web Component 并校验 27 个导出，Trivy Security、Backend、Frontend、Playground、Compose smoke 均通过。新增审计修复仍需最后一轮远端 CI 复验。

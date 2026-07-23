@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Smoke test for docker-compose.demo.yml (web on :3000, backend proxied at /ai-assistant).
+ * Smoke test for docker-compose.demo.yml (web defaults to :3000, backend proxied at
+ * /ai-assistant). A local .env port override is resolved by the same script.
  */
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { resolveDemoWebOrigin } from './demo-web-origin.mjs'
 
-const webOrigin = (process.env.AI_ASSISTANT_DEMO_WEB_ORIGIN || 'http://localhost:3000').replace(/\/+$/, '')
+const webOrigin = await resolveDemoWebOrigin()
 const zeroKeyScript = fileURLToPath(new URL('./smoke-zero-key.mjs', import.meta.url))
 const timeoutMs = Number.parseInt(process.env.AI_ASSISTANT_SMOKE_TIMEOUT_MS || '5000', 10)
 const maxAttempts = Number.parseInt(process.env.AI_ASSISTANT_SMOKE_ATTEMPTS || '12', 10)
