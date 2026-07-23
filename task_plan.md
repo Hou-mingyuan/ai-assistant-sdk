@@ -2,7 +2,7 @@
 
 ## 当前 Goal：v1.x 发布候选验收（2026-07-22）
 
-状态：进行中。
+状态：已完成。
 
 完成标准：
 - [x] 完整读取全项目统一完成标准与 AI Assistant SDK 专属标准。
@@ -13,7 +13,7 @@
 - [x] 完成 Maven、前端 lint/typecheck/test/build、文档、E2E、smoke、性能、secret scan 与 diff check。
 - [x] 将双闪星和 Playground/Vue/Web Component 全局视觉统一为黑白灰科技主题，清除紫色品牌残留并重新完成三视口浏览器验收。
 - [x] 从干净 clone 按 README 验证一键启动和至少一条真实消费路径，记录耗时与结果。
-- [ ] 确认零已知 P0/P1、核心流程无已知可复现 P2，整理证据并完成提交、推送、合并。
+- [x] 确认零已知 P0/P1、核心流程无已知可复现 P2，整理证据并完成提交、推送、合并。
 
 执行边界：
 - 只修改 `D:\project-hub\ai-assistant-sdk`。
@@ -29,7 +29,7 @@
 4. `complete` 完善前端、Web Component、Playground 与响应式体验。
 5. `complete` 执行完整自动化、性能、安全和真实浏览器验收。
 6. `complete` 黑色品牌主题回归、干净 clone 一键启动与全新示例消费验证。
-7. `in_progress` 缺陷终审、证据整理、提交、推送、合并。
+7. `complete` 缺陷终审、证据整理、提交、推送、合并。
 
 当前已知工具问题：
 - 最终格式核对误借用了 UI 包的 Prettier 检查 E2E 配置；E2E 包没有声明 Prettier、配置或格式脚本，该命令按默认双引号规则报告风格差异但未写文件，不能作为本包门禁。配置保持既有单引号风格，以 Playwright 实际解析和 E2E 结果验收。
