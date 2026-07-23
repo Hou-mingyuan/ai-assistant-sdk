@@ -50,7 +50,7 @@
   cursor: pointer;
 }
 .ai-export-item:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(17, 17, 17, 0.08);
 }
 .ai-chat-search {
   flex-shrink: 0;
@@ -70,8 +70,8 @@
   outline: none;
 }
 .ai-chat-search-input:focus {
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #6366f1) 20%, transparent);
+  border-color: var(--primary, #181818);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary, #181818) 20%, transparent);
 }
 .ai-search-count {
   font-size: 11px;
@@ -94,8 +94,8 @@
   padding: 0;
 }
 .ai-search-nav:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  background: rgba(17, 17, 17, 0.1);
+  color: #171717;
 }
 .ai-search-nav:disabled {
   opacity: 0.3;
@@ -117,16 +117,16 @@ mark.ai-search-hl-active {
   flex-wrap: wrap;
   gap: 6px;
   padding: 6px 12px 2px;
-  border-top: 1px solid color-mix(in srgb, var(--primary, #6366f1) 10%, rgba(0, 0, 0, 0.08));
+  border-top: 1px solid color-mix(in srgb, var(--primary, #181818) 10%, rgba(0, 0, 0, 0.08));
   background: linear-gradient(0deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.85));
 }
 .ai-quick-prompt-btn {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  background: rgba(99, 102, 241, 0.08);
-  color: #4f46e5;
+  border: 1px solid rgba(17, 17, 17, 0.35);
+  background: rgba(17, 17, 17, 0.08);
+  color: #171717;
   cursor: pointer;
   max-width: 100%;
   white-space: nowrap;
@@ -140,10 +140,10 @@ mark.ai-search-hl-active {
   gap: 5px;
   margin: 0 6px 0 0;
   padding: 4px 10px 4px 8px;
-  border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 35%, rgba(0, 0, 0, 0.08));
+  border: 1px solid color-mix(in srgb, var(--primary, #181818) 35%, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--primary, #6366f1) 14%, rgba(255, 255, 255, 0.92));
-  color: #4338ca;
+  background: color-mix(in srgb, var(--primary, #181818) 14%, rgba(255, 255, 255, 0.92));
+  color: #090909;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -160,7 +160,7 @@ mark.ai-search-hl-active {
 .ai-header-personalize:hover,
 .ai-header-diagnostics:hover {
   filter: brightness(1.03);
-  border-color: color-mix(in srgb, var(--primary, #6366f1) 55%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #181818) 55%, transparent);
 }
 .ai-header-personalize-text,
 .ai-header-diagnostics-text {
@@ -265,7 +265,7 @@ mark.ai-search-hl-active {
 }
 .ai-personalize-close:hover {
   opacity: 1;
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(17, 17, 17, 0.12);
 }
 .ai-personalize-desc {
   margin: 0 0 10px;
@@ -316,7 +316,7 @@ mark.ai-search-hl-active {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  background: var(--primary, #6366f1);
+  background: var(--primary, #181818);
   color: #fff;
 }
 .ai-personalize-done:hover {
@@ -382,11 +382,11 @@ mark.ai-search-hl-active {
   flex-shrink: 0;
 }
 .ai-diagnostics-actions button {
-  border: 1px solid rgba(99, 102, 241, 0.28);
+  border: 1px solid rgba(17, 17, 17, 0.28);
   border-radius: 8px;
   padding: 4px 8px;
   background: rgba(255, 255, 255, 0.82);
-  color: #4338ca;
+  color: #090909;
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
@@ -399,13 +399,13 @@ mark.ai-search-hl-active {
 }
 .ai-diagnostics-actions button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.95);
-  border-color: color-mix(in srgb, var(--primary, #6366f1) 45%, #cbd5e1);
-  color: color-mix(in srgb, var(--primary, #6366f1) 72%, #0f172a);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary, #6366f1) 12%, transparent);
+  border-color: color-mix(in srgb, var(--primary, #181818) 45%, #cbd5e1);
+  color: color-mix(in srgb, var(--primary, #181818) 72%, #0f172a);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary, #181818) 12%, transparent);
   transform: translateY(-1px);
 }
 .ai-diagnostics-actions button:focus-visible {
-  outline: 2px solid var(--primary, #6366f1);
+  outline: 2px solid var(--primary, #181818);
   outline-offset: 2px;
 }
 .ai-diagnostics-actions button:disabled {
@@ -548,10 +548,10 @@ mark.ai-search-hl-active {
   gap: 6px;
 }
 .ai-connection-config-actions button {
-  border: 1px solid rgba(99, 102, 241, 0.28);
+  border: 1px solid rgba(17, 17, 17, 0.28);
   border-radius: 8px;
   padding: 6px 10px;
-  background: var(--primary, #6366f1);
+  background: var(--primary, #181818);
   color: #fff;
   font-size: 12px;
   line-height: 1.2;
@@ -565,7 +565,7 @@ mark.ai-search-hl-active {
 }
 .ai-connection-config-actions button:first-child {
   background: rgba(255, 255, 255, 0.82);
-  color: #4338ca;
+  color: #090909;
 }
 .ai-personalize-overlay.ai-dark .ai-connection-config-actions button:first-child {
   background:
@@ -598,7 +598,7 @@ mark.ai-search-hl-active {
 }
 .ai-connection-config-message {
   margin: 0;
-  color: #4f46e5;
+  color: #171717;
   font-weight: 600;
 }
 .ai-personalize-overlay.ai-dark .ai-connection-config-message {
@@ -619,7 +619,7 @@ mark.ai-search-hl-active {
   flex: 1;
   padding: 4px 6px;
   border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 14%, #cbd5e1);
+  border: 1px solid color-mix(in srgb, var(--primary, #181818) 14%, #cbd5e1);
   background: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   font-size: 12px;
@@ -627,10 +627,10 @@ mark.ai-search-hl-active {
 }
 .ai-footer-mode-row button:hover:not(.active) {
   background: rgba(255, 255, 255, 0.95);
-  border-color: color-mix(in srgb, var(--primary, #6366f1) 28%, #cbd5e1);
+  border-color: color-mix(in srgb, var(--primary, #181818) 28%, #cbd5e1);
 }
 .ai-footer-mode-row button.active {
-  background: var(--primary, #6366f1);
+  background: var(--primary, #181818);
   color: #fff;
   border-color: transparent;
 }
@@ -646,7 +646,7 @@ mark.ai-search-hl-active {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 16%, #cbd5e1);
+  border: 1px solid color-mix(in srgb, var(--primary, #181818) 16%, #cbd5e1);
   background: rgba(255, 255, 255, 0.78);
   color: #475569;
   cursor: pointer;
@@ -748,9 +748,9 @@ mark.ai-search-hl-active {
   border-color: var(--text-muted, #94a3b8);
 }
 .ai-code-wall-toggle.active {
-  color: var(--primary, #6366f1);
-  border-color: var(--primary, #6366f1);
-  background: color-mix(in srgb, var(--primary, #6366f1) 8%, transparent);
+  color: var(--primary, #181818);
+  border-color: var(--primary, #181818);
+  background: color-mix(in srgb, var(--primary, #181818) 8%, transparent);
 }
 .ai-model-select {
   flex: 0 1 auto;

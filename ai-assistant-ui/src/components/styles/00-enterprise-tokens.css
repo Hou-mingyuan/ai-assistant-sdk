@@ -1,13 +1,13 @@
 /**
- * Doubao-inspired tokens (light-first, indigo-violet brand).
+ * Ink-first product tokens for the assistant surfaces.
  *
  * Default scope = light theme (matches Doubao's primary appearance on
  * web/mobile). `.ai-dark` overlay later in this file flips a small set of
  * tokens for the optional dark variant.
  *
- * Brand axis: indigo `#4f46e5` → violet `#7c3aed`, soft lavender supporting,
- * with subtle warm whites for cards. Radii are deliberately large so the UI
- * reads "friendly / consumer assistant" rather than "enterprise dashboard".
+ * Brand axis: black -> graphite -> zinc, with white and cool-neutral surfaces.
+ * Semantic success, warning and danger colors remain independent so
+ * operational states stay distinguishable; informational emphasis stays neutral.
  */
 
 .ai-assistant-wrapper,
@@ -16,9 +16,11 @@
 .ai-form-fill-toast {
   /* ===== Typography ===== */
   --ai-font-display:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans SC', 'Geist', -apple-system,
-    'BlinkMacSystemFont', system-ui, sans-serif;
-  --ai-font-body: var(--ai-font-display);
+    'Geist', 'Segoe UI Variable', 'Aptos', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI',
+    'Noto Sans SC', sans-serif;
+  --ai-font-body:
+    'Segoe UI Variable Text', 'Geist', 'Aptos', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei UI', 'Noto Sans SC', sans-serif;
   --ai-font-mono:
     'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Source Code Pro', 'Menlo',
     'Consolas', monospace;
@@ -73,49 +75,50 @@
    * byte-identical to the previous literal, so introducing this indirection is a
    * zero-visual-change refactor; future re-skins只需改这一层或语义层的指向。 */
   --ai-c-white: #ffffff;
-  --ai-c-gray-50: #f7f7f9;
-  --ai-c-gray-75: #f4f5f9;
-  --ai-c-gray-100: #f0f1f5;
-  --ai-c-gray-200: #e7e8ee;
-  --ai-c-slate-400: #94a3b8;
-  --ai-c-slate-600: #475569;
-  --ai-c-slate-900: #0f172a;
-  --ai-c-slate-a04: rgba(15, 23, 42, 0.04);
-  --ai-c-slate-a06: rgba(15, 23, 42, 0.06);
-  --ai-c-slate-a07: rgba(15, 23, 42, 0.07);
-  --ai-c-slate-a08: rgba(15, 23, 42, 0.08);
-  --ai-c-slate-a14: rgba(15, 23, 42, 0.14);
-  --ai-c-slate-a24: rgba(15, 23, 42, 0.24);
-  --ai-c-indigo-600: #4f46e5;
-  --ai-c-indigo-700: #4338ca;
-  --ai-c-indigo-a06: rgba(79, 70, 229, 0.06);
-  --ai-c-indigo-a12: rgba(79, 70, 229, 0.12);
-  --ai-c-indigo-a32: rgba(79, 70, 229, 0.32);
-  --ai-c-violet-600: #7c3aed;
-  --ai-c-violet-50: #f0eaff;
-  --ai-c-cyan-500: #06b6d4;
+  --ai-c-gray-50: #fafafa;
+  --ai-c-gray-75: #f7f7f7;
+  --ai-c-gray-100: #f5f5f5;
+  --ai-c-gray-200: #e5e5e5;
+  --ai-c-slate-400: #a3a3a3;
+  --ai-c-slate-600: #525252;
+  --ai-c-slate-900: #171717;
+  --ai-c-slate-a04: rgba(17, 17, 17, 0.04);
+  --ai-c-slate-a06: rgba(17, 17, 17, 0.06);
+  --ai-c-slate-a07: rgba(17, 17, 17, 0.07);
+  --ai-c-slate-a08: rgba(17, 17, 17, 0.08);
+  --ai-c-slate-a14: rgba(17, 17, 17, 0.14);
+  --ai-c-slate-a24: rgba(17, 17, 17, 0.24);
+  /* Legacy primitive names remain for CSS compatibility; values are neutral. */
+  --ai-c-indigo-600: #171717;
+  --ai-c-indigo-700: #090909;
+  --ai-c-indigo-a06: rgba(17, 17, 17, 0.06);
+  --ai-c-indigo-a12: rgba(17, 17, 17, 0.12);
+  --ai-c-indigo-a32: rgba(17, 17, 17, 0.32);
+  --ai-c-violet-600: #404040;
+  --ai-c-violet-50: #f5f5f5;
+  --ai-c-cyan-500: #525252;
   --ai-c-emerald-500: #10b981;
   --ai-c-amber-500: #f59e0b;
   --ai-c-red-500: #ef4444;
-  --ai-c-blue-500: #3b82f6;
+  --ai-c-blue-500: #525252;
   /* dark-side neutrals + brand alphas (consumed by the .ai-dark semantics) */
-  --ai-c-ink-50: #f5f5f7;
-  --ai-c-ink-300: #a3a3a8;
-  --ai-c-ink-500: #6b6b73;
-  --ai-c-ink-700: #25262f;
-  --ai-c-ink-800: #1c1d26;
-  --ai-c-ink-850: #14151c;
-  --ai-c-ink-900: #0e0f15;
-  --ai-c-ink-950: #0a0b10;
-  --ai-c-ink-980: #0a0a0c;
+  --ai-c-ink-50: #fafafa;
+  --ai-c-ink-300: #a3a3a3;
+  --ai-c-ink-500: #737373;
+  --ai-c-ink-700: #404040;
+  --ai-c-ink-800: #262626;
+  --ai-c-ink-850: #1f1f1f;
+  --ai-c-ink-900: #171717;
+  --ai-c-ink-950: #0a0a0a;
+  --ai-c-ink-980: #050505;
   --ai-c-white-a04: rgba(255, 255, 255, 0.04);
   --ai-c-white-a06: rgba(255, 255, 255, 0.06);
   --ai-c-white-a08: rgba(255, 255, 255, 0.08);
   --ai-c-white-a14: rgba(255, 255, 255, 0.14);
   --ai-c-white-a22: rgba(255, 255, 255, 0.22);
-  --ai-c-brand-a08: rgba(91, 108, 255, 0.08);
-  --ai-c-brand-a18: rgba(91, 108, 255, 0.18);
-  --ai-c-brand-a45: rgba(91, 108, 255, 0.45);
+  --ai-c-brand-a08: rgba(17, 17, 17, 0.08);
+  --ai-c-brand-a18: rgba(17, 17, 17, 0.18);
+  --ai-c-brand-a45: rgba(17, 17, 17, 0.45);
 
   /* ===== Tier 2: semantic color tokens (light) — alias primitives ===== */
   --ai-color-bg-base: var(--ai-c-white);
@@ -136,7 +139,8 @@
   --ai-color-text-tertiary: var(--ai-c-slate-400);
   --ai-color-text-inverse: var(--ai-c-white);
 
-  /* Brand: indigo → violet (Doubao-style) */
+  /* Brand mark follows the selected palette while retaining an ink fallback. */
+  --ai-brand-mark: var(--ai-theme-mark, var(--ai-c-ink-950));
   --ai-color-primary: var(--ai-c-indigo-600);
   --ai-color-primary-strong: var(--ai-c-indigo-700);
   --ai-color-primary-soft: var(--ai-c-indigo-a12);
@@ -154,11 +158,11 @@
   --ai-color-info: var(--ai-c-blue-500);
 
   /* Brand gradients */
-  --ai-grad-brand: linear-gradient(135deg, #5b6cff 0%, #7c5cff 45%, #9333ea 100%);
+  --ai-grad-brand: linear-gradient(135deg, #050505 0%, #171717 45%, #303030 100%);
   --ai-grad-brand-soft: linear-gradient(
     135deg,
-    rgba(91, 108, 255, 0.12) 0%,
-    rgba(147, 51, 234, 0.1) 100%
+    rgba(17, 17, 17, 0.12) 0%,
+    rgba(63, 63, 63, 0.1) 100%
   );
 
   /* Bubbles */
@@ -176,8 +180,7 @@
   --ai-shadow-lg:
     0 32px 64px -16px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.06),
     0 0 0 1px rgba(15, 23, 42, 0.06);
-  --ai-shadow-glow:
-    0 12px 32px -6px var(--ai-color-primary-glow), 0 0 0 1px rgba(91, 108, 255, 0.18);
+  --ai-shadow-glow: 0 12px 32px -6px var(--ai-color-primary-glow), 0 0 0 1px rgba(17, 17, 17, 0.18);
 
   --ai-z-fab: 99999;
   --ai-z-panel: 99999;
@@ -208,9 +211,20 @@
   --ai-color-text-tertiary: var(--ai-c-ink-500);
   --ai-color-text-inverse: var(--ai-c-ink-980);
 
-  --ai-color-primary-soft: var(--ai-c-brand-a18);
-  --ai-color-primary-softer: var(--ai-c-brand-a08);
-  --ai-color-primary-glow: var(--ai-c-brand-a45);
+  --ai-brand-mark: var(--ai-theme-mark-dark, var(--ai-c-ink-50));
+  --ai-color-primary: var(--ai-c-ink-50);
+  --ai-color-primary-strong: var(--ai-c-white);
+  --ai-color-primary-soft: var(--ai-c-white-a14);
+  --ai-color-primary-softer: var(--ai-c-white-a06);
+  --ai-color-primary-glow: var(--ai-c-white-a22);
+  --ai-color-accent-violet: var(--ai-c-ink-300);
+  --ai-color-accent-cyan: var(--ai-c-ink-300);
+  --ai-grad-brand: linear-gradient(135deg, #525252 0%, #303030 48%, #171717 100%);
+  --ai-grad-brand-soft: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04)
+  );
 
   --ai-color-assistant-bubble: var(--ai-c-white-a06);
 

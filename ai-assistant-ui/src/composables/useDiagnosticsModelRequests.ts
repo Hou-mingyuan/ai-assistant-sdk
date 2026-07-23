@@ -64,6 +64,10 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
     fetchHealth,
   };
 
+  function hasRuntimeConfigCredentials() {
+    return Boolean(opts.options.adminToken?.trim() || opts.options.accessToken?.trim());
+  }
+
   async function refreshChatModels() {
     opts.modelListStatus.value = '';
     opts.modelListError.value = '';
@@ -106,7 +110,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
   }
 
   async function refreshRuntimeModelConfig() {
-    if (!opts.options.baseUrl) return;
+    if (!opts.options.baseUrl || !hasRuntimeConfigCredentials()) return;
     const cfg = await api.fetchRuntimeModelConfig(
       opts.options.baseUrl,
       opts.options.accessToken,
@@ -142,7 +146,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
   }
 
   async function saveProviderConfig() {
-    if (!opts.options.baseUrl) return;
+    if (!opts.options.baseUrl || !hasRuntimeConfigCredentials()) return;
     opts.diagnosticsBusy.value = true;
     try {
       const result = await api.saveRuntimeModelConfig(
@@ -169,7 +173,7 @@ export function useDiagnosticsModelRequests(opts: UseDiagnosticsModelRequestsOpt
   }
 
   async function discoverProviderModels() {
-    if (!opts.options.baseUrl) return;
+    if (!opts.options.baseUrl || !hasRuntimeConfigCredentials()) return;
     opts.diagnosticsBusy.value = true;
     try {
       const result = await api.discoverRuntimeProviderModels(

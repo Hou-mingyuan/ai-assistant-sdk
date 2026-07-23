@@ -3,11 +3,12 @@ import { computed, ref } from 'vue';
 
 import { useDiagnosticsModelRequests } from './useDiagnosticsModelRequests';
 
-function makeHarness() {
+function makeHarness(optionsOverride: { accessToken?: string; adminToken?: string } = {}) {
   const options = {
     baseUrl: '/ai-assistant',
     accessToken: 'token',
     adminToken: 'admin',
+    ...optionsOverride,
   };
   const modelChoices = ref<string[]>(['stale']);
   const modelCapabilities = ref<Record<string, string[]>>({ stale: ['chat'] });
@@ -157,5 +158,17 @@ describe('useDiagnosticsModelRequests', () => {
     expect(state.modelChoices.value).toEqual(['stale']);
     expect(state.selectedChatModel.value).toBe('stale');
     expect(state.modelListError.value).toBe('network down');
+  });
+
+  it('does not call admin runtime-config endpoints without host credentials', async () => {
+    const { requests, api } = makeHarness({ accessToken: undefined, adminToken: undefined });
+
+    await requests.refreshRuntimeModelConfig();
+    await requests.saveProviderConfig();
+    await requests.discoverProviderModels();
+
+    expect(api.fetchRuntimeModelConfig).not.toHaveBeenCalled();
+    expect(api.saveRuntimeModelConfig).not.toHaveBeenCalled();
+    expect(api.discoverRuntimeProviderModels).not.toHaveBeenCalled();
   });
 });

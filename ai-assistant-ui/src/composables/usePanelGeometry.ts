@@ -11,8 +11,19 @@ type FabScreenQuadrant = 'tl' | 'tr' | 'bl' | 'br';
 
 const PANEL_W = 480;
 const PANEL_H = 520;
+const TABLET_PANEL_H = 680;
+const TABLET_MIN_WIDTH = 601;
+const TABLET_MAX_WIDTH = 820;
 const PANEL_VIEWPORT_MARGIN = 16;
 const DRAG_CLICK_PX = 8;
+
+export function defaultPanelHeightForViewport(viewportWidth: number, viewportHeight: number) {
+  const preferredHeight =
+    viewportWidth >= TABLET_MIN_WIDTH && viewportWidth <= TABLET_MAX_WIDTH
+      ? TABLET_PANEL_H
+      : PANEL_H;
+  return Math.min(preferredHeight, Math.max(200, viewportHeight - 80));
+}
 
 export const RESIZE_ZONES: { edge: PanelResizeEdge; cls: string }[] = [
   { edge: 'n', cls: 'ai-rz-n' },
@@ -99,10 +110,10 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
 
   function effectivePanelHeightPx(): number {
     if (panelUserSize.value) return panelUserSize.value.h;
-    const { h: vh } = getViewportCssSize();
+    const { w: vw, h: vh } = getViewportCssSize();
     return panelExpanded.value
       ? Math.max(280, vh - 2 * PANEL_VIEWPORT_MARGIN)
-      : Math.min(PANEL_H, Math.max(200, vh - 80));
+      : defaultPanelHeightForViewport(vw, vh);
   }
 
   function togglePanelExpand() {

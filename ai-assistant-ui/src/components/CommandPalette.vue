@@ -290,14 +290,14 @@ async function run(cmd: CommandItem) {
 }
 
 .ai-cmd-palette-item.active {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0ea5e9;
+  background: rgba(17, 17, 17, 0.1);
+  color: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
   .ai-cmd-palette-item.active {
-    background: rgba(56, 189, 248, 0.16);
-    color: #38bdf8;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fafafa;
   }
 }
 

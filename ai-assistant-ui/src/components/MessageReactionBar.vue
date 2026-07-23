@@ -104,7 +104,7 @@ function onClick(emoji: string) {
 }
 
 .ai-reaction-btn:hover {
-  background: rgba(14, 165, 233, 0.1);
+  background: rgba(17, 17, 17, 0.08);
   transform: scale(1.1);
 }
 
@@ -113,7 +113,7 @@ function onClick(emoji: string) {
 }
 
 .ai-reaction-btn.active {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(6, 182, 212, 0.14));
+  background: linear-gradient(135deg, rgba(17, 17, 17, 0.16), rgba(64, 64, 64, 0.12));
 }
 
 .ai-reaction-emoji {
@@ -123,10 +123,24 @@ function onClick(emoji: string) {
 .ai-reaction-count {
   font-size: 11px;
   font-weight: 600;
-  color: #0ea5e9;
+  color: #262626;
   font-variant-numeric: tabular-nums;
   min-width: 8px;
   text-align: left;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ai-reaction-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .ai-reaction-btn.active {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(163, 163, 163, 0.12));
+  }
+
+  .ai-reaction-count {
+    color: #e5e5e5;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

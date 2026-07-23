@@ -384,15 +384,15 @@ function onUse() {
   font-size: 12px;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px dashed var(--ai-primary, #6366f1);
-  color: var(--ai-primary, #6366f1);
+  border: 1px dashed var(--ai-primary, #181818);
+  color: var(--ai-primary, #181818);
   background: transparent;
   cursor: pointer;
   margin-bottom: 4px;
 }
 
 .ai-tpl-add:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(17, 17, 17, 0.08);
 }
 
 .ai-tpl-empty {
@@ -424,7 +424,7 @@ function onUse() {
 
 .ai-tpl-list-item-active {
   background: var(--ai-bg, #ffffff);
-  border-color: var(--ai-primary, #6366f1);
+  border-color: var(--ai-primary, #181818);
   color: var(--ai-text, #0f172a);
 }
 
@@ -443,8 +443,8 @@ function onUse() {
 }
 
 .ai-tpl-badge-preset {
-  background: rgba(99, 102, 241, 0.12);
-  color: var(--ai-primary, #6366f1);
+  background: rgba(17, 17, 17, 0.12);
+  color: var(--ai-primary, #181818);
 }
 
 .ai-tpl-badge-user {
@@ -492,7 +492,7 @@ function onUse() {
 .ai-tpl-input:focus,
 .ai-tpl-textarea:focus {
   outline: none;
-  border-color: var(--ai-primary, #6366f1);
+  border-color: var(--ai-primary, #181818);
   background: var(--ai-bg, #ffffff);
 }
 
@@ -547,7 +547,7 @@ function onUse() {
 }
 
 .ai-tpl-fillform {
-  background: rgba(99, 102, 241, 0.04);
+  background: rgba(17, 17, 17, 0.04);
   border-radius: 6px;
   padding: 8px 10px;
 }
@@ -608,14 +608,14 @@ function onUse() {
 }
 
 .ai-tpl-btn-primary {
-  background: var(--ai-primary, #6366f1);
+  background: var(--ai-primary, #181818);
   color: #ffffff;
-  border-color: var(--ai-primary, #6366f1);
+  border-color: var(--ai-primary, #181818);
 }
 
 .ai-tpl-btn-primary:hover {
   filter: brightness(1.05);
-  background: var(--ai-primary, #6366f1);
+  background: var(--ai-primary, #181818);
 }
 
 .ai-tpl-btn-danger {

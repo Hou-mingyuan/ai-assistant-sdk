@@ -420,23 +420,23 @@ const allModeDeltas = computed(() => {
   font-variant-numeric: tabular-nums;
 }
 .ai-compare-pair-tab:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(17, 17, 17, 0.08);
 }
 .ai-compare-pair-tab-active {
-  background: rgba(59, 130, 246, 0.18);
-  border-color: rgba(59, 130, 246, 0.55);
-  color: #1d4ed8;
+  background: rgba(17, 17, 17, 0.12);
+  border-color: rgba(17, 17, 17, 0.48);
+  color: #171717;
 }
 .ai-dark .ai-compare-pair-tab {
   color: #cbd5e1;
   border-color: rgba(71, 85, 105, 0.55);
 }
 .ai-dark .ai-compare-pair-tab:hover {
-  background: rgba(59, 130, 246, 0.16);
+  background: rgba(255, 255, 255, 0.1);
 }
 .ai-dark .ai-compare-pair-tab-active {
-  background: rgba(59, 130, 246, 0.32);
-  color: #93c5fd;
+  background: rgba(255, 255, 255, 0.16);
+  color: #f5f5f5;
 }
 
 .ai-compare-stats {
@@ -488,11 +488,11 @@ const allModeDeltas = computed(() => {
   color: #fecaca;
 }
 .ai-compare-stat-delta {
-  background: rgba(59, 130, 246, 0.18);
-  color: #1d4ed8;
+  background: rgba(17, 17, 17, 0.1);
+  color: #262626;
 }
 .ai-dark .ai-compare-stat-delta {
-  color: #bfdbfe;
+  color: #e5e5e5;
 }
 .ai-compare-stats-spacer {
   flex: 1 1 auto;
@@ -506,7 +506,7 @@ const allModeDeltas = computed(() => {
   font-weight: 500;
 }
 .ai-compare-stats-toggle input[type='checkbox'] {
-  accent-color: #3b82f6;
+  accent-color: var(--ai-color-primary, #171717);
   cursor: pointer;
 }
 
@@ -546,10 +546,10 @@ const allModeDeltas = computed(() => {
   background: #22c55e;
 }
 .ai-compare-pair-badge-2 {
-  background: #3b82f6;
+  background: #737373;
 }
 .ai-compare-pair-badge-3 {
-  background: #a855f7;
+  background: #525252;
 }
 .ai-compare-pair-label {
   font-size: 12px;
@@ -651,13 +651,13 @@ const allModeDeltas = computed(() => {
 }
 
 .ai-compare-swap {
-  background: rgba(59, 130, 246, 0.12) !important;
-  color: #1d4ed8 !important;
+  background: rgba(17, 17, 17, 0.1) !important;
+  color: #171717 !important;
   margin-right: 8px;
 }
 .ai-dark .ai-compare-swap {
-  background: rgba(59, 130, 246, 0.22) !important;
-  color: #93c5fd !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #f5f5f5 !important;
 }
 .ai-compare-clear {
   background: rgba(239, 68, 68, 0.12) !important;

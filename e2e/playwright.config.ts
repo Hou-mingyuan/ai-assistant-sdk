@@ -5,7 +5,10 @@ const backendOrigin =
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 30_000,
+  // Limit concurrent cold Vite transforms so component bundles are ready within UI waits.
+  timeout: 45_000,
+  expect: { timeout: 10_000 },
+  workers: process.env.CI ? 1 : 3,
   retries: 1,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {

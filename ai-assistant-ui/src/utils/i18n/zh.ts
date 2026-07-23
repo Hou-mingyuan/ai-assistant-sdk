@@ -322,6 +322,7 @@ export const zh: I18nMessages = {
   personalizeAudioRate: '语速',
   personalizeAudioAutoRead: '自动朗读 AI 回复',
   providerConfigTitle: '模型供应商连接',
+  providerConfigPermissionRequired: '宿主应用配置管理令牌或访问令牌后，才能管理模型与联网搜索。',
   providerConfigPresetMinimax: 'MiniMax',
   providerConfigPresetOpenai: 'OpenAI',
   providerConfigPresetDeepseek: 'DeepSeek',

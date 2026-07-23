@@ -70,6 +70,34 @@ describe("Playground App", () => {
     expect(wrapper.find(".stream-status-row").exists()).toBe(true);
   });
 
+  it("synchronizes assistant theme events with the playground palette", async () => {
+    mockFetchSequence([{ body: { success: true, status: "running" } }]);
+    const wrapper = mount(App, {
+      global: {
+        stubs: {
+          ColorThemeSwitcher: ColorThemeSwitcherStub,
+          AdminDemoPanel: AdminDemoPanelStub,
+          CommandPalette: CommandPaletteStub,
+        },
+      },
+    });
+
+    window.dispatchEvent(
+      new CustomEvent("ai-assistant-theme-change", {
+        detail: { theme: "plum", source: "assistant" },
+      }),
+    );
+    await wrapper.vm.$nextTick();
+
+    expect(localStorage.getItem("playground-theme")).toBe("plum");
+    expect(localStorage.getItem("ai-assistant.theme.palette.v1")).toBe("plum");
+    expect(document.documentElement.style.getPropertyValue("--demo-primary-from")).toBe(
+      "#075985",
+    );
+
+    wrapper.unmount();
+  });
+
   it("keeps Ctrl+K scoped to the assistant while retaining the page shortcut", async () => {
     mockFetchSequence([{ body: { success: true, status: "running" } }]);
     const wrapper = mount(App, {

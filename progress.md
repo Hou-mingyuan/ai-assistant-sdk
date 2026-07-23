@@ -2,6 +2,72 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+- E2E flaky 修复已完成无重试复验：原三项超时文件以 `--retries=0 --repeat-each=2` 得到 `14/14`，随后完整套件以 `--retries=0` 得到 `32/32` 一次通过（`3.2m`）。配置保留产品断言，只把 expect/整例冷启动预算调为 `10s/45s`，本地 worker 从 5 限为 3、CI 限为 1。
+- 当前主工作树 109 份 Surefire XML 按顶层模块重新结构化汇总为 `846/846`：server `827`、Demo `3`、Client `14`、observability support `2`，failure/error/skip 均为 `0`；被忽略的 `.local` 干净 clone 报告未混入计数。
+- 最终安全快照 `.local/security-scan-20260723-final` 覆盖当前 `797` 个 Git 可交付文件（约 `16.6 MB`）：固定版本 Trivy `0.72.0` 的 HIGH/CRITICAL、secret、misconfiguration 均为 `0`；OWASP Dependency-Check `12.2.2` 分析 `1734` 个依赖/`404` 个唯一依赖，vulnerable dependency 与 vulnerability 均为 `0`，仅使用 2 条到 `2026-10-22` 到期的精确 Kotlin runtime 误报 suppression。四个 npm 工作区 audit 均为 `0 vulnerabilities`。
+- UI ESLint 最新结果为 `0 error / 17 warning` 并正常退出：`MessageList.vue` 仅比 800 行维护阈值多 2 行；`PersonalizeDialog.vue` 的 16 项为可选 prop 未声明 default，调用方已有传值/显式缺省分支。它们不影响构建、运行、类型或核心流程，不构成 P0/P1/P2；作为低风险维护项保留，避免在最终浏览器验收后引入无业务价值的行为改动。
+- 主工作树首轮最终 E2E 共 `32` 项，退出码为 0，但 Web Component、runtime provider、prompt history 三项在 5-worker 冷启动首轮分别因 5 秒元素等待或 30 秒整例上限超时，重试后通过；未把该轮记为全绿。失败截图显示目标 UI 随后均已渲染，已将本地 worker 限为 3、expect 调为 10 秒、整例调为 45 秒，断言和 retry 策略不变，进入 `retries=0` 复验。
+- 用户截图中的模型下拉排版判定为不合理：旧版桌面与快捷工具重叠约 `22px`，手机重叠约 `44px` 且右侧越界约 `32px`，属于明确可用性缺陷而非主观审美。已在 `99-enterprise-overhaul.css` 将菜单改为 `border-box`、右对齐 `220px` 宽并按响应式高度额外避让 `18px`，同时加入 E2E 与静态几何回归。
+- 修复后真实 Chromium 三视口复验通过：`1440x900` 菜单与快捷工具间距约 `10.5px`，`768x1024` 约 `9px`，`375x812` 约 `9px` 且左右边界完整位于面板内；console `0 error / 0 warning`，templates/models 动态请求均为 `200`。证据位于 `.local/acceptance-fe361f8-19015/output/playwright/final-fe361f8/`。
+- 最终干净 clone `.local/acceptance-0747ed7-19013` 初始 HEAD 精确为 `0747ed7`、Git 干净，`node_modules/dist/target=0`；被忽略的本地配置仅发布 `19013 -> 8080`，后端只在容器内 `8080`，未启动或修改 MySQL、Redis、Chroma。README `demo-standalone.ps1` 在排除旧本项目 Vite 端口占用后 `66.5s` 通过，zero-key `8/8` 与 standalone `5/5` 全绿。
+- 同一干净 clone 中，清除 `NODE_TLS_REJECT_UNAUTHORIZED` 后真实 `@ai-assistant/vue@1.0.1` tarball 安装到全新系统临时项目并解析 ESM/CJS/Web Component/CSS 共 `8` 个公开入口，耗时 `97.5s`，未再出现 TLS 绕过警告。
+- Java Client 文档命令 `mvn -f ai-assistant-client/pom.xml verify` 通过：`14/14`，JAR 与 Spotless 全绿；Starter reactor `mvn -pl ai-assistant-demo -am verify` 通过：server `827/827`、Demo `3/3`，覆盖静态页面、health、liveness/readiness、同步 Chat 和 SSE。
+- README Starter 一键脚本在空闲端口 `19012` 完成 `npm ci`、Vue/Web Component publish build、Starter JAR 打包与真实启动；首页和 Web Component 页均为 `200`、本地 bundle 生效、远程资源为 false，zero-key health/probes/stats/runtime/provider/chat/SSE `8/8` 通过。验收后只停止该 JAR 进程并确认 `19012` 已关闭，`19013` 独立服务容器保持运行。
+- 2026-07-22 续跑确认：Goal 仍为 active，当前 Compose 页面为 `http://127.0.0.1:19014/`；真实 Chromium 快照确认 Obsidian 默认选中、五套主题与助手入口均可见。下一步验证切换主题后 Playground、标题和回复头像三处双闪星同步变色。
+- 真实 Chromium 已展开助手面板；标题区、空状态、模式切换、输入框与发送控件完整可见。继续以浏览器计算样式和持久化值验证 Obsidian -> Circuit/Cobalt 的主题联动。
+- 已核对主题同步实现：Playground 与组件共享两个 localStorage key 和 `ai-assistant-theme-change` 事件，主题 mark 随 Obsidian/Cobalt/Pulse/Circuit/Ember 变化。进入计算样式与真实 SSE 回复头像验证。
+- 一次 Sparkles 源码组合检索因 Windows 引号转义失败，未产生改动；已改为单一字面量检索路线。
+- 真实 Chromium 切换到 Circuit 后，`playground-theme` 与 `ai-assistant.theme.palette.v1` 均为 `forest`；Playground CSS 为 `#065f46 -> #2dd4bf`，组件 CSS 为 `#065f46/#0f766e/#2dd4bf`，标题/空状态/FAB Sparkles 计算 stroke 均为 `rgb(15, 118, 110)`。
+- Circuit radio 的真实浏览器选中态已确认；输入真实 SSE 验收消息后发送按钮由 disabled 变为可点击，准备发起后端流式请求。
+- 当前 `19014` 后端真实 SSE 完成并返回明确 `[DEMO MODE - deterministic local response, not real AI]` 响应，耗时 UI 显示 `0.3s`；回复头像 Sparkles 已出现，标题与头像的实际 stroke 均为 Circuit 的 `rgb(15, 118, 110)`，两个 storage key 保持 `forest`。
+- 同一浏览器会话切换 Cobalt 后，两个 storage key 同步为 `sky`，`--ai-brand-mark=#2457d6`；标题、回复头像与 FAB Sparkles 的实际 color/stroke 全部同步为 `rgb(36, 87, 214)` 且 `fill=none`。
+- Pulse 主题浏览器联动通过：两个 key 均为兼容值 `plum`，mark=`#0891b2`，标题/头像/FAB 三处 Sparkles stroke 均为 `rgb(8, 145, 178)`。
+- Ember 主题浏览器联动通过：两个 key 均为兼容值 `sunset`，mark=`#c2410c`，标题/头像/FAB 三处 Sparkles stroke 均为 `rgb(194, 65, 12)`。
+- 切回 Obsidian 后两个 key 均恢复 `graphite`，mark=`#171717`，标题/头像/FAB 三处 Sparkles color/stroke 均恢复 `rgb(23, 23, 23)` 且 `fill=none`；五套主题联动闭环完成。
+- 已确认浏览器验收工具可直接设置精确 viewport、保存命名截图、读取 console 与请求明细；接下来产出 `1440x900`、`768x1024`、`375x812` 当前构建证据。
+- 当前构建 Obsidian 桌面 `1440x900` 截图 `output/playwright/tech-themes-obsidian-19014-1440x900.png` 已人工检查：默认 Sparkles 近黑，页面/面板主视觉为黑白灰，主题色仅作为可选 accent，未见紫色品牌残留、文字截断或横向溢出。
+- Circuit 平板 `768x1024` 截图 `output/playwright/tech-themes-circuit-19014-768x1024.png` 已生成；页面与面板宽度、主题色和导航响应式正常。截图中快捷模板区与末条回复底部视觉距离很近，先以 DOM 几何确认是否真实遮挡，未确认前不记为通过或缺陷。
+- 平板布局修复后的真实 SSE 复验通过：`768x1024` 消息可见区域与快捷模板交集为 `0`，间距 `4px`，回复操作栏和 reaction bar 均完整可见；最终截图为 `output/playwright/tech-themes-circuit-19014-768x1024-final.png`。
+- 手机 `375x812` Pulse 主题复验通过：`plum/plum` 存储与 `#0891b2` 品牌令牌一致，标题/历史头像/FAB 双闪星同步，面板无横向溢出、可见控件全部至少 `44px`；截图为 `output/playwright/tech-themes-pulse-19014-375x812-recheck.png`。
+- 桌面 `1440x900` Obsidian 主题复验通过：`graphite/graphite` 存储、`#171717` 品牌令牌和三处 Sparkles 计算样式一致；面板完整落入视口、无横向溢出或消息/模板遮挡，截图为 `output/playwright/tech-themes-obsidian-19014-1440x900-final.png`。
+- 真实 Chromium 三页回归结束：Demo/Admin/Form Auto-Fill 均可进入，控制台 `0 error / 0 warning`，动态接口与真实 SSE 均为 `200`；`theme-current-19014` 会话已关闭。
+- 完整 release check 通过：95 个脚本测试、OpenAPI 类型/快照、UI 发布构建、27 个导出、bundle/依赖/CSS 预算全部通过；`!important` 从基线 1787 降到 1776。
+- Maven 六模块 `clean verify` 通过，109 份 Surefire 报告汇总为 `846/846`、0 failure/error/skip；UI `801/801`、Playground `14/14`、Playwright E2E `31/31`，UI lint 为 0 error，格式、Playground 和 docs 构建均通过。
+- npm 全新临时消费项目成功解析 8 个公开导出；`19014` zero-key `8/8`、standalone `5/5`。最新 Demo benchmark 160/160 成功，health/chat/SSE TTFT p95 为 `16.34/22.90/35.00ms`。
+- 四个 npm 工作区 audit 均为 0 vulnerabilities；当前 797 个 Git 可交付文件的固定 digest Trivy 0.72 离线扫描为 `HIGH/CRITICAL=0`、secret=0、misconfiguration=0。OWASP Dependency-Check 12.2.2 使用本地 2026-07-22 数据库、`CVSS >= 9` 和精确 suppression 后 `BUILD SUCCESS`。
+- Lighthouse 主题版真实 JSON 已如实同步到 `PERFORMANCE_REPORT.md`：移动两次 Performance `80/84`、Accessibility/Best Practices `100/100`，均带慢 CPU 校准告警；桌面 `99/100/100` 且无运行告警。
+- 提交前人工差异复查补掉暗色粒子层最后一处紫色 RGB，并把暗面板背景改为中性黑；主题契约补充遗漏色值后 `5/5`，全源紫色字面量扫描无匹配。
+- 暗色残留修复后的 `project-health-check --release-check-full` 重新通过：95 个仓库脚本、OpenAPI、UI 发布构建、27 个导出、bundle、依赖、CSS 和 support boundary 全绿；该轮才作为主题阶段最终自动化证据。
+- DOM 几何确认 P2：`.ai-footer-quick-toggles` 与末条助手 bubble 垂直重叠 `22.85px`；根因是末端 CSS 将快捷模板行绝对定位到 footer 上方且不预留布局空间。进入最小样式修复与回归测试。
+- 新增布局契约首次因测试闭合符号错误未进入断言；语法已修正，重新获取缺少预留空间的有效红灯。
+- 有效 RED：主题/布局契约 `4/5`，仅“快捷模板必须预留响应式布局行”失败。CSS 改为保留绝对悬浮视觉，同时 footer 通过 `--ai-quick-toggle-min-height + 8px` 预留空间并锁定单行；GREEN `5/5`。
+- 修复后定向验证：`ChatInputArea.spec.ts` `28/28`、目标 CSS Prettier、脚本 `node --check` 与 `git diff --check` 全部通过；准备重建 `19014` 当前源码容器做真实浏览器复验。
+- 当前源码 Compose 重建完成（159.2s）：仅 `ai-assistant`/`web`，两容器 healthy；Web 镜像 `sha256:f648de12...`，后端保持内部 `8080`，宿主仅 `19014 -> 8080`。启动无 error，demo 环境保留预期空 token/CORS 警告。
+- 新构建平板几何确认 CSS 生效：footer `margin-top=52px`，消息 viewport `bottom=766.2`，快捷模板 `top=770.2`，可见区域间隔 `4px`，页面横向溢出 `0`。原始 bubble rect 延伸到滚动容器裁剪区外，需用裁剪后矩形和 scroll-bottom 状态复核。
+- 修复后平板 scroll 已在底部（距底 `1.2px`），但面板固定 `520px`、消息 viewport 仅 `180px`，截图只露出回复操作栏；继续定位 `useWrapperStyles`/平板断点扩大消息可见区。一次只读检索包含不存在路径，已记录并收窄。
+- 随后一次可选测试检索返回码 1 又使并行组丢失输出，未改产品文件；停止并行可选查询，改为逐条读取已确认路径。
+- `usePanelGeometry.spec.ts` 路径假设再次失败；已确认实现默认 `PANEL_H=520`，下一步从实际测试文件清单定位覆盖位置。
+- 新增纯 geometry 测试有效 RED `0/3`（helper 不存在）；实现平板 `601-820px` 默认高度 `680px`、低视口 `height-80px` clamp 后，geometry/resize/wrapper 定向 `12/12`、主题布局契约 `5/5`、目标 Prettier 与 diff check 均通过。
+- 平板高度版 Web 镜像重建为 `sha256:f379c452...`，两容器 healthy、宿主仍仅 `19014`。Compose 因依赖关系同时重建后端 manifest 并重建容器，但 Maven/运行层全缓存且后端镜像创建时间未变；未触碰 shared-infra。
+
+### 用户追加黑色主题统一要求
+
+- 已把“黑色双闪星 + 全局黑白灰科技主题 + 清除紫色品牌残留”纳入完成门槛；现有黑色图标提交不视为完成。
+- 初步代码审计确认 Playground 和 UI 历史样式仍存在可见紫色/靛蓝品牌色，下一步从主题变量、Playground 页面层和 Web Component 最终样式层精确收敛，并补测试和真实浏览器证据。
+- 当前分支 `agent/v1.0.1-release-candidate` 工作树干净，相对远端 ahead 3 / behind 2；保留全部现有提交，最终以非破坏性整合处理分叉。
+- 已定位三层根因：组件默认 `sky`/彩色预设、最终 CSS 的紫色硬编码、Playground 页面自己的紫/青渐变。后续采用统一 ink/graphite 中性色令牌，状态语义色保持独立。
+- 已检查历史真实运行图 `entry-desktop.png` 与 `panel-empty-desktop.png`，确认蓝色星形、紫色面板光晕和彩色主题色块均可见；这些截图作为修改前视觉基线。
+- 一次递归图片检索误扫入本地干净 clone 的 Git 对象并在 10 秒超时，未修改文件；已收窄为已确认的截图路径，不再重复宽范围递归查询。
+- 已读主题核心实现：`00-enterprise-tokens.css`、`09-modern-overhaul.css`、`ColorThemeSwitcher.vue`、`AiAssistant.vue` 和 Playground 主题状态；决定修改源令牌并保留历史主题 ID，而不是增加高优先级补丁层。
+- 颜色计数确认最终 CSS 仍有大量可见靛蓝/紫色硬编码；将以确定性颜色映射和静态扫描测试收敛，而不是只更新默认变量。
+- 测试检索再次把 `ColorThemeSwitcher*` / `AiAssistant*.spec.ts` 作为 Windows 字面 glob 传给 `rg`，返回路径语法错误且未修改文件；后续只使用已确认目录与 `rg -g`，不再使用字面 glob。
+- 新增 `scripts/frontend-ink-theme.test.mjs`，首轮 `0/4` 按预期失败；完成基础令牌、五个中性预设、Playground/Admin 品牌色和字体栈修改后复跑为 `2/4`。
+- 当前剩余失败为 `AiAssistant.vue` 的旧默认 fallback 与 Sparkles 仍引用主题变量；全源扫描另发现多个功能弹窗的靛紫 RGB 字面量，下一步统一映射并把静态契约扩大到整个 UI 源目录。
+- 已通过 `apply_patch` 对整个 `ai-assistant-ui/src` 清理 311 行紫色字面量，并同步组件/Playground/Admin 源令牌与中性色预设；未增加 `!important`，未改公共事件和业务逻辑。
+- `node --test scripts/frontend-ink-theme.test.mjs` 已从 `0/4`、`2/4`、`3/4` 收敛到 `4/4` 全绿；下一步验证格式、组件测试、构建和浏览器视觉。
+- 新增 `ColorThemeSwitcher.spec.ts`，验证 5 个中性色 radio、Obsidian 选中态和切换事件；UI 全量为 `102` 个文件、`796/796` 通过。
+- UI Prettier 通过，ESLint 0 error（仅 `MessageList.vue` 既有 802 行 warning），`git diff --check` 通过；Playground 组件测试 `13/13` 通过。
+
 ### 用户追加星形品牌视觉
 
 - 已核对两张参考图和当前未提交差异：入口已改用 Lucide `Sparkles`，本轮继续将标题栏、空状态和助手消息头像统一为无圆底星形，并保留原布局占位与可点击区域。

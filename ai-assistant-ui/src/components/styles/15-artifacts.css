@@ -27,8 +27,8 @@
 }
 
 .ai-artifact-card:hover:not(:disabled) {
-  border-color: var(--ai-c-primary, #6366f1);
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.14);
+  border-color: var(--ai-c-primary, #111111);
+  box-shadow: 0 2px 10px rgba(17, 17, 17, 0.14);
 }
 
 .ai-artifact-card:active:not(:disabled) {
@@ -85,7 +85,7 @@
 }
 
 .ai-artifact-card-open {
-  color: var(--ai-c-primary, #6366f1);
+  color: var(--ai-c-primary, #111111);
 }
 
 /* ---------- 面板内 Canvas 覆盖层 ---------- */
@@ -144,7 +144,7 @@
   padding: 2px 6px;
   border-radius: 5px;
   color: #fff;
-  background: var(--ai-c-primary, #6366f1);
+  background: var(--ai-c-primary, #111111);
   flex: none;
 }
 
@@ -261,19 +261,19 @@
 
 /* ---------- P1：按钮态 / 版本 / diff / 编辑 / mermaid ---------- */
 .ai-artifact-btn.is-active {
-  border-color: var(--ai-c-primary, #6366f1);
-  color: var(--ai-c-primary, #6366f1);
+  border-color: var(--ai-c-primary, #111111);
+  color: var(--ai-c-primary, #111111);
 }
 
 .ai-artifact-btn-primary {
-  background: var(--ai-c-primary, #6366f1);
-  border-color: var(--ai-c-primary, #6366f1);
+  background: var(--ai-c-primary, #111111);
+  border-color: var(--ai-c-primary, #111111);
   color: #fff;
 }
 
 .ai-artifact-btn-primary:hover {
   filter: brightness(1.05);
-  background: var(--ai-c-primary, #6366f1);
+  background: var(--ai-c-primary, #111111);
 }
 
 .ai-artifact-versions {
@@ -304,8 +304,8 @@
 }
 
 .ai-artifact-version-pill.is-active {
-  background: var(--ai-c-primary, #6366f1);
-  border-color: var(--ai-c-primary, #6366f1);
+  background: var(--ai-c-primary, #111111);
+  border-color: var(--ai-c-primary, #111111);
   color: #fff;
 }
 

@@ -348,7 +348,7 @@ function applyResend() {
     <div v-if="hasVersions" class="ai-artifact-versions">
       <span class="ai-artifact-versions-label">版本</span>
       <button
-        v-for="(v, i) in versions"
+        v-for="(_, i) in versions"
         :key="i"
         type="button"
         class="ai-artifact-version-pill"

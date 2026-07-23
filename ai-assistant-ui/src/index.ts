@@ -143,7 +143,7 @@ export interface AiAssistantOptions {
 
 const defaultOptions: AiAssistantOptions = {
   baseUrl: '/ai-assistant',
-  primaryColor: '#6366f1',
+  primaryColor: '#181818',
   position: 'bottom-right',
   theme: 'light',
   persistHistory: false,

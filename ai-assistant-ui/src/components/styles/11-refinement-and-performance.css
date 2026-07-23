@@ -92,10 +92,9 @@
   --ai-shadow-md: 0 2px 4px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.06);
   --ai-shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
   --ai-shadow-xl: 0 6px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.1);
-  --ai-shadow-glow-sky:
-    0 0 0 1px rgba(14, 165, 233, 0.16), 0 4px 12px -4px rgba(14, 165, 233, 0.32);
+  --ai-shadow-glow-sky: 0 0 0 1px rgba(17, 17, 17, 0.16), 0 4px 12px -4px rgba(17, 17, 17, 0.32);
   --ai-shadow-glow-sky-strong:
-    0 0 0 1px rgba(14, 165, 233, 0.28), 0 8px 20px -6px rgba(14, 165, 233, 0.42);
+    0 0 0 1px rgba(17, 17, 17, 0.28), 0 8px 20px -6px rgba(17, 17, 17, 0.42);
 }
 
 [data-theme='dark'] {
@@ -105,9 +104,9 @@
   --ai-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.32), 0 8px 24px rgba(0, 0, 0, 0.28);
   --ai-shadow-xl: 0 6px 12px rgba(0, 0, 0, 0.36), 0 12px 32px rgba(0, 0, 0, 0.32);
   --ai-shadow-glow-sky:
-    0 0 0 1px rgba(56, 189, 248, 0.22), 0 4px 12px -4px rgba(56, 189, 248, 0.36);
+    0 0 0 1px rgba(255, 255, 255, 0.18), 0 4px 12px -4px rgba(255, 255, 255, 0.26);
   --ai-shadow-glow-sky-strong:
-    0 0 0 1px rgba(56, 189, 248, 0.34), 0 8px 20px -6px rgba(56, 189, 248, 0.46);
+    0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px -6px rgba(255, 255, 255, 0.34);
 }
 
 /* ============================================================================
@@ -469,14 +468,14 @@
 .ai-prompt-tpl-item:hover,
 .ai-tab:hover,
 .ai-list-item:hover {
-  background-color: rgba(14, 165, 233, 0.06);
+  background-color: rgba(17, 17, 17, 0.06);
 }
 
 .ai-session-item.active,
 .ai-prompt-tpl-item.active,
 .ai-tab.active,
 .ai-list-item.active {
-  background-color: rgba(14, 165, 233, 0.12);
+  background-color: rgba(17, 17, 17, 0.12);
 }
 
 /* ============================================================================
@@ -492,8 +491,8 @@
 .ai-fab {
   /* 复杂 box-shadow 改为 sharp + 一个 secondary 层即可 */
   box-shadow:
-    0 6px 16px -4px rgba(14, 165, 233, 0.36),
-    0 2px 4px rgba(14, 165, 233, 0.18);
+    0 6px 16px -4px rgba(17, 17, 17, 0.36),
+    0 2px 4px rgba(17, 17, 17, 0.18);
 }
 
 /* ============================================================================
@@ -560,9 +559,9 @@
 
 .ai-empty .ai-starter:hover,
 .ai-suggestion-chip:hover {
-  background: rgba(14, 165, 233, 0.08);
-  border-color: rgba(14, 165, 233, 0.32);
-  color: #0ea5e9;
+  background: rgba(17, 17, 17, 0.08);
+  border-color: rgba(17, 17, 17, 0.32);
+  color: #171717;
   transform: translateY(-1px);
 }
 

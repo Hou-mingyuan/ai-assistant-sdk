@@ -171,9 +171,9 @@
   transform: scale(1.12);
   box-shadow:
     0 16px 38px -10px rgba(0, 0, 0, 0.45),
-    0 0 0 4px rgba(59, 130, 246, 0.18),
-    0 0 0 10px rgba(59, 130, 246, 0.08),
-    0 0 64px -12px rgba(99, 102, 241, 0.85);
+    0 0 0 4px rgba(17, 17, 17, 0.18),
+    0 0 0 10px rgba(17, 17, 17, 0.08),
+    0 0 64px -12px rgba(17, 17, 17, 0.85);
   animation: ai-fab-drop-pulse 1.25s ease-in-out infinite;
 }
 /* K41 a11y: respect user motion preferences — keep the static glow ring,
@@ -294,13 +294,13 @@
   transition: background 0.12s ease;
 }
 .ai-kb-picker-item:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(17, 17, 17, 0.08);
 }
 .ai-kb-picker-shell.ai-dark .ai-kb-picker-item {
   color: #e2e8f0;
 }
 .ai-kb-picker-shell.ai-dark .ai-kb-picker-item:hover {
-  background: rgba(59, 130, 246, 0.22);
+  background: rgba(255, 255, 255, 0.1);
 }
 .ai-kb-picker-item-name {
   font-weight: 500;
@@ -365,9 +365,9 @@
   opacity: 1;
 }
 .ai-code-cmp-btn:hover {
-  background: rgba(59, 130, 246, 0.18);
-  color: #1d4ed8;
-  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(17, 17, 17, 0.1);
+  color: #171717;
+  border-color: rgba(17, 17, 17, 0.48);
 }
 .ai-code-cmp-btn-added {
   opacity: 1 !important;
@@ -381,8 +381,8 @@
   border-color: rgba(71, 85, 105, 0.55);
 }
 .ai-dark .ai-code-cmp-btn:hover {
-  background: rgba(59, 130, 246, 0.32);
-  color: #93c5fd;
+  background: rgba(255, 255, 255, 0.14);
+  color: #f5f5f5;
 }
 .ai-dark .ai-code-cmp-btn-added {
   background: rgba(34, 197, 94, 0.32) !important;
@@ -404,11 +404,11 @@
 }
 .ai-kb-picker-item-create {
   border-top: 1px dashed rgba(148, 163, 184, 0.35);
-  color: #1d4ed8;
+  color: #171717;
   font-weight: 600;
 }
 .ai-kb-picker-shell.ai-dark .ai-kb-picker-item-create {
-  color: #93c5fd;
+  color: #f5f5f5;
   border-top-color: rgba(71, 85, 105, 0.55);
 }
 @keyframes ai-fab-drop-pulse {
@@ -416,16 +416,16 @@
   100% {
     box-shadow:
       0 16px 38px -10px rgba(0, 0, 0, 0.45),
-      0 0 0 4px rgba(59, 130, 246, 0.18),
-      0 0 0 10px rgba(59, 130, 246, 0.08),
-      0 0 64px -12px rgba(99, 102, 241, 0.85);
+      0 0 0 4px rgba(17, 17, 17, 0.18),
+      0 0 0 10px rgba(17, 17, 17, 0.08),
+      0 0 64px -12px rgba(17, 17, 17, 0.85);
   }
   50% {
     box-shadow:
       0 16px 38px -10px rgba(0, 0, 0, 0.45),
-      0 0 0 6px rgba(59, 130, 246, 0.28),
-      0 0 0 14px rgba(59, 130, 246, 0.12),
-      0 0 84px -12px rgba(99, 102, 241, 0.95);
+      0 0 0 6px rgba(17, 17, 17, 0.28),
+      0 0 0 14px rgba(17, 17, 17, 0.12),
+      0 0 84px -12px rgba(17, 17, 17, 0.95);
   }
 }
 /* Inline label that fades in above the FAB while a file is dragged over. */
@@ -466,21 +466,21 @@
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 80px);
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--primary, #6366f1) 15%, rgba(15, 23, 42, 0.12));
+  border: 1px solid color-mix(in srgb, var(--primary, #181818) 15%, rgba(15, 23, 42, 0.12));
   box-shadow:
     0 1px 2px #0000000a,
     0 16px 52px rgba(15, 23, 42, 0.17),
     0 0 0 1px #ffffffa3 inset,
-    0 0 48px -18px color-mix(in srgb, var(--primary, #6366f1) 14%, transparent);
+    0 0 48px -18px color-mix(in srgb, var(--primary, #181818) 14%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background:
-    repeating-linear-gradient(0deg, transparent 0 17px, rgba(99, 102, 241, 0.045) 17px 18px),
-    repeating-linear-gradient(90deg, transparent 0 17px, rgba(99, 102, 241, 0.038) 17px 18px),
+    repeating-linear-gradient(0deg, transparent 0 17px, rgba(17, 17, 17, 0.045) 17px 18px),
+    repeating-linear-gradient(90deg, transparent 0 17px, rgba(17, 17, 17, 0.038) 17px 18px),
     radial-gradient(
       ellipse 130% 88% at 50% -26%,
-      color-mix(in srgb, var(--primary, #6366f1) 14%, transparent),
+      color-mix(in srgb, var(--primary, #181818) 14%, transparent),
       transparent 54%
     ),
     radial-gradient(ellipse 76% 56% at 106% 96%, rgba(217, 119, 87, 0.09), transparent 48%),

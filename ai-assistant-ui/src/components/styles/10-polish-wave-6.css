@@ -6,7 +6,7 @@
  * 设计原则：
  * 1. 仅在现有元素上叠加 CSS（不引入新 markup）。
  * 2. 全部尊重 prefers-reduced-motion；动画时长 ≤ 240ms。
- * 3. 与 v2 sky tech blue 主题色保持一致。
+ * 3. 与 v2 ink / graphite 主题色保持一致。
  * 4. 暗色 / 亮色都打磨；hover、focus、active 三态完整。
  *
  * 覆盖范围：
@@ -55,7 +55,7 @@
 /* ============================================================================
  * B. 助手气泡悬停发光
  * ---------------------------------------------------------------------------
- * 鼠标悬停时气泡微微浮起 + 边缘 sky-blue 微光，提示可交互。
+ * 鼠标悬停时气泡微微浮起 + 边缘 ink 微光，提示可交互。
  * ============================================================================
  */
 .ai-msg.ai-msg-assistant .ai-bubble {
@@ -69,20 +69,20 @@
 .ai-msg.ai-msg-assistant .ai-bubble:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 4px 16px -4px rgba(14, 165, 233, 0.18),
-    0 0 0 1px rgba(14, 165, 233, 0.12);
+    0 4px 16px -4px rgba(17, 17, 17, 0.18),
+    0 0 0 1px rgba(17, 17, 17, 0.12);
 }
 
 [data-theme='dark'] .ai-msg.ai-msg-assistant .ai-bubble:hover {
   box-shadow:
-    0 4px 16px -4px rgba(56, 189, 248, 0.22),
-    0 0 0 1px rgba(56, 189, 248, 0.18);
+    0 4px 16px -4px rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 /* ============================================================================
  * C. 思考中胶囊
  * ---------------------------------------------------------------------------
- * "Thinking..." 胶囊用 sky-blue 渐变 + 缓慢 breathing 透明度，避免静态死板。
+ * "Thinking..." 胶囊用 graphite 渐变 + 缓慢 breathing 透明度，避免静态死板。
  * ============================================================================
  */
 @keyframes ai-thinking-breath {
@@ -100,10 +100,10 @@
 .ai-thinking-pill {
   background: linear-gradient(
     90deg,
-    rgba(14, 165, 233, 0.12),
-    rgba(6, 182, 212, 0.18),
-    rgba(59, 130, 246, 0.12),
-    rgba(14, 165, 233, 0.12)
+    rgba(17, 17, 17, 0.12),
+    rgba(64, 64, 64, 0.18),
+    rgba(82, 82, 82, 0.12),
+    rgba(17, 17, 17, 0.12)
   );
   background-size: 200% 100%;
   animation: ai-thinking-breath 2.4s ease-in-out infinite;
@@ -135,7 +135,7 @@
   height: 1.05em;
   margin-left: 2px;
   vertical-align: text-bottom;
-  background: linear-gradient(180deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(180deg, #171717, #525252);
   border-radius: 2px;
   animation: ai-cursor-pulse 1.05s ease-in-out infinite;
   transform-origin: center;
@@ -151,13 +151,13 @@
   0%,
   100% {
     box-shadow:
-      0 8px 24px -6px rgba(14, 165, 233, 0.42),
-      0 0 0 0 rgba(14, 165, 233, 0.18);
+      0 8px 24px -6px rgba(17, 17, 17, 0.42),
+      0 0 0 0 rgba(17, 17, 17, 0.18);
   }
   50% {
     box-shadow:
-      0 8px 24px -4px rgba(14, 165, 233, 0.52),
-      0 0 0 8px rgba(14, 165, 233, 0);
+      0 8px 24px -4px rgba(17, 17, 17, 0.52),
+      0 0 0 8px rgba(17, 17, 17, 0);
   }
 }
 
@@ -182,7 +182,7 @@
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.32) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(17, 17, 17, 0.28) 0%, transparent 60%);
   opacity: 0;
   transform: scale(0.6);
   transition:
@@ -206,12 +206,12 @@
  */
 .ai-empty,
 .ai-empty-state {
-  background: linear-gradient(180deg, rgba(14, 165, 233, 0.04) 0%, transparent 50%);
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0.04) 0%, transparent 50%);
 }
 
 .ai-empty h3,
 .ai-empty-state h3 {
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4, #3b82f6);
+  background: linear-gradient(135deg, #171717, #404040, #737373);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -232,14 +232,14 @@
 .ai-suggestion-chip:hover,
 .ai-empty button:hover {
   transform: translateY(-2px);
-  border-color: rgba(14, 165, 233, 0.4);
-  box-shadow: 0 6px 16px -6px rgba(14, 165, 233, 0.3);
+  border-color: rgba(17, 17, 17, 0.4);
+  box-shadow: 0 6px 16px -6px rgba(17, 17, 17, 0.3);
 }
 
 /* ============================================================================
  * G. 头像光晕
  * ---------------------------------------------------------------------------
- * 助手头像加 sky-blue gradient 环；loading 时旋转环带。
+ * 助手头像加 ink gradient 环；loading 时旋转环带。
  * ============================================================================
  */
 @keyframes ai-avatar-rotate {
@@ -253,7 +253,7 @@
 
 .ai-avatar.ai-avatar-assistant {
   position: relative;
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
+  background: linear-gradient(135deg, #171717, #525252) !important;
   color: #fff !important;
   font-weight: 600;
   border: 2px solid transparent;
@@ -267,11 +267,11 @@
   padding: 2px;
   background: conic-gradient(
     from 0deg,
-    rgba(14, 165, 233, 0),
-    rgba(14, 165, 233, 0.5),
-    rgba(6, 182, 212, 0.6),
-    rgba(59, 130, 246, 0.5),
-    rgba(14, 165, 233, 0)
+    rgba(17, 17, 17, 0),
+    rgba(17, 17, 17, 0.5),
+    rgba(82, 82, 82, 0.6),
+    rgba(115, 115, 115, 0.5),
+    rgba(17, 17, 17, 0)
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -293,7 +293,7 @@
 /* ============================================================================
  * H. 输入框聚焦光晕
  * ---------------------------------------------------------------------------
- * 输入框聚焦时 4px sky-blue glow halo（比单调的 outline 美观）。
+ * 输入框聚焦时使用 4px ink glow halo（比单调的 outline 更清晰）。
  * ============================================================================
  */
 .ai-input,
@@ -313,10 +313,10 @@
 .ai-input:focus-visible,
 .ai-input-textarea:focus-visible {
   outline: none;
-  border-color: rgba(14, 165, 233, 0.6) !important;
+  border-color: rgba(17, 17, 17, 0.6) !important;
   box-shadow:
-    0 0 0 3px rgba(14, 165, 233, 0.12),
-    0 1px 2px rgba(14, 165, 233, 0.06);
+    0 0 0 3px rgba(17, 17, 17, 0.12),
+    0 1px 2px rgba(17, 17, 17, 0.06);
 }
 
 /* ============================================================================
@@ -352,7 +352,7 @@
 
 .ai-body::-webkit-scrollbar-thumb:hover,
 .ai-messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(14, 165, 233, 0.45);
+  background: rgba(17, 17, 17, 0.45);
 }
 
 [data-theme='dark'] .ai-body::-webkit-scrollbar-thumb,
@@ -378,7 +378,7 @@
 .ai-scroll-to-bottom-btn:hover,
 .ai-jump-bottom-btn:hover {
   transform: translateY(2px) scale(1.05);
-  box-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.32);
+  box-shadow: 0 6px 16px -4px rgba(17, 17, 17, 0.32);
 }
 
 .ai-scroll-to-bottom-btn:active,
@@ -435,7 +435,7 @@
       transparent 65%,
       transparent 100%
     ),
-    linear-gradient(135deg, #0ea5e9, #06b6d4) !important;
+    linear-gradient(135deg, #171717, #525252) !important;
   background-size:
     200% 100%,
     100% 100%;

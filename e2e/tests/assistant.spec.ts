@@ -220,6 +220,52 @@ test.describe('AI Assistant Widget', () => {
     await expect(statusRow).toHaveCSS('display', 'grid')
   })
 
+  test('model picker clears quick tools and stays inside the panel', async ({ page }) => {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 375, height: 812 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await page.reload()
+      await page.waitForSelector('.ai-fab')
+      await page.click('.ai-fab')
+
+      const trigger = page.locator('.ai-model-picker-trigger')
+      await expect(trigger).toBeEnabled()
+      await trigger.click()
+      await expect(page.locator('.ai-model-menu')).toBeVisible()
+
+      const geometry = await page.locator('.ai-panel').evaluate((panel) => {
+        const rect = (element: Element) => {
+          const bounds = element.getBoundingClientRect()
+          return {
+            left: bounds.left,
+            right: bounds.right,
+            top: bounds.top,
+            bottom: bounds.bottom,
+          }
+        }
+        const childRect = (selector: string) => {
+          const element = panel.querySelector(selector)
+          if (!element) throw new Error(`Missing ${selector}`)
+          return rect(element)
+        }
+        return {
+          panel: rect(panel),
+          menu: childRect('.ai-model-menu'),
+          quickTools: childRect('.ai-footer-quick-toggles'),
+        }
+      })
+
+      expect(geometry.menu.bottom).toBeLessThanOrEqual(geometry.quickTools.top - 3)
+      expect(geometry.menu.left).toBeGreaterThanOrEqual(geometry.panel.left - 1)
+      expect(geometry.menu.right).toBeLessThanOrEqual(geometry.panel.right + 1)
+
+      await trigger.click()
+      await page.click('.ai-close')
+    }
+  })
+
   test('connection settings update diagnostics endpoint', async ({ page }) => {
     await page.route('**/custom-ai/**', async (route) => {
       await route.fulfill({

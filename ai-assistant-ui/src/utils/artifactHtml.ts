@@ -52,7 +52,7 @@ const PAGE_CSS = `
 html,body{margin:0}
 body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;color:#1f2328;background:#f6f8fa;line-height:1.6}
 .art-head{display:flex;align-items:center;gap:10px;padding:14px 20px;background:#fff;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:5}
-.art-badge{flex:none;font-size:12px;font-weight:600;color:#fff;background:#6366f1;border-radius:6px;padding:3px 9px;letter-spacing:.3px}
+.art-badge{flex:none;font-size:12px;font-weight:600;color:#fff;background:#181818;border-radius:6px;padding:3px 9px;letter-spacing:.3px}
 .art-title{font-size:16px;margin:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .art-main{max-width:960px;margin:0 auto;padding:20px}
 .art-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;min-height:80px}

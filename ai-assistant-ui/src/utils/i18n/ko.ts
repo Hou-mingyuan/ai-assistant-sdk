@@ -331,6 +331,8 @@ export const ko: I18nMessages = {
   personalizeAudioRate: '속도',
   personalizeAudioAutoRead: 'AI 답변 자동 읽기',
   providerConfigTitle: '모델 공급자 연결',
+  providerConfigPermissionRequired:
+    '모델과 웹 검색을 관리하려면 호스트 앱에 관리자 토큰 또는 액세스 토큰을 설정하세요.',
   providerConfigPresetMinimax: 'MiniMax',
   providerConfigPresetOpenai: 'OpenAI',
   providerConfigPresetDeepseek: 'DeepSeek',

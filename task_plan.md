@@ -11,7 +11,8 @@
 - [x] 验证 Starter、独立服务、Java Client、Vue plugin、Web Component 的公共协议、真实 provider 契约、安全与可观测性。
 - [x] 完成 Playground 的页面、交互、状态、三视口响应式和真实浏览器探索验收。
 - [x] 完成 Maven、前端 lint/typecheck/test/build、文档、E2E、smoke、性能、secret scan 与 diff check。
-- [ ] 从干净 clone 按 README 验证一键启动和至少一条真实消费路径，记录耗时与结果。
+- [x] 将双闪星和 Playground/Vue/Web Component 全局视觉统一为黑白灰科技主题，清除紫色品牌残留并重新完成三视口浏览器验收。
+- [x] 从干净 clone 按 README 验证一键启动和至少一条真实消费路径，记录耗时与结果。
 - [ ] 确认零已知 P0/P1、核心流程无已知可复现 P2，整理证据并完成提交、推送、合并。
 
 执行边界：
@@ -27,10 +28,31 @@
 3. `complete` 收敛协议、安全、可观测性和真实 provider 适配。
 4. `complete` 完善前端、Web Component、Playground 与响应式体验。
 5. `complete` 执行完整自动化、性能、安全和真实浏览器验收。
-6. `in_progress` 干净 clone 一键启动与全新示例消费验证。
-7. `pending` 缺陷终审、证据整理、提交、推送、合并。
+6. `complete` 黑色品牌主题回归、干净 clone 一键启动与全新示例消费验证。
+7. `in_progress` 缺陷终审、证据整理、提交、推送、合并。
 
 当前已知工具问题：
+- 最终格式核对误借用了 UI 包的 Prettier 检查 E2E 配置；E2E 包没有声明 Prettier、配置或格式脚本，该命令按默认双引号规则报告风格差异但未写文件，不能作为本包门禁。配置保持既有单引号风格，以 Playwright 实际解析和 E2E 结果验收。
+- 定向 E2E 首次把 Windows 反斜杠测试路径传给 Playwright，工具返回 `No tests found` 且未执行产品断言；改用正斜杠后同一目标以 `--retries=0 --repeat-each=2` 得到 `14/14`，不把前一次命令错误计为产品失败或通过。
+- 最终安全快照首次创建命令遗漏 `Test-Path` 条件括号，目录尚未创建即被 PowerShell 拒绝；修正表达式后才生成 `.local/security-scan-20260723-final` 并运行 Trivy/OWASP，失败命令没有产生安全结论或修改交付文件。
+- 主工作树首轮最终 Playwright 以 5 worker 冷启动，3 项首轮分别触发 5 秒 locator 或 30 秒 test timeout，随后 retry 通过；退出 0 不能掩盖 flaky。失败截图确认页面最终状态正确，已用更贴合冷启动成本的 worker/timeout 配置修复，并要求后续以 `--retries=0` 验证。
+- 干净 clone 首次包消费 smoke 继承了本机 `NODE_TLS_REJECT_UNAUTHORIZED=0` 并输出安全警告；该次结果未计入最终证据。已在显式清除变量的子进程中重跑，真实 tarball 安装与 8 个公开入口解析再次通过且不再出现警告。
+- 本次定位测试时先猜测了不存在的 `ai-assistant-java-client` / `ai-assistant-service/src/test` 路径，随后改用 `rg --files -g pom.xml` 确认真实模块为 `ai-assistant-client`，并确认独立 service 没有自身测试目录、由 Starter 核心测试和 HTTP/Docker smoke 覆盖；不再按名称猜路径。
+- 汇总 Surefire 计数的首个 PowerShell 只读表达式在 `foreach` 后直接接管道而触发 parser error，未修改任何文件；改为先收集 `$rows` 再输出后成功取得 server `827`、Demo `3`、Client `14` 的零失败计数。
+- README Starter 脚本是阻塞式前台启动；完成全部 HTTP/SSE smoke 后按已核对的 JAR 路径和端口只终止本次 `19012` Java 进程，因此承载脚本按预期以非零退出。构建、启动和产品 smoke 均已在终止前通过，`19012` 随后确认关闭。
+- 暗色残留修复后误在仓库根执行无锁定版本的 `npx prettier --check`，npm 临时下载 Prettier 3.9.6 并仅报告根脚本风格差异；命令没有写文件，但重复了既有“不得跨包套用格式口径”的禁令。后续 UI 文件只用 UI 锁定 `npm run format:check`，根脚本用 `node --check`、脚本测试和 `git diff --check`，不再调用该命令。
+- 本轮 OWASP 首次命令中未给 `-DsuppressionFiles=.github\\...` 的完整参数加引号，PowerShell 把路径拆成 Maven lifecycle phase；扫描尚未启动即失败。改用带绝对路径的完整引号参数后数据库分析和 CVSS 门禁成功，后续固定使用该形式。
+- 本轮 Trivy 首次把缓存卷直接挂到 `/root/.cache/trivy`，但卷内结构实际是 `/trivy/db`，导致工具认为是首次运行并拒绝 `--skip-db-update`；检查卷确认 2.5GB DB 后改挂 `/cache` 并显式 `--cache-dir /cache/trivy`，三类扫描成功。探测缓存文件时又使用了 BusyBox `find` 不支持的 `-printf`，已改为 `-print`/`du`，未重复无效语法。
+- 浏览器请求审计首次沿用了旧参考中的 `network` 命令，当前 CLI 明确将其拆为 `requests`/`request`；立即改用 `requests` 后取得全部动态请求 `200` 证据。后续不再调用不存在的 `network`。
+- 手机截图后尝试复用旧快照的关闭按钮 ref，Playwright CLI 明确报告 ref 已过期；已立即重新 snapshot 并使用新 ref 正常关闭，未改变产品状态。后续每次显著 DOM 变化后先刷新快照。
+- 本次续跑首次把 Playwright CLI 的 `press` 误按元素命令调用为 `press <ref> Enter`，CLI 明确只接受按键一个参数；输入内容未丢失，改为焦点保持后的 `press Enter` 后真实 SSE 正常发送。后续按 CLI reference 使用该命令，不重复错误参数形式。
+- 本次上下文恢复首次将包含正常空匹配的 `rg --files -g AGENTS.md` 放进聚合读取，非零退出使聚合脚本未返回各项输出；随后改为 `Promise.allSettled` 保留每项结果。未修改产品文件，后续可选查询不再放进会整体失败的聚合。
+- 继续读取 geometry 测试时又假设存在 `usePanelGeometry.spec.ts`，实际文件不存在，导致该组失败；源码片段已取得但测试输出未保留。后续先用 `rg --files` 定位测试，禁止继续按实现名猜测。
+- 紧接上一条后又把“平板测试可能无匹配”的 `rg` 放入并行组，返回码 1 再次丢失同组输出，重复违反既有可选查询规则；未修改产品文件。后续可选检索全部单独执行或显式转成可见空结果。
+- 平板高度定位的一组只读 `rg` 错误加入不存在的 `ai-assistant-ui/src/types.ts`，返回码 1 使并行组未保留全部输出；已从现有输出定位 `useWrapperStyles`，后续只检索已确认文件，不重复猜路径。
+- 新增快捷模板布局回归契约首次运行先因测试闭合符号写成 `}` 而非 `})` 触发语法错误，尚未执行断言；已立即修正后重跑，不把该次结果当作产品红灯。
+- 续跑定位 Sparkles 组件时，一次组合 `rg` 查询被 Windows 外层引号截断并报正则未闭合；未修改文件。后续改用单一字面量 `rg -F`，不重复该调用。
+- 黑色主题审计时再次误用 Windows 字面 glob 检索测试文件，触发已记录过的路径语法错误；未修改文件，后续固定使用目录配合 `rg -g`，禁止再次重复。
 - 星形视觉首次完整发布检查中，功能、构建和 bundle 预算均通过，但 CSS `!important` 预算从 `1787` 增至 `1815`，门禁按设计失败；不更新基线，改为直接替换旧紫球规则并移除新增的 28 个强制覆盖后复验。
 - 本次恢复首次把 `cmd /c` 的 `&&` 交给外层 PowerShell 解析，命令在执行前失败；已拆为独立只读命令。随后两次又把 `*.spec.ts`/`icons*` 作为 Windows 字面 glob 传给 `rg`，已改用 `rg -g` 和确认后的具体路径，不再重复这些调用形式。
 - 首次调用 `create_goal` 返回“已有未完成 Goal”；已读取并继续同一 Goal，没有重复创建。
@@ -80,6 +102,7 @@
 - 第二次即使只选 secret/misconfig，Trivy 的 manifest 丰富化仍访问 Maven 并被同一 429 阻断；第三次确认 Jackson/Groovy POM 已在本机仓库后，只读挂载该仓库并用 `--offline-scan --skip-check-update`，三类 scanner 成功退出 0。内置 checks 对实际配置完成扫描；`Dockerfile.dockerignore` 被误当 Dockerfile 的解析提示不代表实际 Dockerfile 跳过，作为工具限制记录。
 
 本轮基线失败记录：
+- 当前 `19014` Circuit 平板 `768x1024` 真实浏览器发现可复现 P2：`.ai-footer-quick-toggles` 绝对定位覆盖末条助手回复 `22.85px`，导致正文被快捷模板遮挡。必须恢复正常布局流、补回归测试并重建后三视口复验，关闭前不得完成 Goal。
 - CI 安全静态契约首轮功能测试与 YAML 解析均通过，但锁定 Prettier 仅报告新增 `project-health-check.test.mjs` 的折行差异；已只格式化该文件，复验契约与格式全部通过。
 - 阶段 6 首轮 OpenAPI 类型漂移检查按预期失败，证明新增 JSON Schema 约束尚未绑定生成声明；刷新类型并写入规范化来源摘要后复验通过。首轮前端 Prettier 与 Java Spotless 分别只报告本轮 `api.spec.ts` 和 `AiAssistantAutoConfigurationTest.java` 的格式差异；已用锁定工具仅格式化对应文件，未降低测试或扩大批量改动。
 - 手机 `375x812` 命令面板首次实测中，`.ai-cmd-palette-input` 本体只有 `20px` 高；已以最小 CSS 改动补到 `min-height: 44px`，重建后真实浏览器实测 `46px`，面板单实例、无横向溢出且可见交互目标全部达到 `44px`，该缺陷已关闭。

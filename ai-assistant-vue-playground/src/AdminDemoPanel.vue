@@ -601,15 +601,17 @@ function pretty(v: unknown): string {
 .admin-app {
   margin: 2rem 0 0;
   padding: 1.25rem 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e5e5;
   border-radius: 14px;
   background: linear-gradient(
     135deg,
-    rgba(14, 165, 233, 0.06),
-    rgba(6, 182, 212, 0.03)
+    rgba(17, 17, 17, 0.06),
+    rgba(38, 38, 38, 0.03)
   );
-  box-shadow: 0 4px 16px -8px rgba(14, 165, 233, 0.18);
-  font-family: system-ui, sans-serif;
+  box-shadow: 0 4px 16px -8px rgba(17, 17, 17, 0.18);
+  font-family:
+    "Geist", "Segoe UI Variable", "Aptos", "PingFang SC", "Microsoft YaHei UI",
+    sans-serif;
 }
 .admin-app--collapsed {
   padding: 0.75rem 1rem;
@@ -630,7 +632,7 @@ function pretty(v: unknown): string {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -661,10 +663,10 @@ function pretty(v: unknown): string {
 }
 .admin-app-hint {
   font-size: 0.78rem;
-  color: #64748b;
+  color: #737373;
 }
 .admin-app-hint code {
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(17, 17, 17, 0.06);
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 0.74rem;
@@ -674,15 +676,15 @@ function pretty(v: unknown): string {
   font-size: 12px;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid #94a3b8;
+  border: 1px solid #a3a3a3;
   background: #fff;
-  color: #334155;
+  color: #404040;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .admin-app-toggle:hover {
-  border-color: #0ea5e9;
-  color: #0ea5e9;
+  border-color: #111111;
+  color: #111111;
 }
 .admin-app-body {
   margin-top: 16px;
@@ -709,7 +711,7 @@ function pretty(v: unknown): string {
   min-width: 70px;
 }
 .admin-app-field span {
-  color: #475569;
+  color: #525252;
   font-weight: 500;
   font-size: 0.74rem;
   text-transform: uppercase;
@@ -718,7 +720,7 @@ function pretty(v: unknown): string {
 .admin-app-field input,
 .admin-app-field textarea {
   padding: 6px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d4d4d4;
   border-radius: 6px;
   font-size: 0.85rem;
   font-family: ui-monospace, Menlo, Consolas, monospace;
@@ -730,15 +732,15 @@ function pretty(v: unknown): string {
 }
 .admin-app-field input:focus,
 .admin-app-field textarea:focus {
-  outline: 2px solid rgba(14, 165, 233, 0.3);
+  outline: 2px solid rgba(17, 17, 17, 0.3);
   outline-offset: 1px;
-  border-color: #0ea5e9;
+  border-color: #111111;
 }
 .admin-app-tabs {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e5e5e5;
   padding-bottom: 8px;
 }
 .admin-app-tab {
@@ -752,19 +754,19 @@ function pretty(v: unknown): string {
   border: 1px solid transparent;
   border-bottom: none;
   background: transparent;
-  color: #64748b;
+  color: #737373;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .admin-app-tab:hover {
-  background: rgba(14, 165, 233, 0.06);
-  color: #0ea5e9;
+  background: rgba(17, 17, 17, 0.06);
+  color: #111111;
 }
 .admin-app-tab.active {
   background: #fff;
-  border-color: #e2e8f0;
-  color: #0ea5e9;
-  box-shadow: 0 -2px 0 0 #0ea5e9 inset;
+  border-color: #e5e5e5;
+  color: #111111;
+  box-shadow: 0 -2px 0 0 #111111 inset;
 }
 .admin-app-tab-emoji {
   font-size: 1rem;
@@ -773,7 +775,7 @@ function pretty(v: unknown): string {
   background: #fff;
   border-radius: 10px;
   padding: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e5e5;
 }
 .admin-app-grid {
   display: grid;
@@ -802,25 +804,25 @@ function pretty(v: unknown): string {
   font-size: 0.82rem;
   font-weight: 500;
   border-radius: 8px;
-  border: 1px solid #0ea5e9;
+  border: 1px solid #111111;
   background: #fff;
-  color: #0ea5e9;
+  color: #111111;
   cursor: pointer;
   transition: all 0.18s ease;
   white-space: nowrap;
 }
 .admin-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px -4px rgba(14, 165, 233, 0.5);
+  box-shadow: 0 4px 10px -4px rgba(17, 17, 17, 0.5);
 }
 .admin-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .admin-btn--primary {
-  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  background: linear-gradient(135deg, #111111, #262626);
   color: #fff;
   border-color: transparent;
 }
@@ -836,11 +838,11 @@ function pretty(v: unknown): string {
   color: #fff;
 }
 .admin-app-result {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #171717;
+  color: #e5e5e5;
   border-radius: 10px;
   padding: 12px 14px;
-  border: 1px solid #1e293b;
+  border: 1px solid #262626;
 }
 .admin-app-meta {
   display: flex;
@@ -869,7 +871,7 @@ function pretty(v: unknown): string {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.78rem;
-  color: #93c5fd;
+  color: #d4d4d4;
 }
 .admin-app-http {
   padding: 2px 6px;
@@ -880,7 +882,7 @@ function pretty(v: unknown): string {
   font-size: 0.74rem;
 }
 .admin-app-elapsed {
-  color: #94a3b8;
+  color: #a3a3a3;
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
 }
@@ -946,8 +948,10 @@ function pretty(v: unknown): string {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: #202938;
-  font-family: "Aptos", "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
+  color: #262626;
+  font-family:
+    "Geist", "Segoe UI Variable", "Aptos", "PingFang SC", "Microsoft YaHei UI",
+    sans-serif;
 }
 
 .admin-app--collapsed {
@@ -961,7 +965,7 @@ function pretty(v: unknown): string {
 }
 
 .admin-app-title h2 {
-  color: #111827;
+  color: #171717;
   background: none;
   font-size: 1.35rem;
   font-weight: 700;
@@ -969,7 +973,7 @@ function pretty(v: unknown): string {
 }
 
 .admin-app-icon {
-  color: #1d4ed8;
+  color: #171717;
 }
 
 .admin-app-badge,
@@ -986,14 +990,14 @@ function pretty(v: unknown): string {
   padding: 0 14px;
   border-color: #b9c2cf;
   border-radius: 5px;
-  color: #253044;
+  color: #333333;
   font-weight: 600;
 }
 
 .admin-app-toggle:hover {
-  color: #1d4ed8;
+  color: #171717;
   border-color: #8793a5;
-  background: #f8fafc;
+  background: #fafafa;
 }
 
 .admin-app-body {
@@ -1021,7 +1025,7 @@ function pretty(v: unknown): string {
   min-height: 44px;
   border-color: #b9c2cf;
   border-radius: 5px;
-  color: #111827;
+  color: #171717;
   background: #ffffff;
   font-family: "Cascadia Code", Consolas, monospace;
 }
@@ -1046,20 +1050,20 @@ function pretty(v: unknown): string {
   border: 0;
   border-bottom: 2px solid transparent;
   border-radius: 0;
-  color: #5b6472;
+  color: #666666;
   background: transparent;
   font-weight: 600;
   letter-spacing: 0;
 }
 
 .admin-app-tab:hover {
-  color: #111827;
+  color: #171717;
   background: #eef1f5;
 }
 
 .admin-app-tab.active {
-  color: #1d4ed8;
-  border-color: #1d4ed8;
+  color: #171717;
+  border-color: #171717;
   background: transparent;
   box-shadow: none;
 }
@@ -1085,14 +1089,14 @@ function pretty(v: unknown): string {
   padding: 0 14px;
   border-color: #aeb8c6;
   border-radius: 5px;
-  color: #253044;
+  color: #333333;
   background: #ffffff;
   font-weight: 600;
   letter-spacing: 0;
 }
 
 .admin-btn:hover:not(:disabled) {
-  color: #111827;
+  color: #171717;
   border-color: #778397;
   background: #f5f7fa;
   box-shadow: none;
@@ -1101,14 +1105,14 @@ function pretty(v: unknown): string {
 
 .admin-btn--primary {
   color: #ffffff;
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: #171717;
+  background: #171717;
 }
 
 .admin-btn--primary:hover:not(:disabled) {
   color: #ffffff;
-  border-color: #1e40af;
-  background: #1e40af;
+  border-color: #090909;
+  background: #090909;
   filter: none;
 }
 
@@ -1146,8 +1150,8 @@ function pretty(v: unknown): string {
   }
 
   .admin-app-tab.active {
-    border-color: #1d4ed8;
-    background: #eff6ff;
+    border-color: #171717;
+    background: #f5f5f5;
   }
 }
 

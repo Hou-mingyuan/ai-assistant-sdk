@@ -261,7 +261,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--ai-chip-bg, rgba(99, 102, 241, 0.08));
+  background: var(--ai-chip-bg, rgba(17, 17, 17, 0.08));
   border: 1px solid transparent;
   font-size: 12px;
   cursor: pointer;
@@ -272,17 +272,17 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
 }
 
 .ai-mm-model-chip:hover {
-  background: var(--ai-chip-bg-hover, rgba(99, 102, 241, 0.16));
+  background: var(--ai-chip-bg-hover, rgba(17, 17, 17, 0.16));
 }
 
 .ai-mm-model-chip-selected {
-  background: var(--ai-primary, #6366f1);
+  background: var(--ai-primary, #181818);
   color: #ffffff;
-  border-color: var(--ai-primary, #6366f1);
+  border-color: var(--ai-primary, #181818);
 }
 
 .ai-mm-model-chip-selected:hover {
-  background: var(--ai-primary, #6366f1);
+  background: var(--ai-primary, #181818);
 }
 
 .ai-mm-model-chip-disabled {
@@ -292,7 +292,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
 
 .ai-mm-model-chip input {
   margin: 0;
-  accent-color: var(--ai-primary, #6366f1);
+  accent-color: var(--ai-primary, #181818);
 }
 
 .ai-mm-models-empty {
@@ -328,7 +328,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
 
 .ai-mm-prompt-input:focus {
   outline: none;
-  border-color: var(--ai-primary, #6366f1);
+  border-color: var(--ai-primary, #181818);
   background: var(--ai-bg, #ffffff);
 }
 
@@ -348,7 +348,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
 }
 
 .ai-mm-btn-primary {
-  background: var(--ai-primary, #6366f1);
+  background: var(--ai-primary, #181818);
   color: #ffffff;
 }
 
@@ -412,7 +412,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
 }
 
 .ai-mm-col-loading {
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18) inset;
+  box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.18) inset;
 }
 
 .ai-mm-col-header {
@@ -446,7 +446,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid var(--ai-primary, #6366f1);
+  border: 2px solid var(--ai-primary, #181818);
   border-top-color: transparent;
   animation: ai-mm-spin 0.7s linear infinite;
 }
@@ -470,7 +470,7 @@ function replaceTokens(template: string, vars: Record<string, string>): string {
   padding: 6px 10px;
   font-size: 11px;
   color: var(--ai-text-muted, #64748b);
-  background: rgba(99, 102, 241, 0.05);
+  background: rgba(17, 17, 17, 0.05);
   border-bottom: 1px solid var(--ai-border, rgba(15, 23, 42, 0.06));
 }
 

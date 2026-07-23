@@ -472,6 +472,7 @@
       :t="t"
       :theme="themePalette"
       :audio="audioPrefs"
+      :provider-config-enabled="runtimeProviderConfigEnabled"
       :provider-input="providerInput"
       :provider-base-url-input="providerBaseUrlInput"
       :provider-api-key-input="providerApiKeyInput"
@@ -888,7 +889,7 @@ const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
 const options = reactive(
   inject<AiAssistantOptions>('ai-assistant-options', {
     baseUrl: '/ai-assistant',
-    primaryColor: '#6366f1',
+    primaryColor: '#181818',
     position: 'bottom-right',
     theme: 'light',
     persistHistory: false,
@@ -1055,6 +1056,9 @@ const {
 const chatSystemPrompt = ref('');
 const personalizeOpen = ref(false);
 const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false);
+const runtimeProviderConfigEnabled = computed(() =>
+  Boolean(options.adminToken?.trim() || options.accessToken?.trim()),
+);
 const systemPromptMaxInputCharsResolved = computed(() => {
   const n = options.systemPromptMaxInputChars;
   if (n !== undefined && n > 0) {
@@ -1431,7 +1435,7 @@ const audioPrefs = computed(() => ({
 watch(personalizeOpen, (open) => {
   if (open) {
     tts.refreshVoices();
-    void refreshRuntimeModelConfig();
+    if (runtimeProviderConfigEnabled.value) void refreshRuntimeModelConfig();
   }
 });
 function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
@@ -1792,26 +1796,59 @@ const a11yStatusText = computed(() => {
   return '';
 });
 
-const color = computed(() => options.primaryColor || '#6366f1');
+const color = computed(() => options.primaryColor || '#111111');
 
 /* K25: ColorThemeSwitcher state ------------------------------------------------
- * `themePalette` chooses one of 5 preset gradients. The choice is persisted in
+ * `themePalette` chooses one of five technology accent presets. The choice is persisted in
  * localStorage under THEME_STORAGE_KEY (so the same user keeps their palette
  * across page reloads). Three CSS custom properties are then injected on the
- * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to), which the styles/
- * suite already reads for the v2 sky-tech-blue accents and gradient ring.
+ * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to). Historical ids
+ * remain stable so existing localStorage values keep working after the palette refresh.
  *
- * Default 'sky' = current sky tech blue palette (unchanged from K3 era so
- * existing visual style is preserved if user never opens the switcher).
+ * Default 'graphite' = the darkest Obsidian preset.
  */
 const THEME_STORAGE_KEY = 'ai-assistant.theme.palette.v1';
+const THEME_SYNC_EVENT = 'ai-assistant-theme-change';
 type ThemePresetId = 'sky' | 'sunset' | 'forest' | 'plum' | 'graphite';
-const THEME_PRESETS: Record<ThemePresetId, { from: string; via: string; to: string }> = {
-  sky: { from: '#0ea5e9', via: '#06b6d4', to: '#3b82f6' },
-  sunset: { from: '#f59e0b', via: '#f43f5e', to: '#a855f7' },
-  forest: { from: '#10b981', via: '#14b8a6', to: '#06b6d4' },
-  plum: { from: '#a855f7', via: '#ec4899', to: '#f43f5e' },
-  graphite: { from: '#64748b', via: '#475569', to: '#334155' },
+const THEME_PRESETS: Record<
+  ThemePresetId,
+  { from: string; via: string; to: string; mark: string; darkMark: string }
+> = {
+  sky: {
+    from: '#163b8c',
+    via: '#2457d6',
+    to: '#5b8def',
+    mark: '#2457d6',
+    darkMark: '#8fb4ff',
+  },
+  sunset: {
+    from: '#9a3412',
+    via: '#c2410c',
+    to: '#f97316',
+    mark: '#c2410c',
+    darkMark: '#fdba74',
+  },
+  forest: {
+    from: '#065f46',
+    via: '#0f766e',
+    to: '#2dd4bf',
+    mark: '#0f766e',
+    darkMark: '#5eead4',
+  },
+  plum: {
+    from: '#075985',
+    via: '#0891b2',
+    to: '#22d3ee',
+    mark: '#0891b2',
+    darkMark: '#67e8f9',
+  },
+  graphite: {
+    from: '#050505',
+    via: '#171717',
+    to: '#2b2b2b',
+    mark: '#171717',
+    darkMark: '#fafafa',
+  },
 };
 const themePalette = ref<ThemePresetId>(
   (() => {
@@ -1821,7 +1858,7 @@ const themePalette = ref<ThemePresetId>(
     } catch {
       /* SSR / disabled localStorage — fall through to default */
     }
-    return 'sky';
+    return 'graphite';
   })(),
 );
 watch(themePalette, (v) => {
@@ -1830,13 +1867,30 @@ watch(themePalette, (v) => {
   } catch {
     /* ignore */
   }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(THEME_SYNC_EVENT, {
+        detail: { theme: v, source: 'assistant' },
+      }),
+    );
+  }
 });
+function onExternalThemeChange(event: Event) {
+  const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
+    | ThemePresetId
+    | undefined;
+  if (next && next in THEME_PRESETS && next !== themePalette.value) {
+    themePalette.value = next;
+  }
+}
 const themePaletteVars = computed<Record<string, string>>(() => {
   const p = THEME_PRESETS[themePalette.value];
   return {
     '--ai-theme-from': p.from,
     '--ai-theme-via': p.via,
     '--ai-theme-to': p.to,
+    '--ai-theme-mark': p.mark,
+    '--ai-theme-mark-dark': p.darkMark,
   };
 });
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
@@ -2686,6 +2740,7 @@ onMounted(() => {
     }
   });
   window.addEventListener('resize', onWinResize);
+  window.addEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);
   window.addEventListener('keydown', onEscKeydown, true);
@@ -2709,6 +2764,7 @@ onUnmounted(() => {
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   window.removeEventListener('resize', onWinResize);
+  window.removeEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange);
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange);
   window.removeEventListener('keydown', onEscKeydown, true);

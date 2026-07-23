@@ -2,6 +2,55 @@
 
 ## 2026-07-22 v1.x 发布候选验收
 
+- 冷启动 E2E 超时已用同一断言、`retries=0` 关闭：目标三文件重复两轮 `14/14`，完整套件 `32/32` 一次通过。旧远端 PR 的失败运行检出的是合并提交 `5cdb6c2`（分支头 `08dc655`），Web Component 在 5 秒内尚未出现 FAB；当前未推送配置已把 CI 并发限为 1 并将 UI 等待预算校准为 10 秒，需以新提交远端 CI 作为最终证明。
+- ESLint 的 17 项 warning 均为明确维护债而非产品缺陷：一个文件仅超软性行数阈值 2 行，另 16 项只在宿主省略可选个性化配置 prop 时触发静态规则，组件对 theme/audio 有显式缺省隐藏分支，其余输入由受控宿主传入。lint 退出 0，UI `801/801`、构建和 E2E 均通过；触发条件与影响已记录，不将其误报为零警告。
+- 最终安全结论来自同一 `797` 文件候选快照的两类独立工具：Trivy 同时覆盖漏洞、密钥和配置，OWASP Dependency-Check 以更新至 `2026-07-22` 的 NVD 数据分析 Java 依赖；二者均为 0 阻断问题，精确 suppression 仅覆盖已人工核对的 Kotlin runtime 元数据误报并设置到期日。
+- 最终 E2E 首轮的 3 个 retry 不是可接受完成证据。三张失败截图分别已出现正确的 prompt history 输入、完整助手面板和 Web Component FAB，且重试均在 `19.9-22.7s` 通过；共同根因是本地 5 worker 同时请求尚未缓存的 Vite 大组件转换，使 5 秒 locator 或 30 秒 test timeout 先到。合理修复是约束开发服务器并发并覆盖冷启动预算，不能删除断言或把 flaky 隐藏为通过。
+- 用户提供的截图不是合理布局：模型选择浮层覆盖快捷工具和输入区，破坏“选择模型”和“继续输入”的层级边界，手机还会越过面板右边缘。最终菜单需要以面板为包含块、固定可预测宽度并为快捷工具留出独立垂直间距，不能靠视觉上接近但实际重叠的悬浮位置。
+- 当前 HEAD 的真实浏览器几何已关闭该缺陷：桌面/平板/手机菜单与快捷工具分别保留约 `10.5/9/9px`，手机菜单左右边界为约 `8.45/228.45px`，完全位于面板内；静态主题/布局契约 `6/6`、publish build 27 个导出和定向 E2E 几何断言均通过。
+- 干净消费证据必须同时满足“仓库初始无生成物”和“子进程未关闭 TLS 校验”。首次继承本机 `NODE_TLS_REJECT_UNAUTHORIZED=0` 的包 smoke 只能作为诊断；显式清除变量后第二次从真实 tarball 安装并解析 8 个公开入口，才是可采信结果。
+- 独立服务与 Starter 两条 README 路径均已从干净 clone 验证。独立服务用 `19013 -> 8080` 的两个无状态容器且不复制基础设施；Starter 用本机 `19012` 前台 JAR。两者都通过同步 Chat/SSE，Demo 响应始终明确标记 deterministic local response、health 明确 `mock=true`，没有冒充真实 Provider。
+- Java Client 当前 14 项契约覆盖同步响应、SSE 空格/多行帧、runtime model、认证与租户头、HTTP/逻辑/流式结构化错误、URL/timeout/tenant 输入校验；Starter 干净 reactor 的 827+3 项测试说明 Demo 宿主与核心自动装配在同一提交上可用。
+- 续跑基线确认当前 `19014` 页面默认选中 Obsidian，主题列表为 Obsidian/Cobalt/Pulse/Circuit/Ember；浏览器验收必须同时核对持久化 key、CSS 主题变量和面板内所有可见 Sparkles，不能仅凭主题 radio 选中态下结论。
+- 助手在 Obsidian 下可正常展开，DOM 语义与主要交互控件完整；下一步必须用计算样式定位标题/空状态/回复头像 Sparkles 的真实颜色，因为 SVG 本身不暴露可见文本，DOM 快照不能证明颜色同步。
+- 源码确认 Playground 在每次主题变化时同步写入 `playground-theme` 与 `ai-assistant.theme.palette.v1`，并通过 `ai-assistant-theme-change` 通知组件；组件反向切换也使用同一事件。五套主题沿用 `graphite/sky/plum/forest/sunset` 兼容 key，Sparkles 应分别使用该预设的 `mark/darkMark`。
+- Circuit 的浏览器权威值已一致：两个 storage key=`forest`，`--ai-brand-mark=#0f766e`，标题、空状态与 FAB Sparkles 的实际 `color/stroke=rgb(15,118,110)` 且 `fill=none`。这证明主题切换不仅改变页面色块，也已到达组件内双闪星。
+- 真实 SSE 回复出现后，回复头像 Sparkles 为 `22x22`、`fill=none`、`color/stroke=rgb(15,118,110)`；同屏标题 Sparkles 为 `17x17` 且颜色完全一致。响应正文明确 Demo Provider 边界，证明这是实际后端完整 chat pipeline，而非前端 Mock。
+- Cobalt 再次证明联动是动态的而非首次加载巧合：storage key=`sky`，Playground `#163b8c -> #5b8def`，组件 mark=`#2457d6`，标题/头像/FAB 三处 Sparkles 同步为 `rgb(36,87,214)`。
+- Pulse 与 Ember 同样动态同步：兼容 key 分别为 `plum`/`sunset`，mark 分别为 `#0891b2`/`#c2410c`，每次切换后三处可见 Sparkles stroke 都与 mark 完全一致；已覆盖全部非默认彩色主题中的三套，Circuit/Cobalt/Pulse/Ember 均通过。
+- 切回默认 Obsidian 后，历史消息头像也立即恢复为 `rgb(23,23,23)`，与标题/FAB 一致；说明现有消息不是在创建时固化颜色，而是实时消费主题令牌。默认黑色与主题切换跟随两项用户要求均有浏览器计算样式证据。
+- `1440x900` 当前构建截图显示 Obsidian 页面保持克制的浅灰工作台与黑色主操作，助手标题/回复头像均为无圆底黑色 Sparkles；五个主题 swatch 提供蓝、青绿、青、橙和黑，不形成单一紫色主题。
+- `768x1024` Circuit 截图显示主题星与页面 accent 一致，但末条回复与底部快捷模板区域视觉接近；需要读取两者 bounding boxes 与实际重叠面积，避免把滚动裁切误判为布局遮挡，也不能仅凭截图忽略潜在 P2。
+- 几何结论为真实遮挡：助手 bubble `bottom=793.05`，快捷模板层 `top=770.20`，横向覆盖完整 bubble、纵向交叠 `22.85px`；CSS 在 `99-enterprise-overhaul.css` 将该层设为 `position:absolute; bottom:calc(100% + 4px)`，且注释明确不占 footer 空间。修复应让其回到 flow，而非继续追加消息区 padding 魔数。
+- 为保留此前“胶囊在输入框外且没有灰框”的视觉契约，最终没有把模板行塞回 footer 内部；改为 footer 在存在模板行时用 `:has()` 预留 `var(--ai-quick-toggle-min-height) + 8px`，模板仍绝对定位在透明区域。移动端变量自动从 22px 提升到 44px，避免硬编码单一视口高度。
+- 修复后 `768x1024` 中消息滚动容器底部为 `766.2`、模板层顶部为 `770.2`，可见区域已有 4px 安全间距；bubble 的未裁剪 `getBoundingClientRect()` 仍可落到容器外，不能再用原始 bubble/模板矩形直接判定重叠，必须取与 overflow viewport 的交集并验证可滚动到底。
+- 平板问题的第二层根因是 geometry 默认高度固定 `520px`，而 `<=820px` 触控门禁把 header/model/quick/send 等控件统一增至 `44px`；两套策略此前不协调。新规则仅在 `601-820px` 把默认提高到 `680px`，桌面保持 `520px`、手机仍由 `<=600px` 全屏逻辑接管、低高度继续 clamp，用户 resize 值仍优先。
+- 修复后重新发送真实 Demo SSE 并滚动到底，`768x1024` 下消息区 `maxScrollTop=78`、快捷模板与消息滚动视口保持 `4px` 间距，可见回复与模板交集面积为 `0`；复制/重试/反馈操作栏和 reaction bar 均完整落在消息视口内。截图 `output/playwright/tech-themes-circuit-19014-768x1024-final.png` 已人工检查通过。
+- 手机 `375x812` 关闭全屏助手后切换 Pulse 并重新打开，两个主题 key 均为 `plum`、`--ai-brand-mark=#0891b2`；标题、历史回复头像、隐藏态 FAB 三处 Sparkles 均为 `rgb(8,145,178)` 且 `fill=none`。面板 `375x812` 全屏、页面 `scrollWidth=clientWidth=375`、面板无横向溢出，当前可见控件没有小于 `44px`；消息滚到底后与模板交集为 `0`，截图为 `output/playwright/tech-themes-pulse-19014-375x812-recheck.png`。
+- 桌面 `1440x900` 切回 Obsidian 后两个 key 均为 `graphite`、`--ai-brand-mark=#171717`；标题/头像/FAB Sparkles 均为 `rgb(23,23,23)`。面板完整落在视口内、页面与面板均无横向溢出，消息与模板交集为 `0`；截图为 `output/playwright/tech-themes-obsidian-19014-1440x900-final.png`。
+- 提交前扩展色值审计发现暗色面板粒子仍有一处 `rgba(192,132,252)`，原主题契约未收录该紫色 RGB；已改为中性灰并把暗面板背景从蓝黑收敛为 `#171717 -> #0a0a0a`，同时新增 `#c084fc`/对应 RGB 禁止项。扩展测试 `5/5` 和全源紫色扫描均通过。
+- 同一真实 Chromium 会话继续遍历 Demo、Admin Console 与 Form Auto-Fill；页面路由、Admin 7 个标签、表单控件和主题选择语义均正常。最终控制台为 `0 error / 0 warning`，仅有 Chrome 对 password input 不在 form 内的 verbose 提示；全部动态 API 与三次真实 SSE 请求均为 HTTP `200`，会话已正常关闭。
+
+### 黑色品牌主题追加验收
+
+- 用户明确要求双闪星为黑色，Playground、Vue 组件和 Web Component 的字体、主按钮、焦点、选中态与品牌主题统一为黑白灰现代科技风，不能保留“黑色图标 + 紫色内部主题”的割裂。
+- 当前 `4ce2e5e` 只统一了 Sparkles 图形；`ai-assistant-vue-playground/src/App.vue` 仍有 `#6366f1 -> #8b5cf6` 紫色渐变，UI 历史样式仍有 violet/purple tone 与 indigo fallback，用户反馈可由代码复现。
+- 收敛范围以品牌色为主，错误、警告、成功等语义状态仍保留可辨识颜色；所有结论必须在 `375x812`、`768x1024`、`1440x900` 的真实浏览器中复验。
+- 当前工作树在本轮修改前干净；分支相对远端 ahead 3 / behind 2，最终发布前必须非破坏性整合远端提交并重跑门禁。
+- 主题根因不是单一图标：`AiAssistant.vue` 与 Playground 都默认持久化 `sky`，公开预设还包含 `plum`；`99-enterprise-overhaul.css` 继续硬编码紫色粒子、焦点光晕、卡片 hover 和 violet tone。因此必须同时收敛主题状态、最终 CSS 令牌和页面层，不能只给星形加 `color: black`。
+- 现有错误/警告/成功色承担状态辨识与无障碍含义，不属于品牌紫色；黑色主题修改只覆盖品牌、焦点、选中、装饰和主操作，不把所有状态做成不可区分的灰色。
+- 现有干净环境真实截图显示：右下角 Sparkles 仍为亮蓝，展开面板有淡紫背景光晕，顶部主题切换器同时暴露蓝/橙/青/紫/灰五个大色块；视觉割裂可直接观察，不是仅存在于废弃 CSS。
+- 推荐方向为 `ink black + graphite + white`：品牌图标/主操作用近黑色，hover/focus 用石墨灰和清晰黑色轮廓，暗色模式反转为近白品牌标记；避免黑色背景上的黑色焦点不可见。
+- 组件基础令牌文件当前自述为 `indigo-violet brand`，主色、渐变、glow 与暗色透明度全部从紫色原语派生；`09-modern-overhaul.css` 又以 `!important` 强制 sky/cyan。这两处必须改源令牌，不能靠页面末端堆新覆盖。
+- 为兼容已经持久化的主题值，保留 `sky/sunset/forest/plum/graphite` 内部 ID，默认改为黑色 Obsidian；其余展示为 Cobalt/Pulse/Circuit/Ember 现代科技色，外部自定义 `presets` 接口保持不变。
+- 暗色模式需把品牌标记和焦点色反转为近白，避免黑色主题在深色背景上丢失可见性；成功/警告/错误/信息仍使用语义色。
+- `99-enterprise-overhaul.css` 中紫色并非少量 fallback：`#5b6cff` 29 处、`#4f46e5` 27 处、`#c4b5fd` 18 处、`#9333ea` 13 处，另有多组紫色 rgba。需要建立明确的“紫色品牌色族 -> 黑/石墨/锌灰色族”映射并做静态扫描回归。
+- Playground 后段样式已经把主要布局做成克制的工作台风格，但仍有蓝色 hover、SSE 左边线、主按钮、loader 星形和 Admin 激活态；这些属于品牌态，需同步为黑色。状态 success/warn/error 保留现值。
+- 新增黑色主题契约首次真实红灯为 `0/4`；完成第一轮源令牌和页面映射后变为 `2/4`，Playground/Admin 无蓝紫品牌色与中性预设两项已经通过。
+- 二次全源扫描发现连接诊断、表单填充、多模型比较、Prompt 模板及早期 CSS 层仍有 RGB 形式的靛紫字面量；这些弹窗/功能态可能绕过最终覆盖，故契约范围应扩到整个 `ai-assistant-ui/src`，而非只扫六个入口文件。
+- 全 UI 源目录的紫色字面量已按黑/石墨/锌灰映射清理；空状态六类装饰 tone 也统一灰阶，但 success/warning/danger/info 语义令牌保持独立。
+- Sparkles 不再直接读取渐变起点 `--ai-theme-from`，统一使用可切换的 `--ai-brand-mark`：浅色读取每套主题的 `mark`，暗色读取对比度更高的 `darkMark`；因此默认 Obsidian 为黑色，切换 Cobalt/Pulse/Circuit/Ember 时三处双闪星会同步变色。
+
 ### 星形品牌视觉追加验收
 
 - 用户参考图明确要求入口只保留 `Sparkles` 轮廓，去掉黑色圆底；展开面板后，标题栏紫点、空状态紫球和助手消息头像也必须统一为同一无圆底星形。

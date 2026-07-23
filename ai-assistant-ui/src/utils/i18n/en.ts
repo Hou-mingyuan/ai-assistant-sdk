@@ -339,6 +339,8 @@ export const en: I18nMessages = {
   personalizeAudioRate: 'Speed',
   personalizeAudioAutoRead: 'Auto-read assistant replies',
   providerConfigTitle: 'Model provider connection',
+  providerConfigPermissionRequired:
+    'Configure an admin or access token in the host application to manage models and web search.',
   providerConfigPresetMinimax: 'MiniMax',
   providerConfigPresetOpenai: 'OpenAI',
   providerConfigPresetDeepseek: 'DeepSeek',

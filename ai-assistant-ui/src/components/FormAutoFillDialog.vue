@@ -321,8 +321,8 @@ function confidenceDots(score: number): number {
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #4338ca;
+  background: rgba(17, 17, 17, 0.12);
+  color: #090909;
   width: fit-content;
 }
 .ai-form-fill-table-warn {
@@ -484,7 +484,7 @@ function confidenceDots(score: number): number {
   border-color: var(--ai-color-border, #e5e7eb);
 }
 .ai-form-fill-btn-primary {
-  background: var(--ai-color-primary, #6366f1);
+  background: var(--ai-color-primary, #181818);
   color: #fff;
 }
 .ai-form-fill-btn-primary:disabled {

@@ -1,5 +1,5 @@
 import { mount } from "@vue/test-utils";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminDemoPanel from "./AdminDemoPanel.vue";
 
 vi.mock("../../ai-assistant-ui/src/entries/admin", () => ({
