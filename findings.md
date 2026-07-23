@@ -2,6 +2,7 @@
 
 ## 2026-07-22 v1.x 发布候选验收
 
+- 2026-07-23 干净 Compose smoke 暴露了一个可观测性语义缺陷：HTTP 客户端完整读取 SSE 后，Servlet 适配层会以 Reactor `CANCEL` 结束上游订阅；`StreamingLlmCallExecutor` 的指标已将它记为 `cancel`，审计却把所有非 `ON_COMPLETE` 都记成 `ERROR`。新增 `AuditEvent.Outcome.CANCELLED` 并按终止信号映射后，同一运行链路的审计结果为 `SUCCESS/CANCELLED/SUCCESS`，不再污染错误率。
 - 2026-07-23 远端 CI 的两项失败都能由干净环境事实解释：E2E 缺少 Web Component 构建产物，Security 则是 Trivy 新数据库识别到 Netty `4.1.135.Final` 的四个 HIGH。前者不是 flaky，后者也不能沿用前一天的“零漏洞”快照。
 - `build:lib` 只生成 Vue library，不能满足 `e2e/src/wc.ts` 的 `@ai-assistant/vue/wc` export；E2E job 必须运行 `build:publish`，同时生成 library、Web Component、声明文件并校验全部 exports。定向真实后端 WC E2E 和完整 `32/32` 零重试结果证明该修复覆盖了实际失败链路。
 - Spring Boot parent 模块可通过 `<netty.version>` 覆盖到 `4.1.136.Final`；独立 BOM 导入的 Starter 需要把 `io.netty:netty-bom` 放在 Spring Boot BOM 前。不能只检查 POM 字面量，最终以三个 dependency tree 和 Redis 独立服务 JAR 内 17 个 Netty 构件为准。

@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CORS 显式禁用 credentials；上传日志不再记录原始文件名；Provider 连通性错误会脱敏 Key、URL 与上游凭据字段
 - 将 Tomcat、Jackson、PDFBox、Commons Lang、Log4j 与 Swagger UI 升级到已发布的 CVE 修复版本；Kotlin runtime 的 ODC 误报采用限定包版本且 90 天到期的复核例外
 - 将 Starter、独立服务和 Demo 的 Netty 统一升级至 `4.1.136.Final`，修复 `CVE-2026-59901`、`CVE-2026-55831`、`CVE-2026-55833`、`CVE-2026-56745`
+- 流式响应的下游取消现在单独记录为 `CANCELLED`，不再污染审计错误率
 
 ## [1.0.1] - 2026-05-13
 

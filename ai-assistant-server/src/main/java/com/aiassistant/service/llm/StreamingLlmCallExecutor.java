@@ -162,9 +162,9 @@ public final class StreamingLlmCallExecutor {
     }
 
     private static AuditEvent.Outcome auditOutcome(SignalType signal) {
-        return signal == SignalType.ON_COMPLETE
-                ? AuditEvent.Outcome.SUCCESS
-                : AuditEvent.Outcome.ERROR;
+        if (signal == SignalType.ON_COMPLETE) return AuditEvent.Outcome.SUCCESS;
+        if (signal == SignalType.CANCEL) return AuditEvent.Outcome.CANCELLED;
+        return AuditEvent.Outcome.ERROR;
     }
 
     private Timer streamTimer(String operation, String outcome) {

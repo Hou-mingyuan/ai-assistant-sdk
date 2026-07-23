@@ -2,6 +2,9 @@
 
 ## 2026-07-22 v1.x 发布候选 Goal
 
+- 2026-07-23 从全新本地 clone 检出远端 `42b2631`，仅在被忽略的 `.env` 中把宿主端口设为 `19010`，容器内部保持 `8080`；README Compose 构建启动成功（`584.8s`），随后健康状态为 `healthy`，零密钥 HTTP/SSE smoke `8/8`，实际镜像内 17 个 Netty 构件均为 `4.1.136.Final`。同一远端提交的 GitHub Actions 干净 checkout 用时约 2 分钟完成 Compose 构建、健康等待和 `8/8` smoke。
+- 运行日志复核发现正常 SSE 下游结束被审计成 `ERROR`；已新增 `CANCELLED` 结果与取消回归测试。Starter 全量 `verify`、仓库发布门禁 `98/98` 均通过；当前源码重建到宿主 `19011` 后再次 smoke `8/8`，审计日志明确为 `SUCCESS/CANCELLED/SUCCESS` 且无假错误。
+- 远端 `42b2631` 的 CI、Standalone Docker、Docs、Helm 全绿：E2E `32/32`，完整 publish 构建生成 Web Component 并校验 27 个导出，Trivy Security、Backend、Frontend、Playground、Compose smoke 均通过。新增审计修复仍需最后一轮远端 CI 复验。
 - 2026-07-23 CI 复核推翻了此前“安全扫描最终为 0”的结论：Trivy 当日更新后的数据库在 Netty `4.1.135.Final` 中识别出 `CVE-2026-59901`、`CVE-2026-55831`、`CVE-2026-55833`、`CVE-2026-56745` 四个 HIGH。旧结论只代表旧数据库快照，不再作为最终证据。
 - 已将 Starter、独立服务和 Demo 的 Netty 基线固定为 `4.1.136.Final`；Starter 在 Spring Boot BOM 前优先导入 Netty BOM。三个模块的实际 Maven dependency tree 均只解析到 `4.1.136.Final`，带 Redis profile 的独立服务 JAR 内 17 个 `netty-*.jar` 也全部为该版本。
 - 远端 E2E 失败根因不是等待时间，而是干净 checkout 只运行 `build:lib`，没有生成 `@ai-assistant/vue/wc` 指向的 `dist/ai-assistant-wc.mjs`。CI 已改用 `build:publish`，并增加静态契约防止退回不完整构建；本地完整发布构建通过，27 个公开导出可解析，真实后端 Web Component 定向 E2E `1/1`、完整零重试 E2E `32/32` 通过。

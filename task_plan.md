@@ -41,6 +41,7 @@
 - 汇总 Surefire 计数的首个 PowerShell 只读表达式在 `foreach` 后直接接管道而触发 parser error，未修改任何文件；改为先收集 `$rows` 再输出后成功取得 server `827`、Demo `3`、Client `14` 的零失败计数。
 - README Starter 脚本是阻塞式前台启动；完成全部 HTTP/SSE smoke 后按已核对的 JAR 路径和端口只终止本次 `19012` Java 进程，因此承载脚本按预期以非零退出。构建、启动和产品 smoke 均已在终止前通过，`19012` 随后确认关闭。
 - 暗色残留修复后误在仓库根执行无锁定版本的 `npx prettier --check`，npm 临时下载 Prettier 3.9.6 并仅报告根脚本风格差异；命令没有写文件，但重复了既有“不得跨包套用格式口径”的禁令。后续 UI 文件只用 UI 锁定 `npm run format:check`，根脚本用 `node --check`、脚本测试和 `git diff --check`，不再调用该命令。
+- 2026-07-23 Docker Desktop 在运行时复验前意外退出；恢复后自动启动了历次 AI Assistant 验收 Compose 项目，造成瞬时资源争用和最新实例健康延迟。已仅停止 15 个旧 `ai-assistant-*` 容器，保留当前验收实例；未停止或删除 shared-infra、RAG、Lumiere 等其他仓库容器，也未删除任何数据。
 - 2026-07-23 本地复扫尝试拉取 `aquasec/trivy:0.69.3` 时 Docker Hub 返回 EOF，随后下载同版本 Windows 官方发布包时 GitHub 连续连接超时；两次均未得到扫描结果，不能记为通过。已完成 Netty 依赖树、实际 Redis 服务 JAR 与全量测试验证，最终安全关闭仍以修复提交触发的远端 Trivy job 为准。
 - 本轮 OWASP 首次命令中未给 `-DsuppressionFiles=.github\\...` 的完整参数加引号，PowerShell 把路径拆成 Maven lifecycle phase；扫描尚未启动即失败。改用带绝对路径的完整引号参数后数据库分析和 CVSS 门禁成功，后续固定使用该形式。
 - 本轮 Trivy 首次把缓存卷直接挂到 `/root/.cache/trivy`，但卷内结构实际是 `/trivy/db`，导致工具认为是首次运行并拒绝 `--skip-db-update`；检查卷确认 2.5GB DB 后改挂 `/cache` 并显式 `--cache-dir /cache/trivy`，三类扫描成功。探测缓存文件时又使用了 BusyBox `find` 不支持的 `-printf`，已改为 `-print`/`du`，未重复无效语法。
