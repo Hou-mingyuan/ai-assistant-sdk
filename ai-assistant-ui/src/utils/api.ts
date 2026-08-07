@@ -566,6 +566,7 @@ export async function uploadFile(
   action: 'summarize' | 'translate' = 'summarize',
   targetLang = 'zh',
   token?: string,
+  tenantId?: string,
 ): Promise<FileUploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
@@ -576,6 +577,8 @@ export async function uploadFile(
   const headers: Record<string, string> = {};
   const normalizedToken = normalizeToken(token);
   if (normalizedToken) headers['X-AI-Token'] = normalizedToken;
+  const normalizedTenantId = normalizeTenantId(tenantId);
+  if (normalizedTenantId) headers['X-Tenant-Id'] = normalizedTenantId;
 
   const endpoint = action === 'translate' ? '/file/translate' : '/file/summarize';
   const res = await fetch(apiUrl(baseUrl, endpoint), {

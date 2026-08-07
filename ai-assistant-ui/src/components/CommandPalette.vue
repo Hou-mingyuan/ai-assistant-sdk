@@ -116,6 +116,7 @@ watch(
       searchInput.value?.focus();
     }
   },
+  { immediate: true },
 );
 
 watch(filteredCommands, (list) => {
