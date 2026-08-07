@@ -2577,6 +2577,7 @@ async function processFileUpload(file: File) {
       action,
       targetLang.value,
       options.accessToken,
+      options.tenantId,
     );
     const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`;
     messages.value.push({ role: 'assistant', content, timestamp: Date.now() });

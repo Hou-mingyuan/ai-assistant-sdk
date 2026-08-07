@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import CommandPalette from './CommandPalette.vue';
@@ -55,6 +55,33 @@ describe('CommandPalette icons', () => {
     expect(wrapper.emitted('update:open')).toEqual([[false]]);
     expect(globalKeydown).not.toHaveBeenCalled();
     window.removeEventListener('keydown', globalKeydown);
+    wrapper.unmount();
+  });
+
+  it('focuses the search input on initial open and closes on Escape', async () => {
+    const wrapper = mount(CommandPalette, {
+      props: {
+        open: true,
+        commands: [],
+      },
+      attachTo: document.body,
+    });
+
+    await flushPromises();
+    const input = document.body.querySelector<HTMLInputElement>('.ai-cmd-palette-input');
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+
+    input!.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('update:open')).toEqual([[false]]);
     wrapper.unmount();
   });
 });

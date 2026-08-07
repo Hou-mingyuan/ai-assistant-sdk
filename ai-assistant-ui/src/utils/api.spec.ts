@@ -416,13 +416,22 @@ describe('uploadFile', () => {
     });
 
     const file = new File(['hello'], 'note.txt', { type: 'text/plain' });
-    const res = await uploadFile('/ai/', file, undefined, undefined, '  file-token  ');
+    const res = await uploadFile(
+      '/ai/',
+      file,
+      undefined,
+      undefined,
+      '  file-token  ',
+      '  tenant-a  ',
+    );
     const request = mockFetch.mock.calls[0][1];
     const body = request.body as FormData;
 
     expect(mockFetch.mock.calls[0][0]).toBe('/ai/file/summarize');
     expect(request.method).toBe('POST');
     expect(request.headers['X-AI-Token']).toBe('file-token');
+    expect(request.headers['X-Tenant-Id']).toBe('tenant-a');
+    expect(request.headers['Content-Type']).toBeUndefined();
     expect(body.get('file')).toBe(file);
     expect(body.get('targetLang')).toBeNull();
     expect(res.result).toBe('summary');
@@ -450,6 +459,15 @@ describe('uploadFile', () => {
 
     expect(res.success).toBe(false);
     expect(res.error).toContain('413');
+  });
+
+  it('rejects an invalid tenant before uploading', async () => {
+    const file = new File(['hello'], 'note.txt', { type: 'text/plain' });
+
+    await expect(
+      uploadFile('/ai', file, 'summarize', 'zh', undefined, 'invalid tenant'),
+    ).rejects.toThrow('tenantId');
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
 
