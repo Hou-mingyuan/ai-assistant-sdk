@@ -236,10 +236,7 @@ export interface ParseFormDataAsTableOptions {
 }
 
 type TableSeparator =
-  | { kind: 'tab' }
-  | { kind: 'comma' }
-  | { kind: 'pipe' }
-  | { kind: 'multispace' };
+  { kind: 'tab' } | { kind: 'comma' } | { kind: 'pipe' } | { kind: 'multispace' };
 
 export function parseFormDataAsTable(
   input: string,

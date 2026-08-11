@@ -322,8 +322,7 @@ function openInNewTab() {
           :key="i"
           class="ai-artifact-console-line"
           :class="`is-${l.level}`"
-          >{{ l.text }}</pre
-        >
+          >{{ l.text }}</pre>
       </div>
     </div>
   </div>

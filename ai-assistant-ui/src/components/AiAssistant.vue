@@ -1877,8 +1877,7 @@ watch(themePalette, (v) => {
 });
 function onExternalThemeChange(event: Event) {
   const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
-    | ThemePresetId
-    | undefined;
+    ThemePresetId | undefined;
   if (next && next in THEME_PRESETS && next !== themePalette.value) {
     themePalette.value = next;
   }

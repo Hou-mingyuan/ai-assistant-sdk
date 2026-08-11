@@ -46,8 +46,7 @@ export function collectSpeechTranscript(
 function getSpeechRecognition(): (new () => SpeechRecognitionInstance) | null {
   const w = window as unknown as Record<string, unknown>;
   return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as
-    | (new () => SpeechRecognitionInstance)
-    | null;
+    (new () => SpeechRecognitionInstance) | null;
 }
 
 export function useVoiceInput(onTranscript: (text: string) => void) {
