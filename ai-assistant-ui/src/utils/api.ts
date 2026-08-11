@@ -96,8 +96,7 @@ export interface HealthResult {
     averageDurationMs?: number;
   };
   webSearchProbe?:
-    | string
-    | { status?: string; provider?: string; resultCount?: number; durationMs?: number };
+    string | { status?: string; provider?: string; resultCount?: number; durationMs?: number };
 }
 
 export type ExportRequestPayload = JsonRequestBody<'/export', 'post'>;

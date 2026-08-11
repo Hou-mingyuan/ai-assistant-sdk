@@ -1,13 +1,7 @@
 import { computed, type ComputedRef, type Ref } from 'vue';
 
 export type ModelListStatus =
-  | ''
-  | 'empty'
-  | 'network'
-  | 'unauthorized'
-  | 'rateLimited'
-  | 'serverError'
-  | 'failed';
+  '' | 'empty' | 'network' | 'unauthorized' | 'rateLimited' | 'serverError' | 'failed';
 
 export type ModelStatusKind = 'ready' | 'checking' | 'warning' | 'offline';
 export type DiagnosticsRemedyKind = 'ready' | 'noBaseUrl' | Exclude<ModelListStatus, ''>;
