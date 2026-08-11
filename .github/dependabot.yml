@@ -65,6 +65,14 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      # netty.version is a security pin shared by the server, service and demo
+      # poms, with netty-bom deliberately imported ahead of
+      # spring-boot-dependencies to override Spring Boot's own Netty. Moving off
+      # the 4.1 line is a compatibility decision, not a dependency refresh, so
+      # only 4.1.x patches flow through automatically.
+      - dependency-name: "io.netty:*"
+        update-types:
+          - version-update:semver-minor
     groups:
       maven-server-minor-patch:
         update-types:
@@ -85,6 +93,9 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      - dependency-name: "io.netty:*"
+        update-types:
+          - version-update:semver-minor
     groups:
       maven-service-minor-patch:
         update-types:
