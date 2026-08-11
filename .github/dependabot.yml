@@ -38,6 +38,13 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-major
+      # Both images encode the JDK in the tag, so Dependabot reads
+      # maven:3.9.11-eclipse-temurin-21 -> 3.9.15-eclipse-temurin-26 as a patch
+      # bump and hides a 21 -> 26 jump inside it. Lombok's processor does not
+      # run on 26, which drops every generated accessor and breaks the build.
+      # The JDK baseline moves by hand, across Dockerfile and CI together.
+      - dependency-name: maven
+      - dependency-name: eclipse-temurin
     groups:
       docker-minor-patch:
         update-types:
