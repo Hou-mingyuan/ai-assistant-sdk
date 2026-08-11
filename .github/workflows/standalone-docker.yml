@@ -103,7 +103,7 @@ jobs:
           node scripts/smoke-standalone-service.mjs http://localhost:18080/ai-assistant
 
       - name: Scan image vulnerabilities
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ai-assistant-service:ci
           vuln-type: os,library
