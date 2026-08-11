@@ -184,7 +184,8 @@ test('CI security lane scans the complete Redis artifact and every frontend work
   const workflow = await readFile('.github/workflows/ci.yml', 'utf8')
 
   assert.match(workflow, /mvn -B -pl ai-assistant-service -am -DskipTests -Predis package/)
-  assert.match(workflow, /uses: aquasecurity\/trivy-action@\d+\.\d+\.\d+/)
+  // Upstream tags releases as `vX.Y.Z`; `0.35.0` is the one legacy bare tag.
+  assert.match(workflow, /uses: aquasecurity\/trivy-action@v?\d+\.\d+\.\d+/)
   assert.match(workflow, /scanners: vuln,secret,misconfig/)
   assert.match(workflow, /severity: CRITICAL,HIGH/)
   assert.match(workflow, /exit-code: 1/)
