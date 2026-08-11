@@ -1,3 +1,9 @@
+# Major bumps are ignored on purpose. Every dependency PR that went stale in
+# this repo was an ungrouped major upgrade (Spring Boot 3->4, ESLint 9->10,
+# TypeScript 5->6, JUnit 5->6, ...); each needs deliberate migration work, so
+# they are raised by hand rather than left to rot as open PRs. Grouped
+# minor/patch updates are merged automatically once CI is green — see
+# .github/workflows/dependabot-auto-merge.yml
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -8,6 +14,10 @@ updates:
       time: "09:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       github-actions-minor-patch:
         update-types:
@@ -24,6 +34,10 @@ updates:
       time: "09:15"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       docker-minor-patch:
         update-types:
@@ -40,6 +54,10 @@ updates:
       time: "09:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       maven-server-minor-patch:
         update-types:
@@ -56,6 +74,10 @@ updates:
       time: "09:45"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       maven-service-minor-patch:
         update-types:
@@ -72,6 +94,10 @@ updates:
       time: "10:00"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       maven-client-minor-patch:
         update-types:
@@ -88,6 +114,10 @@ updates:
       time: "10:15"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       npm-ui-minor-patch:
         update-types:
@@ -104,6 +134,10 @@ updates:
       time: "10:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
       npm-docs-minor-patch:
         update-types:

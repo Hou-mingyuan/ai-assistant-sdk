@@ -1,0 +1,47 @@
+name: Dependabot auto-merge
+
+# Runs after CI finishes rather than on `pull_request`, so the merge can only
+# happen on a green run. Scoped to Dependabot's grouped minor/patch branches;
+# major bumps are excluded in .github/dependabot.yml and are merged by hand.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Squash-merge the grouped update
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          case "$HEAD_BRANCH" in
+            dependabot/*-minor-patch-*) ;;
+            *)
+              echo "$HEAD_BRANCH is not a grouped minor/patch branch, leaving it alone."
+              exit 0
+              ;;
+          esac
+
+          pr=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open \
+                 --json number --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            echo "No open PR for $HEAD_BRANCH."
+            exit 0
+          fi
+
+          echo "Merging #$pr ($HEAD_BRANCH)"
+          gh pr merge "$pr" --repo "$REPO" --squash --delete-branch
