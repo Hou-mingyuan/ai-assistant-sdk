@@ -19,8 +19,8 @@
         <jackson-databind.version>2.22.1</jackson-databind.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <log4j2.version>2.26.1</log4j2.version>
-        <netty.version>4.1.136.Final</netty.version>
-        <swagger-ui.version>5.32.11</swagger-ui.version>
+        <netty.version>4.1.137.Final</netty.version>
+        <swagger-ui.version>5.32.13</swagger-ui.version>
         <!-- 5.4.1+：缓解 CVE-2025-31672（OOXML / 重复 zip 条目解析） -->
         <apache.poi.version>5.5.1</apache.poi.version>
         <apache.pdfbox.version>3.0.8</apache.pdfbox.version>
