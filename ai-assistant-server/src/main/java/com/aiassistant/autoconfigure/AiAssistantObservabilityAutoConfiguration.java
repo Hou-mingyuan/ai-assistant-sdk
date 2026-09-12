@@ -71,6 +71,19 @@ public class AiAssistantObservabilityAutoConfiguration {
     }
 
     @Bean
+    public org.springframework.beans.factory.SmartInitializingSingleton multiReplicaStorageGuard(
+            com.aiassistant.config.MultiReplicaStorageAdvisor advisor,
+            @org.springframework.beans.factory.annotation.Value("${ai-assistant.deployment-replicas:1}")
+                    int replicas,
+            ObjectProvider<com.aiassistant.rag.VectorStore> vectorStore,
+            ObjectProvider<com.aiassistant.service.SessionStore> sessionStore,
+            ObjectProvider<TokenUsageTracker> tokenUsage,
+            ObjectProvider<ConversationMemoryProvider> memory) {
+        return () -> advisor.enforceReplicaCount(replicas, vectorStore.getIfAvailable(),
+                sessionStore.getIfAvailable(), tokenUsage.getIfAvailable(), memory.getIfAvailable());
+    }
+
+    @Bean
     @ConditionalOnMissingBean
     public com.aiassistant.config.ProviderConnectivityChecker providerConnectivityChecker(
             AiAssistantProperties properties) {

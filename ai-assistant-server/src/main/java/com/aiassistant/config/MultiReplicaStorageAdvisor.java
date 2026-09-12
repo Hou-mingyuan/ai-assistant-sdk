@@ -93,6 +93,26 @@ public class MultiReplicaStorageAdvisor {
         return List.copyOf(warnings);
     }
 
+    /** Explicit replica declarations are enforced; heuristic detection remains advisory. */
+    public void enforceReplicaCount(
+            int replicas,
+            VectorStore vectorStore,
+            SessionStore sessionStore,
+            TokenUsageTracker tokenUsageTracker,
+            ConversationMemoryProvider conversationMemoryProvider) {
+        if (replicas < 1) {
+            throw new IllegalStateException("ai-assistant.deployment-replicas must be positive");
+        }
+        if (replicas == 1) {
+            return;
+        }
+        List<String> problems = new MultiReplicaStorageAdvisor(() -> true)
+                .warningCodes(vectorStore, sessionStore, tokenUsageTracker, conversationMemoryProvider);
+        if (!problems.isEmpty()) {
+            throw new IllegalStateException("Shared storage is required for multiple replicas: " + problems);
+        }
+    }
+
     /** Emits one structured WARN per affected component on the SLF4J logger. */
     public void logWarnings(
             VectorStore vectorStore,

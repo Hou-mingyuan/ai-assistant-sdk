@@ -2,6 +2,10 @@
 
 This document is the **repository-root** deployment entry. Detailed paths live in the VitePress site; use this for Docker smoke, production compose, and runbook links.
 
+See [instance and state ownership](docs/guide/deployment-topology.md) before scaling.
+Declare `ai-assistant.deployment-replicas`; multiple replicas with known in-memory
+core stores now fail startup. Shared stores still require real cross-replica validation.
+
 | Goal | Detailed guide |
 | --- | --- |
 | Choose Starter vs standalone service | [docs/guide/deployment-checklists.md](docs/guide/deployment-checklists.md) |
