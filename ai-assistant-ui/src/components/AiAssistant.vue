@@ -701,6 +701,8 @@
 </template>
 
 <script setup lang="ts">
+import { useThemePalette, type ThemePresetId } from '../composables/useThemePalette';
+
 import {
   ref,
   computed,
@@ -1798,100 +1800,7 @@ const a11yStatusText = computed(() => {
 
 const color = computed(() => options.primaryColor || '#111111');
 
-/* K25: ColorThemeSwitcher state ------------------------------------------------
- * `themePalette` chooses one of five technology accent presets. The choice is persisted in
- * localStorage under THEME_STORAGE_KEY (so the same user keeps their palette
- * across page reloads). Three CSS custom properties are then injected on the
- * wrapper (--ai-theme-from / --ai-theme-via / --ai-theme-to). Historical ids
- * remain stable so existing localStorage values keep working after the palette refresh.
- *
- * Default 'graphite' = the darkest Obsidian preset.
- */
-const THEME_STORAGE_KEY = 'ai-assistant.theme.palette.v1';
-const THEME_SYNC_EVENT = 'ai-assistant-theme-change';
-type ThemePresetId = 'sky' | 'sunset' | 'forest' | 'plum' | 'graphite';
-const THEME_PRESETS: Record<
-  ThemePresetId,
-  { from: string; via: string; to: string; mark: string; darkMark: string }
-> = {
-  sky: {
-    from: '#163b8c',
-    via: '#2457d6',
-    to: '#5b8def',
-    mark: '#2457d6',
-    darkMark: '#8fb4ff',
-  },
-  sunset: {
-    from: '#9a3412',
-    via: '#c2410c',
-    to: '#f97316',
-    mark: '#c2410c',
-    darkMark: '#fdba74',
-  },
-  forest: {
-    from: '#065f46',
-    via: '#0f766e',
-    to: '#2dd4bf',
-    mark: '#0f766e',
-    darkMark: '#5eead4',
-  },
-  plum: {
-    from: '#075985',
-    via: '#0891b2',
-    to: '#22d3ee',
-    mark: '#0891b2',
-    darkMark: '#67e8f9',
-  },
-  graphite: {
-    from: '#050505',
-    via: '#171717',
-    to: '#2b2b2b',
-    mark: '#171717',
-    darkMark: '#fafafa',
-  },
-};
-const themePalette = ref<ThemePresetId>(
-  (() => {
-    try {
-      const v = localStorage.getItem(THEME_STORAGE_KEY) as ThemePresetId | null;
-      if (v && v in THEME_PRESETS) return v;
-    } catch {
-      /* SSR / disabled localStorage — fall through to default */
-    }
-    return 'graphite';
-  })(),
-);
-watch(themePalette, (v) => {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, v);
-  } catch {
-    /* ignore */
-  }
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new CustomEvent(THEME_SYNC_EVENT, {
-        detail: { theme: v, source: 'assistant' },
-      }),
-    );
-  }
-});
-function onExternalThemeChange(event: Event) {
-  const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
-    ThemePresetId | undefined;
-  if (next && next in THEME_PRESETS && next !== themePalette.value) {
-    themePalette.value = next;
-  }
-}
-const themePaletteVars = computed<Record<string, string>>(() => {
-  const p = THEME_PRESETS[themePalette.value];
-  return {
-    '--ai-theme-from': p.from,
-    '--ai-theme-via': p.via,
-    '--ai-theme-to': p.to,
-    '--ai-theme-mark': p.mark,
-    '--ai-theme-mark-dark': p.darkMark,
-  };
-});
+const { themePalette, themePaletteVars } = useThemePalette();
 const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
 
 const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
@@ -2740,7 +2649,6 @@ onMounted(() => {
     }
   });
   window.addEventListener('resize', onWinResize);
-  window.addEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
   window.visualViewport?.addEventListener('scroll', onVisualViewportChange);
   window.addEventListener('keydown', onEscKeydown, true);
@@ -2764,7 +2672,6 @@ onUnmounted(() => {
   if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
   if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   window.removeEventListener('resize', onWinResize);
-  window.removeEventListener(THEME_SYNC_EVENT, onExternalThemeChange);
   window.visualViewport?.removeEventListener('resize', onVisualViewportChange);
   window.visualViewport?.removeEventListener('scroll', onVisualViewportChange);
   window.removeEventListener('keydown', onEscKeydown, true);
