@@ -66,4 +66,33 @@ class TenantFilterTest {
 
         assertFalse(hadTenant[0]);
     }
+
+    @Test
+    void hmacModeDerivesTenantFromVerifiedTokenAttribute() throws Exception {
+        TenantFilter filter = new TenantFilter("/ai-assistant", true);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.setAttribute(AiAssistantAuthFilter.VERIFIED_TENANT_ATTRIBUTE, "verified-tenant");
+        request.addHeader("X-Tenant-Id", "spoofed-tenant");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("verified-tenant", seenTenant[0]);
+    }
+
+    @Test
+    void hmacModeFallsBackToLegacyResolutionWithoutVerifiedAttribute() throws Exception {
+        TenantFilter filter = new TenantFilter("/ai-assistant", true);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.addHeader("X-Tenant-Id", "local-tenant");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("local-tenant", seenTenant[0]);
+    }
 }

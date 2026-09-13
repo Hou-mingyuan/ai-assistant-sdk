@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.aiassistant.security.HmacTenantTokens;
+import java.time.Instant;
 import java.util.HashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -18,7 +20,7 @@ class AiAssistantWebSocketConfigTest {
     @Test
     void acceptsHeaderToken() {
         AiAssistantWebSocketConfig.TokenHandshakeInterceptor interceptor =
-                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor("secret", false);
+                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor(securedProperties());
         MockHttpServletRequest servletRequest =
                 new MockHttpServletRequest("GET", "/ai-assistant/ws");
         servletRequest.addHeader("X-AI-Token", "secret");
@@ -35,9 +37,9 @@ class AiAssistantWebSocketConfigTest {
     }
 
     @Test
-    void rejectsQueryTokenByDefault() {
+    void rejectsQueryTokenUnconditionally() {
         AiAssistantWebSocketConfig.TokenHandshakeInterceptor interceptor =
-                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor("secret", false);
+                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor(securedProperties());
         MockHttpServletRequest servletRequest =
                 new MockHttpServletRequest("GET", "/ai-assistant/ws");
         servletRequest.setParameter("token", "secret");
@@ -55,21 +57,39 @@ class AiAssistantWebSocketConfigTest {
     }
 
     @Test
-    void allowsQueryTokenOnlyWhenExplicitlyEnabled() {
+    void hmacModeAcceptsSignedTenantTokenButNotSharedSecret() {
+        AiAssistantProperties properties = securedProperties();
+        properties.setAuthMode("hmac");
         AiAssistantWebSocketConfig.TokenHandshakeInterceptor interceptor =
-                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor("secret", true);
-        MockHttpServletRequest servletRequest =
+                new AiAssistantWebSocketConfig.TokenHandshakeInterceptor(properties);
+
+        MockHttpServletRequest signed =
                 new MockHttpServletRequest("GET", "/ai-assistant/ws");
-        servletRequest.setParameter("token", "secret");
-        ServerHttpResponse response = mock(ServerHttpResponse.class);
-
-        boolean ok =
+        signed.addHeader("X-AI-Token", HmacTenantTokens.issue("tenant-a", 3600, "secret", Instant.now()));
+        ServerHttpResponse signedResponse = mock(ServerHttpResponse.class);
+        assertTrue(
                 interceptor.beforeHandshake(
-                        new ServletServerHttpRequest(servletRequest),
-                        response,
+                        new ServletServerHttpRequest(signed),
+                        signedResponse,
                         mock(WebSocketHandler.class),
-                        new HashMap<>());
+                        new HashMap<>()));
 
-        assertTrue(ok);
+        MockHttpServletRequest shared =
+                new MockHttpServletRequest("GET", "/ai-assistant/ws");
+        shared.addHeader("X-AI-Token", "secret");
+        ServerHttpResponse sharedResponse = mock(ServerHttpResponse.class);
+        assertFalse(
+                interceptor.beforeHandshake(
+                        new ServletServerHttpRequest(shared),
+                        sharedResponse,
+                        mock(WebSocketHandler.class),
+                        new HashMap<>()));
+        verify(sharedResponse).setStatusCode(HttpStatus.UNAUTHORIZED);
+    }
+
+    private static AiAssistantProperties securedProperties() {
+        AiAssistantProperties properties = new AiAssistantProperties();
+        properties.setAccessToken("secret");
+        return properties;
     }
 }

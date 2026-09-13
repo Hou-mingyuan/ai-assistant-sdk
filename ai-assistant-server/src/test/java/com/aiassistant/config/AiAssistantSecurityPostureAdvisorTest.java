@@ -66,20 +66,6 @@ class AiAssistantSecurityPostureAdvisorTest {
     }
 
     @Test
-    void warnsWhenQueryTokenAuthCompatibilityIsEnabled() {
-        AiAssistantProperties properties = new AiAssistantProperties();
-        properties.setAccessToken("secret");
-        properties.setAllowQueryTokenAuth(true);
-
-        AiAssistantSecurityPostureAdvisor advisor =
-                new AiAssistantSecurityPostureAdvisor(properties);
-
-        assertEquals(
-                List.of(AiAssistantSecurityPostureAdvisor.QUERY_TOKEN_AUTH_ENABLED),
-                advisor.warningCodes());
-    }
-
-    @Test
     void doesNotWarnForWildcardOriginWhenAccessTokenIsSet() {
         AiAssistantProperties properties = new AiAssistantProperties();
         properties.setAccessToken("secret");

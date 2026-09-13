@@ -59,7 +59,9 @@ public class AiAssistantSecurityAutoConfiguration {
         FilterRegistrationBean<com.aiassistant.config.TenantFilter> registration =
                 new FilterRegistrationBean<>();
         registration.setFilter(
-                new com.aiassistant.config.TenantFilter(properties.getContextPath()));
+                new com.aiassistant.config.TenantFilter(
+                        properties.getContextPath(),
+                        "hmac".equalsIgnoreCase(properties.getAuthMode())));
         addAssistantUrlPatterns(registration, properties);
         registration.setOrder(-2);
         return registration;

@@ -266,7 +266,7 @@ public class AiAssistantProperties {
      * 安全相关配置子域。
      *
      * <p>YAML 嵌套形式 {@code ai-assistant.security.access-token / .allowed-origins /
-     * .pii-masking-enabled / .allow-query-token-auth}，同时保留历史扁平形式（通过主类的 delegation 兼容）。
+     * .pii-masking-enabled / .auth-mode}，同时保留历史扁平形式（通过主类的 delegation 兼容）。
      */
     @Getter
     @Setter
@@ -274,7 +274,21 @@ public class AiAssistantProperties {
         private String accessToken;
         private String allowedOrigins = "*";
         private boolean piiMaskingEnabled = true;
-        private boolean allowQueryTokenAuth = false;
+
+        /**
+         * 访问令牌校验模式：
+         * <ul>
+         *   <li>{@code shared}（默认）—— 所有调用方共用静态令牌，租户身份取自 {@code X-Tenant-Id}
+         *       头（自报，可伪造），适合本地与可信内网；</li>
+         *   <li>{@code hmac} —— 调用方携带宿主服务端签发的 HMAC 签名令牌（经
+         *       {@code POST <context>/admin/tenant-tokens} 签发），租户身份从令牌签名派生，
+         *       客户端自报的 {@code X-Tenant-Id} 被忽略，无法伪造，面向第三方站点嵌入。</li>
+         * </ul>
+         */
+        private String authMode = "shared";
+
+        /** hmac 模式下签发的租户令牌默认有效期（秒）；签发接口可按次覆盖，上限 366 天。 */
+        private long tenantTokenTtlSeconds = 30L * 24 * 3600;
 
         /**
          * 服务前置的可信反向代理层数（Nginx / ALB 等）。默认 0：完全忽略 {@code X-Forwarded-For}，仅以 {@code remoteAddr}
@@ -618,12 +632,20 @@ public class AiAssistantProperties {
         security.setPiiMaskingEnabled(v);
     }
 
-    public boolean isAllowQueryTokenAuth() {
-        return security.isAllowQueryTokenAuth();
+    public String getAuthMode() {
+        return security.getAuthMode();
     }
 
-    public void setAllowQueryTokenAuth(boolean v) {
-        security.setAllowQueryTokenAuth(v);
+    public void setAuthMode(String v) {
+        security.setAuthMode(v);
+    }
+
+    public long getTenantTokenTtlSeconds() {
+        return security.getTenantTokenTtlSeconds();
+    }
+
+    public void setTenantTokenTtlSeconds(long v) {
+        security.setTenantTokenTtlSeconds(v);
     }
 
     public int getTrustedProxyHops() {

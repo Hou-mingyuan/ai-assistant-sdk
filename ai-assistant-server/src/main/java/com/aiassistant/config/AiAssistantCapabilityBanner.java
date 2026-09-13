@@ -54,7 +54,7 @@ public class AiAssistantCapabilityBanner {
                 sb,
                 "Allow client system prompt",
                 onOff(properties.isAllowClientSystemPrompt(), true));
-        appendKv(sb, "Query string token auth", onOff(properties.isAllowQueryTokenAuth(), false));
+        appendKv(sb, "Auth mode", properties.getAuthMode());
 
         appendSection(sb, "HINTS");
         sb.append("\n  Reference docs/guide/configuration.md for the full list of toggles.");

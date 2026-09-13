@@ -109,7 +109,7 @@ public class RuntimeConfigController {
 
         Map<String, Object> security = new LinkedHashMap<>();
         security.put("accessTokenConfigured", hasText(properties.getAccessToken()));
-        security.put("queryTokenAuthEnabled", properties.isAllowQueryTokenAuth());
+        security.put("authMode", properties.getAuthMode());
         security.put("allowedOriginsMode", wildcardOrigins ? "wildcard" : "explicit");
         security.put("allowedOriginsCount", wildcardOrigins ? 0 : allowedOrigins.length);
         security.put("securityWarnings", securityPostureAdvisor.warningCodes());

@@ -53,9 +53,6 @@ public class AiAssistantSecurityPostureAdvisor {
         if (properties.isMcpServerEnabled() && !hasAccessToken) {
             warnings.add(MCP_SERVER_WITHOUT_ACCESS_TOKEN);
         }
-        if (properties.isAllowQueryTokenAuth()) {
-            warnings.add(QUERY_TOKEN_AUTH_ENABLED);
-        }
         if (isWildcardOrigin(properties.getAllowedOrigins()) && !hasAccessToken) {
             warnings.add(PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN);
         }
@@ -111,10 +108,6 @@ public class AiAssistantSecurityPostureAdvisor {
                 log.warn(
                         "ai-assistant.mcp-server-enabled=true is configured without ai-assistant.access-token. "
                                 + "Protect MCP tool discovery and invocation before exposing this endpoint.");
-            } else if (QUERY_TOKEN_AUTH_ENABLED.equals(warning)) {
-                log.warn(
-                        "ai-assistant.allow-query-token-auth=true allows tokens in URLs. "
-                                + "Prefer the X-AI-Token header to avoid leaking tokens through logs or browser history.");
             } else if (PUBLIC_BROWSER_ACCESS_WITHOUT_TOKEN.equals(warning)) {
                 log.warn(
                         "ai-assistant.allowed-origins='*' is configured without ai-assistant.access-token. "
