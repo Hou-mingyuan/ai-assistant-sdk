@@ -29,6 +29,8 @@ export const en: I18nMessages = {
     'The selected model channel is temporarily unavailable. Please switch models or check the service provider.',
   serviceGenericError:
     'The AI service is temporarily unavailable. Please retry later or open diagnostics for details.',
+  connectionLostError:
+    'The connection was interrupted. Check your network and tap Retry below, or verify the service URL in settings.',
   replying: 'Assistant is replying…',
   justNow: 'just now',
   showEarlierTemplate: '{n} older messages hidden — tap to show all',

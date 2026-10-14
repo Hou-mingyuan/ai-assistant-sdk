@@ -91,7 +91,19 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     if (sseFailCount >= SSE_RETRY_THRESHOLD) {
       preferredProtocol.value = 'ws';
     }
-    yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal);
+    try {
+      yield* wsStreamChat(deriveWsUrl(baseUrl), payload, token, signal);
+    } catch (wsError) {
+      // Design v2 hardening: the WS endpoint can be absent (e.g. hosts that
+      // never enabled websocket) or blocked by proxies. Falling back to a
+      // fresh SSE attempt avoids a dead end where both transports fail and
+      // the user only sees a raw protocol error.
+      if (signal?.aborted) throw wsError;
+      if (!isConnectionError(wsError)) throw wsError;
+      preferredProtocol.value = 'sse';
+      sseFailCount = 0;
+      yield* streamChat(baseUrl, payload, token, signal, onMeta);
+    }
   }
 
   return { preferredProtocol, streamWithFallback };

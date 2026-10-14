@@ -472,9 +472,9 @@
       :selected="msg.reactions?.selected ?? ''"
       :counts="msg.reactions?.counts ?? {}"
       :reactions="[
-        { emoji: '❤️', label: t.reactLove || '喜欢 / Love' },
-        { emoji: '⭐', label: t.reactFavorite || '收藏 / Favorite' },
-        { emoji: '📌', label: t.reactPin || '钉选 / Pin' },
+        { emoji: '❤️', label: t.reactLove || '喜欢 / Love', icon: 'heart' },
+        { emoji: '⭐', label: t.reactFavorite || '收藏 / Favorite', icon: 'star' },
+        { emoji: '📌', label: t.reactPin || '钉选 / Pin', icon: 'pin' },
       ]"
       @reaction="
         (p) => emit('set-reaction', displayOffset + renderedStart + idx, p.emoji, p.toggled)

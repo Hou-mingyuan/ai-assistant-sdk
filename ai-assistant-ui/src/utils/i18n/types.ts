@@ -185,6 +185,8 @@ export interface I18nMessages {
   reactLove?: string;
   reactFavorite?: string;
   reactPin?: string;
+  /** Design v2: human-readable copy for connection-level stream failures (WS/SSE). */
+  connectionLostError: string;
   /** K25: label shown next to the ColorThemeSwitcher in PersonalizeDialog. */
   personalizeThemeLabel?: string;
   /** K37: AudioOutput section in PersonalizeDialog. */

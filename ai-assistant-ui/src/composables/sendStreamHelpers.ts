@@ -141,6 +141,13 @@ export function normalizeAssistantServiceError(message: string, t: I18nMessages)
   if (/AI service error\.?\s*Check server logs/i.test(raw)) {
     return t.serviceGenericError;
   }
+  // Design v2: connection-level failures (WebSocket/SSE) read as human advice,
+  // not protocol jargon. Matches wsChat.ts messages ('WebSocket connection
+  // failed', 'WebSocket connection error', 'WebSocket heartbeat timeout') and
+  // generic SSE 'Failed to fetch'.
+  if (/websocket|failed to fetch|connection (error|failed|closed)|heartbeat timeout/i.test(raw)) {
+    return t.connectionLostError;
+  }
   return message;
 }
 
