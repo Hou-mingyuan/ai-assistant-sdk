@@ -25,6 +25,9 @@ export interface EmptyStarterCard {
   desc: string;
   prompt: string;
   tone: 'violet' | 'cyan' | 'amber' | 'emerald' | 'rose' | 'sky';
+  /** Design v2: complete example question — clicking sends immediately
+   * instead of pre-filling the input (empty-state-as-onboarding). */
+  sendNow?: boolean;
 }
 
 export interface EmptyCapabilityHint {
@@ -116,6 +119,22 @@ export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
     const lib: Record<Locale, EmptyStarterCard[]> = {
       zh: [
         {
+          icon: 'sparkles',
+          title: '介绍一下你自己',
+          desc: '点一下直接发送',
+          prompt: '请用三句话介绍你自己，说说你擅长什么。',
+          tone: 'violet',
+          sendNow: true,
+        },
+        {
+          icon: 'lightbulb',
+          title: '来点今日灵感',
+          desc: '点一下直接发送',
+          prompt: '给我 3 个有趣的技术点子，各配一句话说明为什么有意思。',
+          tone: 'amber',
+          sendNow: true,
+        },
+        {
           icon: 'briefcase-business',
           title: '写一封商务邮件',
           desc: '正式得体、要点清晰',
@@ -141,10 +160,27 @@ export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
           title: '推荐 3 本科幻小说',
           desc: '附简短理由和难度',
           prompt: '给我推荐 3 本好看的科幻小说，并简要说明每本的看点。',
+          sendNow: true,
           tone: 'emerald',
         },
       ],
       en: [
+        {
+          icon: 'sparkles',
+          title: 'Introduce yourself',
+          desc: 'Tap to send instantly',
+          prompt: 'Introduce yourself in three sentences and mention what you are good at.',
+          tone: 'violet',
+          sendNow: true,
+        },
+        {
+          icon: 'lightbulb',
+          title: 'Ideas for today',
+          desc: 'Tap to send instantly',
+          prompt: 'Give me 3 interesting tech ideas, each with a one-line pitch on why it is fun.',
+          tone: 'amber',
+          sendNow: true,
+        },
         {
           icon: 'briefcase-business',
           title: 'Write a business email',
@@ -171,10 +207,27 @@ export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
           title: 'Recommend 3 sci-fi novels',
           desc: 'With short reasons',
           prompt: 'Recommend 3 great sci-fi novels with a one-line reason for each.',
+          sendNow: true,
           tone: 'emerald',
         },
       ],
       ja: [
+        {
+          icon: 'sparkles',
+          title: '自己紹介して',
+          desc: 'タップですぐ送信',
+          prompt: '三文で自分を紹介して、得意なことを教えてください。',
+          tone: 'violet',
+          sendNow: true,
+        },
+        {
+          icon: 'lightbulb',
+          title: '今日のアイデア',
+          desc: 'タップですぐ送信',
+          prompt: '面白い技術アイデアを3つ、それぞれ一言理由をつけて教えてください。',
+          tone: 'amber',
+          sendNow: true,
+        },
         {
           icon: 'briefcase-business',
           title: 'ビジネスメール作成',
@@ -201,10 +254,27 @@ export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
           title: 'SF小説を3冊',
           desc: '短い理由つき',
           prompt: 'おすすめのSF小説を3冊、短い理由とともに教えてください。',
+          sendNow: true,
           tone: 'emerald',
         },
       ],
       ko: [
+        {
+          icon: 'sparkles',
+          title: '자기소개 해줘',
+          desc: '탭하면 바로 전송',
+          prompt: '세 문장으로 자기소개하고 잘하는 일을 알려주세요.',
+          tone: 'violet',
+          sendNow: true,
+        },
+        {
+          icon: 'lightbulb',
+          title: '오늘의 아이디어',
+          desc: '탭하면 바로 전송',
+          prompt: '재미있는 기술 아이디어 3개를 이유와 함께 알려주세요.',
+          tone: 'amber',
+          sendNow: true,
+        },
         {
           icon: 'briefcase-business',
           title: '비즈니스 이메일',
@@ -231,6 +301,7 @@ export function useEmptyStateContent(opts: UseEmptyStateContentOptions) {
           title: 'SF 소설 3권',
           desc: '간단한 이유와 함께',
           prompt: '좋은 SF 소설 3권을 간단한 이유와 함께 추천해 주세요.',
+          sendNow: true,
           tone: 'emerald',
         },
       ],

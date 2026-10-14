@@ -321,7 +321,7 @@
 
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-runtime-label {
   overflow: hidden;
-  max-width: 126px;
+  max-width: 200px;
   text-overflow: ellipsis;
 }
 

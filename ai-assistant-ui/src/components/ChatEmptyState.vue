@@ -121,7 +121,7 @@ const emit = defineEmits<{
   (e: 'apply-template', tpl: PromptTemplateItem): void;
 }>();
 
-const taskPanelOpen = ref(false);
+const taskPanelOpen = ref(true);
 const hasTaskEntries = computed(
   () =>
     (props.mode === 'chat' && props.skills.length > 0) ||
