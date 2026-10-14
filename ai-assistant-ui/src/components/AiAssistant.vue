@@ -992,6 +992,12 @@ function applyEmptySkill(skill: EmptySkillChip) {
 
 function applyEmptyStarter(starter: EmptyStarterCard) {
   input.value = starter.prompt;
+  // Design v2: complete example questions send immediately — the empty state
+  // doubles as onboarding; template starters still pre-fill for completion.
+  if (starter.sendNow) {
+    void send();
+    return;
+  }
   setExportToast(`已填入「${starter.title}」任务，补充内容后发送`, 2200);
   focusInput();
 }
