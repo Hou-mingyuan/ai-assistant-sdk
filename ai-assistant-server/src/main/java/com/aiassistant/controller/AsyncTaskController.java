@@ -50,6 +50,18 @@ public class AsyncTaskController {
                         t.setDaemon(true);
                         return t;
                     });
+    /**
+     * P0 hardening: webhook delivery is a blocking HTTP call (up to 10s+), so it must not share
+     * the 4-thread LLM task pool — four slow webhook receivers would stall all new task
+     * submissions. Deliveries run on this dedicated single-thread daemon pool instead.
+     */
+    private final ExecutorService webhookExecutor =
+            Executors.newSingleThreadExecutor(
+                    r -> {
+                        Thread t = new Thread(r, "async-task-webhook");
+                        t.setDaemon(true);
+                        return t;
+                    });
 
     public AsyncTaskController(LlmService llmService, UsageStats usageStats) {
         this.llmService = llmService;
@@ -59,6 +71,8 @@ public class AsyncTaskController {
     @jakarta.annotation.PreDestroy
     void shutdown() {
         executor.shutdownNow();
+        webhookExecutor.shutdownNow();
+        webhookClient.close();
     }
 
     @PostMapping("/chat")
@@ -105,13 +119,17 @@ public class AsyncTaskController {
                         entry.complete(result);
                         usageStats.recordCall("async_chat");
                         if (callbackUrl != null) {
-                            sendWebhook(callbackUrl, taskId, result, null);
+                            // P0 hardening: deliver off the LLM task pool so slow receivers
+                            // cannot stall other tasks.
+                            webhookExecutor.submit(
+                                    () -> sendWebhook(callbackUrl, taskId, result, null));
                         }
                     } catch (Exception e) {
                         entry.fail(e.getMessage());
                         usageStats.recordError();
                         if (callbackUrl != null) {
-                            sendWebhook(callbackUrl, taskId, null, e.getMessage());
+                            webhookExecutor.submit(
+                                    () -> sendWebhook(callbackUrl, taskId, null, e.getMessage()));
                         }
                     } finally {
                         TenantContext.clear();

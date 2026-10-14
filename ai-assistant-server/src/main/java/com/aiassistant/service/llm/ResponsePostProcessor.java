@@ -68,11 +68,19 @@ public class ResponsePostProcessor {
     /**
      * Apply per-chunk PII filtering and accumulate the streamed text so we can record an estimated
      * completion-token count when the stream completes.
+     *
+     * <p>P0 hardening: {@link TenantContext} is a ThreadLocal set on the servlet thread. Stream
+     * operators run on reactor threads where that ThreadLocal is absent, so the tenant id is
+     * captured here at assembly time (on the calling thread, e.g. the request thread or the
+     * boundedElastic probe) and used inside the completion callback. Same pattern as
+     * AsyncTaskController's manual capture/restore around executor.submit().
      */
     public Flux<String> filterStream(Flux<String> flux, String modelId) {
         if (contentFilter == null && tokenUsageTracker == null) {
             return flux;
         }
+        // Capture on the assembly thread; do NOT read TenantContext inside stream callbacks.
+        final String tenantId = TenantContext.tenantId();
         StringBuilder fullText = new StringBuilder();
         return flux.map(
                         chunk -> {
@@ -86,7 +94,6 @@ public class ResponsePostProcessor {
                         () -> {
                             if (tokenUsageTracker != null && !fullText.isEmpty()) {
                                 int estimatedCompletionTokens = fullText.length() / 4;
-                                String tenantId = TenantContext.tenantId();
                                 tokenUsageTracker.recordUsage(
                                         tenantId, modelId, 0, estimatedCompletionTokens);
                             }

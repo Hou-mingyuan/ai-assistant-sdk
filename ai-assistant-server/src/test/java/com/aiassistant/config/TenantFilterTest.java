@@ -84,7 +84,7 @@ class TenantFilterTest {
 
     @Test
     void hmacModeFallsBackToLegacyResolutionWithoutVerifiedAttribute() throws Exception {
-        TenantFilter filter = new TenantFilter("/ai-assistant", true);
+        TenantFilter filter = new TenantFilter("/ai-assistant", true, true);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
         request.addHeader("X-Tenant-Id", "local-tenant");
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -94,5 +94,36 @@ class TenantFilterTest {
         filter.doFilter(request, response, chain);
 
         assertEquals("local-tenant", seenTenant[0]);
+    }
+
+    @Test
+    void hmacModeWithoutVerifiedAttributePinsToDefaultTenant() throws Exception {
+        // P0 hardening: without a verified token attribute, hmac mode must NOT trust the
+        // client-supplied X-Tenant-Id header — pin to "default" instead.
+        TenantFilter filter = new TenantFilter("/ai-assistant", true);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.addHeader("X-Tenant-Id", "spoofed-tenant");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("default", seenTenant[0]);
+    }
+
+    @Test
+    void hmacModeWithoutVerifiedAttributeIgnoresTokenFingerprintFallback() throws Exception {
+        // Same hardening applies to the X-AI-Token fingerprint path.
+        TenantFilter filter = new TenantFilter("/ai-assistant", true);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        request.addHeader("X-AI-Token", "some-token-value");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        String[] seenTenant = new String[1];
+        FilterChain chain = (req, res) -> seenTenant[0] = TenantContext.tenantId();
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals("default", seenTenant[0]);
     }
 }

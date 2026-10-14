@@ -8,8 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,9 +34,31 @@ public class BatchController {
     private final LlmService llmService;
     private final UsageStats usageStats;
 
+    /**
+     * P0 hardening: batch items make blocking LLM calls, so they must never run on the JVM-wide
+     * ForkJoinPool.commonPool — a burst of batch requests would starve parallel streams across
+     * the whole process. Daemon threads so the JVM can still shut down.
+     */
+    private final ExecutorService batchExecutor =
+            Executors.newFixedThreadPool(
+                    Math.max(2, Math.min(8, Runtime.getRuntime().availableProcessors())),
+                    r -> {
+                        Thread t = new Thread(r, "ai-assistant-batch");
+                        t.setDaemon(true);
+                        return t;
+                    });
+
+    /** Hard deadline for the whole batch; one hung upstream call fails fast instead of hanging. */
+    private static final long BATCH_TIMEOUT_SECONDS = 300;
+
     public BatchController(LlmService llmService, UsageStats usageStats) {
         this.llmService = llmService;
         this.usageStats = usageStats;
+    }
+
+    @jakarta.annotation.PreDestroy
+    void shutdown() {
+        batchExecutor.shutdownNow();
     }
 
     @PostMapping
@@ -65,10 +93,36 @@ public class BatchController {
         for (int i = 0; i < requests.size(); i++) {
             final int idx = i;
             final Map<String, Object> req = requests.get(i);
-            futures.add(CompletableFuture.supplyAsync(() -> processSingle(idx, req)));
+            futures.add(
+                    CompletableFuture.supplyAsync(() -> processSingle(idx, req), batchExecutor));
         }
 
-        List<Map<String, Object>> results = futures.stream().map(CompletableFuture::join).toList();
+        // P0 hardening: join() with no timeout let one hung upstream LLM call hold the servlet
+        // thread indefinitely. Fail the whole batch fast with 504 instead.
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            futures.forEach(f -> f.cancel(true));
+            log.warn("Batch timed out after {}s, cancelling {} in-flight items", BATCH_TIMEOUT_SECONDS, futures.size());
+            return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
+                    .body(Map.of("error", "Batch processing timed out after " + BATCH_TIMEOUT_SECONDS + " seconds"));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            futures.forEach(f -> f.cancel(true));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Batch processing interrupted"));
+        } catch (ExecutionException e) {
+            futures.forEach(f -> f.cancel(true));
+            log.warn("Batch failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Batch processing failed"));
+        }
+
+        List<Map<String, Object>> results = new ArrayList<>(futures.size());
+        for (CompletableFuture<Map<String, Object>> f : futures) {
+            results.add(f.join());
+        }
 
         usageStats.recordCall("batch");
         return ResponseEntity.ok(Map.of("results", results, "count", results.size()));

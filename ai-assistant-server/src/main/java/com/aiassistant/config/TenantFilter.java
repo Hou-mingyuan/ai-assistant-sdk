@@ -13,7 +13,10 @@ import java.util.regex.Pattern;
  * and therefore forgeable. {@code hmac} auth mode: tenant id is derived from the signed tenant
  * token that {@link AiAssistantAuthFilter} already verified and exposed as the
  * {@link AiAssistantAuthFilter#VERIFIED_TENANT_ATTRIBUTE} request attribute; the client-supplied
- * header is ignored. Override {@link #resolveTenantId} or replace this bean to integrate with
+ * header is ignored. In hmac mode a request without a verified token attribute is pinned to the
+ * {@code default} tenant (never to a client-controlled identity); the legacy self-reported
+ * fallback survives only through the explicit lenient constructor, for local development.
+ * Override {@link #resolveTenantId} or replace this bean to integrate with
  * your own tenant resolution logic (JWT claims, database lookup, etc.).
  */
 public class TenantFilter implements Filter {
@@ -22,14 +25,27 @@ public class TenantFilter implements Filter {
 
     private final String contextPath;
     private final boolean hmacMode;
+    private final boolean lenientFallback;
 
     public TenantFilter(String contextPath) {
         this(contextPath, false);
     }
 
     public TenantFilter(String contextPath, boolean hmacMode) {
+        this(contextPath, hmacMode, false);
+    }
+
+    /**
+     * @param lenientFallback when {@code true}, hmac-mode requests without a verified token
+     *     attribute fall back to the legacy self-reported {@code X-Tenant-Id} resolution. Intended
+     *     only for local development / trusted networks where auth is intentionally disabled; the
+     *     production default is {@code false}, which pins unknown-identity requests to the
+     *     {@code default} tenant instead of trusting a forgeable header.
+     */
+    public TenantFilter(String contextPath, boolean hmacMode, boolean lenientFallback) {
         this.contextPath = contextPath;
         this.hmacMode = hmacMode;
+        this.lenientFallback = lenientFallback;
     }
 
     @Override
@@ -54,8 +70,15 @@ public class TenantFilter implements Filter {
             if (verified instanceof String tenantId && !tenantId.isBlank()) {
                 return tenantId;
             }
-            // No verified token attribute: either auth is disabled (no access token) or the
-            // request skipped auth. Fall through to the legacy self-reported resolution.
+            // Security hardening (P0): in hmac mode a request without a verified token attribute
+            // must not fall back to the client-supplied X-Tenant-Id header — that header is
+            // self-reported and trivially forgeable, silently defeating tenant isolation.
+            // The legacy fallback stays available only when callers explicitly opt in
+            // via the lenient constructor, e.g. for local development without auth.
+            if (!lenientFallback) {
+                return "default";
+            }
+            // Lenient mode: fall through to the legacy self-reported resolution.
         }
         String tenant = request.getHeader("X-Tenant-Id");
         if (tenant != null && !tenant.isBlank()) {
