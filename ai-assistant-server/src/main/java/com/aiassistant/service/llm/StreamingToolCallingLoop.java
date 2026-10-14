@@ -79,6 +79,9 @@ public final class StreamingToolCallingLoop {
      *     markers like {@code "\n\n> 🔧 **toolName** ..."} when tools are invoked
      */
     public Flux<String> stream(ObjectNode body, String apiKey, Consumer<String> onKeyFailure) {
+        // P0 hardening: completeRaw() blocks (up to timeout + retry backoff). The probe below
+        // must run on boundedElastic — never on the reactor-http-nio event loop that subscribes
+        // this Flux, or one slow probe stalls every SSE connection on that event loop.
         return Flux.defer(
                 () -> {
                     ObjectNode probeBody = body.deepCopy();
@@ -114,7 +117,9 @@ public final class StreamingToolCallingLoop {
                         }
                         return Flux.error(e);
                     }
-                });
+                })
+                // Run the whole blocking probe on boundedElastic, off the subscriber's event loop.
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**

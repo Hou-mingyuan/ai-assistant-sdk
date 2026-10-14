@@ -22,6 +22,26 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class AiAssistantSecurityAutoConfiguration {
 
+    /**
+     * Servlet Filter order contract for the assistant URL patterns (lower runs earlier):
+     *
+     * <p>Tracing(-4) → SseCompression(-3) → Tenant(-2) → RequestId(-1) → RateLimit(0) →
+     * Auth(1) → AdminAuth(2).
+     *
+     * <p>Auth must run BEFORE Tenant so hmac-mode requests carry the verified tenant attribute
+     * when {@link com.aiassistant.config.TenantFilter} resolves identity. AdminAuth must run
+     * AFTER Auth (which passes /admin through) and is the sole guard of /admin — its registration
+     * is mandatory whenever admin endpoints are exposed.
+     */
+    public static final int FILTER_ORDER_TRACING = -4;
+    public static final int FILTER_ORDER_SSE_COMPRESSION = -3;
+    public static final int FILTER_ORDER_TENANT = -2;
+    public static final int FILTER_ORDER_REQUEST_ID = -1;
+    public static final int FILTER_ORDER_RATE_LIMIT = 0;
+    public static final int FILTER_ORDER_AUTH = 1;
+    public static final int FILTER_ORDER_ADMIN_AUTH = 2;
+    public static final int FILTER_ORDER_API_VERSION = -5;
+
     @Bean
     @ConditionalOnMissingBean
     public com.aiassistant.security.SsrfPolicy ssrfPolicy() {
@@ -63,7 +83,7 @@ public class AiAssistantSecurityAutoConfiguration {
                         properties.getContextPath(),
                         "hmac".equalsIgnoreCase(properties.getAuthMode())));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(-2);
+        registration.setOrder(FILTER_ORDER_TENANT);
         return registration;
     }
 
@@ -76,7 +96,7 @@ public class AiAssistantSecurityAutoConfiguration {
         registration.setFilter(
                 new com.aiassistant.config.SseCompressionFilter(properties.getContextPath()));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(-3);
+        registration.setOrder(FILTER_ORDER_SSE_COMPRESSION);
         return registration;
     }
 
@@ -89,7 +109,7 @@ public class AiAssistantSecurityAutoConfiguration {
         registration.setFilter(
                 new com.aiassistant.config.RequestIdFilter(properties.getContextPath()));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(-1);
+        registration.setOrder(FILTER_ORDER_REQUEST_ID);
         return registration;
     }
 
@@ -101,7 +121,7 @@ public class AiAssistantSecurityAutoConfiguration {
         FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RateLimitFilter(properties));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(0);
+        registration.setOrder(FILTER_ORDER_RATE_LIMIT);
         return registration;
     }
 
@@ -118,7 +138,7 @@ public class AiAssistantSecurityAutoConfiguration {
         FilterRegistrationBean<RateLimitFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new RateLimitFilter(properties));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(0);
+        registration.setOrder(FILTER_ORDER_RATE_LIMIT);
         return registration;
     }
 
@@ -130,7 +150,7 @@ public class AiAssistantSecurityAutoConfiguration {
         FilterRegistrationBean<AiAssistantAuthFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(new AiAssistantAuthFilter(properties));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(1);
+        registration.setOrder(FILTER_ORDER_AUTH);
         return registration;
     }
 
@@ -139,13 +159,24 @@ public class AiAssistantSecurityAutoConfiguration {
     public FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter>
             aiAssistantAdminAuthFilter(AiAssistantProperties properties) {
         String adminToken = properties.getAdmin().resolveAdminToken(properties.getAccessToken());
+        // P0 hardening: fail fast when admin endpoints are enabled but resolve to no token —
+        // previously an empty adminToken made AdminAuthFilter reject every /admin request, but
+        // if the filter itself were absent (custom override removing this bean) the /admin
+        // surface — including tenant-token issuance — would be silently unguarded. Encode the
+        // Auth(1) → AdminAuth(2) ordering as named constants so the dependency is explicit.
+        if (properties.isAdminEnabled() && (adminToken == null || adminToken.isBlank())) {
+            throw new IllegalStateException(
+                    "ai-assistant.admin-enabled=true but no admin token could be resolved "
+                            + "(ai-assistant.admin.token / ai-assistant.access-token). Refusing to start: "
+                            + "admin endpoints (incl. tenant-token issuance) must not run unguarded.");
+        }
         FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> registration =
                 new FilterRegistrationBean<>();
         registration.setFilter(
                 new com.aiassistant.config.AdminAuthFilter(
                         properties.getContextPath(), adminToken));
         addAdminUrlPatterns(registration, properties);
-        registration.setOrder(2);
+        registration.setOrder(FILTER_ORDER_ADMIN_AUTH);
         return registration;
     }
 
@@ -157,7 +188,7 @@ public class AiAssistantSecurityAutoConfiguration {
                 new FilterRegistrationBean<>();
         registration.setFilter(new com.aiassistant.config.TracingFilter());
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(-4);
+        registration.setOrder(FILTER_ORDER_TRACING);
         return registration;
     }
 
@@ -176,7 +207,7 @@ public class AiAssistantSecurityAutoConfiguration {
                 new com.aiassistant.config.ApiVersionConfig.ApiVersionFilter(
                         properties.getContextPath(), properties.getApiVersion()));
         addAssistantUrlPatterns(registration, properties);
-        registration.setOrder(-5);
+        registration.setOrder(FILTER_ORDER_API_VERSION);
         return registration;
     }
 
@@ -204,7 +235,7 @@ public class AiAssistantSecurityAutoConfiguration {
             registration.setFilter(
                     new com.aiassistant.config.RedisRateLimitFilter(properties, redisTemplate));
             addAssistantUrlPatterns(registration, properties);
-            registration.setOrder(0);
+            registration.setOrder(FILTER_ORDER_RATE_LIMIT);
             return registration;
         }
     }
