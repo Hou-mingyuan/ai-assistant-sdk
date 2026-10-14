@@ -26,6 +26,7 @@ export const zh: I18nMessages = {
   serviceBusyError: 'AI 服务当前繁忙，可能触发了限流。请稍后重试，或切换其他模型。',
   serviceUnavailableError: '当前模型通道暂时不可用。请切换模型，或检查服务商通道配置。',
   serviceGenericError: 'AI 服务暂时不可用。请稍后重试，或打开诊断面板查看详情。',
+  connectionLostError: '连接中断了。请检查网络后点击下方「重试」，或在设置里确认服务地址。',
   replying: '助手正在回复…',
   justNow: '刚刚',
   showEarlierTemplate: '已折叠更早的 {n} 条消息，点击查看全部',

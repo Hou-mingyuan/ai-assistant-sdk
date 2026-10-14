@@ -29,6 +29,8 @@ export const ko: I18nMessages = {
   showEarlierTemplate: '{n}개의 이전 메시지 숨김 — 탭하여 모두 표시',
   closePanel: '닫기',
   expandPanel: '전체화면',
+  connectionLostError:
+    '연결이 끊겼습니다. 네트워크를 확인한 후 아래 "다시 시도"를 누르거나 설정에서 서비스 URL을 확인하세요.',
   shrinkPanel: '전체화면 해제',
   resizePanel: '드래그하여 크기 조절',
   scrollToBottom: '맨 아래로 스크롤',

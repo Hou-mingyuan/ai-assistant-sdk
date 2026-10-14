@@ -29,6 +29,8 @@ export const ja: I18nMessages = {
   showEarlierTemplate: '{n}件の古いメッセージを非表示 — タップで全表示',
   closePanel: '閉じる',
   expandPanel: '全画面',
+  connectionLostError:
+    '接続が切断されました。ネットワークを確認して下の「再試行」をタップするか、設定でサービスURLを確認してください。',
   shrinkPanel: '全画面解除',
   resizePanel: 'ドラッグしてリサイズ',
   scrollToBottom: '一番下へスクロール',
