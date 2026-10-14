@@ -7,9 +7,16 @@
       :class="['ai-reaction-btn', { active: selected === r.emoji }]"
       :aria-label="r.label"
       :aria-pressed="selected === r.emoji"
+      :title="r.label"
       @click="onClick(r.emoji)"
     >
-      <span class="ai-reaction-emoji">{{ r.emoji }}</span>
+      <!-- Design v2: linear Lucide icon when provided; emoji stays as the
+           identity key + host-supplied fallback so custom reaction sets and
+           persisted selections keep working unchanged. -->
+      <span v-if="r.icon" class="ai-reaction-emoji">
+        <AssistantIcon :name="r.icon" :size="15" :stroke-width="1.8" />
+      </span>
+      <span v-else class="ai-reaction-emoji">{{ r.emoji }}</span>
       <span v-if="counts[r.emoji]" class="ai-reaction-count">{{ counts[r.emoji] }}</span>
     </button>
   </div>
@@ -18,9 +25,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import AssistantIcon from './AssistantIcon.vue';
+import type { AssistantIconName } from '../utils/assistantIcons';
+
 interface ReactionDef {
+  /** Stable identity for selection/count bookkeeping (kept as emoji for
+   * backwards compatibility with persisted message state). */
   emoji: string;
   label: string;
+  /** Optional Lucide icon: renders a linear stroke icon instead of the raw
+   * emoji glyph (design v2 — removes colorful emoji from the UI chrome). */
+  icon?: AssistantIconName;
 }
 
 interface Props {
@@ -34,11 +49,11 @@ const props = withDefaults(defineProps<Props>(), {
   selected: '',
   counts: () => ({}),
   reactions: () => [
-    { emoji: '👍', label: '赞 / Useful' },
-    { emoji: '👎', label: '不满意 / Not useful' },
-    { emoji: '❤️', label: '喜欢 / Love' },
-    { emoji: '⭐', label: '收藏 / Favorite' },
-    { emoji: '📋', label: '复制 / Copy' },
+    { emoji: '👍', label: '赞 / Useful', icon: 'thumbs-up' as AssistantIconName },
+    { emoji: '👎', label: '不满意 / Not useful', icon: 'thumbs-down' as AssistantIconName },
+    { emoji: '❤️', label: '喜欢 / Love', icon: 'heart' as AssistantIconName },
+    { emoji: '⭐', label: '收藏 / Favorite', icon: 'star' as AssistantIconName },
+    { emoji: '📋', label: '复制 / Copy', icon: 'copy' as AssistantIconName },
   ],
 });
 
@@ -117,7 +132,26 @@ function onClick(emoji: string) {
 }
 
 .ai-reaction-emoji {
+  display: inline-grid;
+  place-items: center;
+  color: #57544e;
   font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.ai-reaction-btn:hover .ai-reaction-emoji,
+.ai-reaction-btn.active .ai-reaction-emoji {
+  color: #181818;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ai-reaction-emoji {
+    color: #a3a3a3;
+  }
+
+  .ai-reaction-btn:hover .ai-reaction-emoji,
+  .ai-reaction-btn.active .ai-reaction-emoji {
+    color: #f5f5f5;
+  }
 }
 
 .ai-reaction-count {
