@@ -298,7 +298,7 @@
         :aria-label="t.closePanel"
         @click="emit('close-panel')"
       >
-        &times;
+        <AssistantIcon name="x" :size="16" :stroke-width="2" />
       </button>
     </div>
   </div>
