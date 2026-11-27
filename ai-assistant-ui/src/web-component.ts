@@ -22,13 +22,22 @@ const ATTR_MAP: Record<string, keyof AiAssistantOptions> = {
   theme: 'theme',
   locale: 'locale',
   'persist-history': 'persistHistory',
+  'persist-panel-state': 'persistPanelState',
+  'panel-state-storage-key': 'panelStateStorageKey',
   'max-messages': 'maxMessagesInMemory',
   'toggle-shortcut': 'toggleShortcut',
   'show-model-picker': 'showModelPicker',
   'show-system-prompt': 'showSystemPromptEditor',
+  'form-auto-fill': 'formAutoFill',
 };
 
-const BOOLEAN_ATTRS = new Set(['persist-history', 'show-model-picker', 'show-system-prompt']);
+const BOOLEAN_ATTRS = new Set([
+  'persist-history',
+  'persist-panel-state',
+  'show-model-picker',
+  'show-system-prompt',
+  'form-auto-fill',
+]);
 
 const INT_ATTRS = new Set(['max-messages']);
 
@@ -38,10 +47,12 @@ const DEFAULT_OPTIONS: AiAssistantOptions = {
   position: 'bottom-right',
   theme: 'light',
   persistHistory: false,
+  persistPanelState: true,
   locale: 'en',
   maxMessagesInMemory: 200,
   showSystemPromptEditor: true,
   showModelPicker: true,
+  formAutoFill: false,
   autoMountToBody: false,
 };
 

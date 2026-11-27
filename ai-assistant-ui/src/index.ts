@@ -16,6 +16,10 @@ export interface AiAssistantOptions {
   persistHistory?: boolean;
   /** 是否持久化悬浮球位置与贴边状态（localStorage），默认 true */
   persistFabPosition?: boolean;
+  /** 是否记住面板开合 / 展开 / 自定义尺寸（localStorage），刷新页面后恢复，默认 true */
+  persistPanelState?: boolean;
+  /** 面板记忆的 localStorage key，默认 `ai-assistant-panel-v1` */
+  panelStateStorageKey?: string;
   locale?: 'en' | 'zh' | 'ja' | 'ko';
   accessToken?: string;
   /** Optional tenant partition sent as the validated `X-Tenant-Id` header. */

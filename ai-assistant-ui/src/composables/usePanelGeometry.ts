@@ -44,6 +44,8 @@ export interface PanelGeometryDeps {
   saveFabPos: (overrideEdge?: 'none' | 'left' | 'right') => void;
   markFabPositionCustomized: () => void;
   defaultPosition: string;
+  /** 返回 true 时，面板关闭后保留展开状态与自定义尺寸（配合面板记忆跨关闭 / 刷新恢复）。 */
+  keepPanelStateOnClose?: () => boolean;
 }
 
 function getViewportCssSize(): { w: number; h: number } {
@@ -65,6 +67,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     saveFabPos,
     markFabPositionCustomized,
     defaultPosition,
+    keepPanelStateOnClose,
   } = deps;
 
   const panelExpanded = ref(false);
@@ -119,6 +122,17 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
   function togglePanelExpand() {
     panelUserSize.value = null;
     panelExpanded.value = !panelExpanded.value;
+  }
+
+  /** 恢复持久化的面板状态：有合法宽高则按当前视口裁剪后作为自定义尺寸，否则回落到默认尺寸。 */
+  function restorePanelState(next: { expanded: boolean; w?: number; h?: number }) {
+    const w = next.w;
+    const h = next.h;
+    panelUserSize.value =
+      typeof w === 'number' && typeof h === 'number' && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
+        ? clampPanelSize(w, h)
+        : null;
+    panelExpanded.value = !!next.expanded;
   }
 
   function wrapperOffsetFromFab(quadrant: FabScreenQuadrant): { dx: number; dy: number } {
@@ -357,8 +371,10 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
   }
 
   function onPanelClose() {
-    panelExpanded.value = false;
-    panelUserSize.value = null;
+    if (!keepPanelStateOnClose?.()) {
+      panelExpanded.value = false;
+      panelUserSize.value = null;
+    }
     panelResize.cleanupPanelResize();
     if (panelDrag.value) {
       window.removeEventListener('pointermove', onPanelHeaderPointerMove);
@@ -425,6 +441,7 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     effectivePanelWidthPx,
     effectivePanelHeightPx,
     togglePanelExpand,
+    restorePanelState,
     wrapperOffsetFromFab,
     ensurePanelInViewport,
     resolveFabScreenQuadrant,

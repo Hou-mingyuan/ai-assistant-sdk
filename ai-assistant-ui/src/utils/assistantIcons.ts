@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import {
+  ArrowUp,
   Atom,
   BookOpen,
   Bot,
@@ -49,6 +50,7 @@ import {
   Search,
   Settings2,
   Share2,
+  Sparkle,
   Sparkles,
   SquareCheckBig,
   Star,
@@ -65,6 +67,7 @@ import {
 } from '@lucide/vue';
 
 export const assistantIcons = {
+  'arrow-up': ArrowUp,
   atom: Atom,
   'book-open': BookOpen,
   bot: Bot,
@@ -114,6 +117,7 @@ export const assistantIcons = {
   search: Search,
   'settings-2': Settings2,
   'share-2': Share2,
+  sparkle: Sparkle,
   sparkles: Sparkles,
   'square-check-big': SquareCheckBig,
   star: Star,

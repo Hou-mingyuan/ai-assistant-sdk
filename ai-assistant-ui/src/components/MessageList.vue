@@ -44,7 +44,7 @@
       }"
       aria-hidden="true"
     >
-      <AssistantIcon class="ai-assistant-avatar-icon" name="sparkles" :size="22" />
+      <AssistantIcon class="ai-assistant-avatar-icon" name="sparkle" :size="22" />
     </span>
     <template v-if="editingIdx === displayOffset + renderedStart + idx">
       <div class="ai-bubble ai-bubble-editing">
@@ -143,6 +143,8 @@
         v-if="msg.toolCalls && msg.toolCalls.length > 0"
         :tool-calls="msg.toolCalls"
         :tool-result-label="t.toolResult || '结果'"
+        :t="t"
+        :call-tool="callTool"
       />
       <template
         v-else-if="
@@ -298,6 +300,31 @@
           >
             <rect x="9" y="9" width="13" height="13" rx="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+        </button>
+        <button
+          v-if="formAutoFillEnabled"
+          type="button"
+          class="ai-msg-form-fill"
+          :title="t.formFillAction || 'Fill form'"
+          :aria-label="t.formFillAction || 'Fill form'"
+          @click="emit('form-fill', displayOffset + renderedStart + idx)"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M7 9h4" />
+            <path d="M7 13h2" />
+            <path d="M13 15l2 2 4-4" />
           </svg>
         </button>
         <button
@@ -503,6 +530,7 @@ import type { PropType } from 'vue';
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
+import type { ToolCallResult } from '../utils/api';
 import type { VirtualWindow } from '../composables/useMessageVirtualScroll';
 import MessageReadingPreview from './MessageReadingPreview.vue';
 import MessageThinkingBlocks from './MessageThinkingBlocks.vue';
@@ -742,6 +770,16 @@ const props = defineProps({
     type: Function as PropType<(globalIdx: number, height: number) => void>,
     default: undefined,
   },
+  /** Opt-in per-message "fill form" action (host enables form-auto-fill). */
+  formAutoFillEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  /** Host-provided read-only tool re-query; enables the pager on *_query_data result tables. */
+  callTool: {
+    type: Function as PropType<(name: string, args: Record<string, unknown>) => Promise<ToolCallResult>>,
+    default: undefined,
+  },
 });
 
 /* When virtualization is active, slice the messages array to the visible
@@ -764,6 +802,7 @@ const emit = defineEmits<{
   (e: 'stop-generate'): void;
   (e: 'start-edit', globalIdx: number): void;
   (e: 'copy-message', text: string, globalIdx: number): void;
+  (e: 'form-fill', globalIdx: number): void;
   (e: 'regenerate-at', globalIdx: number): void;
   (e: 'regenerate-with-citations', globalIdx: number): void;
   (e: 'set-feedback', globalIdx: number, kind: 'up' | 'down'): void;

@@ -238,6 +238,8 @@
             :is-error-message="isErrorMessage"
             :virtual-slice="virtualSliceForList"
             :on-measure-height="virtualScrollOption ? onVirtualMeasureHeight : undefined"
+            :form-auto-fill-enabled="formAutoFillEnabled"
+            :call-tool="callToolFromUi"
             @show-all-older-messages="showAllOlderMessages"
             @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"
@@ -246,6 +248,7 @@
             @stop-generate="stopGenerate"
             @start-edit="startEdit"
             @copy-message="copyMessage"
+            @form-fill="fillFormFromMessage"
             @regenerate-at="regenerateAt"
             @regenerate-with-citations="regenerateWithCitations"
             @set-feedback="setFeedback"
@@ -421,12 +424,14 @@
       :compare-mark-active-for-this="compareSlotOf(msgCtxMenu.index) >= 0"
       :compare-set-count="compareSet.length"
       :compare-set-full="compareSet.length >= maxCompareSides"
+      :form-auto-fill-enabled="formAutoFillEnabled"
       :t="t"
       @copy="copyAssistantSelection"
       @translate="translateAssistantSelection"
       @delete="deleteAssistantAt(msgCtxMenu.index)"
       @export="(fmt) => exportAssistantMessageServer(msgCtxMenu.index, fmt)"
       @fork="forkFromHere(msgCtxMenu.index)"
+      @form-fill="fillFormFromMessage(msgCtxMenu.index)"
       @tts="ttsToggleCurrent"
       @tts-pause-toggle="ttsPauseToggle"
       @compare-mark="onCompareMark"
@@ -799,10 +804,11 @@ const AssistantInlineOverlays = defineAsyncComponent(() => import('./AssistantIn
  * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
 const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
 import type { AiAssistantOptions } from '../index';
-import { uploadFile, fetchUrlPreview } from '../utils/api';
+import { uploadFile, fetchUrlPreview, callTool } from '../utils/api';
 import { useStreamWithFallback } from '../composables/useStreamWithFallback';
 import { useExportActions } from '../composables/useExportActions';
 import { useFabDrag } from '../composables/useFabDrag';
+import { usePanelMemory } from '../composables/usePanelMemory';
 import { useCodeWall } from '../composables/useCodeWall';
 import { useCodeBlockActions } from '../composables/useCodeBlockActions';
 import { usePanelGeometry } from '../composables/usePanelGeometry';
@@ -1656,6 +1662,26 @@ const {
   formAutoFillToastText,
 } = useFormAutoFillUi({ options, t });
 
+/**
+ * Per-message "填入表单": parse the assistant answer (or the user's pasted text
+ * that produced it) into field/value pairs and open the fill dialog. Host opts in
+ * via the `form-auto-fill` attribute; the button stays hidden otherwise.
+ */
+function fillFormFromMessage(globalIdx: number) {
+  if (!formAutoFillEnabled.value) return;
+  const msg = messages.value[globalIdx];
+  const text = msg?.contentArchive ?? msg?.content ?? '';
+  void formAutoFill.triggerFromText(text);
+}
+
+/**
+ * Re-run a read-only `*_query_data` tool from the result-table pager (POST /tools/execute),
+ * using the configured base URL / access token / tenant. No model round-trip.
+ */
+function callToolFromUi(name: string, args: Record<string, unknown>) {
+  return callTool(options.baseUrl ?? '', name, args, options.accessToken, options.tenantId);
+}
+
 const featureCommands = useAssistantFeatureCommands({
   t,
   input,
@@ -1834,6 +1860,9 @@ const { onPageSelAction } = usePageSelectionActions({
 });
 const persistFabRef = computed(() => options.persistFabPosition !== false);
 const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
+/* 面板记忆：开合 / 展开 / 自定义尺寸写 localStorage，刷新后恢复；关闭时不清空几何状态 */
+const persistPanelRef = computed(() => options.persistPanelState !== false);
+const panelMemory = usePanelMemory(persistPanelRef, computed(() => options.panelStateStorageKey));
 const {
   fabLeft,
   fabTop,
@@ -1856,6 +1885,7 @@ const panelGeo = usePanelGeometry({
   saveFabPos,
   markFabPositionCustomized,
   defaultPosition: options.position || 'bottom-right',
+  keepPanelStateOnClose: () => persistPanelRef.value,
 });
 const {
   panelExpanded,
@@ -1867,6 +1897,8 @@ const {
   effectivePanelWidthPx,
   effectivePanelHeightPx,
   togglePanelExpand,
+  restorePanelState,
+  panelUserSize,
   wrapperOffsetFromFab,
   ensurePanelInViewport,
   syncFabPixelFromWrapperDom,
@@ -1878,6 +1910,18 @@ const {
   cleanupGeometry,
   openPanelQuadrant,
 } = panelGeo;
+watch(
+  [isOpen, panelExpanded, panelUserSize],
+  () => {
+    panelMemory.save({
+      open: isOpen.value,
+      expanded: panelExpanded.value,
+      w: panelUserSize.value?.w,
+      h: panelUserSize.value?.h,
+    });
+  },
+  { deep: true },
+);
 const fabDrag = ref<{
   pointerId: number;
   startX: number;
@@ -2645,6 +2689,12 @@ onMounted(() => {
     /* ignore */
   }
   loadFabPos();
+  /* 面板记忆：恢复上次关闭前的开合 / 展开 / 尺寸（尺寸按当前视口裁剪） */
+  const panelMem = panelMemory.load();
+  if (panelMem) {
+    restorePanelState({ expanded: panelMem.expanded, w: panelMem.w, h: panelMem.h });
+    if (panelMem.open) isOpen.value = true;
+  }
   void refreshServerPromptTemplates();
   /* 初始化虚拟滚动 viewport，避免首屏 window=0 时算出错误的可视区 */
   void nextTick(() => {

@@ -2766,6 +2766,7 @@
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-copy,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-form-fill,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-regenerate,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-edit,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-feedback {
@@ -2782,6 +2783,7 @@
 }
 
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-copy:hover,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-form-fill:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-regenerate:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-edit:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-feedback:hover {
@@ -3376,12 +3378,14 @@
     0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-copy,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-form-fill,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-regenerate,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-edit,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-feedback {
   color: #a9b2c8 !important;
 }
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-copy:hover,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-form-fill:hover,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-regenerate:hover,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-edit:hover,
 .ai-assistant-wrapper.ai-dark.ai-assistant-wrapper .ai-msg-feedback:hover {
@@ -6585,4 +6589,147 @@
     width: 34px;
     height: 34px;
   }
+}
+
+/* Round 34 — one-line mode rail
+ * 深度思考 / 联网搜索 / 快速回答 三枚快捷开关从输入框上方浮层挪进模式行（ChatInputModelRow 的
+ * quick-toggles 插槽），与 对话/翻译/总结 分段、模型选择、页面上下文 同处一行。
+ * 需要盖掉 pass 8b 的绝对定位浮层 + .ai-footer 预留的上边距，所以选择器带三层 wrapper 前缀。 */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row {
+  grid-template-columns: auto auto 12px minmax(0, 1fr) auto auto !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
+  width: auto !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles {
+  grid-column: 6 !important;
+  grid-row: 1 !important;
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  z-index: auto !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+  flex: 0 0 auto;
+  min-height: var(--ai-composer-control-height, 18px) !important;
+  height: var(--ai-composer-control-height, 18px);
+  padding: 0 6px !important;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-icon {
+  width: 12px;
+  height: 12px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-icon svg {
+  width: 12px;
+  height: 12px;
+}
+/* 开关已并入模式行，输入框上方不再需要预留一行 */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer:has(.ai-footer-model-row .ai-footer-quick-toggles) {
+  margin-top: 0 !important;
+}
+/* 面板较窄时只留图标（复用 05-overlays-resize.css 里 panel-mounted 的 ai-assistant 容器） */
+@container ai-assistant (max-width: 560px) {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-label {
+    display: none;
+  }
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+    padding: 0 5px !important;
+  }
+}
+@media (max-width: 430px) {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-label {
+    display: none;
+  }
+}
+
+/* Round 35 — 视觉打磨：只留一个真实状态点、单星品牌标、箭头发送 ------------------- */
+/* 1) 头部标题后的绿点是写死的装饰（永远绿），真实状态看模式行的运行时点，这里直接去掉 */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-title::after {
+  content: none !important;
+  display: none !important;
+}
+/* 2) 品牌标识统一为单颗星 Sparkle，放进主色渐变小方块；图标本体描边白色 */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon,
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
+  padding: 3px;
+  border-radius: 7px;
+  color: #ffffff !important;
+  fill: none;
+  stroke-width: 2;
+  background: linear-gradient(
+    135deg,
+    var(--primary, #171717) 0%,
+    color-mix(in srgb, var(--primary, #171717) 70%, #6366f1) 100%
+  );
+  filter: none !important;
+  box-shadow: 0 2px 6px rgba(17, 17, 17, 0.18);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon {
+  width: 22px;
+  height: 22px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon {
+  width: 44px;
+  height: 44px;
+  padding: 5px;
+  border-radius: 12px;
+  margin: 0 auto 12px;
+  box-shadow: 0 6px 14px rgba(17, 17, 17, 0.22);
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border-radius: 9px;
+}
+/* 3) 发送按钮：描边箭头；可用态白箭头 + 主色圆 + 轻投影，禁用态灰显 */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-send .ai-send-icon {
+  width: 18px;
+  height: 18px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:not(:disabled) {
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(17, 17, 17, 0.18) !important;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(17, 17, 17, 0.22) !important;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:disabled {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-send:disabled {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+/* 4) 头部按钮与模式开关的细节：统一圆角、药丸字号 11px */
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions button {
+  border-radius: 8px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+  font-size: 11px;
+  padding: 0 7px;
+}
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle .ai-quick-toggle-label {
+  font-size: 11px;
 }
