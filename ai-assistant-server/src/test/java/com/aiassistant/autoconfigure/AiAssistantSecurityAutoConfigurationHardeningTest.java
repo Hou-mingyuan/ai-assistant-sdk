@@ -52,13 +52,12 @@ class AiAssistantSecurityAutoConfigurationHardeningTest {
                                     .anySatisfy(
                                             (k, v) ->
                                                     assertThat(
-                                                                    ((org.springframework
-                                                                                            .boot
-                                                                                            .web
-                                                                                            .servlet
-                                                                                            .FilterRegistrationBean<?>)
-                                                                            v)
-                                                                    .getFilter())
+                                                                    ((org.springframework.boot.web
+                                                                                                    .servlet
+                                                                                                    .FilterRegistrationBean<
+                                                                                            ?>)
+                                                                                    v)
+                                                                            .getFilter())
                                                             .isInstanceOf(
                                                                     com.aiassistant.config
                                                                             .AdminAuthFilter
@@ -82,13 +81,12 @@ class AiAssistantSecurityAutoConfigurationHardeningTest {
                                     .anySatisfy(
                                             (k, v) ->
                                                     assertThat(
-                                                                    ((org.springframework
-                                                                                            .boot
-                                                                                            .web
-                                                                                            .servlet
-                                                                                            .FilterRegistrationBean<?>)
-                                                                            v)
-                                                                    .getFilter())
+                                                                    ((org.springframework.boot.web
+                                                                                                    .servlet
+                                                                                                    .FilterRegistrationBean<
+                                                                                            ?>)
+                                                                                    v)
+                                                                            .getFilter())
                                                             .isInstanceOf(
                                                                     com.aiassistant.config
                                                                             .AdminAuthFilter
