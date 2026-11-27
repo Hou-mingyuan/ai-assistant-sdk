@@ -71,8 +71,7 @@ class AiAssistantAuthFilterTest {
         assertTrue(called.get());
         assertEquals(200, response.getStatus());
         assertEquals(
-                "tenant-a",
-                request.getAttribute(AiAssistantAuthFilter.VERIFIED_TENANT_ATTRIBUTE));
+                "tenant-a", request.getAttribute(AiAssistantAuthFilter.VERIFIED_TENANT_ATTRIBUTE));
     }
 
     @Test
@@ -81,7 +80,8 @@ class AiAssistantAuthFilterTest {
         properties.setAuthMode("hmac");
         AiAssistantAuthFilter filter = new AiAssistantAuthFilter(properties);
 
-        MockHttpServletRequest sharedAsBearer = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        MockHttpServletRequest sharedAsBearer =
+                new MockHttpServletRequest("POST", "/ai-assistant/chat");
         sharedAsBearer.addHeader("X-AI-Token", "secret");
         MockHttpServletResponse sharedResponse = new MockHttpServletResponse();
         AtomicBoolean called = new AtomicBoolean(false);
@@ -89,8 +89,10 @@ class AiAssistantAuthFilterTest {
         assertEquals(401, sharedResponse.getStatus());
         assertFalse(called.get());
 
-        String tampered = HmacTenantTokens.issue("tenant-a", 3600, "secret", java.time.Instant.now()) + "x";
-        MockHttpServletRequest tamperedRequest = new MockHttpServletRequest("POST", "/ai-assistant/chat");
+        String tampered =
+                HmacTenantTokens.issue("tenant-a", 3600, "secret", java.time.Instant.now()) + "x";
+        MockHttpServletRequest tamperedRequest =
+                new MockHttpServletRequest("POST", "/ai-assistant/chat");
         tamperedRequest.addHeader("X-AI-Token", tampered);
         MockHttpServletResponse tamperedResponse = new MockHttpServletResponse();
         AtomicBoolean tamperedCalled = new AtomicBoolean(false);

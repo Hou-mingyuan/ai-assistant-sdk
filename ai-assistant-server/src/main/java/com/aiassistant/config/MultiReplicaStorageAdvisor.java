@@ -106,10 +106,16 @@ public class MultiReplicaStorageAdvisor {
         if (replicas == 1) {
             return;
         }
-        List<String> problems = new MultiReplicaStorageAdvisor(() -> true)
-                .warningCodes(vectorStore, sessionStore, tokenUsageTracker, conversationMemoryProvider);
+        List<String> problems =
+                new MultiReplicaStorageAdvisor(() -> true)
+                        .warningCodes(
+                                vectorStore,
+                                sessionStore,
+                                tokenUsageTracker,
+                                conversationMemoryProvider);
         if (!problems.isEmpty()) {
-            throw new IllegalStateException("Shared storage is required for multiple replicas: " + problems);
+            throw new IllegalStateException(
+                    "Shared storage is required for multiple replicas: " + problems);
         }
     }
 

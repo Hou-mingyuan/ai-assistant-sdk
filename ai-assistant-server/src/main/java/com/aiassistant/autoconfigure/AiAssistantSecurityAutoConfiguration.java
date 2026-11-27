@@ -25,15 +25,16 @@ public class AiAssistantSecurityAutoConfiguration {
     /**
      * Servlet Filter order contract for the assistant URL patterns (lower runs earlier):
      *
-     * <p>Tracing(-4) → SseCompression(-3) → Tenant(-2) → RequestId(-1) → RateLimit(0) →
-     * Auth(1) → AdminAuth(2).
+     * <p>Tracing(-4) → SseCompression(-3) → Tenant(-2) → RequestId(-1) → RateLimit(0) → Auth(1) →
+     * AdminAuth(2).
      *
-     * <p>Auth must run BEFORE Tenant so hmac-mode requests carry the verified tenant attribute
-     * when {@link com.aiassistant.config.TenantFilter} resolves identity. AdminAuth must run
-     * AFTER Auth (which passes /admin through) and is the sole guard of /admin — its registration
-     * is mandatory whenever admin endpoints are exposed.
+     * <p>Auth must run BEFORE Tenant so hmac-mode requests carry the verified tenant attribute when
+     * {@link com.aiassistant.config.TenantFilter} resolves identity. AdminAuth must run AFTER Auth
+     * (which passes /admin through) and is the sole guard of /admin — its registration is mandatory
+     * whenever admin endpoints are exposed.
      */
     public static final int FILTER_ORDER_TRACING = -4;
+
     public static final int FILTER_ORDER_SSE_COMPRESSION = -3;
     public static final int FILTER_ORDER_TENANT = -2;
     public static final int FILTER_ORDER_REQUEST_ID = -1;

@@ -36,8 +36,8 @@ public class BatchController {
 
     /**
      * P0 hardening: batch items make blocking LLM calls, so they must never run on the JVM-wide
-     * ForkJoinPool.commonPool — a burst of batch requests would starve parallel streams across
-     * the whole process. Daemon threads so the JVM can still shut down.
+     * ForkJoinPool.commonPool — a burst of batch requests would starve parallel streams across the
+     * whole process. Daemon threads so the JVM can still shut down.
      */
     private final ExecutorService batchExecutor =
             Executors.newFixedThreadPool(
@@ -104,9 +104,17 @@ public class BatchController {
                     .get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             futures.forEach(f -> f.cancel(true));
-            log.warn("Batch timed out after {}s, cancelling {} in-flight items", BATCH_TIMEOUT_SECONDS, futures.size());
+            log.warn(
+                    "Batch timed out after {}s, cancelling {} in-flight items",
+                    BATCH_TIMEOUT_SECONDS,
+                    futures.size());
             return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT)
-                    .body(Map.of("error", "Batch processing timed out after " + BATCH_TIMEOUT_SECONDS + " seconds"));
+                    .body(
+                            Map.of(
+                                    "error",
+                                    "Batch processing timed out after "
+                                            + BATCH_TIMEOUT_SECONDS
+                                            + " seconds"));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             futures.forEach(f -> f.cancel(true));

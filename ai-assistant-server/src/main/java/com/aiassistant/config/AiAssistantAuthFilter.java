@@ -14,13 +14,13 @@ import java.util.Map;
 /**
  * Access-token filter.
  *
- * <p>{@code shared} mode (default): every caller presents the same static token via the
- * {@code X-AI-Token} header. {@code hmac} mode: callers present a signed tenant token issued
- * through {@code POST <context>/admin/tenant-tokens}; the signature is verified here and the
- * verified tenant id is exposed as the {@link #VERIFIED_TENANT_ATTRIBUTE} request attribute so
- * {@link TenantFilter} can derive tenant identity from it instead of trusting client headers.
- * The query-string token channel ({@code ?token=...}) has been removed: URLs end up in logs,
- * history and Referer headers, so bearer credentials are only accepted from headers.
+ * <p>{@code shared} mode (default): every caller presents the same static token via the {@code
+ * X-AI-Token} header. {@code hmac} mode: callers present a signed tenant token issued through
+ * {@code POST <context>/admin/tenant-tokens}; the signature is verified here and the verified
+ * tenant id is exposed as the {@link #VERIFIED_TENANT_ATTRIBUTE} request attribute so {@link
+ * TenantFilter} can derive tenant identity from it instead of trusting client headers. The
+ * query-string token channel ({@code ?token=...}) has been removed: URLs end up in logs, history
+ * and Referer headers, so bearer credentials are only accepted from headers.
  */
 public class AiAssistantAuthFilter implements Filter {
 

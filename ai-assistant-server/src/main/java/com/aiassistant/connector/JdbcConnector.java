@@ -62,6 +62,7 @@ public class JdbcConnector implements DataConnector {
 
     /** Schema resolved from the connection when {@link #schema} is blank; null = all schemas. */
     private volatile String effectiveSchema;
+
     private volatile boolean schemaResolved;
 
     /** table (lower-case) -> (column lower-case -> actual column name). */
@@ -200,7 +201,8 @@ public class JdbcConnector implements DataConnector {
             String countSql = "SELECT COUNT(*)" + base;
             List<Object> countParams = new ArrayList<>(params);
 
-            StringBuilder sql = new StringBuilder("SELECT *").append(base).append(buildOrderBy(table, filter));
+            StringBuilder sql =
+                    new StringBuilder("SELECT *").append(base).append(buildOrderBy(table, filter));
             int offset = (filter.pageIndex() - 1) * filter.pageSize();
             appendPagination(sql, params, filter.pageSize(), offset);
 
@@ -290,7 +292,8 @@ public class JdbcConnector implements DataConnector {
         }
     }
 
-    private static boolean hasAnyTable(DatabaseMetaData meta, String schemaName) throws SQLException {
+    private static boolean hasAnyTable(DatabaseMetaData meta, String schemaName)
+            throws SQLException {
         try (ResultSet rs = meta.getTables(null, schemaName, "%", new String[] {"TABLE", "VIEW"})) {
             return rs.next();
         }
@@ -323,14 +326,20 @@ public class JdbcConnector implements DataConnector {
             return fieldId;
         }
         Map<String, String> caseMap =
-                columnCaseCache.computeIfAbsent(table.toLowerCase(Locale.ROOT), k -> {
-                    try (Connection conn = dataSource.getConnection()) {
-                        return toCaseMap(readColumns(conn.getMetaData(), resolveEffectiveSchema(conn, conn.getMetaData()), table));
-                    } catch (SQLException e) {
-                        log.warn("Could not load columns of {}: {}", table, e.getMessage());
-                        return Map.of();
-                    }
-                });
+                columnCaseCache.computeIfAbsent(
+                        table.toLowerCase(Locale.ROOT),
+                        k -> {
+                            try (Connection conn = dataSource.getConnection()) {
+                                return toCaseMap(
+                                        readColumns(
+                                                conn.getMetaData(),
+                                                resolveEffectiveSchema(conn, conn.getMetaData()),
+                                                table));
+                            } catch (SQLException e) {
+                                log.warn("Could not load columns of {}: {}", table, e.getMessage());
+                                return Map.of();
+                            }
+                        });
         String actual = caseMap.get(fieldId.toLowerCase(Locale.ROOT));
         return actual != null ? actual : fieldId;
     }
@@ -347,7 +356,10 @@ public class JdbcConnector implements DataConnector {
                 String typeName = rs.getString("TYPE_NAME");
                 String remarks = rs.getString("REMARKS");
                 String label = remarks != null && !remarks.isBlank() ? remarks : colName;
-                columns.add(new ColumnMeta(new FieldInfo(colName, label, typeName), colName.toLowerCase(Locale.ROOT)));
+                columns.add(
+                        new ColumnMeta(
+                                new FieldInfo(colName, label, typeName),
+                                colName.toLowerCase(Locale.ROOT)));
             }
         }
         return columns;
@@ -474,10 +486,7 @@ public class JdbcConnector implements DataConnector {
         if (value == null) {
             return "";
         }
-        return value.toString()
-                .replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_");
+        return value.toString().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private void appendPagination(StringBuilder sql, List<Object> params, int limit, int offset) {
@@ -509,15 +518,21 @@ public class JdbcConnector implements DataConnector {
         PaginationDialect detected;
         try (Connection conn = dataSource.getConnection()) {
             if (probe(conn, "SELECT 1 ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")
-                    || probe(conn, "SELECT 1 FROM DUAL ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
+                    || probe(
+                            conn,
+                            "SELECT 1 FROM DUAL ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY")) {
                 detected = PaginationDialect.OFFSET_FETCH;
             } else if (probe(conn, "SELECT 1 LIMIT 1")) {
                 detected = PaginationDialect.LIMIT_OFFSET;
             } else {
-                String product = conn.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
-                detected = product.contains("oracle") || product.contains("sql server") || product.contains("microsoft")
-                        ? PaginationDialect.OFFSET_FETCH
-                        : PaginationDialect.LIMIT_OFFSET;
+                String product =
+                        conn.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+                detected =
+                        product.contains("oracle")
+                                        || product.contains("sql server")
+                                        || product.contains("microsoft")
+                                ? PaginationDialect.OFFSET_FETCH
+                                : PaginationDialect.LIMIT_OFFSET;
                 log.warn(
                         "No pagination probe succeeded for product '{}', falling back to {}",
                         product,

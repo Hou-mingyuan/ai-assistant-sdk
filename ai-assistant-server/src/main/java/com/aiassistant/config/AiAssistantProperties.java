@@ -277,12 +277,12 @@ public class AiAssistantProperties {
 
         /**
          * 访问令牌校验模式：
+         *
          * <ul>
-         *   <li>{@code shared}（默认）—— 所有调用方共用静态令牌，租户身份取自 {@code X-Tenant-Id}
-         *       头（自报，可伪造），适合本地与可信内网；</li>
-         *   <li>{@code hmac} —— 调用方携带宿主服务端签发的 HMAC 签名令牌（经
-         *       {@code POST <context>/admin/tenant-tokens} 签发），租户身份从令牌签名派生，
-         *       客户端自报的 {@code X-Tenant-Id} 被忽略，无法伪造，面向第三方站点嵌入。</li>
+         *   <li>{@code shared}（默认）—— 所有调用方共用静态令牌，租户身份取自 {@code X-Tenant-Id} 头（自报，可伪造），适合本地与可信内网；
+         *   <li>{@code hmac} —— 调用方携带宿主服务端签发的 HMAC 签名令牌（经 {@code POST
+         *       <context>/admin/tenant-tokens} 签发），租户身份从令牌签名派生， 客户端自报的 {@code X-Tenant-Id}
+         *       被忽略，无法伪造，面向第三方站点嵌入。
          * </ul>
          */
         private String authMode = "shared";
