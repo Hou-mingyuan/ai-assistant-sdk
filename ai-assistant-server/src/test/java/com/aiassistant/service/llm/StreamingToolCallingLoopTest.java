@@ -143,8 +143,15 @@ class StreamingToolCallingLoopTest {
                         .collectList()
                         .block(Duration.ofSeconds(5));
         assertThat(result).hasSize(3);
-        assertThat(result.get(0)).contains("\uD83D\uDD27").contains("echo");
-        assertThat(result.get(1)).contains("\u2705").contains("tool-output");
+        /* Progress is emitted as structured <tool_call>/<tool_result> markers (round 35). */
+        assertThat(result.get(0))
+                .contains("<tool_call>")
+                .contains("\"name\":\"echo\"")
+                .contains("\"arguments\":{}");
+        assertThat(result.get(1))
+                .contains("<tool_result name=\"echo\">")
+                .contains("tool-output")
+                .contains("</tool_result>");
         assertThat(result.get(2)).isEqualTo("answer-after-tool");
         assertThat(client.rawCalls).isEqualTo(2);
         assertThat(client.streamCalls).isEqualTo(0);
@@ -215,9 +222,9 @@ class StreamingToolCallingLoopTest {
         assertThat(result).isNotEmpty();
         long progressEmissions =
                 result.stream()
-                        .filter(s -> s.contains("\uD83D\uDD27") || s.contains("\u2705"))
+                        .filter(s -> s.contains("<tool_call>") || s.contains("<tool_result"))
                         .count();
-        /* 2 rounds × (🔧 + ✅) = 4 progress markers minimum. */
+        /* 2 rounds × (tool_call + tool_result) = 4 progress markers minimum. */
         assertThat(progressEmissions).isGreaterThanOrEqualTo(4);
     }
 
