@@ -22,7 +22,7 @@
     @dragleave.prevent="(ev: DragEvent) => emit('drag-leave', ev)"
     @drop.prevent="(ev: DragEvent) => emit('drop', ev)"
   >
-    <Sparkles class="ai-fab-sparkle" :size="32" :stroke-width="1.8" aria-hidden="true" />
+    <Sparkle class="ai-fab-sparkle" :size="32" :stroke-width="1.8" aria-hidden="true" />
     <span v-if="fabDropActive" class="ai-fab-drop-hint" role="status" aria-live="polite">
       {{ dropHintText }}
     </span>
@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { Sparkles } from '@lucide/vue';
+import { Sparkle } from '@lucide/vue';
 import { ref, type CSSProperties } from 'vue';
 
 defineProps<{

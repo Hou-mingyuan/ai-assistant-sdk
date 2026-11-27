@@ -36,6 +36,16 @@
             <span class="ai-fab-ctx-label">{{ t.msgCtxFork }}</span>
           </button>
           <button
+            v-if="formAutoFillEnabled"
+            type="button"
+            role="menuitem"
+            class="ai-fab-ctx-item"
+            :title="t.formFillDialogTitle || 'Fill form'"
+            @click="$emit('formFill')"
+          >
+            <span class="ai-fab-ctx-label">{{ t.formFillAction || 'Fill form' }}</span>
+          </button>
+          <button
             type="button"
             role="menuitem"
             class="ai-fab-ctx-item"
@@ -156,6 +166,8 @@ withDefaults(
     compareSetCount?: number;
     /** K42: true when compareSet is at MAX_COMPARE_SIDES (4); disables Add. */
     compareSetFull?: boolean;
+    /** Host enabled form-auto-fill: show "fill form" on assistant messages. */
+    formAutoFillEnabled?: boolean;
   }>(),
   {
     ttsSupported: false,
@@ -165,6 +177,7 @@ withDefaults(
     compareMarkActiveForThis: false,
     compareSetCount: 0,
     compareSetFull: false,
+    formAutoFillEnabled: false,
   },
 );
 
@@ -174,6 +187,7 @@ defineEmits<{
   (e: 'delete'): void;
   (e: 'export', fmt: ExportFormat): void;
   (e: 'fork'): void;
+  (e: 'formFill'): void;
   (e: 'tts'): void;
   (e: 'ttsPauseToggle'): void;
   /** K40: mark / unmark this message as the left side of a comparison. */

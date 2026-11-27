@@ -4,11 +4,96 @@
  * Kept in a dedicated module so AiAssistant.vue and MessageList.vue (and any
  * future siblings) share the exact same TypeScript type without re-declaring it.
  */
+/** Structured (pre-parsed) tool result so the UI can render tables without the model. */
+export type ToolResultStructured =
+  | {
+      kind: 'records';
+      moduleId?: string;
+      columns: string[];
+      rows: unknown[][];
+      total: number;
+      pageIndex: number;
+      pageSize: number;
+    }
+  | {
+      kind: 'schema';
+      moduleId: string;
+      moduleName: string;
+      fields: { id: string; name: string; type: string }[];
+    }
+  | { kind: 'modules'; modules: { id: string; name: string; type: string }[]; total: number };
+
 export interface ToolCallEntry {
   name: string;
   arguments: string;
   result?: string;
+  /** Present when the result JSON matches a known connector payload shape. */
+  structured?: ToolResultStructured;
   status: 'running' | 'done' | 'error';
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function toInt(v: unknown, fallback: number): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+/**
+ * Parse a raw tool result into a structured shape the UI can render directly
+ * (table / schema list / module chips). Returns undefined when the payload is
+ * not JSON or does not match a known connector shape — the caller then falls
+ * back to showing the raw text.
+ */
+export function parseToolResult(raw: string): ToolResultStructured | undefined {
+  const text = raw.trim();
+  if (!text.startsWith('{')) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+  if (!isRecord(parsed)) return undefined;
+
+  if (Array.isArray(parsed.records)) {
+    const records = parsed.records.filter(isRecord);
+    const columns: string[] = Array.isArray(parsed.columns)
+      ? parsed.columns.map((c) => String(c))
+      : records[0]
+        ? Object.keys(records[0])
+        : [];
+    return {
+      kind: 'records',
+      moduleId: typeof parsed.moduleId === 'string' ? parsed.moduleId : undefined,
+      columns,
+      rows: records.map((r) => columns.map((c) => (r[c] === undefined ? null : r[c]))),
+      total: toInt(parsed.total, records.length),
+      pageIndex: toInt(parsed.pageIndex, 1),
+      pageSize: toInt(parsed.pageSize, records.length),
+    };
+  }
+
+  if (Array.isArray(parsed.fields)) {
+    return {
+      kind: 'schema',
+      moduleId: String(parsed.moduleId ?? ''),
+      moduleName: String(parsed.moduleName ?? parsed.moduleId ?? ''),
+      fields: parsed.fields
+        .filter(isRecord)
+        .map((f) => ({ id: String(f.id ?? ''), name: String(f.name ?? ''), type: String(f.type ?? '') })),
+    };
+  }
+
+  if (Array.isArray(parsed.modules)) {
+    const modules = parsed.modules
+      .filter(isRecord)
+      .map((m) => ({ id: String(m.id ?? ''), name: String(m.name ?? ''), type: String(m.type ?? '') }));
+    return { kind: 'modules', modules, total: toInt(parsed.total, modules.length) };
+  }
+
+  return undefined;
 }
 
 export interface AgentStep {
@@ -410,18 +495,23 @@ export function extractToolCalls(raw: string): { content: string; toolCalls: Too
 
   const resultRegex = /<tool_result(?:\s+name="([^"]*)")?>([\s\S]*?)<\/tool_result>/gi;
   cleaned = cleaned.replace(resultRegex, (_, name, body) => {
+    const result = body.trim();
+    const structured = parseToolResult(result);
+    const status: ToolCallEntry['status'] = /^error\b/i.test(result) ? 'error' : 'done';
     const target = name
       ? calls.find((c) => c.name === name && c.status === 'running')
       : calls.find((c) => c.status === 'running');
     if (target) {
-      target.result = body.trim();
-      target.status = 'done';
+      target.result = result;
+      target.structured = structured;
+      target.status = status;
     } else {
       calls.push({
         name: name || 'tool',
         arguments: '',
-        result: body.trim(),
-        status: 'done',
+        result,
+        structured,
+        status,
       });
     }
     return '';

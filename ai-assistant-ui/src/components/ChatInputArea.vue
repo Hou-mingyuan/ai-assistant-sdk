@@ -150,6 +150,60 @@
       @update:selected-model="$emit('update:selectedModel', $event)"
       @toggle-page-context="$emit('togglePageContext')"
     >
+      <template #quick-toggles>
+        <div
+          v-if="quickTogglesEnabled && mode === 'chat'"
+          class="ai-footer-quick-toggles"
+          role="group"
+          :aria-label="t.skillStripLabel || '快捷工具'"
+        >
+          <button
+            type="button"
+            class="ai-quick-toggle ai-quick-toggle-deepthink"
+            :class="{ active: deepThinkEnabled }"
+            :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
+            :title="
+              deepThinkEnabled ? t.deepThinkOn || '深度思考 已开启' : t.deepThinkOff || '深度思考 已关闭'
+            "
+            @click="$emit('toggleDeepThink', !deepThinkEnabled)"
+          >
+            <span class="ai-quick-toggle-icon" aria-hidden="true">
+              <AssistantIcon name="brain" :size="13" />
+            </span>
+            <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
+          </button>
+          <button
+            type="button"
+            class="ai-quick-toggle ai-quick-toggle-websearch"
+            :class="{ active: webSearchEnabled }"
+            :aria-pressed="webSearchEnabled ? 'true' : 'false'"
+            :title="
+              webSearchEnabled ? t.webSearchOn || '联网搜索 已开启' : t.webSearchOff || '联网搜索 已关闭'
+            "
+            @click="$emit('toggleWebSearch', !webSearchEnabled)"
+          >
+            <span class="ai-quick-toggle-icon" aria-hidden="true">
+              <AssistantIcon name="globe-2" :size="13" />
+            </span>
+            <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
+          </button>
+          <button
+            type="button"
+            class="ai-quick-toggle ai-quick-toggle-fastreply"
+            :class="{ active: fastReplyEnabled }"
+            :aria-pressed="fastReplyEnabled ? 'true' : 'false'"
+            :title="
+              fastReplyEnabled ? t.fastReplyOn || '快速回答 已开启' : t.fastReplyOff || '快速回答 已关闭'
+            "
+            @click="$emit('toggleFastReply', !fastReplyEnabled)"
+          >
+            <span class="ai-quick-toggle-icon" aria-hidden="true">
+              <AssistantIcon name="zap" :size="13" />
+            </span>
+            <span class="ai-quick-toggle-label">{{ t.fastReplyLabel || '快速回答' }}</span>
+          </button>
+        </div>
+      </template>
       <template #model-row-actions>
         <slot name="model-row-actions" />
       </template>
@@ -173,10 +227,6 @@
       :slash-commands="slashCommands"
       :history-enabled="historyEnabled"
       :advanced-tools-open="advancedToolsOpen"
-      :quick-toggles-enabled="quickTogglesEnabled"
-      :deep-think-enabled="deepThinkEnabled"
-      :web-search-enabled="webSearchEnabled"
-      :fast-reply-enabled="fastReplyEnabled"
       :t="t"
       @update:model-value="$emit('update:modelValue', $event)"
       @update:advanced-tools-open="advancedToolsOpen = $event"
@@ -190,9 +240,6 @@
       @history-reset="$emit('historyReset')"
       @toggle-voice="$emit('toggleVoice')"
       @toggle-voice-conversation="$emit('toggleVoiceConversation')"
-      @toggle-deep-think="$emit('toggleDeepThink', $event)"
-      @toggle-web-search="$emit('toggleWebSearch', $event)"
-      @toggle-fast-reply="$emit('toggleFastReply', $event)"
       @send-blocked-action="$emit('sendBlockedAction')"
     >
       <template #footer-plugins>
@@ -206,6 +253,7 @@
 import { computed, ref } from 'vue';
 import ChatInputComposer from './ChatInputComposer.vue';
 import ChatInputModelRow from './ChatInputModelRow.vue';
+import AssistantIcon from './AssistantIcon.vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SlashCommand } from '../composables/useSlashCommands';
 

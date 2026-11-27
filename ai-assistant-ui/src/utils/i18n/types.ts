@@ -295,6 +295,32 @@ export interface I18nMessages {
   memoryEmpty: string;
   memoryClearAll: string;
   toolResult: string;
+  /** "共 {total} 条 · 显示 {shown} 条 · 第 {page} 页" — all three placeholders are required */
+  toolRowsSummary?: string;
+  /** "{count} 个字段" — {count} is required */
+  toolFieldsCount?: string;
+  /** "{total} 个模块" — {total} is required */
+  toolModulesCount?: string;
+  /** Shown when a query returned zero rows */
+  toolEmptyRecords?: string;
+  /** Toggle label for expanding the raw JSON of a structured result */
+  toolShowRaw?: string;
+  /** Pager: previous-page button. */
+  toolPagePrev?: string;
+  /** Pager: next-page button. */
+  toolPageNext?: string;
+  /** Pager: "{page} / {pages}" indicator, e.g. 第 {page} / {pages} 页. */
+  toolPageOf?: string;
+  /** Pager: label before the page-size select. */
+  toolPageSize?: string;
+  /** Pager: loading indicator while a page is being fetched. */
+  toolPageLoading?: string;
+  /** Pager: error when the original tool arguments cannot be reused (no moduleId). */
+  toolPageNoArgs?: string;
+  /** Pager: error shown when the server rejects the re-query. */
+  toolPageFail?: string;
+  /** Pager: error when the re-query did not return a record set. */
+  toolPageNoRecords?: string;
   kbLabel: string;
   kbAddPlaceholder: string;
   kbEmpty: string;
@@ -440,6 +466,8 @@ export interface I18nMessages {
    */
   /** Dialog title for the auto-fill preview */
   formFillDialogTitle?: string;
+  /** Per-message action: parse this answer into field/value pairs and fill the host form. */
+  formFillAction?: string;
   /** "{matched} of {total} pairs matched" — both placeholders are required */
   formFillSummaryTemplate?: string;
   /** Inline hint when LLM fallback is enabled and some pairs are still unmatched */

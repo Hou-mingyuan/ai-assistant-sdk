@@ -558,6 +558,50 @@ export async function postChat(
   return { ...(await res.json()), requestId };
 }
 
+/** Result of a UI-driven tool call (POST /tools/execute). */
+export interface ToolCallResult {
+  success: boolean;
+  /** Parsed tool JSON on success (e.g. the paged records payload of *_query_data). */
+  result?: unknown;
+  error?: string;
+  errorCode?: string;
+}
+
+/**
+ * Re-run a read-only connector tool ({@code *_query_data}) with new arguments, e.g. to flip
+ * pages of a result table without asking the model again.
+ */
+export async function callTool(
+  baseUrl: string,
+  name: string,
+  args: Record<string, unknown>,
+  token?: string,
+  tenantId?: string,
+): Promise<ToolCallResult> {
+  const res = await fetch(apiUrl(baseUrl, '/tools/execute'), {
+    method: 'POST',
+    headers: buildHeaders(token, tenantId),
+    body: JSON.stringify({ name, arguments: args }),
+    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const body = await readJsonError(res);
+    return {
+      success: false,
+      error:
+        (typeof body?.error === 'string' && body.error) || `HTTP ${res.status}: ${res.statusText}`,
+      errorCode: typeof body?.errorCode === 'string' ? body.errorCode : undefined,
+    };
+  }
+  const data = (await res.json()) as ToolCallResult;
+  return {
+    success: data.success !== false,
+    result: data.result,
+    error: typeof data.error === 'string' ? data.error : undefined,
+    errorCode: typeof data.errorCode === 'string' ? data.errorCode : undefined,
+  };
+}
+
 /** Upload a file for summarization or translation. */
 export async function uploadFile(
   baseUrl: string,

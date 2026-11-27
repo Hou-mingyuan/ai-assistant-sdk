@@ -77,58 +77,6 @@
       </svg>
     </button>
   </div>
-  <div
-    v-if="quickTogglesEnabled && mode === 'chat'"
-    class="ai-footer-quick-toggles"
-    role="group"
-    :aria-label="t.skillStripLabel || '快捷工具'"
-  >
-    <button
-      type="button"
-      class="ai-quick-toggle ai-quick-toggle-deepthink"
-      :class="{ active: deepThinkEnabled }"
-      :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
-      :title="
-        deepThinkEnabled ? t.deepThinkOn || '深度思考 已开启' : t.deepThinkOff || '深度思考 已关闭'
-      "
-      @click="$emit('toggleDeepThink', !deepThinkEnabled)"
-    >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">
-        <AssistantIcon name="brain" :size="15" />
-      </span>
-      <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
-    </button>
-    <button
-      type="button"
-      class="ai-quick-toggle ai-quick-toggle-websearch"
-      :class="{ active: webSearchEnabled }"
-      :aria-pressed="webSearchEnabled ? 'true' : 'false'"
-      :title="
-        webSearchEnabled ? t.webSearchOn || '联网搜索 已开启' : t.webSearchOff || '联网搜索 已关闭'
-      "
-      @click="$emit('toggleWebSearch', !webSearchEnabled)"
-    >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">
-        <AssistantIcon name="globe-2" :size="15" />
-      </span>
-      <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
-    </button>
-    <button
-      type="button"
-      class="ai-quick-toggle ai-quick-toggle-fastreply"
-      :class="{ active: fastReplyEnabled }"
-      :aria-pressed="fastReplyEnabled ? 'true' : 'false'"
-      :title="
-        fastReplyEnabled ? t.fastReplyOn || '快速回答 已开启' : t.fastReplyOff || '快速回答 已关闭'
-      "
-      @click="$emit('toggleFastReply', !fastReplyEnabled)"
-    >
-      <span class="ai-quick-toggle-icon" aria-hidden="true">
-        <AssistantIcon name="zap" :size="15" />
-      </span>
-      <span class="ai-quick-toggle-label">{{ t.fastReplyLabel || '快速回答' }}</span>
-    </button>
-  </div>
   <div class="ai-footer-input-row">
     <textarea
       ref="textareaRef"
@@ -261,14 +209,19 @@
         @click="$emit('send')"
       >
         <svg
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
           class="ai-send-icon"
         >
-          <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
+          <path d="m5 12 7-7 7 7" />
+          <path d="M12 19V5" />
         </svg>
       </button>
     </div>
@@ -277,7 +230,6 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import AssistantIcon from './AssistantIcon.vue';
 import type { SlashCommand } from '../composables/useSlashCommands';
 import type { I18nMessages } from '../utils/i18n';
 
@@ -300,10 +252,6 @@ const props = defineProps<{
   slashCommands: SlashCommand[];
   historyEnabled: boolean;
   advancedToolsOpen: boolean;
-  quickTogglesEnabled: boolean;
-  deepThinkEnabled: boolean;
-  webSearchEnabled: boolean;
-  fastReplyEnabled: boolean;
   t: I18nMessages;
 }>();
 
@@ -320,9 +268,6 @@ const emit = defineEmits<{
   historyReset: [];
   toggleVoice: [];
   toggleVoiceConversation: [];
-  toggleDeepThink: [value: boolean];
-  toggleWebSearch: [value: boolean];
-  toggleFastReply: [value: boolean];
   sendBlockedAction: [];
 }>();
 

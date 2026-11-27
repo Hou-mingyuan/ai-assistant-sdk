@@ -147,6 +147,7 @@
         }}
       </span>
     </button>
+    <slot name="quick-toggles" />
     <slot v-if="advancedToolsOpen" name="model-row-actions" />
   </div>
 </template>

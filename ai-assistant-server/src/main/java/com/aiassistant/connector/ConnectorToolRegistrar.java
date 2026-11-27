@@ -32,6 +32,8 @@ public class ConnectorToolRegistrar {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final long QUERY_CACHE_TTL_MS = 30_000; // 30 seconds
     private static final int QUERY_CACHE_MAX = 200;
+    /** Hard cap for pageSize; the tool description promises "最大200" and this enforces it. */
+    private static final int MAX_PAGE_SIZE = 200;
 
     public static void register(DataConnector connector, ToolRegistry registry) {
         register(connector, registry, "zh");
@@ -270,8 +272,8 @@ public class ConnectorToolRegistrar {
                     }
                 }
 
-                int pageSize = arguments.path("pageSize").asInt(20);
-                int pageIndex = arguments.path("pageIndex").asInt(1);
+                int pageSize = Math.max(1, Math.min(arguments.path("pageSize").asInt(20), MAX_PAGE_SIZE));
+                int pageIndex = Math.max(1, arguments.path("pageIndex").asInt(1));
 
                 DataConnector.QueryFilter filter =
                         new DataConnector.QueryFilter(conditions, pageIndex, pageSize, orderBy);
@@ -290,13 +292,21 @@ public class ConnectorToolRegistrar {
                     records = maskRecords(records, masked);
                 }
 
-                String json =
-                        mapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "records", records,
-                                        "total", result.total(),
-                                        "pageIndex", result.pageIndex(),
-                                        "pageSize", result.pageSize()));
+                // Stable field order + explicit column list so UIs can render a table without a model.
+                java.util.List<String> columns =
+                        records.isEmpty()
+                                ? java.util.List.of()
+                                : new java.util.ArrayList<>(records.get(0).keySet());
+                java.util.Map<String, Object> payload = new java.util.LinkedHashMap<>();
+                payload.put("moduleId", moduleId);
+                payload.put("columns", columns);
+                payload.put("records", records);
+                payload.put("total", result.total());
+                payload.put("pageIndex", result.pageIndex());
+                payload.put("pageSize", result.pageSize());
+                payload.put("returned", records.size());
+
+                String json = mapper.writeValueAsString(payload);
 
                 evictExpired();
                 queryCache.put(

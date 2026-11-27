@@ -200,6 +200,7 @@
 .ai-assistant-wrapper.ai-dark .ai-msg-feedback,
 .ai-assistant-wrapper.ai-dark .ai-plugin-btn,
 .ai-assistant-wrapper.ai-dark .ai-msg-regenerate,
+.ai-assistant-wrapper.ai-dark .ai-msg-form-fill,
 .ai-assistant-wrapper.ai-dark .ai-msg-copy,
 .ai-assistant-wrapper.ai-dark .ai-msg-edit {
   color: rgba(203, 245, 214, 0.68);
@@ -211,6 +212,7 @@
 .ai-assistant-wrapper.ai-dark .ai-msg-feedback:hover,
 .ai-assistant-wrapper.ai-dark .ai-plugin-btn:hover,
 .ai-assistant-wrapper.ai-dark .ai-msg-regenerate:hover,
+.ai-assistant-wrapper.ai-dark .ai-msg-form-fill:hover,
 .ai-assistant-wrapper.ai-dark .ai-msg-copy:hover,
 .ai-assistant-wrapper.ai-dark .ai-msg-edit:hover {
   color: #ffffff;

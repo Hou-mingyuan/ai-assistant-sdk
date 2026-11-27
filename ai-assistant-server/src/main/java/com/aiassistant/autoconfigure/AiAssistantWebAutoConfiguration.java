@@ -150,6 +150,20 @@ public class AiAssistantWebAutoConfiguration {
                 properties.isConnectorManagementEnabled());
     }
 
+    /**
+     * UI 驱动的只读工具执行端点（结果分页器翻页时重跑 {@code *_query_data}）。 显式注册，因为宿主应用的组件扫描不会覆盖
+     * {@code com.aiassistant.controller}。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public com.aiassistant.controller.ToolExecuteController toolExecuteController(
+            ToolRegistry toolRegistry,
+            ObjectProvider<com.fasterxml.jackson.databind.ObjectMapper> objectMapperProvider) {
+        return new com.aiassistant.controller.ToolExecuteController(
+                toolRegistry,
+                objectMapperProvider.getIfAvailable(com.fasterxml.jackson.databind.ObjectMapper::new));
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public FileUploadController fileUploadController(

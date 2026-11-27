@@ -417,6 +417,7 @@
 }
 .ai-msg-speak,
 .ai-msg-copy,
+.ai-msg-form-fill,
 .ai-msg-regenerate,
 .ai-msg-edit,
 .ai-msg-feedback {
@@ -451,6 +452,7 @@
 }
 .ai-msg-speak:hover,
 .ai-msg-copy:hover,
+.ai-msg-form-fill:hover,
 .ai-msg-regenerate:hover,
 .ai-msg-edit:hover,
 .ai-msg-feedback:hover {

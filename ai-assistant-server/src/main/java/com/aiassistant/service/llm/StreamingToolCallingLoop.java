@@ -123,8 +123,9 @@ public final class StreamingToolCallingLoop {
     }
 
     /**
-     * Tool calling with user-visible progress. Each round emits {@code 🔧 toolName} before the call
-     * and {@code ✅ result-prefix} after. Final assistant content is the last emission.
+     * Tool calling with user-visible progress. Each round emits a {@code <tool_call>} tag before
+     * the call and a {@code <tool_result>} tag (full result) after; the UI renders both as a
+     * structured tool entry. Final assistant content is the last emission.
      */
     private Flux<String> executeToolsWithProgress(
             ObjectNode body, JsonNode assistantMessage, JsonNode toolCalls, String apiKey) {
@@ -168,16 +169,22 @@ public final class StreamingToolCallingLoop {
                                 String fnName = tc.path("function").path("name").asText();
                                 String argsStr = tc.path("function").path("arguments").asText("{}");
 
-                                sink.next(
-                                        "\n\n> \uD83D\uDD27 **"
-                                                + fnName
-                                                + "** `"
-                                                + truncate(argsStr, 80)
-                                                + "`\n");
+                                JsonNode args;
+                                try {
+                                    args = objectMapper.readTree(argsStr);
+                                } catch (Exception e) {
+                                    args = objectMapper.getNodeFactory().textNode(argsStr);
+                                }
+
+                                // Structured progress markers: the UI parses these into a tool-call
+                                // entry (name, arguments, full result) instead of a blockquote.
+                                ObjectNode callTag = objectMapper.createObjectNode();
+                                callTag.put("name", fnName);
+                                callTag.set("arguments", args);
+                                sink.next("\n\n<tool_call>" + callTag.toString() + "</tool_call>\n");
 
                                 String toolResult;
                                 try {
-                                    JsonNode args = objectMapper.readTree(argsStr);
                                     toolResult = toolRegistry.execute(fnName, args);
                                 } catch (Exception e) {
                                     toolResult = "Error: " + e.getMessage();
@@ -187,7 +194,12 @@ public final class StreamingToolCallingLoop {
                                             e.getMessage());
                                 }
 
-                                sink.next("> ✅ " + truncate(toolResult, 120) + "\n\n");
+                                sink.next(
+                                        "<tool_result name=\""
+                                                + fnName
+                                                + "\">\n"
+                                                + toolResult
+                                                + "\n</tool_result>\n\n");
 
                                 ObjectNode toolMsg = messages.addObject();
                                 toolMsg.put("role", "tool");
