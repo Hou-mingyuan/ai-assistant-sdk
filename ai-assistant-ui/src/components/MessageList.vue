@@ -777,7 +777,9 @@ const props = defineProps({
   },
   /** Host-provided read-only tool re-query; enables the pager on *_query_data result tables. */
   callTool: {
-    type: Function as PropType<(name: string, args: Record<string, unknown>) => Promise<ToolCallResult>>,
+    type: Function as PropType<
+      (name: string, args: Record<string, unknown>) => Promise<ToolCallResult>
+    >,
     default: undefined,
   },
 });

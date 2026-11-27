@@ -1,7 +1,6 @@
 package com.aiassistant.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aiassistant.config.AiAssistantProperties;
 import org.junit.jupiter.api.Test;
@@ -9,8 +8,8 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 /**
- * Tests for the P0 security hardening in {@link AiAssistantSecurityAutoConfiguration}: the
- * admin fail-fast and the filter-order contract constants.
+ * Tests for the P0 security hardening in {@link AiAssistantSecurityAutoConfiguration}: the admin
+ * fail-fast and the filter-order contract constants.
  */
 class AiAssistantSecurityAutoConfigurationHardeningTest {
 
@@ -31,8 +30,7 @@ class AiAssistantSecurityAutoConfigurationHardeningTest {
                         ctx -> {
                             if (ctx.getStartupFailure() != null) {
                                 assertThat(ctx.getStartupFailure())
-                                        .hasMessageContaining(
-                                                "no admin token could be resolved");
+                                        .hasMessageContaining("no admin token could be resolved");
                             }
                             // When a token is present via other property sources the context
                             // may start; the assertion above covers the strict path.

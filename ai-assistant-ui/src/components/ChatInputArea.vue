@@ -163,7 +163,9 @@
             :class="{ active: deepThinkEnabled }"
             :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
             :title="
-              deepThinkEnabled ? t.deepThinkOn || '深度思考 已开启' : t.deepThinkOff || '深度思考 已关闭'
+              deepThinkEnabled
+                ? t.deepThinkOn || '深度思考 已开启'
+                : t.deepThinkOff || '深度思考 已关闭'
             "
             @click="$emit('toggleDeepThink', !deepThinkEnabled)"
           >
@@ -178,7 +180,9 @@
             :class="{ active: webSearchEnabled }"
             :aria-pressed="webSearchEnabled ? 'true' : 'false'"
             :title="
-              webSearchEnabled ? t.webSearchOn || '联网搜索 已开启' : t.webSearchOff || '联网搜索 已关闭'
+              webSearchEnabled
+                ? t.webSearchOn || '联网搜索 已开启'
+                : t.webSearchOff || '联网搜索 已关闭'
             "
             @click="$emit('toggleWebSearch', !webSearchEnabled)"
           >
@@ -193,7 +197,9 @@
             :class="{ active: fastReplyEnabled }"
             :aria-pressed="fastReplyEnabled ? 'true' : 'false'"
             :title="
-              fastReplyEnabled ? t.fastReplyOn || '快速回答 已开启' : t.fastReplyOff || '快速回答 已关闭'
+              fastReplyEnabled
+                ? t.fastReplyOn || '快速回答 已开启'
+                : t.fastReplyOff || '快速回答 已关闭'
             "
             @click="$emit('toggleFastReply', !fastReplyEnabled)"
           >

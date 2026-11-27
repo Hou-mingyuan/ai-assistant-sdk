@@ -6601,7 +6601,9 @@
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
   width: auto !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles {
   grid-column: 6 !important;
   grid-row: 1 !important;
   position: static !important;
@@ -6619,7 +6621,10 @@
   box-shadow: none !important;
   z-index: auto !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles
+  .ai-quick-toggle {
   flex: 0 0 auto;
   min-height: var(--ai-composer-control-height, 18px) !important;
   height: var(--ai-composer-control-height, 18px);
@@ -6629,29 +6634,46 @@
   line-height: 1;
   white-space: nowrap;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-icon {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles
+  .ai-quick-toggle-icon {
   width: 12px;
   height: 12px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-icon svg {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles
+  .ai-quick-toggle-icon
+  svg {
   width: 12px;
   height: 12px;
 }
 /* 开关已并入模式行，输入框上方不再需要预留一行 */
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer:has(.ai-footer-model-row .ai-footer-quick-toggles) {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer:has(.ai-footer-model-row .ai-footer-quick-toggles) {
   margin-top: 0 !important;
 }
 /* 面板较窄时只留图标（复用 05-overlays-resize.css 里 panel-mounted 的 ai-assistant 容器） */
 @container ai-assistant (max-width: 560px) {
-  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-label {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+    .ai-footer-model-row
+    > .ai-footer-quick-toggles
+    .ai-quick-toggle-label {
     display: none;
   }
-  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+    .ai-footer-model-row
+    > .ai-footer-quick-toggles
+    .ai-quick-toggle {
     padding: 0 5px !important;
   }
 }
 @media (max-width: 430px) {
-  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle-label {
+  .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+    .ai-footer-model-row
+    > .ai-footer-quick-toggles
+    .ai-quick-toggle-label {
     display: none;
   }
 }
@@ -6662,7 +6684,8 @@
   content: none !important;
   display: none !important;
 }
-/* 2) 品牌标识统一为单颗星 Sparkle，放进主色渐变小方块；图标本体描边白色 */
+/* 2) 品牌标识统一为单颗星 Sparkle，放进品牌色渐变小方块；图标本体描边白色
+   渐变只用主题变量（--ai-brand-mark 随所选色调变化，禁用任何写死的紫色/蓝色品牌值） */
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon,
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon,
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
@@ -6673,11 +6696,22 @@
   stroke-width: 2;
   background: linear-gradient(
     135deg,
-    var(--primary, #171717) 0%,
-    color-mix(in srgb, var(--primary, #171717) 70%, #6366f1) 100%
+    var(--ai-brand-mark, var(--primary, #171717)) 0%,
+    color-mix(in srgb, var(--ai-brand-mark, var(--primary, #171717)) 78%, #ffffff) 100%
   );
   filter: none !important;
   box-shadow: 0 2px 6px rgba(17, 17, 17, 0.18);
+}
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-brand-icon,
+.ai-assistant-wrapper.ai-dark.ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar-icon {
+  color: var(--ai-c-ink-950, #050505) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ai-brand-mark, #f5f5f5) 0%,
+    color-mix(in srgb, var(--ai-brand-mark, #f5f5f5) 78%, #ffffff) 100%
+  );
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-brand-icon {
   width: 22px;
@@ -6726,10 +6760,17 @@
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions button {
   border-radius: 8px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles
+  .ai-quick-toggle {
   font-size: 11px;
   padding: 0 7px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row > .ai-footer-quick-toggles .ai-quick-toggle .ai-quick-toggle-label {
+.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper
+  .ai-footer-model-row
+  > .ai-footer-quick-toggles
+  .ai-quick-toggle
+  .ai-quick-toggle-label {
   font-size: 11px;
 }

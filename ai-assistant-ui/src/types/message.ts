@@ -80,16 +80,20 @@ export function parseToolResult(raw: string): ToolResultStructured | undefined {
       kind: 'schema',
       moduleId: String(parsed.moduleId ?? ''),
       moduleName: String(parsed.moduleName ?? parsed.moduleId ?? ''),
-      fields: parsed.fields
-        .filter(isRecord)
-        .map((f) => ({ id: String(f.id ?? ''), name: String(f.name ?? ''), type: String(f.type ?? '') })),
+      fields: parsed.fields.filter(isRecord).map((f) => ({
+        id: String(f.id ?? ''),
+        name: String(f.name ?? ''),
+        type: String(f.type ?? ''),
+      })),
     };
   }
 
   if (Array.isArray(parsed.modules)) {
-    const modules = parsed.modules
-      .filter(isRecord)
-      .map((m) => ({ id: String(m.id ?? ''), name: String(m.name ?? ''), type: String(m.type ?? '') }));
+    const modules = parsed.modules.filter(isRecord).map((m) => ({
+      id: String(m.id ?? ''),
+      name: String(m.name ?? ''),
+      type: String(m.type ?? ''),
+    }));
     return { kind: 'modules', modules, total: toInt(parsed.total, modules.length) };
   }
 

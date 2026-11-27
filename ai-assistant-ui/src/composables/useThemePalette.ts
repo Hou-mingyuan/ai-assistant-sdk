@@ -45,49 +45,49 @@ const THEME_PRESETS: Record<
 };
 
 export function useThemePalette() {
-const themePalette = ref<ThemePresetId>(
-  (() => {
+  const themePalette = ref<ThemePresetId>(
+    (() => {
+      try {
+        const v = localStorage.getItem(THEME_STORAGE_KEY) as ThemePresetId | null;
+        if (v && v in THEME_PRESETS) return v;
+      } catch {
+        /* SSR / disabled localStorage — fall through to default */
+      }
+      return 'graphite';
+    })(),
+  );
+  watch(themePalette, (v) => {
     try {
-      const v = localStorage.getItem(THEME_STORAGE_KEY) as ThemePresetId | null;
-      if (v && v in THEME_PRESETS) return v;
+      localStorage.setItem(THEME_STORAGE_KEY, v);
     } catch {
-      /* SSR / disabled localStorage — fall through to default */
+      /* ignore */
     }
-    return 'graphite';
-  })(),
-);
-watch(themePalette, (v) => {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, v);
-  } catch {
-    /* ignore */
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(THEME_SYNC_EVENT, {
+          detail: { theme: v, source: 'assistant' },
+        }),
+      );
+    }
+  });
+  function onExternalThemeChange(event: Event) {
+    const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
+      ThemePresetId | undefined;
+    if (next && next in THEME_PRESETS && next !== themePalette.value) {
+      themePalette.value = next;
+    }
   }
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new CustomEvent(THEME_SYNC_EVENT, {
-        detail: { theme: v, source: 'assistant' },
-      }),
-    );
-  }
-});
-function onExternalThemeChange(event: Event) {
-  const next = (event as CustomEvent<{ theme?: string }>).detail?.theme as
-    ThemePresetId | undefined;
-  if (next && next in THEME_PRESETS && next !== themePalette.value) {
-    themePalette.value = next;
-  }
-}
-const themePaletteVars = computed<Record<string, string>>(() => {
-  const p = THEME_PRESETS[themePalette.value];
-  return {
-    '--ai-theme-from': p.from,
-    '--ai-theme-via': p.via,
-    '--ai-theme-to': p.to,
-    '--ai-theme-mark': p.mark,
-    '--ai-theme-mark-dark': p.darkMark,
-  };
-});
-onMounted(() => window.addEventListener(THEME_SYNC_EVENT, onExternalThemeChange));
-onBeforeUnmount(() => window.removeEventListener(THEME_SYNC_EVENT, onExternalThemeChange));
-return { themePalette, themePaletteVars };
+  const themePaletteVars = computed<Record<string, string>>(() => {
+    const p = THEME_PRESETS[themePalette.value];
+    return {
+      '--ai-theme-from': p.from,
+      '--ai-theme-via': p.via,
+      '--ai-theme-to': p.to,
+      '--ai-theme-mark': p.mark,
+      '--ai-theme-mark-dark': p.darkMark,
+    };
+  });
+  onMounted(() => window.addEventListener(THEME_SYNC_EVENT, onExternalThemeChange));
+  onBeforeUnmount(() => window.removeEventListener(THEME_SYNC_EVENT, onExternalThemeChange));
+  return { themePalette, themePaletteVars };
 }

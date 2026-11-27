@@ -45,7 +45,10 @@ export function readPanelMemory(raw: string | null): PanelMemory | null {
   }
 }
 
-export function usePanelMemory(persist: Ref<boolean>, storageKey: Ref<string | undefined>): PanelMemoryStore {
+export function usePanelMemory(
+  persist: Ref<boolean>,
+  storageKey: Ref<string | undefined>,
+): PanelMemoryStore {
   const key = () => storageKey.value || PANEL_MEMORY_KEY;
 
   return {
