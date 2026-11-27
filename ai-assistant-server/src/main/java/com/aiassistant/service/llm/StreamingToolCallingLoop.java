@@ -83,41 +83,46 @@ public final class StreamingToolCallingLoop {
         // must run on boundedElastic — never on the reactor-http-nio event loop that subscribes
         // this Flux, or one slow probe stalls every SSE connection on that event loop.
         return Flux.defer(
-                () -> {
-                    ObjectNode probeBody = body.deepCopy();
-                    probeBody.put("stream", false);
-                    try {
-                        String rawResponse = chatClient.completeRaw(probeBody, apiKey);
-                        JsonNode root = objectMapper.readTree(rawResponse);
-                        JsonNode choices = root.path("choices");
-                        if (!choices.isArray() || choices.isEmpty()) {
-                            return Flux.just(
-                                    responsePostProcessor.parseContentFromRaw(rawResponse));
-                        }
-                        JsonNode firstChoice = choices.get(0);
-                        String finishReason = firstChoice.path("finish_reason").asText("");
-                        JsonNode toolCalls = firstChoice.path("message").path("tool_calls");
-
-                        if (!"tool_calls".equals(finishReason)
-                                || !toolCalls.isArray()
-                                || toolCalls.isEmpty()) {
-                            return chatClient.completeStream(body, apiKey);
-                        }
-
-                        return executeToolsWithProgress(
-                                        probeBody, firstChoice.path("message"), toolCalls, apiKey)
-                                .subscribeOn(Schedulers.boundedElastic());
-                    } catch (Exception e) {
-                        if (onKeyFailure != null) {
+                        () -> {
+                            ObjectNode probeBody = body.deepCopy();
+                            probeBody.put("stream", false);
                             try {
-                                onKeyFailure.accept(apiKey);
-                            } catch (Exception inner) {
-                                log.debug("onKeyFailure callback threw: {}", inner.getMessage());
+                                String rawResponse = chatClient.completeRaw(probeBody, apiKey);
+                                JsonNode root = objectMapper.readTree(rawResponse);
+                                JsonNode choices = root.path("choices");
+                                if (!choices.isArray() || choices.isEmpty()) {
+                                    return Flux.just(
+                                            responsePostProcessor.parseContentFromRaw(rawResponse));
+                                }
+                                JsonNode firstChoice = choices.get(0);
+                                String finishReason = firstChoice.path("finish_reason").asText("");
+                                JsonNode toolCalls = firstChoice.path("message").path("tool_calls");
+
+                                if (!"tool_calls".equals(finishReason)
+                                        || !toolCalls.isArray()
+                                        || toolCalls.isEmpty()) {
+                                    return chatClient.completeStream(body, apiKey);
+                                }
+
+                                return executeToolsWithProgress(
+                                                probeBody,
+                                                firstChoice.path("message"),
+                                                toolCalls,
+                                                apiKey)
+                                        .subscribeOn(Schedulers.boundedElastic());
+                            } catch (Exception e) {
+                                if (onKeyFailure != null) {
+                                    try {
+                                        onKeyFailure.accept(apiKey);
+                                    } catch (Exception inner) {
+                                        log.debug(
+                                                "onKeyFailure callback threw: {}",
+                                                inner.getMessage());
+                                    }
+                                }
+                                return Flux.error(e);
                             }
-                        }
-                        return Flux.error(e);
-                    }
-                })
+                        })
                 // Run the whole blocking probe on boundedElastic, off the subscriber's event loop.
                 .subscribeOn(Schedulers.boundedElastic());
     }
@@ -181,7 +186,8 @@ public final class StreamingToolCallingLoop {
                                 ObjectNode callTag = objectMapper.createObjectNode();
                                 callTag.put("name", fnName);
                                 callTag.set("arguments", args);
-                                sink.next("\n\n<tool_call>" + callTag.toString() + "</tool_call>\n");
+                                sink.next(
+                                        "\n\n<tool_call>" + callTag.toString() + "</tool_call>\n");
 
                                 String toolResult;
                                 try {

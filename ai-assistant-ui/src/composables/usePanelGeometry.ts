@@ -129,7 +129,12 @@ export function usePanelGeometry(deps: PanelGeometryDeps) {
     const w = next.w;
     const h = next.h;
     panelUserSize.value =
-      typeof w === 'number' && typeof h === 'number' && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0
+      typeof w === 'number' &&
+      typeof h === 'number' &&
+      Number.isFinite(w) &&
+      Number.isFinite(h) &&
+      w > 0 &&
+      h > 0
         ? clampPanelSize(w, h)
         : null;
     panelExpanded.value = !!next.expanded;

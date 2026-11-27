@@ -63,9 +63,9 @@ class AiAssistantWebSocketConfigTest {
         AiAssistantWebSocketConfig.TokenHandshakeInterceptor interceptor =
                 new AiAssistantWebSocketConfig.TokenHandshakeInterceptor(properties);
 
-        MockHttpServletRequest signed =
-                new MockHttpServletRequest("GET", "/ai-assistant/ws");
-        signed.addHeader("X-AI-Token", HmacTenantTokens.issue("tenant-a", 3600, "secret", Instant.now()));
+        MockHttpServletRequest signed = new MockHttpServletRequest("GET", "/ai-assistant/ws");
+        signed.addHeader(
+                "X-AI-Token", HmacTenantTokens.issue("tenant-a", 3600, "secret", Instant.now()));
         ServerHttpResponse signedResponse = mock(ServerHttpResponse.class);
         assertTrue(
                 interceptor.beforeHandshake(
@@ -74,8 +74,7 @@ class AiAssistantWebSocketConfigTest {
                         mock(WebSocketHandler.class),
                         new HashMap<>()));
 
-        MockHttpServletRequest shared =
-                new MockHttpServletRequest("GET", "/ai-assistant/ws");
+        MockHttpServletRequest shared = new MockHttpServletRequest("GET", "/ai-assistant/ws");
         shared.addHeader("X-AI-Token", "secret");
         ServerHttpResponse sharedResponse = mock(ServerHttpResponse.class);
         assertFalse(

@@ -1,18 +1,18 @@
 package com.aiassistant.security;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Base64;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Stateless per-tenant bearer tokens for the {@code hmac} auth mode.
  *
  * <p>Token format: {@code v1.<base64url(tenantId)>.<expiryEpochSeconds>.<base64url(hmac-sha256)>}.
- * The HMAC covers the prefix, the encoded tenant id and the expiry, so a token cannot be
- * forged, extended, or reused across tenants. Verification is constant-time. Tenant ids are
+ * The HMAC covers the prefix, the encoded tenant id and the expiry, so a token cannot be forged,
+ * extended, or reused across tenants. Verification is constant-time. Tenant ids are
  * base64url-encoded to keep the dot-separated format unambiguous for any tenant naming scheme.
  */
 public final class HmacTenantTokens {
@@ -21,8 +21,7 @@ public final class HmacTenantTokens {
     private static final long MIN_TTL_SECONDS = 60;
     private static final long MAX_TTL_SECONDS = 366L * 24 * 3600;
 
-    private HmacTenantTokens() {
-    }
+    private HmacTenantTokens() {}
 
     /**
      * Issues a signed tenant token.
@@ -38,10 +37,13 @@ public final class HmacTenantTokens {
         }
         long ttl = Math.min(Math.max(ttlSeconds, MIN_TTL_SECONDS), MAX_TTL_SECONDS);
         long expiry = now.plusSeconds(ttl).getEpochSecond();
-        String encodedTenant = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(tenantId.trim().getBytes(StandardCharsets.UTF_8));
+        String encodedTenant =
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(tenantId.trim().getBytes(StandardCharsets.UTF_8));
         String payload = PREFIX + "." + encodedTenant + "." + expiry;
-        String signature = Base64.getUrlEncoder().withoutPadding().encodeToString(hmac(payload, secret));
+        String signature =
+                Base64.getUrlEncoder().withoutPadding().encodeToString(hmac(payload, secret));
         return payload + "." + signature;
     }
 
@@ -49,7 +51,7 @@ public final class HmacTenantTokens {
      * Verifies a signed tenant token.
      *
      * @return the tenant id embedded in the token, or {@code null} when the token is malformed,
-     *         expired, or fails the signature check
+     *     expired, or fails the signature check
      */
     public static String verify(String token, String secret, Instant now) {
         if (token == null || secret == null || secret.isBlank()) {
@@ -78,7 +80,8 @@ public final class HmacTenantTokens {
         if (!MessageDigest.isEqual(expected, provided)) {
             return null;
         }
-        String tenantId = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8).trim();
+        String tenantId =
+                new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8).trim();
         return tenantId.isBlank() ? null : tenantId;
     }
 

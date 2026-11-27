@@ -90,10 +90,14 @@
                 :disabled="busy[tci]"
                 @change="goPage(tci, tc, 1, Number(($event.target as HTMLSelectElement).value))"
               >
-                <option v-for="s in sizeOptions(tc.structured)" :key="s" :value="String(s)">{{ s }}</option>
+                <option v-for="s in sizeOptions(tc.structured)" :key="s" :value="String(s)">
+                  {{ s }}
+                </option>
               </select>
             </label>
-            <span v-if="busy[tci]" class="ai-tool-pager-busy">{{ props.t?.toolPageLoading || '加载中…' }}</span>
+            <span v-if="busy[tci]" class="ai-tool-pager-busy">{{
+              props.t?.toolPageLoading || '加载中…'
+            }}</span>
             <span v-if="errors[tci]" class="ai-tool-pager-error">{{ errors[tci] }}</span>
           </div>
         </template>
@@ -180,12 +184,18 @@ function sizeOptions(s: RecordsResult): number[] {
  * Re-run the tool with the original arguments but a new page. The entry lives on the message's
  * `toolCalls`, so assigning `structured`/`result` updates the rendered table in place.
  */
-async function goPage(tci: number, tc: ToolCallEntry, pageIndex: number, pageSize: number): Promise<void> {
+async function goPage(
+  tci: number,
+  tc: ToolCallEntry,
+  pageIndex: number,
+  pageSize: number,
+): Promise<void> {
   if (!props.callTool || busy[tci]) return;
   let base: Record<string, unknown> = {};
   try {
     const parsed: unknown = JSON.parse(tc.arguments || '{}');
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) base = parsed as Record<string, unknown>;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      base = parsed as Record<string, unknown>;
   } catch {
     base = {};
   }
@@ -217,7 +227,11 @@ async function goPage(tci: number, tc: ToolCallEntry, pageIndex: number, pageSiz
   }
 }
 
-function interpolate(tpl: string | undefined, fallback: string, vars: Record<string, number>): string {
+function interpolate(
+  tpl: string | undefined,
+  fallback: string,
+  vars: Record<string, number>,
+): string {
   let out = tpl || fallback;
   for (const [k, v] of Object.entries(vars)) out = out.replace(`{${k}}`, String(v));
   return out;
@@ -237,14 +251,16 @@ function badge(tc: ToolCallEntry): string {
       page: s.pageIndex,
     });
   }
-  if (s.kind === 'schema') return interpolate(props.t?.toolFieldsCount, '{count} 个字段', { count: s.fields.length });
+  if (s.kind === 'schema')
+    return interpolate(props.t?.toolFieldsCount, '{count} 个字段', { count: s.fields.length });
   return interpolate(props.t?.toolModulesCount, '{total} 个模块', { total: s.total });
 }
 
 const emptyLabel = computed(() => props.t?.toolEmptyRecords || '没有符合条件的记录');
 
 function rawLabel(tc: ToolCallEntry): string {
-  if (!tc.structured) return tc.arguments ? (props.t?.toolShowRaw || '参数') : (props.t?.toolShowRaw || '原始数据');
+  if (!tc.structured)
+    return tc.arguments ? props.t?.toolShowRaw || '参数' : props.t?.toolShowRaw || '原始数据';
   return props.t?.toolShowRaw || '查看原始结果';
 }
 

@@ -50,10 +50,11 @@ public class AsyncTaskController {
                         t.setDaemon(true);
                         return t;
                     });
+
     /**
-     * P0 hardening: webhook delivery is a blocking HTTP call (up to 10s+), so it must not share
-     * the 4-thread LLM task pool — four slow webhook receivers would stall all new task
-     * submissions. Deliveries run on this dedicated single-thread daemon pool instead.
+     * P0 hardening: webhook delivery is a blocking HTTP call (up to 10s+), so it must not share the
+     * 4-thread LLM task pool — four slow webhook receivers would stall all new task submissions.
+     * Deliveries run on this dedicated single-thread daemon pool instead.
      */
     private final ExecutorService webhookExecutor =
             Executors.newSingleThreadExecutor(

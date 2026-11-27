@@ -18,14 +18,23 @@ class MultiReplicaStorageAdvisorTest {
     @org.junit.jupiter.api.Test
     void explicitScaleOutFailsEvenWhenEnvironmentProbeMissesIt() {
         MultiReplicaStorageAdvisor advisor = new MultiReplicaStorageAdvisor(() -> false);
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
-                () -> advisor.enforceReplicaCount(2, new InMemoryVectorStore(),
-                        new InMemorySessionStore(), new InMemoryTokenUsageTracker(),
-                        new InMemoryConversationMemoryProvider()));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () ->
+                        advisor.enforceReplicaCount(
+                                2,
+                                new InMemoryVectorStore(),
+                                new InMemorySessionStore(),
+                                new InMemoryTokenUsageTracker(),
+                                new InMemoryConversationMemoryProvider()));
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                () -> advisor.enforceReplicaCount(1, new InMemoryVectorStore(),
-                        new InMemorySessionStore(), new InMemoryTokenUsageTracker(),
-                        new InMemoryConversationMemoryProvider()));
+                () ->
+                        advisor.enforceReplicaCount(
+                                1,
+                                new InMemoryVectorStore(),
+                                new InMemorySessionStore(),
+                                new InMemoryTokenUsageTracker(),
+                                new InMemoryConversationMemoryProvider()));
     }
 
     @Test

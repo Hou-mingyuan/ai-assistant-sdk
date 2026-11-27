@@ -8,16 +8,16 @@ import java.util.regex.Pattern;
 /**
  * Extracts tenant identity from the request and populates {@link TenantContext}.
  *
- * <p>{@code shared} auth mode (default): tenant id comes from the client-supplied
- * {@code X-Tenant-Id} header — convenient for local and trusted-network use, but self-reported
- * and therefore forgeable. {@code hmac} auth mode: tenant id is derived from the signed tenant
- * token that {@link AiAssistantAuthFilter} already verified and exposed as the
- * {@link AiAssistantAuthFilter#VERIFIED_TENANT_ATTRIBUTE} request attribute; the client-supplied
- * header is ignored. In hmac mode a request without a verified token attribute is pinned to the
- * {@code default} tenant (never to a client-controlled identity); the legacy self-reported
- * fallback survives only through the explicit lenient constructor, for local development.
- * Override {@link #resolveTenantId} or replace this bean to integrate with
- * your own tenant resolution logic (JWT claims, database lookup, etc.).
+ * <p>{@code shared} auth mode (default): tenant id comes from the client-supplied {@code
+ * X-Tenant-Id} header — convenient for local and trusted-network use, but self-reported and
+ * therefore forgeable. {@code hmac} auth mode: tenant id is derived from the signed tenant token
+ * that {@link AiAssistantAuthFilter} already verified and exposed as the {@link
+ * AiAssistantAuthFilter#VERIFIED_TENANT_ATTRIBUTE} request attribute; the client-supplied header is
+ * ignored. In hmac mode a request without a verified token attribute is pinned to the {@code
+ * default} tenant (never to a client-controlled identity); the legacy self-reported fallback
+ * survives only through the explicit lenient constructor, for local development. Override {@link
+ * #resolveTenantId} or replace this bean to integrate with your own tenant resolution logic (JWT
+ * claims, database lookup, etc.).
  */
 public class TenantFilter implements Filter {
 
@@ -39,8 +39,8 @@ public class TenantFilter implements Filter {
      * @param lenientFallback when {@code true}, hmac-mode requests without a verified token
      *     attribute fall back to the legacy self-reported {@code X-Tenant-Id} resolution. Intended
      *     only for local development / trusted networks where auth is intentionally disabled; the
-     *     production default is {@code false}, which pins unknown-identity requests to the
-     *     {@code default} tenant instead of trusting a forgeable header.
+     *     production default is {@code false}, which pins unknown-identity requests to the {@code
+     *     default} tenant instead of trusting a forgeable header.
      */
     public TenantFilter(String contextPath, boolean hmacMode, boolean lenientFallback) {
         this.contextPath = contextPath;

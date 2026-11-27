@@ -32,6 +32,7 @@ public class ConnectorToolRegistrar {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final long QUERY_CACHE_TTL_MS = 30_000; // 30 seconds
     private static final int QUERY_CACHE_MAX = 200;
+
     /** Hard cap for pageSize; the tool description promises "最大200" and this enforces it. */
     private static final int MAX_PAGE_SIZE = 200;
 
@@ -272,7 +273,8 @@ public class ConnectorToolRegistrar {
                     }
                 }
 
-                int pageSize = Math.max(1, Math.min(arguments.path("pageSize").asInt(20), MAX_PAGE_SIZE));
+                int pageSize =
+                        Math.max(1, Math.min(arguments.path("pageSize").asInt(20), MAX_PAGE_SIZE));
                 int pageIndex = Math.max(1, arguments.path("pageIndex").asInt(1));
 
                 DataConnector.QueryFilter filter =
@@ -292,7 +294,8 @@ public class ConnectorToolRegistrar {
                     records = maskRecords(records, masked);
                 }
 
-                // Stable field order + explicit column list so UIs can render a table without a model.
+                // Stable field order + explicit column list so UIs can render a table without a
+                // model.
                 java.util.List<String> columns =
                         records.isEmpty()
                                 ? java.util.List.of()

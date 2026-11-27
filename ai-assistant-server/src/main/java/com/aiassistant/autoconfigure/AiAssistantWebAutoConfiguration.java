@@ -151,8 +151,8 @@ public class AiAssistantWebAutoConfiguration {
     }
 
     /**
-     * UI 驱动的只读工具执行端点（结果分页器翻页时重跑 {@code *_query_data}）。 显式注册，因为宿主应用的组件扫描不会覆盖
-     * {@code com.aiassistant.controller}。
+     * UI 驱动的只读工具执行端点（结果分页器翻页时重跑 {@code *_query_data}）。 显式注册，因为宿主应用的组件扫描不会覆盖 {@code
+     * com.aiassistant.controller}。
      */
     @Bean
     @ConditionalOnMissingBean
@@ -161,7 +161,8 @@ public class AiAssistantWebAutoConfiguration {
             ObjectProvider<com.fasterxml.jackson.databind.ObjectMapper> objectMapperProvider) {
         return new com.aiassistant.controller.ToolExecuteController(
                 toolRegistry,
-                objectMapperProvider.getIfAvailable(com.fasterxml.jackson.databind.ObjectMapper::new));
+                objectMapperProvider.getIfAvailable(
+                        com.fasterxml.jackson.databind.ObjectMapper::new));
     }
 
     @Bean

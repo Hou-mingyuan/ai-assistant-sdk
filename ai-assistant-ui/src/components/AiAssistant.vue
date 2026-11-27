@@ -1862,7 +1862,10 @@ const persistFabRef = computed(() => options.persistFabPosition !== false);
 const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
 /* 面板记忆：开合 / 展开 / 自定义尺寸写 localStorage，刷新后恢复；关闭时不清空几何状态 */
 const persistPanelRef = computed(() => options.persistPanelState !== false);
-const panelMemory = usePanelMemory(persistPanelRef, computed(() => options.panelStateStorageKey));
+const panelMemory = usePanelMemory(
+  persistPanelRef,
+  computed(() => options.panelStateStorageKey),
+);
 const {
   fabLeft,
   fabTop,
