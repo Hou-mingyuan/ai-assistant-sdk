@@ -132,15 +132,10 @@ public class UrlPreviewService {
 
     private final AiAssistantProperties properties;
     private final HttpContentFetcher fetcher;
-    private volatile HeadlessFetcher headlessFetchService;
 
     public UrlPreviewService(AiAssistantProperties properties, HttpContentFetcher fetcher) {
         this.properties = properties;
         this.fetcher = fetcher;
-    }
-
-    public void setHeadlessFetchService(HeadlessFetcher headlessFetchService) {
-        this.headlessFetchService = headlessFetchService;
     }
 
     public UrlPreviewResponse previewUrl(String url) {
@@ -161,7 +156,7 @@ public class UrlPreviewService {
         try {
             byte[] body = fetcher.fetchBytes(uri);
             if (body.length == 0) {
-                return tryHeadlessFallback(url);
+                return UrlPreviewResponse.ok("", "", null, List.of());
             }
             Charset cs = HttpContentFetcher.sniffCharset(body, uri);
             String html = new String(body, cs);
@@ -174,11 +169,6 @@ public class UrlPreviewService {
             List<String> images =
                     collectImages(html, uri, title, plainFull, properties.getUrlPreviewMaxImages());
 
-            if (images.isEmpty() && plainFull.length() < 200 && headlessFetchService != null) {
-                log.debug("HTTP result too sparse for {}, falling back to headless", url);
-                return tryHeadlessFallback(url);
-            }
-
             String primary = images.isEmpty() ? null : images.get(0);
             int cap = Math.max(100, properties.getUrlPreviewMaxSummaryChars());
             String plain = plainFull.length() > cap ? plainFull.substring(0, cap) + "…" : plainFull;
@@ -188,31 +178,7 @@ public class UrlPreviewService {
             return UrlPreviewResponse.fail("preview blocked: " + e.getMessage());
         } catch (Exception e) {
             log.debug("url preview failed: {}", e.toString());
-            if (headlessFetchService != null) {
-                return tryHeadlessFallback(url);
-            }
             return UrlPreviewResponse.fail("preview failed: " + e.getMessage());
-        }
-    }
-
-    private UrlPreviewResponse tryHeadlessFallback(String url) {
-        if (headlessFetchService == null) {
-            return UrlPreviewResponse.ok("", "", null, List.of());
-        }
-        try {
-            HeadlessFetcher.Result hr = headlessFetchService.fetch(url);
-            int cap = Math.max(100, properties.getUrlPreviewMaxSummaryChars());
-            String plain = hr.text().length() > cap ? hr.text().substring(0, cap) + "…" : hr.text();
-            String primary = hr.imageUrls().isEmpty() ? null : hr.imageUrls().get(0);
-            int maxImg = Math.min(30, Math.max(1, properties.getUrlPreviewMaxImages()));
-            List<String> imgs =
-                    hr.imageUrls().size() > maxImg
-                            ? hr.imageUrls().subList(0, maxImg)
-                            : hr.imageUrls();
-            return UrlPreviewResponse.ok(hr.title(), plain, primary, imgs);
-        } catch (Exception e) {
-            log.warn("Headless fallback also failed for {}: {}", url, e.getMessage());
-            return UrlPreviewResponse.fail("preview failed (headless): " + e.getMessage());
         }
     }
 

@@ -6,10 +6,11 @@ import { spawnSync } from 'node:child_process'
 
 const typeProbe = String.raw`
 import type {
-  ExportRequestPayload,
+  ChatPayload,
+  ChatResult,
   FileUploadResponse,
-  PromptTemplatesResponse,
-  RuntimeDiscoverModelsResult,
+  ModelsListResult,
+  UrlPreviewResult,
 } from '../../ai-assistant-ui/src/utils/api'
 import type { paths } from '../../ai-assistant-ui/src/types/api-generated'
 
@@ -34,17 +35,17 @@ type JsonRequestBody<
   ? Request
   : never
 
-type _ExportRequestUsesPathType = Assert<
-  Equal<ExportRequestPayload, JsonRequestBody<'/export', 'post'>>
+type _ChatUsesPathBody = Assert<
+  Equal<ChatPayload, JsonRequestBody<'/chat', 'post'>>
 >
 type _FileUploadUsesPathResponse = Assert<
   Equal<FileUploadResponse, JsonResponse<'/file/summarize', 'post'>>
 >
-type _PromptTemplatesUsePathResponse = Assert<
-  Equal<PromptTemplatesResponse, JsonResponse<'/templates', 'get'>>
+type _ModelsUsePathResponse = Assert<
+  Equal<ModelsListResult, JsonResponse<'/models', 'get'>>
 >
-type _RuntimeDiscoveryUsesPathResponse = Assert<
-  Equal<RuntimeDiscoverModelsResult, JsonResponse<'/admin/runtime/model-config/discover-models', 'post'>>
+type _UrlPreviewUsesPathResponse = Assert<
+  Equal<UrlPreviewResult, JsonResponse<'/url-preview', 'get'>>
 >
 `
 

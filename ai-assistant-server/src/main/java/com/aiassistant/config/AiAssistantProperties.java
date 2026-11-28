@@ -75,9 +75,6 @@ public class AiAssistantProperties {
     // ── Session Store ──────────────────────────────────────────────
     private SessionStoreProperties sessionStore = new SessionStoreProperties();
 
-    // ── Data Connectors ─────────────────────────────────────────────
-    private List<ConnectorProperties> connectors;
-
     // ── WebSocket / Headless ─────────────────────────────────────────
     private boolean websocketEnabled = false;
     private boolean headlessFetchEnabled = false;

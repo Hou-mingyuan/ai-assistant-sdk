@@ -247,7 +247,6 @@ describe('useSendStream local page snapshot', () => {
       preferHttpsImageUrlWhenPageIsSecure: (url) => url,
       clearPendingImage: vi.fn(),
       scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
       trimMessagesForMemoryCap: vi.fn(),
       clearRenderCache: vi.fn(),
       reportAssistantError: vi.fn(),
@@ -277,214 +276,6 @@ describe('useSendStream local page snapshot', () => {
     expect(emitResponse).toHaveBeenCalledWith(expect.stringContaining('客户档案'));
   });
 
-  it('attaches an automatic screenshot when the user asks for visual page analysis', async () => {
-    document.title = '客户资料页';
-    document.body.innerHTML = `
-      <main>
-        <h1>客户档案</h1>
-        <label for="name">客户姓名</label>
-        <input id="name" value="张三" />
-      </main>
-    `;
-    const messages = ref([]);
-    const input = ref('分析当前截图里有什么');
-    const loading = ref(false);
-    const streamWithFallback = vi.fn(async function* (_baseUrl, _payload, _token, _signal, onMeta) {
-      onMeta?.({
-        requestedModel: 'MiniMax-M2.7',
-        effectiveModel: 'MiniMax-M2.7',
-        provider: 'minimax',
-        fallback: false,
-        visionInputCount: 1,
-        visionRoute: 'minimax-vlm',
-      });
-      yield '截图中包含客户档案';
-    });
-    const captureScreenshotForAnalysis = vi
-      .fn()
-      .mockResolvedValue({ type: 'image', data: 'data:image/png;base64,shot' });
-
-    const send = useSendStream({
-      messages,
-      input,
-      loading,
-      sessionTitle: ref(''),
-      activeSessionId: ref(''),
-      mode: ref('chat'),
-      targetLang: ref('zh'),
-      chatSystemPrompt: ref(''),
-      selectedChatModel: ref('MiniMax-M2.7'),
-      modelChoices: ref(['MiniMax-M2.7']),
-      pendingImageDataList: ref([]),
-      pendingImageThumbs: ref([]),
-      options: { baseUrl: '/ai-assistant' },
-      t: computed(() => zh),
-      streamWithFallback,
-      fetchUrlPreview: vi.fn(),
-      extractHttpUrls: () => [],
-      isProbablyDirectImageUrl: () => false,
-      firstNonImageHttpUrl: () => undefined,
-      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
-      clearPendingImage: vi.fn(),
-      scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
-      trimMessagesForMemoryCap: vi.fn(),
-      clearRenderCache: vi.fn(),
-      reportAssistantError: vi.fn(),
-      updateActiveSessionTitle: vi.fn(),
-      emitSend: vi.fn(),
-      emitResponse: vi.fn(),
-      emitError: vi.fn(),
-      getStreamAbortController: () => null,
-      setStreamAbortController: vi.fn(),
-      getStreamStoppedByUser: () => false,
-      setStreamStoppedByUser: vi.fn(),
-      captureScreenshotForAnalysis,
-    }).send;
-
-    await send();
-
-    expect(captureScreenshotForAnalysis).toHaveBeenCalled();
-    expect(streamWithFallback).toHaveBeenCalledWith(
-      '/ai-assistant',
-      expect.objectContaining({
-        model: 'MiniMax-M2.7',
-        imageData: 'data:image/png;base64,shot',
-        imageDataList: ['data:image/png;base64,shot'],
-        pageContext: expect.stringContaining('# 当前页面内容'),
-      }),
-      undefined,
-      expect.any(AbortSignal),
-      expect.any(Function),
-    );
-    expect(messages.value[0].imageThumbs).toEqual(['data:image/png;base64,shot']);
-    expect(messages.value[1].meta).toEqual(
-      expect.objectContaining({
-        effectiveModel: 'MiniMax-M2.7',
-        provider: 'minimax',
-        fallback: false,
-        visionInputCount: 1,
-        visionRoute: 'minimax-vlm',
-      }),
-    );
-  });
-
-  it('routes chat payloads to the faster sibling model when fast reply is enabled', async () => {
-    const messages = ref([]);
-    const input = ref('你是什么模型');
-    const loading = ref(false);
-    const streamWithFallback = vi.fn(async function* () {
-      yield '我是 MiniMax-M2。';
-    });
-
-    const send = useSendStream({
-      messages,
-      input,
-      loading,
-      sessionTitle: ref(''),
-      activeSessionId: ref(''),
-      mode: ref('chat'),
-      targetLang: ref('zh'),
-      chatSystemPrompt: ref(''),
-      selectedChatModel: ref('MiniMax-M2.7'),
-      modelChoices: ref(['MiniMax-M2.7', 'MiniMax-M2']),
-      fastReplyEnabled: ref(true),
-      fastReplyRoutingConfig: ref({ maxChars: 32 }),
-      pendingImageDataList: ref([]),
-      pendingImageThumbs: ref([]),
-      options: { baseUrl: '/ai-assistant' },
-      t: computed(() => zh),
-      streamWithFallback,
-      fetchUrlPreview: vi.fn(),
-      extractHttpUrls: () => [],
-      isProbablyDirectImageUrl: () => false,
-      firstNonImageHttpUrl: () => undefined,
-      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
-      clearPendingImage: vi.fn(),
-      scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
-      trimMessagesForMemoryCap: vi.fn(),
-      clearRenderCache: vi.fn(),
-      reportAssistantError: vi.fn(),
-      updateActiveSessionTitle: vi.fn(),
-      emitSend: vi.fn(),
-      emitResponse: vi.fn(),
-      emitError: vi.fn(),
-      getStreamAbortController: () => null,
-      setStreamAbortController: vi.fn(),
-      getStreamStoppedByUser: () => false,
-      setStreamStoppedByUser: vi.fn(),
-    }).send;
-
-    await send();
-
-    expect(streamWithFallback).toHaveBeenCalledWith(
-      '/ai-assistant',
-      expect.objectContaining({ model: 'MiniMax-M2' }),
-      undefined,
-      expect.any(AbortSignal),
-      expect.any(Function),
-    );
-  });
-
-  it('uses runtime-configured fast route length when deciding simple prompts', async () => {
-    const messages = ref([]);
-    const input = ref('请用一句话说明你当前使用的是什么模型');
-    const loading = ref(false);
-    const streamWithFallback = vi.fn(async function* () {
-      yield '我是 MiniMax-M2。';
-    });
-
-    const send = useSendStream({
-      messages,
-      input,
-      loading,
-      sessionTitle: ref(''),
-      activeSessionId: ref(''),
-      mode: ref('chat'),
-      targetLang: ref('zh'),
-      chatSystemPrompt: ref(''),
-      selectedChatModel: ref('MiniMax-M2.7'),
-      modelChoices: ref(['MiniMax-M2.7', 'MiniMax-M2']),
-      fastReplyEnabled: ref(true),
-      fastReplyRoutingConfig: ref({ maxChars: 64 }),
-      pendingImageDataList: ref([]),
-      pendingImageThumbs: ref([]),
-      options: { baseUrl: '/ai-assistant' },
-      t: computed(() => zh),
-      streamWithFallback,
-      fetchUrlPreview: vi.fn(),
-      extractHttpUrls: () => [],
-      isProbablyDirectImageUrl: () => false,
-      firstNonImageHttpUrl: () => undefined,
-      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
-      clearPendingImage: vi.fn(),
-      scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
-      trimMessagesForMemoryCap: vi.fn(),
-      clearRenderCache: vi.fn(),
-      reportAssistantError: vi.fn(),
-      updateActiveSessionTitle: vi.fn(),
-      emitSend: vi.fn(),
-      emitResponse: vi.fn(),
-      emitError: vi.fn(),
-      getStreamAbortController: () => null,
-      setStreamAbortController: vi.fn(),
-      getStreamStoppedByUser: () => false,
-      setStreamStoppedByUser: vi.fn(),
-    }).send;
-
-    await send();
-
-    expect(streamWithFallback).toHaveBeenCalledWith(
-      '/ai-assistant',
-      expect.objectContaining({ model: 'MiniMax-M2' }),
-      undefined,
-      expect.any(AbortSignal),
-      expect.any(Function),
-    );
-  });
-
   it('shows a specific empty vision result when a visual request returns no text', async () => {
     const messages = ref([]);
     const input = ref('分析当前截图里有什么');
@@ -493,9 +284,6 @@ describe('useSendStream local page snapshot', () => {
       onMeta?.({ visionInputCount: 1, visionRoute: 'minimax-vlm' });
       yield* [];
     });
-    const captureScreenshotForAnalysis = vi
-      .fn()
-      .mockResolvedValue({ type: 'image', data: 'data:image/png;base64,shot' });
 
     const send = useSendStream({
       messages,
@@ -508,8 +296,8 @@ describe('useSendStream local page snapshot', () => {
       chatSystemPrompt: ref(''),
       selectedChatModel: ref('MiniMax-M2.7'),
       modelChoices: ref(['MiniMax-M2.7']),
-      pendingImageDataList: ref([]),
-      pendingImageThumbs: ref([]),
+      pendingImageDataList: ref(['data:image/png;base64,shot']),
+      pendingImageThumbs: ref(['data:image/png;base64,shot']),
       options: { baseUrl: '/ai-assistant' },
       t: computed(() => zh),
       streamWithFallback,
@@ -520,7 +308,6 @@ describe('useSendStream local page snapshot', () => {
       preferHttpsImageUrlWhenPageIsSecure: (url) => url,
       clearPendingImage: vi.fn(),
       scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
       trimMessagesForMemoryCap: vi.fn(),
       clearRenderCache: vi.fn(),
       reportAssistantError: vi.fn(),
@@ -532,7 +319,6 @@ describe('useSendStream local page snapshot', () => {
       setStreamAbortController: vi.fn(),
       getStreamStoppedByUser: () => false,
       setStreamStoppedByUser: vi.fn(),
-      captureScreenshotForAnalysis,
     }).send;
 
     await send();
@@ -574,7 +360,6 @@ describe('useSendStream local page snapshot', () => {
       clearPendingImage: vi.fn(),
       notify,
       scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
       trimMessagesForMemoryCap: vi.fn(),
       clearRenderCache: vi.fn(),
       reportAssistantError: vi.fn(),
@@ -624,7 +409,6 @@ describe('useSendStream local page snapshot', () => {
       preferHttpsImageUrlWhenPageIsSecure: (url) => url,
       clearPendingImage: vi.fn(),
       scrollToBottom: vi.fn(),
-      playNotificationSound: vi.fn(),
       trimMessagesForMemoryCap: vi.fn(),
       clearRenderCache: vi.fn(),
       reportAssistantError: vi.fn(),
@@ -647,6 +431,70 @@ describe('useSendStream local page snapshot', () => {
         model: 'MiniMax-M2.7',
       }),
       undefined,
+      expect.any(AbortSignal),
+      expect.any(Function),
+    );
+  });
+
+  it('uses getEffectiveBaseUrl/getEffectiveToken, allowCustomModel, and disableUrlPreview in direct mode', async () => {
+    const messages = ref([]);
+    const input = ref('Check https://example.com/docs with custom model');
+    const loading = ref(false);
+    const fetchUrlPreview = vi.fn();
+    const streamWithFallback = vi.fn(async function* () {
+      yield 'direct-ok';
+    });
+
+    const send = useSendStream({
+      messages,
+      input,
+      loading,
+      sessionTitle: ref(''),
+      activeSessionId: ref(''),
+      mode: ref('chat'),
+      targetLang: ref('zh'),
+      chatSystemPrompt: ref(''),
+      selectedChatModel: ref('deepseek-chat'),
+      modelChoices: ref([]),
+      pendingImageDataList: ref([]),
+      pendingImageThumbs: ref([]),
+      options: {},
+      getEffectiveBaseUrl: () => 'https://api.deepseek.com/v1',
+      getEffectiveToken: () => 'sk-direct-123',
+      allowCustomModel: ref(true),
+      disableUrlPreview: ref(true),
+      t: computed(() => zh),
+      streamWithFallback,
+      fetchUrlPreview,
+      extractHttpUrls: () => ['https://example.com/docs'],
+      isProbablyDirectImageUrl: () => false,
+      firstNonImageHttpUrl: (urls) => urls[0],
+      preferHttpsImageUrlWhenPageIsSecure: (url) => url,
+      clearPendingImage: vi.fn(),
+      scrollToBottom: vi.fn(),
+      trimMessagesForMemoryCap: vi.fn(),
+      clearRenderCache: vi.fn(),
+      reportAssistantError: vi.fn(),
+      updateActiveSessionTitle: vi.fn(),
+      emitSend: vi.fn(),
+      emitResponse: vi.fn(),
+      emitError: vi.fn(),
+      getStreamAbortController: () => null,
+      setStreamAbortController: vi.fn(),
+      getStreamStoppedByUser: () => false,
+      setStreamStoppedByUser: vi.fn(),
+    }).send;
+
+    await send();
+
+    expect(fetchUrlPreview).not.toHaveBeenCalled();
+    expect(streamWithFallback).toHaveBeenCalledWith(
+      'https://api.deepseek.com/v1',
+      expect.objectContaining({
+        action: 'chat',
+        model: 'deepseek-chat',
+      }),
+      'sk-direct-123',
       expect.any(AbortSignal),
       expect.any(Function),
     );

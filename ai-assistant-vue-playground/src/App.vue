@@ -15,15 +15,6 @@
         </button>
         <button
           type="button"
-          :class="['page-nav-tab', { active: route === 'admin' }]"
-          @click="setRoute('admin')"
-        >
-          <Settings2 :size="17" :stroke-width="1.8" aria-hidden="true" />
-          <span class="page-nav-label page-nav-label-long">Admin Console</span>
-          <span class="page-nav-label page-nav-label-short">Admin</span>
-        </button>
-        <button
-          type="button"
           :class="['page-nav-tab', { active: route === 'formfill' }]"
           @click="setRoute('formfill')"
         >
@@ -138,12 +129,10 @@
           </li>
         </ol>
         <p class="demo-hint">
-          <strong>Admin Console</strong> 提供 7 个标签页，覆盖 15
-          个管理端点；顶部命令按钮、中性色调切换和助手交互均可直接体验。
+          支持<strong>纯悬浮球对话</strong>、<strong>文件上传问答</strong>（上传文档后直接追问或摘要）以及
+          <strong>Form Auto-Fill 表单智能填充</strong>；顶部支持中性色调切换与命令面板。
         </p>
       </article>
-
-      <AdminDemoPanel v-if="route === 'admin'" />
 
       <!-- L1: Form auto-fill demo page. Native HTML inputs only (no UI library)
          so we can verify parser/scanner/matcher/filler end-to-end without
@@ -453,7 +442,8 @@
     </main>
 
     <button
-      v-if="!assistantMounted && route !== 'admin'"
+      v-if="!assistantMounted"
+      ref="loaderFabRef"
       type="button"
       class="assistant-loader-fab"
       :class="{
@@ -470,6 +460,9 @@
       :aria-busy="assistantLoading"
       :disabled="assistantLoading"
       @click="requestAssistantOpen"
+      @pointermove="onLoaderFabPointerMove"
+      @pointerleave="resetLoaderEyes"
+      @pointercancel="resetLoaderEyes"
     >
       <LoaderCircle
         v-if="assistantLoading"
@@ -482,13 +475,60 @@
         :size="22"
         aria-hidden="true"
       />
-      <Sparkles
+      <svg
         v-else
-        class="assistant-loader-sparkle"
-        :size="30"
-        :stroke-width="1.8"
+        class="assistant-loader-bot"
+        width="27"
+        height="27"
+        viewBox="0 0 24 24"
+        fill="none"
         aria-hidden="true"
-      />
+      >
+        <rect
+          x="3.5"
+          y="5.5"
+          width="17"
+          height="13"
+          rx="6"
+          stroke="currentColor"
+          stroke-width="1.75"
+          fill="currentColor"
+          fill-opacity="0.14"
+        />
+        <path
+          d="M12 3V5.5"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+        />
+        <circle
+          class="assistant-loader-beacon"
+          cx="12"
+          cy="2.6"
+          r="1.15"
+          fill="currentColor"
+        />
+        <g class="assistant-loader-eyes-track" :style="loaderEyeStyle">
+          <g class="assistant-loader-eyes">
+            <rect
+              x="8.1"
+              y="10.3"
+              width="2.2"
+              height="3.5"
+              rx="1.1"
+              fill="currentColor"
+            />
+            <rect
+              x="13.7"
+              y="10.3"
+              width="2.2"
+              height="3.5"
+              rx="1.1"
+              fill="currentColor"
+            />
+          </g>
+        </g>
+      </svg>
     </button>
 
     <CommandPalette
@@ -496,43 +536,12 @@
       v-model:open="cmd.open.value"
       :commands="cmd.commands.value"
     />
-
-    <!-- K32: K24 onReaction visualisation. Stacks at the bottom-left when
-         the user clicks a reaction emoji under an assistant message, so the
-         developer can verify the event payload propagation end-to-end. -->
-    <div v-if="reactionLog.length > 0" class="reaction-log">
-      <div class="reaction-log-head">
-        <span>👍 onReaction events</span>
-        <button
-          type="button"
-          class="reaction-log-clear"
-          @click="reactionLog = []"
-        >
-          clear
-        </button>
-      </div>
-      <ul class="reaction-log-list">
-        <li
-          v-for="(entry, i) in reactionLog"
-          :key="i"
-          class="reaction-log-item"
-        >
-          <span class="reaction-log-emoji">{{ entry.emoji }}</span>
-          <span class="reaction-log-meta">
-            #{{ entry.messageIndex }}
-            <span :class="['reaction-log-state', entry.toggled ? 'off' : 'on']">
-              {{ entry.toggled ? "cleared" : "set" }}
-            </span>
-          </span>
-          <time class="reaction-log-time">{{ entry.timeStr }}</time>
-        </li>
-      </ul>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
+  computed,
   defineAsyncComponent,
   ref,
   onMounted,
@@ -547,16 +556,11 @@ import {
   ExternalLink,
   GitFork,
   LoaderCircle,
-  Settings2,
-  Sparkles,
   TriangleAlert,
 } from "@lucide/vue";
 import ColorThemeSwitcher from "../../ai-assistant-ui/src/components/ColorThemeSwitcher.vue";
 import { useCommandPalette } from "../../ai-assistant-ui/src/composables/useCommandPalette";
 
-const AdminDemoPanel = defineAsyncComponent(
-  () => import("./AdminDemoPanel.vue"),
-);
 const CommandPalette = defineAsyncComponent(
   () => import("../../ai-assistant-ui/src/components/CommandPalette.vue"),
 );
@@ -564,6 +568,45 @@ const CommandPalette = defineAsyncComponent(
 const assistantMounted = ref(false);
 const assistantLoading = ref(false);
 const assistantLoadError = ref(false);
+const loaderFabRef = ref<HTMLButtonElement>();
+const loaderEyeX = ref(0);
+const loaderEyeY = ref(0);
+const loaderEyeStyle = computed(() => ({
+  transform: `translate(${loaderEyeX.value}px, ${loaderEyeY.value}px)`,
+}));
+
+function resetLoaderEyes(): void {
+  loaderEyeX.value = 0;
+  loaderEyeY.value = 0;
+}
+
+function onLoaderFabPointerMove(event: PointerEvent): void {
+  if (assistantLoading.value || assistantLoadError.value) {
+    resetLoaderEyes();
+    return;
+  }
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  ) {
+    resetLoaderEyes();
+    return;
+  }
+  const el = loaderFabRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const nx = Math.max(
+    -1,
+    Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2),
+  );
+  const ny = Math.max(
+    -1,
+    Math.min(1, ((event.clientY - rect.top) / rect.height - 0.5) * 2),
+  );
+  loaderEyeX.value = Number((nx * 2.1).toFixed(2));
+  loaderEyeY.value = Number((ny * 1.6).toFixed(2));
+}
 
 function requestAssistantOpen(): void {
   if (assistantLoading.value || assistantMounted.value) return;
@@ -611,9 +654,18 @@ onBeforeUnmount(() => {
 
 /* Historical palette ids remain stable for localStorage compatibility. The default
  * stays Obsidian while the other options provide non-purple technology accents. */
-const theme = ref<string>(
-  localStorage.getItem("playground-theme") ?? "graphite",
-);
+function resolveInitialTheme(): string {
+  const saved = localStorage.getItem("playground-theme");
+  const migrated = localStorage.getItem("playground-theme-cobalt-v1") === "1";
+  if (!migrated) {
+    localStorage.setItem("playground-theme-cobalt-v1", "1");
+    if (!saved || saved === "graphite") {
+      return "sky";
+    }
+  }
+  return saved ?? "sky";
+}
+const theme = ref<string>(resolveInitialTheme());
 const themePalettes: Record<string, [string, string, string]> = {
   sky: ["#163b8c", "#2457d6", "#5b8def"],
   sunset: ["#9a3412", "#c2410c", "#f97316"],
@@ -634,8 +686,9 @@ watch(
   (v) => {
     localStorage.setItem("playground-theme", v);
     localStorage.setItem("ai-assistant.theme.palette.v1", v);
-    const [from, , to] = themePalettes[v] ?? themePalettes.graphite!;
+    const [from, via, to] = themePalettes[v] ?? themePalettes.sky!;
     document.documentElement.style.setProperty("--demo-primary-from", from);
+    document.documentElement.style.setProperty("--demo-primary-via", via);
     document.documentElement.style.setProperty("--demo-primary-to", to);
     window.dispatchEvent(
       new CustomEvent("ai-assistant-theme-change", {
@@ -667,14 +720,6 @@ const cmd = useCommandPalette({
       icon: "A",
       shortcut: "g d",
       action: () => setRoute("demo"),
-    },
-    {
-      id: "nav-admin",
-      label: "切换到 Admin Console",
-      group: "导航",
-      icon: "S",
-      shortcut: "g a",
-      action: () => setRoute("admin"),
     },
     {
       id: "nav-formfill",
@@ -759,7 +804,7 @@ const cmd = useCommandPalette({
   ],
 });
 
-type Route = "demo" | "admin" | "formfill";
+type Route = "demo" | "formfill";
 
 const route = ref<Route>(resolveRoute());
 
@@ -784,7 +829,6 @@ onBeforeUnmount(() => {
 
 function resolveRoute(): Route {
   if (typeof window === "undefined") return "demo";
-  if (window.location.hash === "#/admin") return "admin";
   if (window.location.hash === "#/formfill") return "formfill";
   return "demo";
 }
@@ -792,8 +836,7 @@ function resolveRoute(): Route {
 function setRoute(next: Route) {
   route.value = next;
   if (typeof window === "undefined") return;
-  const targetHash =
-    next === "admin" ? "#/admin" : next === "formfill" ? "#/formfill" : "";
+  const targetHash = next === "formfill" ? "#/formfill" : "";
   if (window.location.hash !== targetHash) {
     window.history.pushState(
       {},
@@ -942,24 +985,6 @@ function onPopState() {
 
 onMounted(() => window.addEventListener("popstate", onPopState));
 onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
-
-/* K32: K24 onReaction visualisation
- * ----------------------------------
- * The AiAssistant widget is mounted into document.body by main.ts after the
- * user activates the lightweight loader button. Reaction events are forwarded
- * through `ai-assistant-reaction`, so this page remains independent of the
- * lazily mounted component instance.
- *
- * The log displays the latest 8 events with timestamp + state so the
- * developer can verify the K24 event-propagation contract end-to-end.
- */
-interface ReactionEntry {
-  messageIndex: number;
-  emoji: string;
-  toggled: boolean;
-  timeStr: string;
-}
-const reactionLog = ref<ReactionEntry[]>([]);
 
 const connectionOk = ref<boolean | null>(null);
 const connectionLabel = ref("");
@@ -1116,28 +1141,6 @@ async function runSmokeChecks() {
     probing.value = false;
   }
 }
-
-function onAssistantReactionEvent(ev: Event) {
-  const detail = (
-    ev as CustomEvent<{ messageIndex: number; emoji: string; toggled: boolean }>
-  ).detail;
-  if (!detail || typeof detail.messageIndex !== "number") return;
-  const time = new Date();
-  const timeStr = `${String(time.getHours()).padStart(2, "0")}:${String(
-    time.getMinutes(),
-  ).padStart(2, "0")}:${String(time.getSeconds()).padStart(2, "0")}`;
-  reactionLog.value = [{ ...detail, timeStr }, ...reactionLog.value].slice(
-    0,
-    8,
-  );
-}
-
-onMounted(() =>
-  window.addEventListener("ai-assistant-reaction", onAssistantReactionEvent),
-);
-onBeforeUnmount(() =>
-  window.removeEventListener("ai-assistant-reaction", onAssistantReactionEvent),
-);
 </script>
 
 <style scoped>
@@ -1523,116 +1526,6 @@ code {
   padding: 0.15em 0.4em;
   border-radius: 4px;
   font-size: 0.9em;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-}
-
-/* K32: K24 onReaction event visualiser — stacks at the bottom-left so it
- * never overlaps with the AI assistant fab at bottom-right. */
-.reaction-log {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  width: 260px;
-  z-index: 9999;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(17, 17, 17, 0.18);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(17, 17, 17, 0.14);
-  font-size: 12px;
-  overflow: hidden;
-  animation: reactionLogIn 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-
-@keyframes reactionLogIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.reaction-log-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(17, 17, 17, 0.08),
-    rgba(64, 64, 64, 0.05)
-  );
-  font-weight: 600;
-  color: #262626;
-}
-
-.reaction-log-clear {
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  color: #737373;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-
-.reaction-log-clear:hover {
-  background: rgba(17, 17, 17, 0.06);
-  color: #171717;
-}
-
-.reaction-log-list {
-  list-style: none;
-  margin: 0;
-  padding: 6px 8px 8px;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.reaction-log-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-variant-numeric: tabular-nums;
-  transition: background 0.15s;
-}
-
-.reaction-log-item:hover {
-  background: rgba(17, 17, 17, 0.04);
-}
-
-.reaction-log-emoji {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.reaction-log-meta {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #525252;
-}
-
-.reaction-log-state.on {
-  color: #16a34a;
-  font-weight: 500;
-}
-
-.reaction-log-state.off {
-  color: #dc2626;
-  font-weight: 500;
-}
-
-.reaction-log-time {
-  color: #a3a3a3;
-  font-size: 10px;
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
@@ -2255,38 +2148,140 @@ code {
 }
 
 .assistant-loader-fab {
-  border: 0;
-  color: var(--demo-primary-from, #171717);
-  background: transparent;
-  box-shadow: none;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  color: #ffffff;
+  background:
+    radial-gradient(
+      circle at 32% 22%,
+      rgba(255, 255, 255, 0.48) 0%,
+      transparent 46%
+    ),
+    linear-gradient(
+      145deg,
+      var(--demo-primary-via, #2457d6) 0%,
+      var(--demo-primary-from, #163b8c) 56%,
+      var(--demo-primary-to, #5b8def) 100%
+    );
+  background-size: 150% 150%;
+  box-shadow:
+    0 16px 32px -10px
+      color-mix(in srgb, var(--demo-primary-via, #2457d6) 48%, transparent),
+    inset 0 2px 3px rgba(255, 255, 255, 0.52),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.28);
+  animation:
+    assistantLoaderFloat 3.8s ease-in-out infinite,
+    assistantLoaderAurora 5.2s ease-in-out infinite;
+}
+
+.assistant-loader-fab::before {
+  content: none;
+  display: none;
 }
 
 .assistant-loader-fab:hover {
-  color: var(--demo-primary-to, #404040);
-  box-shadow: none;
+  color: #ffffff;
+  transform: translateY(-3px) scale(1.06);
+  box-shadow:
+    0 20px 36px -10px rgba(17, 17, 17, 0.52),
+    inset 0 2px 4px rgba(255, 255, 255, 0.62),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.28);
 }
 
 .assistant-loader-fab > svg {
-  filter: drop-shadow(0 3px 7px rgba(17, 17, 17, 0.28));
-  transition:
-    transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1),
-    filter 180ms ease;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .assistant-loader-fab:not(:disabled):hover > svg {
-  transform: rotate(-5deg) scale(1.06);
-  filter: drop-shadow(0 4px 10px rgba(64, 64, 64, 0.38));
+  transform: scale(1.06);
+}
+
+.assistant-loader-eyes-track {
+  transition: transform 95ms ease-out;
+  will-change: transform;
+}
+
+.assistant-loader-eyes,
+.assistant-loader-beacon {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.assistant-loader-eyes {
+  animation: assistantLoaderBlink 4.6s ease-in-out infinite;
+}
+
+.assistant-loader-beacon {
+  animation: assistantLoaderGlow 3.2s ease-in-out infinite;
 }
 
 .assistant-loader-fab:focus-visible {
-  border-radius: 12px;
-  outline-color: var(--demo-primary-from, #171717);
-  outline-offset: -2px;
+  border-radius: 999px;
+  outline: 2px solid var(--demo-primary-from, #171717);
+  outline-offset: 3px;
 }
 
 .assistant-loader-fab.has-error {
-  color: #b42318;
-  background: transparent;
+  color: #ffffff;
+  background: linear-gradient(135deg, #dc2626, #f97316);
+}
+
+@keyframes assistantLoaderFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes assistantLoaderAurora {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes assistantLoaderBlink {
+  0%,
+  44%,
+  48%,
+  92%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+  46%,
+  94% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes assistantLoaderGlow {
+  0%,
+  100% {
+    transform: scale(0.75);
+    opacity: 0.48;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-loader-fab,
+  .assistant-loader-eyes,
+  .assistant-loader-beacon {
+    animation: none;
+  }
 }
 
 .assistant-loader-spin {
@@ -2297,20 +2292,6 @@ code {
   to {
     transform: rotate(360deg);
   }
-}
-
-.reaction-log,
-.reaction-log-head {
-  border-radius: 6px;
-}
-
-.reaction-log {
-  border-color: #d9dee7;
-}
-
-.reaction-log-head {
-  color: #333333;
-  background: #eef1f5;
 }
 
 .formfill-page {
@@ -2570,19 +2551,6 @@ code {
   .formfill-btn-secondary,
   .formfill-btn-primary {
     flex: 1 1 148px;
-  }
-
-  .reaction-log {
-    right: 16px;
-    bottom: 84px;
-    left: 16px;
-    width: auto;
-  }
-
-  :global(
-    body[data-playground-route="admin"] [data-ai-assistant-auto-mount] .ai-fab
-  ) {
-    display: none !important;
   }
 }
 

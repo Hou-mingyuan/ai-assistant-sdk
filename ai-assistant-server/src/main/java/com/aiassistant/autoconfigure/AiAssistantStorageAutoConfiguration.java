@@ -87,11 +87,4 @@ public class AiAssistantStorageAutoConfiguration {
     public ConversationMemoryProvider conversationMemoryProvider() {
         return new InMemoryConversationMemoryProvider();
     }
-
-    @Bean(destroyMethod = "shutdown")
-    @ConditionalOnMissingBean
-    public com.aiassistant.webhook.WebhookDelivery webhookDelivery(
-            AiAssistantProperties properties) {
-        return new com.aiassistant.webhook.WebhookDelivery(properties);
-    }
 }

@@ -1,5 +1,22 @@
 <template>
   <div class="ai-footer">
+    <!-- Pending document pill for File Upload Q&A -->
+    <div v-if="pendingFile" class="ai-pending-file">
+      <AssistantIcon name="file-text" :size="14" />
+      <span class="ai-pending-file-name" :title="pendingFile.name">
+        {{ pendingFile.name }} ({{ formatFileSize(pendingFile.size) }})
+      </span>
+      <button
+        type="button"
+        class="ai-pending-file-remove"
+        aria-label="移除文件"
+        @click="$emit('clearPendingFile')"
+      >
+        &times;
+      </button>
+    </div>
+
+    <!-- Pending pasted / selected images -->
     <div v-if="pendingImageThumbs.length" class="ai-pending-image">
       <span class="ai-pending-image-list">
         <span
@@ -8,14 +25,6 @@
           class="ai-pending-image-item"
         >
           <img :src="thumb" :alt="t.pendingImage" class="ai-pending-image-thumb" />
-          <button
-            type="button"
-            class="ai-pending-image-edit"
-            :aria-label="t.editImage"
-            @click="$emit('editPendingImage', idx)"
-          >
-            Edit
-          </button>
           <button
             type="button"
             class="ai-pending-image-remove-one"
@@ -35,29 +44,8 @@
         &times;
       </button>
     </div>
-    <div
-      v-if="imageRiskVisible"
-      class="ai-model-risk"
-      role="note"
-      :title="t.modelImageRiskWarning.replace('{model}', selectedModel || t.modelStatusUnavailable)"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
-      </svg>
-      <span>{{
-        t.modelImageRiskWarning.replace('{model}', selectedModel || t.modelStatusUnavailable)
-      }}</span>
-      <button
-        v-if="firstVisionModel"
-        type="button"
-        class="ai-model-risk-action"
-        :title="firstVisionModel"
-        @click="selectModel(firstVisionModel)"
-      >
-        {{ t.modelSwitchToVision }}
-      </button>
-    </div>
-    <!-- Slash command popup -->
+
+    <!-- Minimal slash command popup -->
     <Transition name="ai-slash-fade">
       <div
         v-if="slashVisible && (slashCommands?.length ?? 0) > 0"
@@ -90,175 +78,107 @@
         </button>
       </div>
     </Transition>
-    <div v-if="mode !== 'chat'" class="ai-footer-tools-row">
-      <input
-        ref="fileInputRef"
-        type="file"
-        :accept="acceptTypes"
-        style="display: none"
-        @change="onFileChange"
+
+    <div class="ai-footer-input-row">
+      <textarea
+        ref="textareaRef"
+        :value="modelValue"
+        class="ai-footer-textarea"
+        :placeholder="effectivePlaceholder"
+        rows="2"
+        :data-recall-active="recallActive ? 'true' : null"
+        @input="onTextareaInput"
+        @keydown="onTextareaKeydown"
+        @paste="onTextareaPaste"
       />
-      <button
-        type="button"
-        class="ai-upload-inline"
-        :disabled="loading"
-        @click="fileInputRef?.click()"
+      <span
+        v-if="charCountLabel"
+        class="ai-char-counter"
+        :class="{ 'ai-char-counter-warn': charCountNearLimit }"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path
-            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"
+        {{ charCountLabel }}
+      </span>
+      <div v-if="charLimitWarningText" class="ai-input-risk" role="note">
+        <AssistantIcon name="triangle-alert" :size="14" />
+        <span>{{ charLimitWarningText }}</span>
+      </div>
+
+      <div class="ai-footer-send-group">
+        <div class="ai-footer-secondary-actions" role="group" :aria-label="t.uploadFile || 'Tools'">
+          <input
+            ref="fileInputRef"
+            type="file"
+            :accept="acceptTypes"
+            style="display: none"
+            @change="onFileChange"
           />
-        </svg>
-        {{ t.uploadFile }}
-      </button>
-      <select
-        v-if="mode === 'translate'"
-        :value="targetLang"
-        class="ai-lang-select"
-        @change="$emit('update:targetLang', ($event.target as HTMLSelectElement).value)"
-      >
-        <option value="zh">中文</option>
-        <option value="en">English</option>
-        <option value="ja">日本語</option>
-        <option value="ko">한국어</option>
-        <option value="fr">Français</option>
-        <option value="de">Deutsch</option>
-        <option value="es">Español</option>
-        <option value="pt">Português</option>
-        <option value="ru">Русский</option>
-        <option value="ar">العربية</option>
-      </select>
-    </div>
-    <ChatInputModelRow
-      :mode="mode"
-      :loading="loading"
-      :has-base-url="hasBaseUrl"
-      :show-model-picker="showModelPicker"
-      :selected-model="selectedModel"
-      :default-model="defaultModel"
-      :model-choices="modelChoices"
-      :model-capabilities="modelCapabilities"
-      :model-list-message="modelListMessage"
-      :model-status-text="modelStatusText"
-      :model-status-kind="modelStatusKind"
-      :page-context-configured="pageContextConfigured"
-      :page-context-enabled="pageContextEnabled"
-      :page-context-block-count="pageContextBlockCount"
-      :advanced-tools-open="advancedToolsOpen"
-      :t="t"
-      @change-mode="$emit('changeMode', $event)"
-      @update:selected-model="$emit('update:selectedModel', $event)"
-      @toggle-page-context="$emit('togglePageContext')"
-    >
-      <template #quick-toggles>
-        <div
-          v-if="quickTogglesEnabled && mode === 'chat'"
-          class="ai-footer-quick-toggles"
-          role="group"
-          :aria-label="t.skillStripLabel || '快捷工具'"
-        >
           <button
             type="button"
-            class="ai-quick-toggle ai-quick-toggle-deepthink"
-            :class="{ active: deepThinkEnabled }"
-            :aria-pressed="deepThinkEnabled ? 'true' : 'false'"
-            :title="
-              deepThinkEnabled
-                ? t.deepThinkOn || '深度思考 已开启'
-                : t.deepThinkOff || '深度思考 已关闭'
-            "
-            @click="$emit('toggleDeepThink', !deepThinkEnabled)"
+            class="ai-attach-file"
+            :disabled="loading"
+            :title="t.uploadFile || 'Upload file'"
+            :aria-label="t.uploadFile || 'Upload file'"
+            @click="openFilePicker"
           >
-            <span class="ai-quick-toggle-icon" aria-hidden="true">
-              <AssistantIcon name="brain" :size="13" />
-            </span>
-            <span class="ai-quick-toggle-label">{{ t.deepThinkLabel || '深度思考' }}</span>
+            <AssistantIcon name="file-up" :size="15" :stroke-width="1.9" />
           </button>
+          <input
+            ref="chatImageInputRef"
+            type="file"
+            accept="image/*"
+            style="display: none"
+            @change="onChatImageChange"
+          />
           <button
             type="button"
-            class="ai-quick-toggle ai-quick-toggle-websearch"
-            :class="{ active: webSearchEnabled }"
-            :aria-pressed="webSearchEnabled ? 'true' : 'false'"
-            :title="
-              webSearchEnabled
-                ? t.webSearchOn || '联网搜索 已开启'
-                : t.webSearchOff || '联网搜索 已关闭'
-            "
-            @click="$emit('toggleWebSearch', !webSearchEnabled)"
+            class="ai-attach-image"
+            :disabled="loading"
+            :title="t.pendingImage"
+            :aria-label="t.pendingImage"
+            @click="chatImageInputRef?.click()"
           >
-            <span class="ai-quick-toggle-icon" aria-hidden="true">
-              <AssistantIcon name="globe-2" :size="13" />
-            </span>
-            <span class="ai-quick-toggle-label">{{ t.webSearchLabel || '联网搜索' }}</span>
+            <AssistantIcon name="image" :size="15" :stroke-width="1.9" />
           </button>
           <button
+            v-if="formAutoFillEnabled"
             type="button"
-            class="ai-quick-toggle ai-quick-toggle-fastreply"
-            :class="{ active: fastReplyEnabled }"
-            :aria-pressed="fastReplyEnabled ? 'true' : 'false'"
-            :title="
-              fastReplyEnabled
-                ? t.fastReplyOn || '快速回答 已开启'
-                : t.fastReplyOff || '快速回答 已关闭'
-            "
-            @click="$emit('toggleFastReply', !fastReplyEnabled)"
+            class="ai-form-fill-trigger"
+            :disabled="loading"
+            :title="t.formFillAction || 'Auto-fill form'"
+            :aria-label="t.formFillAction || 'Auto-fill form'"
+            @click="$emit('triggerFormFill')"
           >
-            <span class="ai-quick-toggle-icon" aria-hidden="true">
-              <AssistantIcon name="zap" :size="13" />
-            </span>
-            <span class="ai-quick-toggle-label">{{ t.fastReplyLabel || '快速回答' }}</span>
+            <AssistantIcon name="square-check-big" :size="15" :stroke-width="1.9" />
           </button>
+          <select
+            v-if="showModelPicker && hasBaseUrl && modelChoices.length > 1"
+            :value="selectedModel"
+            class="ai-model-mini-select"
+            :disabled="loading"
+            :aria-label="t.modelLabel"
+            @change="$emit('update:selectedModel', ($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="m in modelChoices" :key="m" :value="m">{{ m }}</option>
+          </select>
         </div>
-      </template>
-      <template #model-row-actions>
-        <slot name="model-row-actions" />
-      </template>
-    </ChatInputModelRow>
-    <ChatInputComposer
-      :model-value="modelValue"
-      :mode="mode"
-      :loading="loading"
-      :ctrl-enter-to-send="ctrlEnterToSend"
-      :color="color"
-      :placeholder="placeholder"
-      :char-count-label="charCountLabel"
-      :char-count-near-limit="charCountNearLimit"
-      :char-limit-warning-text="charLimitWarningText"
-      :send-blocked-reason="sendBlockedReason"
-      :send-blocked-action-label="sendBlockedActionLabel"
-      :voice-supported="voiceSupported"
-      :voice-recording="voiceRecording"
-      :voice-conversation-active="voiceConversationActive"
-      :slash-visible="slashVisible"
-      :slash-commands="slashCommands"
-      :history-enabled="historyEnabled"
-      :advanced-tools-open="advancedToolsOpen"
-      :t="t"
-      @update:model-value="$emit('update:modelValue', $event)"
-      @update:advanced-tools-open="advancedToolsOpen = $event"
-      @send="$emit('send')"
-      @paste-image="$emit('pasteImage', $event)"
-      @paste-text="$emit('pasteText', $event)"
-      @chat-image="$emit('chatImage', $event)"
-      @slash-keydown="$emit('slashKeydown', $event)"
-      @history-older="$emit('historyOlder')"
-      @history-newer="$emit('historyNewer')"
-      @history-reset="$emit('historyReset')"
-      @toggle-voice="$emit('toggleVoice')"
-      @toggle-voice-conversation="$emit('toggleVoiceConversation')"
-      @send-blocked-action="$emit('sendBlockedAction')"
-    >
-      <template #footer-plugins>
-        <slot name="footer-plugins" />
-      </template>
-    </ChatInputComposer>
+        <button
+          class="ai-send"
+          type="button"
+          :style="{ backgroundColor: color }"
+          :disabled="sendDisabled"
+          :title="t.send"
+          :aria-label="t.send"
+          @click="$emit('send')"
+        >
+          <AssistantIcon name="arrow-up" :size="17" :stroke-width="2.2" class="ai-send-icon" />
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import ChatInputComposer from './ChatInputComposer.vue';
-import ChatInputModelRow from './ChatInputModelRow.vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AssistantIcon from './AssistantIcon.vue';
 import type { I18nMessages } from '../utils/i18n';
 import type { SlashCommand } from '../composables/useSlashCommands';
@@ -266,164 +186,196 @@ import type { SlashCommand } from '../composables/useSlashCommands';
 const props = withDefaults(
   defineProps<{
     modelValue: string;
-    mode: 'translate' | 'summarize' | 'chat';
     loading: boolean;
     ctrlEnterToSend: boolean;
-    soundEnabled: boolean;
     color: string;
     placeholder: string;
     charCountLabel: string;
     charCountNearLimit: boolean;
     charLimitWarningText: string;
-    sendBlockedReason: string;
-    sendBlockedActionLabel: string;
+    pendingFile?: File | null;
     pendingImageThumbs: string[];
     acceptTypes: string;
     hasBaseUrl: boolean;
     showModelPicker: boolean;
     selectedModel: string;
-    defaultModel: string;
     modelChoices: string[];
-    modelCapabilities?: Record<string, string[]>;
-    modelListMessage: string;
-    modelStatusText: string;
-    modelStatusKind: 'ready' | 'checking' | 'warning' | 'offline';
-    targetLang: string;
-    voiceSupported: boolean;
-    voiceRecording: boolean;
-    voiceConversationActive: boolean;
+    formAutoFillEnabled?: boolean;
     t: I18nMessages;
     slashVisible?: boolean;
     slashCommands?: SlashCommand[];
     slashSelectedIndex?: number;
-    pageContextConfigured?: boolean;
-    pageContextEnabled?: boolean;
-    pageContextBlockCount?: number;
-    /**
-     * K36: 启用 terminal-style ↑/↓ prompt 历史回放。父组件需 wire 对应
-     * historyOlder / historyNewer / historyReset 事件到 usePromptHistory。
-     * K44 修：Vue 3 给 Boolean 类型 prop 自动默认 false，所以必须 withDefaults
-     * 显式默认为 true，否则上层 host 不传 prop 时回放就被错误禁用。
-     */
     historyEnabled?: boolean;
-    /**
-     * Doubao-style quick toggles row above the input. Both default to
-     * showing the chips (UI-only stubs) but unchecked. Host can pass
-     * `quickTogglesEnabled = false` to hide the whole row, or wire
-     * `toggleDeepThink` / `toggleWebSearch` to actual backend flags.
-     */
-    quickTogglesEnabled?: boolean;
-    deepThinkEnabled?: boolean;
-    webSearchEnabled?: boolean;
-    fastReplyEnabled?: boolean;
   }>(),
   {
+    pendingFile: null,
+    formAutoFillEnabled: false,
     slashVisible: false,
     slashCommands: () => [],
     slashSelectedIndex: 0,
-    pageContextConfigured: false,
-    pageContextEnabled: true,
-    pageContextBlockCount: 0,
     historyEnabled: true,
-    quickTogglesEnabled: true,
-    deepThinkEnabled: false,
-    webSearchEnabled: false,
-    fastReplyEnabled: false,
-    modelStatusText: '',
-    modelStatusKind: 'offline',
-    defaultModel: '',
-    modelCapabilities: () => ({}),
     charLimitWarningText: '',
-    sendBlockedReason: '',
-    sendBlockedActionLabel: '',
   },
 );
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
-  'update:ctrlEnterToSend': [value: boolean];
-  'update:soundEnabled': [value: boolean];
   'update:selectedModel': [value: string];
-  'update:targetLang': [value: string];
-  changeMode: [mode: 'translate' | 'summarize' | 'chat'];
   send: [];
+  clearPendingFile: [];
   clearPendingImage: [];
   removePendingImage: [index: number];
-  editPendingImage: [index: number];
-  fileUpload: [file: File];
+  fileSelect: [file: File];
   pasteImage: [event: ClipboardEvent];
-  /**
-   * L1: 普通文本粘贴。除 `pasteImage` 之外额外发出，便于 useFormAutoFill 等
-   * 监听者拿到纯文本。`text` 已经从 clipboardData 提取过，不需要消费者再读
-   * 一遍；若粘贴中没有文本（如纯图）则不会发射。
-   */
   pasteText: [payload: { text: string; event: ClipboardEvent }];
-  toggleVoice: [];
-  toggleVoiceConversation: [];
   chatImage: [file: File];
+  triggerFormFill: [];
   slashKeydown: [event: KeyboardEvent];
   slashSelect: [index: number];
   slashHover: [index: number];
-  togglePageContext: [];
   historyOlder: [];
   historyNewer: [];
   historyReset: [];
-  /**
-   * Doubao-style quick toggles. The host can listen to apply the desired
-   * side effects (model param, tool plugin, etc.). `value` is the new
-   * desired state after the click.
-   */
-  toggleDeepThink: [value: boolean];
-  toggleWebSearch: [value: boolean];
-  toggleFastReply: [value: boolean];
-  sendBlockedAction: [];
 }>();
 
 const fileInputRef = ref<HTMLInputElement>();
-const advancedToolsOpen = ref(false);
-const selectedModelNormalized = computed(() => props.selectedModel.trim().toLowerCase());
-const selectedModelLooksVisionCapable = computed(
+const chatImageInputRef = ref<HTMLInputElement>();
+const textareaRef = ref<HTMLTextAreaElement>();
+const recallActive = ref(false);
+
+const COMPOSER_MIN_HEIGHT = 34;
+const COMPOSER_MAX_HEIGHT_COMPACT = 88;
+const COMPOSER_MAX_HEIGHT_EXPANDED = 150;
+let textareaResizeObserver: ResizeObserver | null = null;
+
+const sendDisabled = computed(
   () =>
-    modelHasCapability(props.selectedModel, 'vision') ||
-    isLikelyVisionModel(selectedModelNormalized.value),
-);
-const imageRiskVisible = computed(
-  () =>
-    props.mode === 'chat' &&
-    props.pendingImageThumbs.length > 0 &&
-    !!props.selectedModel.trim() &&
-    !selectedModelLooksVisionCapable.value,
-);
-const firstVisionModel = computed(
-  () =>
-    props.modelChoices.find(
-      (model) =>
-        model !== props.selectedModel &&
-        (modelHasCapability(model, 'vision') || isLikelyVisionModel(model.toLowerCase())),
-    ) || '',
+    props.loading ||
+    (!props.modelValue.trim() && !props.pendingFile && props.pendingImageThumbs.length === 0),
 );
 
-function selectModel(model: string) {
-  emit('update:selectedModel', model);
+const effectivePlaceholder = computed(() => {
+  if (props.pendingFile) {
+    return `${props.pendingFile.name} · 输入问题后发送（留空直接总结）`;
+  }
+  return `${props.placeholder} (${props.ctrlEnterToSend ? 'Ctrl+Enter' : props.t.newline})`;
+});
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-function isLikelyVisionModel(model: string) {
-  if (!model) return false;
-  return (
-    /(?:^|[-_:./])(?:vl|vision|visual|image|multimodal|omni)(?:[-_:./]|$)/i.test(model) ||
-    /gpt-4o|gemini|pixtral|llava|qwen.*vl|minimax-m2\.\d+|claude-(?:3|4)/i.test(model)
-  );
+function openFilePicker() {
+  fileInputRef.value?.click();
 }
 
-function modelHasCapability(model: string, capability: string) {
-  const caps = props.modelCapabilities?.[model] ?? props.modelCapabilities?.[model.trim()];
-  return caps?.some((cap) => cap.toLowerCase() === capability.toLowerCase()) ?? false;
+function focusInput() {
+  textareaRef.value?.focus({ preventScroll: true });
 }
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement;
   const file = target.files?.[0];
   target.value = '';
-  if (file) emit('fileUpload', file);
+  if (file) emit('fileSelect', file);
 }
+
+function onChatImageChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  target.value = '';
+  if (file) emit('chatImage', file);
+}
+
+function onTextareaPaste(event: ClipboardEvent) {
+  emit('pasteImage', event);
+  const text = event.clipboardData?.getData('text/plain') ?? '';
+  if (text) emit('pasteText', { text, event });
+}
+
+function onTextareaInput(event: Event) {
+  const el = event.target as HTMLTextAreaElement;
+  if (recallActive.value) recallActive.value = false;
+  emit('update:modelValue', el.value);
+  syncTextareaHeight(el);
+}
+
+function syncTextareaHeight(el = textareaRef.value) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const wrapper = el.closest('.ai-assistant-wrapper') as HTMLElement | null;
+  const maxH = wrapper?.classList.contains('panel-expanded')
+    ? COMPOSER_MAX_HEIGHT_EXPANDED
+    : COMPOSER_MAX_HEIGHT_COMPACT;
+  el.style.height =
+    Math.min(Math.max(el.scrollHeight || COMPOSER_MIN_HEIGHT, COMPOSER_MIN_HEIGHT), maxH) + 'px';
+}
+
+function onTextareaKeydown(e: KeyboardEvent) {
+  if (props.slashVisible && props.slashCommands.length > 0) {
+    if (
+      ['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key) ||
+      (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey)
+    ) {
+      e.preventDefault();
+      emit('slashKeydown', e);
+      return;
+    }
+  }
+  if (props.historyEnabled && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+    if (e.key === 'ArrowUp' && (!props.modelValue.trim() || recallActive.value)) {
+      e.preventDefault();
+      recallActive.value = true;
+      emit('historyOlder');
+      return;
+    }
+    if (e.key === 'ArrowDown' && recallActive.value) {
+      e.preventDefault();
+      emit('historyNewer');
+      return;
+    }
+    if (e.key === 'Escape' && recallActive.value) {
+      e.preventDefault();
+      recallActive.value = false;
+      emit('historyReset');
+      return;
+    }
+  }
+  if (e.key !== 'Enter') return;
+  if (props.ctrlEnterToSend) {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      recallActive.value = false;
+      emit('send');
+    }
+  } else if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    recallActive.value = false;
+    emit('send');
+  }
+}
+
+onMounted(() => {
+  void nextTick(() => {
+    syncTextareaHeight();
+    const wrapper = textareaRef.value?.closest('.ai-assistant-wrapper');
+    if (!wrapper || typeof ResizeObserver === 'undefined') return;
+    textareaResizeObserver = new ResizeObserver(() => syncTextareaHeight());
+    textareaResizeObserver.observe(wrapper);
+  });
+});
+
+onBeforeUnmount(() => {
+  textareaResizeObserver?.disconnect();
+  textareaResizeObserver = null;
+});
+
+watch(
+  () => props.modelValue,
+  () => void nextTick(() => syncTextareaHeight()),
+);
+
+defineExpose({ openFilePicker, focusInput });
 </script>

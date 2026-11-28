@@ -44,8 +44,7 @@ public class AiAssistantEvent extends ApplicationEvent {
         SUMMARIZE_COMPLETED,
         TOOL_CALLED,
         MODEL_FALLBACK,
-        QUOTA_EXCEEDED,
-        CAPABILITY_INVOKED
+        QUOTA_EXCEEDED
     }
 
     public EventType getType() {

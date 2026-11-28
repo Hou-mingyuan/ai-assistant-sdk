@@ -12,17 +12,49 @@
     :class="{
       'ai-fab-dragging': fabDragging,
       'ai-fab-drop-active': fabDropActive,
+      'ai-fab-loading': loading,
+      'ai-fab-docked': edgeDock !== 'none',
+      'ai-fab-dock-revealed': dockRevealed && edgeDock !== 'none',
     }"
     :style="fabLayoutStyle"
     :aria-label="ariaLabel"
     @pointerdown="(ev: PointerEvent) => emit('pointerdown', ev)"
+    @pointermove="onFabPointerMove"
+    @pointerleave="resetEyeTracking"
+    @pointercancel="resetEyeTracking"
     @contextmenu.prevent="(ev: MouseEvent) => emit('contextmenu', ev)"
     @dragenter.prevent="(ev: DragEvent) => emit('drag-enter', ev)"
     @dragover.prevent="(ev: DragEvent) => emit('drag-over', ev)"
     @dragleave.prevent="(ev: DragEvent) => emit('drag-leave', ev)"
     @drop.prevent="(ev: DragEvent) => emit('drop', ev)"
   >
-    <Sparkle class="ai-fab-sparkle" :size="32" :stroke-width="1.8" aria-hidden="true" />
+    <span class="ai-fab-core" aria-hidden="true">
+      <span
+        v-if="edgeDock !== 'none' && edgeDockStyle === 'handle-bar'"
+        class="ai-fab-dock-bar-glow"
+      />
+      <span
+        v-if="edgeDock !== 'none' && edgeDockStyle === 'eye-strip'"
+        class="ai-fab-dock-mini-eyes"
+      >
+        <span class="ai-fab-dock-mini-eye" />
+        <span class="ai-fab-dock-mini-eye" />
+      </span>
+      <span
+        v-if="edgeDock !== 'none' && edgeDockStyle === 'nap-lean'"
+        class="ai-fab-dock-halo-dot"
+      />
+      <AssistantIcon v-if="fabDropActive" name="upload" :size="22" class="ai-fab-drop-icon" />
+      <BrandMark
+        v-else
+        class="ai-fab-brand"
+        :size="25"
+        :active="loading"
+        :look-x="eyeX"
+        :look-y="eyeY"
+      />
+      <span v-if="loading && !fabDropActive" class="ai-fab-live-dot" />
+    </span>
     <span v-if="fabDropActive" class="ai-fab-drop-hint" role="status" aria-live="polite">
       {{ dropHintText }}
     </span>
@@ -30,19 +62,33 @@
 </template>
 
 <script setup lang="ts">
-import { Sparkle } from '@lucide/vue';
 import { ref, type CSSProperties } from 'vue';
+import AssistantIcon from './AssistantIcon.vue';
+import BrandMark from './BrandMark.vue';
+import type { EdgeDockStyle } from '../composables/useEdgeDockStyle';
 
-defineProps<{
-  fabHidden: boolean;
-  isOpen: boolean;
-  showFabDuringPanelAnim: boolean;
-  fabDragging: boolean;
-  fabDropActive: boolean;
-  fabLayoutStyle: CSSProperties;
-  ariaLabel: string;
-  dropHintText: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    fabHidden: boolean;
+    isOpen: boolean;
+    showFabDuringPanelAnim: boolean;
+    fabDragging: boolean;
+    fabDropActive: boolean;
+    fabLayoutStyle: CSSProperties;
+    ariaLabel: string;
+    dropHintText: string;
+    loading?: boolean;
+    edgeDock?: 'none' | 'left' | 'right';
+    dockRevealed?: boolean;
+    edgeDockStyle?: EdgeDockStyle;
+  }>(),
+  {
+    loading: false,
+    edgeDock: 'none',
+    dockRevealed: false,
+    edgeDockStyle: 'handle-bar',
+  },
+);
 
 const emit = defineEmits<{
   (e: 'pointerdown', ev: PointerEvent): void;
@@ -60,6 +106,35 @@ const emit = defineEmits<{
  * 用于 useFabDrag 的 pointer 坐标解算。
  */
 const fabRef = ref<HTMLButtonElement>();
+const eyeX = ref(0);
+const eyeY = ref(0);
+
+function resetEyeTracking() {
+  eyeX.value = 0;
+  eyeY.value = 0;
+}
+
+function onFabPointerMove(ev: PointerEvent) {
+  if (props.fabDragging || props.fabDropActive) {
+    resetEyeTracking();
+    return;
+  }
+  if (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  ) {
+    resetEyeTracking();
+    return;
+  }
+  const el = fabRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const nx = Math.max(-1, Math.min(1, ((ev.clientX - rect.left) / rect.width - 0.5) * 2));
+  const ny = Math.max(-1, Math.min(1, ((ev.clientY - rect.top) / rect.height - 0.5) * 2));
+  eyeX.value = Number((nx * 2.1).toFixed(2));
+  eyeY.value = Number((ny * 1.6).toFixed(2));
+}
 
 defineExpose({ fabRef });
 </script>

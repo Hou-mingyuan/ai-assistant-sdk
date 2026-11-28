@@ -4,7 +4,6 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.memory.ConversationMemory;
 import com.aiassistant.model.ChatRequest;
 import com.aiassistant.model.ChatResponse;
-import com.aiassistant.spi.AssistantCapability;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.spi.ModelProvider;
@@ -62,7 +61,6 @@ public class AiAssistantRuntimeHints implements RuntimeHintsRegistrar {
                         MemberCategory.INVOKE_PUBLIC_METHODS);
 
         hints.proxies()
-                .registerJdkProxy(TypeReference.of(AssistantCapability.class))
                 .registerJdkProxy(TypeReference.of(ChatInterceptor.class))
                 .registerJdkProxy(TypeReference.of(ConversationMemoryProvider.class))
                 .registerJdkProxy(TypeReference.of(ModelProvider.class));

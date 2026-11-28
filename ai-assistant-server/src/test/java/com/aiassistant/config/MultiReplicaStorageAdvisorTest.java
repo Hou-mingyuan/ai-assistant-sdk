@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.aiassistant.memory.ConversationMemory;
-import com.aiassistant.rag.InMemoryVectorStore;
-import com.aiassistant.rag.VectorStore;
 import com.aiassistant.service.InMemorySessionStore;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.spi.InMemoryConversationMemoryProvider;
@@ -15,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class MultiReplicaStorageAdvisorTest {
 
-    @org.junit.jupiter.api.Test
+    @Test
     void explicitScaleOutFailsEvenWhenEnvironmentProbeMissesIt() {
         MultiReplicaStorageAdvisor advisor = new MultiReplicaStorageAdvisor(() -> false);
         org.junit.jupiter.api.Assertions.assertThrows(
@@ -23,7 +21,6 @@ class MultiReplicaStorageAdvisorTest {
                 () ->
                         advisor.enforceReplicaCount(
                                 2,
-                                new InMemoryVectorStore(),
                                 new InMemorySessionStore(),
                                 new InMemoryTokenUsageTracker(),
                                 new InMemoryConversationMemoryProvider()));
@@ -31,7 +28,6 @@ class MultiReplicaStorageAdvisorTest {
                 () ->
                         advisor.enforceReplicaCount(
                                 1,
-                                new InMemoryVectorStore(),
                                 new InMemorySessionStore(),
                                 new InMemoryTokenUsageTracker(),
                                 new InMemoryConversationMemoryProvider()));
@@ -43,7 +39,6 @@ class MultiReplicaStorageAdvisorTest {
 
         List<String> warnings =
                 advisor.warningCodes(
-                        new InMemoryVectorStore(),
                         new InMemorySessionStore(),
                         new InMemoryTokenUsageTracker(),
                         new InMemoryConversationMemoryProvider());
@@ -57,14 +52,12 @@ class MultiReplicaStorageAdvisorTest {
 
         List<String> warnings =
                 advisor.warningCodes(
-                        new InMemoryVectorStore(),
                         new InMemorySessionStore(),
                         new InMemoryTokenUsageTracker(),
                         new InMemoryConversationMemoryProvider());
 
         assertEquals(
                 List.of(
-                        MultiReplicaStorageAdvisor.MULTI_REPLICA_INMEMORY_VECTOR_STORE,
                         MultiReplicaStorageAdvisor.MULTI_REPLICA_INMEMORY_SESSION_STORE,
                         MultiReplicaStorageAdvisor.MULTI_REPLICA_INMEMORY_TOKEN_USAGE,
                         MultiReplicaStorageAdvisor.MULTI_REPLICA_INMEMORY_CONVERSATION_MEMORY),
@@ -75,34 +68,11 @@ class MultiReplicaStorageAdvisorTest {
     void multiReplicaEnvironmentWithReplacedBeansSilencesIndividualWarnings() {
         MultiReplicaStorageAdvisor advisor = new MultiReplicaStorageAdvisor(() -> true);
 
-        VectorStore customVectorStore =
-                new VectorStore() {
-                    @Override
-                    public void upsert(java.util.List<Document> documents) {}
-
-                    @Override
-                    public java.util.List<SearchResult> search(
-                            float[] queryVector, int topK, String namespace) {
-                        return java.util.List.of();
-                    }
-
-                    @Override
-                    public void delete(String namespace, java.util.List<String> docIds) {}
-
-                    @Override
-                    public long count(String namespace) {
-                        return 0;
-                    }
-                };
-
         ConversationMemoryProvider customMemory = sessionId -> (ConversationMemory) null;
 
         List<String> warnings =
-                advisor.warningCodes(
-                        customVectorStore, new InMemorySessionStore(), null, customMemory);
+                advisor.warningCodes(new InMemorySessionStore(), null, customMemory);
 
-        // VectorStore replaced -> no warning. SessionStore still InMemory -> warned.
-        // TokenUsageTracker null -> not warned. ConversationMemoryProvider replaced -> not warned.
         assertEquals(
                 List.of(MultiReplicaStorageAdvisor.MULTI_REPLICA_INMEMORY_SESSION_STORE), warnings);
     }
@@ -111,7 +81,7 @@ class MultiReplicaStorageAdvisorTest {
     void multiReplicaEnvironmentWithNullBeansProducesNoWarnings() {
         MultiReplicaStorageAdvisor advisor = new MultiReplicaStorageAdvisor(() -> true);
 
-        List<String> warnings = advisor.warningCodes(null, null, null, null);
+        List<String> warnings = advisor.warningCodes(null, null, null);
 
         assertTrue(warnings.isEmpty());
     }

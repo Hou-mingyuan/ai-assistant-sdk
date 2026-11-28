@@ -4,12 +4,21 @@ import { wsStreamChat } from '../utils/wsChat';
 
 type Protocol = 'sse' | 'ws';
 
+export interface StreamWithFallbackOptions {
+  wsUrl?: string;
+  enableWsFallback?: boolean;
+}
+
 /**
- * SSE 优先，连接级失败后自动降级到 WebSocket。
- * 一旦降级成功，后续请求持续使用 WS（直到页面刷新重置）。
- * @param explicitWsUrl 可选：显式指定 WS 端点 URL，省略时从 baseUrl 推导
+ * SSE 优先；若宿主启用了 WebSocket 降级且连接级失败，则自动降级到 WebSocket。
  */
-export function useStreamWithFallback(explicitWsUrl?: string) {
+export function useStreamWithFallback(explicitWsUrlOrOpts?: string | StreamWithFallbackOptions) {
+  const explicitWsUrl =
+    typeof explicitWsUrlOrOpts === 'string' ? explicitWsUrlOrOpts : explicitWsUrlOrOpts?.wsUrl;
+  const wsFallbackEnabled =
+    typeof explicitWsUrlOrOpts === 'object' && explicitWsUrlOrOpts !== null
+      ? explicitWsUrlOrOpts.enableWsFallback !== false
+      : true;
   const preferredProtocol = ref<Protocol>('sse');
 
   function deriveWsUrl(baseUrl: string): string {
@@ -47,6 +56,14 @@ export function useStreamWithFallback(explicitWsUrl?: string) {
     onMeta?: (meta: ChatRuntimeMeta) => void,
     tenantId?: string,
   ): AsyncGenerator<string> {
+    if (!wsFallbackEnabled) {
+      const stream = tenantId
+        ? streamChat(baseUrl, payload, token, signal, onMeta, tenantId)
+        : streamChat(baseUrl, payload, token, signal, onMeta);
+      yield* stream;
+      return;
+    }
+
     if (tenantId && preferredProtocol.value === 'ws') {
       preferredProtocol.value = 'sse';
       sseFailCount = 0;

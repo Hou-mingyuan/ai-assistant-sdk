@@ -7,11 +7,6 @@
  * ============================================================================
  */
 
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-messages,
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-message-list {
-  contain: layout paint;
-}
-
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg {
   /* Keep message heights real before scrolling; intrinsic placeholders make
      long chats appear to jump upward when offscreen bubbles materialize. */
@@ -26,17 +21,11 @@
 }
 
 .ai-personalize-overlay,
-.ai-memory-overlay,
-.ai-kb-picker-shell,
-.ai-form-fill-toast,
-.ai-msg-ctx-menu,
-.ai-fab-ctx-menu {
+.ai-form-fill-toast {
   contain: layout paint style;
 }
 
 .ai-personalize-dialog,
-.ai-diagnostics-dialog,
-.ai-form-fill-dialog,
-.ai-kb-picker-card {
+.ai-form-fill-dialog {
   contain: layout paint;
 }

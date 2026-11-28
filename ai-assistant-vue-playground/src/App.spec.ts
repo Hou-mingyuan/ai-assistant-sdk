@@ -8,10 +8,6 @@ const ColorThemeSwitcherStub = {
   emits: ["update:modelValue"],
 };
 
-const AdminDemoPanelStub = {
-  template: '<div class="admin-stub">Admin Console stub</div>',
-};
-
 const CommandPaletteStub = {
   template: '<div class="cmdk-stub" />',
   props: ["open", "commands"],
@@ -53,7 +49,6 @@ describe("Playground App", () => {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
@@ -63,7 +58,7 @@ describe("Playground App", () => {
     expect(wrapper.text()).toContain("SSE 流式体验路径");
     expect(wrapper.text()).not.toContain("本轮 K4");
     expect(wrapper.findAll(".stream-phase-chip")).toHaveLength(5);
-    expect(wrapper.findAll(".page-nav-tab svg")).toHaveLength(3);
+    expect(wrapper.findAll(".page-nav-tab svg")).toHaveLength(2);
     expect(wrapper.find(".page-nav-primary").exists()).toBe(true);
     expect(wrapper.find(".page-nav-tools").exists()).toBe(true);
     await flushPromises();
@@ -76,7 +71,6 @@ describe("Playground App", () => {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
@@ -91,9 +85,9 @@ describe("Playground App", () => {
 
     expect(localStorage.getItem("playground-theme")).toBe("plum");
     expect(localStorage.getItem("ai-assistant.theme.palette.v1")).toBe("plum");
-    expect(document.documentElement.style.getPropertyValue("--demo-primary-from")).toBe(
-      "#075985",
-    );
+    expect(
+      document.documentElement.style.getPropertyValue("--demo-primary-from"),
+    ).toBe("#075985");
 
     wrapper.unmount();
   });
@@ -105,7 +99,6 @@ describe("Playground App", () => {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
@@ -150,7 +143,6 @@ describe("Playground App", () => {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
@@ -158,7 +150,34 @@ describe("Playground App", () => {
 
     const loader = wrapper.find(".assistant-loader-fab");
     expect(loader.attributes("aria-label")).toBe("打开 AI 助手");
-    expect(loader.find("svg.lucide-sparkles").exists()).toBe(true);
+    expect(loader.find("svg.assistant-loader-bot").exists()).toBe(true);
+    loader.element.getBoundingClientRect = () =>
+      ({
+        left: 200,
+        top: 300,
+        width: 58,
+        height: 58,
+        right: 258,
+        bottom: 358,
+        x: 200,
+        y: 300,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    loader.element.dispatchEvent(
+      new MouseEvent("pointermove", {
+        bubbles: true,
+        clientX: 200,
+        clientY: 358,
+      }),
+    );
+    await wrapper.vm.$nextTick();
+    expect(
+      wrapper.get(".assistant-loader-eyes-track").attributes("style"),
+    ).toContain("translate(-2.1px, 1.6px)");
+    await loader.trigger("pointerleave");
+    expect(
+      wrapper.get(".assistant-loader-eyes-track").attributes("style"),
+    ).toContain("translate(0px, 0px)");
     await loader.trigger("click");
     expect(onLoad).toHaveBeenCalledTimes(1);
     expect((onLoad.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({
@@ -174,56 +193,12 @@ describe("Playground App", () => {
     window.removeEventListener("ai-assistant-load", onLoad);
   });
 
-  it("navigates to Admin Console tab", async () => {
-    mockFetchSequence([{ body: { success: true, status: "running" } }]);
-    const wrapper = mount(App, {
-      global: {
-        stubs: {
-          ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
-          CommandPalette: CommandPaletteStub,
-        },
-      },
-    });
-
-    const adminBtn = wrapper
-      .findAll(".page-nav-tab")
-      .find((b) => b.text().includes("Admin"));
-    await adminBtn!.trigger("click");
-    expect(wrapper.find(".admin-stub").exists()).toBe(true);
-  });
-
-  it("records ai-assistant-reaction custom events in the reaction log", async () => {
-    mockFetchSequence([{ body: { success: true, status: "running" } }]);
-    const wrapper = mount(App, {
-      global: {
-        stubs: {
-          ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
-          CommandPalette: CommandPaletteStub,
-        },
-      },
-    });
-
-    window.dispatchEvent(
-      new CustomEvent("ai-assistant-reaction", {
-        detail: { messageIndex: 2, emoji: "👍", toggled: false },
-      }),
-    );
-    await flushPromises();
-
-    expect(wrapper.find(".reaction-log").exists()).toBe(true);
-    expect(wrapper.text()).toContain("👍");
-    expect(wrapper.text()).toContain("#2");
-  });
-
   it("navigates to Form Auto-Fill tab and shows sample snippets", async () => {
     mockFetchSequence([{ body: { success: true, status: "running" } }]);
     const wrapper = mount(App, {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
@@ -251,47 +226,21 @@ describe("Playground App", () => {
     expect(wrapper.text()).not.toContain("**不在**");
   });
 
-  it("clears reaction log when clear button is clicked", async () => {
+  it("resolves formfill route from location hash", async () => {
+    window.location.hash = "#/formfill";
     mockFetchSequence([{ body: { success: true, status: "running" } }]);
     const wrapper = mount(App, {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
-          CommandPalette: CommandPaletteStub,
-        },
-      },
-    });
-
-    window.dispatchEvent(
-      new CustomEvent("ai-assistant-reaction", {
-        detail: { messageIndex: 0, emoji: "❤️", toggled: false },
-      }),
-    );
-    await flushPromises();
-    expect(wrapper.find(".reaction-log").exists()).toBe(true);
-
-    await wrapper.find(".reaction-log-clear").trigger("click");
-    expect(wrapper.find(".reaction-log").exists()).toBe(false);
-  });
-
-  it("resolves admin route from location hash", async () => {
-    window.location.hash = "#/admin";
-    mockFetchSequence([{ body: { success: true, status: "running" } }]);
-    const wrapper = mount(App, {
-      global: {
-        stubs: {
-          ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },
     });
 
     await flushPromises();
-    expect(wrapper.find(".admin-stub").exists()).toBe(true);
-    expect(document.body.dataset.playgroundRoute).toBe("admin");
-    expect(wrapper.find(".assistant-loader-fab").exists()).toBe(false);
+    expect(wrapper.find("[data-ai-fillable]").exists()).toBe(true);
+    expect(document.body.dataset.playgroundRoute).toBe("formfill");
 
     const assistantBtn = wrapper
       .findAll(".page-nav-tab")
@@ -339,7 +288,6 @@ describe("Playground App", () => {
       global: {
         stubs: {
           ColorThemeSwitcher: ColorThemeSwitcherStub,
-          AdminDemoPanel: AdminDemoPanelStub,
           CommandPalette: CommandPaletteStub,
         },
       },

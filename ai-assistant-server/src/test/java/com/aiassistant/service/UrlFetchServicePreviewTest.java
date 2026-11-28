@@ -149,7 +149,7 @@ class UrlFetchServicePreviewTest {
     }
 
     @Test
-    void previewUrl_emptyBodyWithoutHeadless_returnsEmptyOk() {
+    void previewUrl_emptyBody_returnsEmptyOk() {
         FakeHttpClient client = new FakeHttpClient().empty(200);
 
         UrlPreviewResponse r = service(props(), client).previewUrl("https://www.example.com/empty");
@@ -157,25 +157,6 @@ class UrlFetchServicePreviewTest {
         assertThat(r.isSuccess()).isTrue();
         assertThat(r.getTitle()).isEmpty();
         assertThat(r.getImageUrls()).isEmpty();
-    }
-
-    @Test
-    void previewUrl_emptyBody_usesHeadlessFallback() {
-        FakeHttpClient client = new FakeHttpClient().empty(200);
-        UrlFetchService svc = service(props(), client);
-        svc.setHeadlessFetchService(
-                url ->
-                        new HeadlessFetcher.Result(
-                                "Headless Title",
-                                "headless extracted text",
-                                List.of("https://cdn.example.com/headless.jpg")));
-
-        UrlPreviewResponse r = svc.previewUrl("https://www.example.com/spa");
-
-        assertThat(r.isSuccess()).isTrue();
-        assertThat(r.getTitle()).isEqualTo("Headless Title");
-        assertThat(r.getSummary()).isEqualTo("headless extracted text");
-        assertThat(r.getImageUrl()).isEqualTo("https://cdn.example.com/headless.jpg");
     }
 
     @Test

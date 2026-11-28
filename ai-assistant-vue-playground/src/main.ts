@@ -7,7 +7,7 @@ const assistantOptions: AiAssistantOptions = {
   baseUrl: import.meta.env.VITE_AI_ASSISTANT_BASE_URL || "/ai-assistant",
   accessToken: import.meta.env.VITE_AI_ASSISTANT_ACCESS_TOKEN || undefined,
   adminToken: import.meta.env.VITE_AI_ASSISTANT_ADMIN_TOKEN || undefined,
-  primaryColor: "#181818",
+  primaryColor: "#2457d6",
   position: "bottom-right",
   locale: "zh",
   theme: "light",
@@ -29,18 +29,6 @@ const assistantOptions: AiAssistantOptions = {
     },
     // Phase 2: 启用表格批量填入。页面用 `data-ai-fillable-row` 标记每行
     tableMode: true,
-  },
-  /* K32: re-dispatch K24 onReaction events as a global window event so the
-   * App.vue reactionLog visualiser can pick them up without needing a
-   * direct ref to the auto-mounted AiAssistant instance. */
-  onReaction: (payload: {
-    messageIndex: number;
-    emoji: string;
-    toggled: boolean;
-  }) => {
-    window.dispatchEvent(
-      new CustomEvent("ai-assistant-reaction", { detail: payload }),
-    );
   },
 };
 

@@ -12,6 +12,7 @@
       @keydown.enter="$emit('switch', s.id)"
       @keydown.space.prevent="$emit('switch', s.id)"
     >
+      <span class="ai-session-tab-dot" aria-hidden="true" />
       <span class="ai-session-tab-label">{{ s.title || newLabel }}</span>
       <button
         v-if="sessions.length > 1"

@@ -248,4 +248,21 @@ describe('useStreamWithFallback', () => {
       undefined,
     );
   });
+
+  it('skips WS fallback completely when enableWsFallback is false', async () => {
+    async function* failingStream(): AsyncGenerator<string> {
+      yield* [];
+      throw new Error('Failed to fetch');
+    }
+    mockedStreamChat.mockReturnValue(failingStream());
+
+    const { streamWithFallback, preferredProtocol } = useStreamWithFallback({
+      enableWsFallback: false,
+    });
+    await expect(
+      collectAsync(streamWithFallback('http://test', { action: 'chat', text: 'hi' })),
+    ).rejects.toThrow('Failed to fetch');
+    expect(preferredProtocol.value).toBe('sse');
+    expect(mockedWsStreamChat).not.toHaveBeenCalled();
+  });
 });

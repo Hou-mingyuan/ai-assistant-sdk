@@ -6,9 +6,5 @@ public enum RbacPermission {
     TRANSLATE,
     SUMMARIZE,
     STREAM,
-    EXPORT,
-    ADMIN,
-    CAPABILITY_INVOKE,
-    TEMPLATE_MANAGE,
     FILE_UPLOAD
 }

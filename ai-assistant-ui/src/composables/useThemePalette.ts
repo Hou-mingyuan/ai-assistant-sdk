@@ -53,7 +53,7 @@ export function useThemePalette() {
       } catch {
         /* SSR / disabled localStorage — fall through to default */
       }
-      return 'graphite';
+      return 'sky';
     })(),
   );
   watch(themePalette, (v) => {

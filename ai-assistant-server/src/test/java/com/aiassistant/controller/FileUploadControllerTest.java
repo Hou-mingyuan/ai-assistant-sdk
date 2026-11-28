@@ -87,11 +87,32 @@ class FileUploadControllerTest {
                 new MockMultipartFile(
                         "file", "notes.txt", "text/plain; charset=utf-8", "hello".getBytes());
         when(parser.extractText(any())).thenReturn("hello");
-        when(llm.summarize("hello")).thenReturn("summary");
+        when(llm.summarize("hello", null)).thenReturn("summary");
 
         var response = controller.summarizeFile(file);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("summary", response.getBody().getResult());
+    }
+
+    @Test
+    void summarizeAnswersQuestionWhenQuestionParamProvided() throws Exception {
+        FileParserService parser = mock(FileParserService.class);
+        LlmService llm = mock(LlmService.class);
+        FileUploadController controller = new FileUploadController(parser, llm, new UsageStats());
+        MockMultipartFile file =
+                new MockMultipartFile(
+                        "file",
+                        "contract.txt",
+                        "text/plain; charset=utf-8",
+                        "penalty=500".getBytes());
+        when(parser.extractText(any())).thenReturn("penalty=500");
+        when(llm.chat(any(), any(), any(), any(), (String) any()))
+                .thenReturn("The penalty is 500.");
+
+        var response = controller.summarizeFile(file, "What is the penalty?", "gpt-4o-mini");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("The penalty is 500.", response.getBody().getResult());
     }
 }

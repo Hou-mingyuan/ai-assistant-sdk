@@ -6,11 +6,14 @@ import { resolve } from 'node:path'
 const spec = JSON.parse(readFileSync(resolve('docs/api/openapi.json'), 'utf8'))
 
 const expectedPublicOperations = [
+  ['post', '/chat'],
+  ['post', '/stream'],
+  ['post', '/sse'],
+  ['get', '/models'],
+  ['get', '/runtime/config'],
+  ['get', '/url-preview'],
   ['get', '/health'],
   ['get', '/stats'],
-  ['get', '/templates'],
-  ['post', '/templates'],
-  ['post', '/templates/{name}/render'],
   ['get', '/sessions'],
   ['post', '/sessions'],
   ['get', '/sessions/{id}'],
@@ -18,19 +21,6 @@ const expectedPublicOperations = [
   ['delete', '/sessions/{id}'],
   ['post', '/file/summarize'],
   ['post', '/file/translate'],
-  ['post', '/batch'],
-  ['get', '/capabilities'],
-  ['post', '/capabilities/{name}/invoke'],
-  ['post', '/async/chat'],
-  ['get', '/async/{taskId}'],
-  ['post', '/export'],
-  ['get', '/health/connectors'],
-  ['get', '/health/provider'],
-  ['post', '/health/provider/recheck'],
-  ['post', '/connectors/register'],
-  ['delete', '/connectors/{connectorId}'],
-  ['post', '/mcp'],
-  ['post', '/admin/runtime/model-config/discover-models'],
 ]
 
 test('OpenAPI snapshot covers remaining public REST operations', () => {
@@ -43,15 +33,11 @@ test('OpenAPI snapshot covers remaining public REST operations', () => {
 
 test('OpenAPI snapshot describes JSON and multipart request bodies', () => {
   for (const [method, path] of [
-    ['post', '/templates'],
-    ['post', '/templates/{name}/render'],
+    ['post', '/chat'],
+    ['post', '/stream'],
+    ['post', '/sse'],
     ['post', '/sessions'],
     ['put', '/sessions/{id}'],
-    ['post', '/batch'],
-    ['post', '/capabilities/{name}/invoke'],
-    ['post', '/async/chat'],
-    ['post', '/connectors/register'],
-    ['post', '/mcp'],
   ]) {
     assert.ok(
       spec.paths[path][method].requestBody?.content?.['application/json']?.schema,

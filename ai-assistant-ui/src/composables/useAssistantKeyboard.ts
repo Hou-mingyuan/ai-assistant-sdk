@@ -1,32 +1,18 @@
 import type { Ref } from 'vue';
 import type { AiAssistantOptions } from '../index';
 
-type ShowStateRef = Ref<{ show: boolean }>;
-
 export interface UseAssistantKeyboardOptions {
   options: AiAssistantOptions;
   panelRef: Ref<HTMLElement | undefined>;
-  wrapperRef: Ref<HTMLElement | undefined>;
   isOpen: Ref<boolean>;
   panelExpanded: Ref<boolean>;
   fabHidden: Ref<boolean>;
-  mode: Ref<'translate' | 'summarize' | 'chat'>;
-  keyboardHelpOpen: Ref<boolean>;
-  personalizeOpen: Ref<boolean>;
-  diagnosticsOpen: Ref<boolean>;
   sessionsDrawerOpen: Ref<boolean>;
-  inlineTranslatePopover: ShowStateRef;
-  msgCtxMenu: ShowStateRef;
-  fabCtxMenu: ShowStateRef;
-  matchesScreenCaptureShortcut: (event: KeyboardEvent) => boolean;
-  captureScreenIntoPendingImage: () => void | Promise<void>;
+  edgeDockSettingsOpen?: Ref<boolean>;
+  formAutoFillDialogOpen?: Ref<boolean>;
+  onCloseFormAutoFillDialog?: () => void;
   clearMessages: () => void;
   startNewSession: () => void;
-  toggleBatchExportMenu: () => void;
-  toggleMemoryPanel: () => void;
-  closeInlineTranslatePopover: () => void;
-  closeMsgCtxMenu: () => void;
-  closeFabCtxMenu: () => void;
 }
 
 export function useAssistantKeyboard(opts: UseAssistantKeyboardOptions) {
@@ -79,85 +65,35 @@ export function useAssistantKeyboard(opts: UseAssistantKeyboardOptions) {
     }
 
     const ctrl = e.ctrlKey || e.metaKey;
-    if (opts.matchesScreenCaptureShortcut(e) && opts.isOpen.value && opts.mode.value === 'chat') {
-      e.preventDefault();
-      void opts.captureScreenIntoPendingImage();
-      return;
-    }
     if (ctrl && e.shiftKey && !e.altKey && opts.isOpen.value) {
-      switch (e.key.toLowerCase()) {
-        case 'l':
-          e.preventDefault();
-          opts.clearMessages();
-          return;
-        case 'n':
-          e.preventDefault();
-          opts.startNewSession();
-          return;
-        case 'f': {
-          e.preventDefault();
-          const searchEl =
-            opts.wrapperRef.value?.querySelector<HTMLInputElement>('.ai-chat-search-input');
-          if (searchEl) searchEl.focus();
-          return;
-        }
-        case 's':
-          e.preventDefault();
-          opts.toggleBatchExportMenu();
-          return;
-        case 'm':
-          e.preventDefault();
-          opts.toggleMemoryPanel();
-          return;
+      if (e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        opts.clearMessages();
+        return;
       }
-    }
-
-    if (ctrl && !e.shiftKey && !e.altKey && e.key === '/' && opts.isOpen.value) {
-      e.preventDefault();
-      opts.keyboardHelpOpen.value = !opts.keyboardHelpOpen.value;
-      return;
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        opts.startNewSession();
+        return;
+      }
     }
 
     if (e.key !== 'Escape') return;
     const activeEl = document.activeElement as HTMLElement | null;
     if (activeEl?.dataset?.recallActive === 'true') return;
-    if (opts.inlineTranslatePopover.value.show) {
+    if (opts.edgeDockSettingsOpen?.value) {
       e.preventDefault();
-      opts.closeInlineTranslatePopover();
+      opts.edgeDockSettingsOpen.value = false;
       return;
     }
-    if (opts.msgCtxMenu.value.show) {
+    if (opts.formAutoFillDialogOpen?.value) {
       e.preventDefault();
-      opts.closeMsgCtxMenu();
-      return;
-    }
-    if (opts.fabCtxMenu.value.show) {
-      e.preventDefault();
-      opts.closeFabCtxMenu();
-      return;
-    }
-    if (opts.personalizeOpen.value) {
-      e.preventDefault();
-      opts.personalizeOpen.value = false;
-      return;
-    }
-    if (opts.diagnosticsOpen.value) {
-      e.preventDefault();
-      opts.diagnosticsOpen.value = false;
-      return;
-    }
-    if (opts.keyboardHelpOpen.value) {
-      e.preventDefault();
-      opts.keyboardHelpOpen.value = false;
+      opts.onCloseFormAutoFillDialog?.();
       return;
     }
     if (opts.sessionsDrawerOpen.value) {
       e.preventDefault();
       opts.sessionsDrawerOpen.value = false;
-      return;
-    }
-    if (document.querySelector('.ai-header-settings-menu')) {
-      e.preventDefault();
       return;
     }
     if (opts.isOpen.value && opts.panelExpanded.value) {

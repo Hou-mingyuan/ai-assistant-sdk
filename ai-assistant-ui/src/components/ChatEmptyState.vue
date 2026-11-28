@@ -1,132 +1,112 @@
 <template>
-  <!--
-    无消息时的空状态：欢迎语 + skill chip 条 + starter 卡片 + capability 提示 + prompt template 按钮组。
-    所有 i18n 静态内容通过 useEmptyStateContent composable 注入，本组件只负责渲染与事件转发。
-    Refactor (T1)：从 AiAssistant.vue 抽出。
-  -->
   <div class="ai-empty">
-    <AssistantIcon class="ai-empty-brand-icon" name="sparkle" :size="38" />
-    <p>{{ greeting }}</p>
-    <button
-      v-if="hasTaskEntries"
-      type="button"
-      class="ai-empty-task-toggle"
-      :aria-expanded="taskPanelOpen ? 'true' : 'false'"
-      @click="taskPanelOpen = !taskPanelOpen"
-    >
-      <span>{{ taskPanelOpen ? taskLauncherCloseLabel : taskLauncherLabel }}</span>
-    </button>
-    <div v-if="hasTaskEntries && taskPanelOpen" class="ai-empty-task-panel">
-      <section v-if="mode === 'chat' && skills.length > 0" class="ai-empty-task-section">
-        <div class="ai-empty-section-title">{{ skillStripLabel }}</div>
-        <div class="ai-empty-skills" :aria-label="skillStripLabel">
-          <button
-            v-for="skill in skills"
-            :key="skill.label"
-            type="button"
-            class="ai-empty-skill"
-            :data-skill-tone="skill.tone"
-            @click="emit('apply-skill', skill)"
-          >
-            <span class="ai-empty-skill-icon" aria-hidden="true">
-              <AssistantIcon :name="skill.icon" :size="13" />
-            </span>
-            <span>{{ skill.label }}</span>
-          </button>
-        </div>
-      </section>
-      <section v-if="starters.length > 0" class="ai-empty-task-section">
-        <div class="ai-empty-section-title">{{ starterSectionLabel }}</div>
-        <div class="ai-empty-starters">
-          <button
-            v-for="starter in starters"
-            :key="starter.title"
-            type="button"
-            class="ai-empty-starter"
-            :data-starter-tone="starter.tone"
-            @click="emit('apply-starter', starter)"
-          >
-            <span class="ai-empty-starter-icon" aria-hidden="true">
-              <AssistantIcon :name="starter.icon" :size="16" />
-            </span>
-            <span class="ai-empty-starter-body">
-              <span class="ai-empty-starter-text">{{ starter.title }}</span>
-              <span class="ai-empty-starter-desc">{{ starter.desc }}</span>
-            </span>
-          </button>
-        </div>
-      </section>
-      <section v-if="capabilityHints.length > 0" class="ai-empty-task-section">
-        <div class="ai-empty-section-title">{{ capabilitySectionLabel }}</div>
-        <div class="ai-empty-capabilities" :aria-label="capabilitySectionLabel">
-          <span v-for="hint in capabilityHints" :key="hint.label" class="ai-empty-capability">
-            <span class="ai-empty-capability-icon" aria-hidden="true">
-              <AssistantIcon :name="hint.icon" :size="13" />
-            </span>
-            <span>{{ hint.label }}</span>
-          </span>
-        </div>
-      </section>
-      <section v-if="promptTemplates.length > 0" class="ai-empty-task-section">
-        <div class="ai-empty-section-title">{{ templateSectionLabel }}</div>
-        <div class="ai-prompt-templates">
-          <button
-            v-for="(tpl, ti) in promptTemplates"
-            :key="ti"
-            type="button"
-            class="ai-prompt-tpl-btn"
-            @click="emit('apply-template', tpl)"
-          >
-            {{ tpl.label }}
-          </button>
-        </div>
-      </section>
+    <div class="ai-empty-brand-badge" aria-hidden="true">
+      <BrandMark class="ai-empty-brand-icon" :size="28" data-assistant-icon="sparkles" />
+    </div>
+    <p class="ai-empty-greeting">{{ greeting }}</p>
+    <p v-if="subtitle" class="ai-empty-subtitle">{{ subtitle }}</p>
+    <div v-if="cards.length > 0" class="ai-empty-featured">
+      <button
+        v-for="card in cards"
+        :key="card.id"
+        type="button"
+        class="ai-empty-starter"
+        :data-starter-tone="card.tone"
+        @click="handleCardClick(card)"
+      >
+        <span class="ai-empty-starter-icon" aria-hidden="true">
+          <AssistantIcon :name="card.icon" :size="16" />
+        </span>
+        <span class="ai-empty-starter-body">
+          <span class="ai-empty-starter-text">{{ card.title }}</span>
+          <span class="ai-empty-starter-desc">{{ card.desc }}</span>
+        </span>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import AssistantIcon from './AssistantIcon.vue';
-import type {
-  EmptySkillChip,
-  EmptyStarterCard,
-  EmptyCapabilityHint,
-} from '../composables/useEmptyStateContent';
+import BrandMark from './BrandMark.vue';
 
-export interface PromptTemplateItem {
-  label: string;
-  template: string;
-  variables?: { name: string; label: string; default?: string }[];
+export interface LeanEmptyCard {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+  tone: string;
+  action: 'prompt' | 'upload' | 'form-fill';
+  prompt?: string;
 }
 
 const props = defineProps<{
-  mode: 'translate' | 'summarize' | 'chat';
   greeting: string;
-  skillStripLabel: string;
-  taskLauncherLabel: string;
-  taskLauncherCloseLabel: string;
-  starterSectionLabel: string;
-  capabilitySectionLabel: string;
-  templateSectionLabel: string;
-  skills: EmptySkillChip[];
-  starters: EmptyStarterCard[];
-  capabilityHints: EmptyCapabilityHint[];
-  promptTemplates: PromptTemplateItem[];
+  subtitle?: string;
+  formAutoFillEnabled?: boolean;
+  quickPrompts?: { label: string; text: string }[];
+  isZh?: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'apply-skill', skill: EmptySkillChip): void;
-  (e: 'apply-starter', starter: EmptyStarterCard): void;
-  (e: 'apply-template', tpl: PromptTemplateItem): void;
+  (e: 'apply-prompt', text: string): void;
+  (e: 'trigger-upload'): void;
+  (e: 'trigger-form-fill'): void;
 }>();
 
-const taskPanelOpen = ref(true);
-const hasTaskEntries = computed(
-  () =>
-    (props.mode === 'chat' && props.skills.length > 0) ||
-    props.starters.length > 0 ||
-    props.capabilityHints.length > 0 ||
-    props.promptTemplates.length > 0,
-);
+const cards = computed<LeanEmptyCard[]>(() => {
+  if (props.quickPrompts && props.quickPrompts.length > 0) {
+    return props.quickPrompts.slice(0, 4).map((qp, idx) => ({
+      id: `qp-${idx}`,
+      icon: 'sparkles',
+      title: qp.label,
+      desc: qp.text,
+      tone: 'blue',
+      action: 'prompt',
+      prompt: qp.text,
+    }));
+  }
+  const zh = props.isZh ?? true;
+  const list: LeanEmptyCard[] = [
+    {
+      id: 'chat',
+      icon: 'message-circle',
+      title: zh ? '开始对话' : 'Start a conversation',
+      desc: zh ? '基于当前页面或任意问题提问' : 'Ask anything or analyze this page',
+      tone: 'blue',
+      action: 'prompt',
+      prompt: zh
+        ? '请简要介绍一下当前页面内容并给我使用建议'
+        : 'Summarize this page and suggest next steps',
+    },
+    {
+      id: 'upload',
+      icon: 'upload',
+      title: zh ? '上传文件问答' : 'Ask about a file',
+      desc: zh ? '支持 PDF / Word / Excel / TXT 文档' : 'Upload PDF, Word, Excel, or text files',
+      tone: 'teal',
+      action: 'upload',
+    },
+  ];
+  if (props.formAutoFillEnabled) {
+    list.push({
+      id: 'fill',
+      icon: 'square-check-big',
+      title: zh ? '剪贴板自动填表' : 'Auto-fill page form',
+      desc: zh
+        ? '从剪贴板识别「键: 值」批量写入表单'
+        : 'Match key-value text into page form fields',
+      tone: 'amber',
+      action: 'form-fill',
+    });
+  }
+  return list;
+});
+
+function handleCardClick(card: LeanEmptyCard) {
+  if (card.action === 'upload') emit('trigger-upload');
+  else if (card.action === 'form-fill') emit('trigger-form-fill');
+  else if (card.prompt) emit('apply-prompt', card.prompt);
+}
 </script>

@@ -24,7 +24,6 @@
         <!-- 5.4.1+：缓解 CVE-2025-31672（OOXML / 重复 zip 条目解析） -->
         <apache.poi.version>5.5.1</apache.poi.version>
         <apache.pdfbox.version>3.0.8</apache.pdfbox.version>
-        <playwright.version>1.62.0</playwright.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.compiler.release>21</maven.compiler.release>
@@ -141,7 +140,7 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
-        <!-- 导出 /export 依赖 PDFBox/POI；勿标 optional，否则宿主仅依赖 starter 时运行期缺类导致 500 -->
+        <!-- 文件上传问答 /file/summarize 解析文档依赖 PDFBox/POI -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
@@ -194,12 +193,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.playwright</groupId>
-            <artifactId>playwright</artifactId>
-            <version>${playwright.version}</version>
             <optional>true</optional>
         </dependency>
         <!-- OkHttp: optional. When present, server-side URL fetches (HttpContentFetcher) use an

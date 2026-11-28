@@ -7,11 +7,8 @@ const preserveDist = process.env.PRESERVE_DIST === 'true';
 const libEntries = {
   'ai-assistant': resolve(__dirname, 'src/index.ts'),
   core: resolve(__dirname, 'src/entries/core.ts'),
-  admin: resolve(__dirname, 'src/entries/admin.ts'),
   'form-fill': resolve(__dirname, 'src/entries/form-fill.ts'),
-  mcp: resolve(__dirname, 'src/entries/mcp.ts'),
   plugin: resolve(__dirname, 'src/vite-plugin.ts'),
-  screenshot: resolve(__dirname, 'src/entries/screenshot.ts'),
 };
 
 export default defineConfig(({ command }) => ({
@@ -35,7 +32,6 @@ export default defineConfig(({ command }) => ({
       include: [
         'src/composables/useAiMarkdownRenderer.ts',
         'src/composables/useMultiSession.ts',
-        'src/composables/usePluginRegistry.ts',
         'src/composables/useSessionSearch.ts',
         'src/composables/useStreamWithFallback.ts',
         'src/utils/api.ts',
@@ -79,10 +75,10 @@ export default defineConfig(({ command }) => ({
              loads it via dynamic `import('mermaid')` only when the host provides
              it; otherwise it falls back to showing the diagram source. Bundling
              it here previously inflated the WC artifact by ~850 KB gzip. */
-          external: ['html2canvas', 'mermaid'],
+          external: ['mermaid'],
           output: {
             exports: 'named',
-            globals: { html2canvas: 'html2canvas', mermaid: 'mermaid' },
+            globals: { mermaid: 'mermaid' },
           },
         },
       }
@@ -109,10 +105,10 @@ export default defineConfig(({ command }) => ({
              `useMermaidRenderer` when the host project has it installed.
              Externalizing keeps the library bundle small and avoids the
              "cannot resolve mermaid" build error when the host opts out. */
-          external: ['vue', 'html2canvas', 'mermaid'],
+          external: ['vue', 'mermaid'],
           output: {
             exports: 'named',
-            globals: { vue: 'Vue', html2canvas: 'html2canvas', mermaid: 'mermaid' },
+            globals: { vue: 'Vue', mermaid: 'mermaid' },
           },
         },
       },

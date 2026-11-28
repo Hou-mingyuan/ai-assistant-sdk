@@ -32,7 +32,6 @@ import {
   extractArtifacts,
   promoteLargeCodeBlocks,
 } from '../types/message';
-import { ARTIFACT_SYSTEM_PROMPT } from '../utils/artifactPrompt';
 import {
   hasVisibleAssistantContent,
   isAssistantAbortError,
@@ -42,7 +41,6 @@ import {
   shouldWarnForVisionModel,
 } from './sendStreamHelpers';
 import { collectPageContextText, collectSmartPageContext } from '../utils/pageContextDom';
-import { captureScreenshot } from '../utils/pageScreenshot';
 import {
   collectPageSnapshotMarkdown,
   isDirectPageSnapshotRequest,
@@ -65,12 +63,6 @@ export {
 
 const STREAM_FLUSH_MIN_INTERVAL_MS = 48;
 
-type ScreenshotCaptureResult = { type: 'image'; data: string } | { type: 'text'; data: string };
-
-export interface FastReplyRoutingConfig {
-  maxChars?: number;
-}
-
 export interface UseSendStreamDeps {
   /** Mutable conversation buffer (push user then assistant entries). */
   messages: Ref<Message[]>;
@@ -92,14 +84,8 @@ export interface UseSendStreamDeps {
   selectedChatModel: Ref<string>;
   /** Allowed-model whitelist; used to validate `selectedChatModel`. */
   modelChoices: Ref<string[]>;
-  /** Prompt-level deep-thinking mode. */
-  deepThinkEnabled?: Ref<boolean>;
   /** Server-side web search mode. */
   webSearchEnabled?: Ref<boolean>;
-  /** Prefer a lower-latency sibling model for simple chat turns. */
-  fastReplyEnabled?: Ref<boolean>;
-  /** Runtime-configured threshold for simple prompt auto-routing. */
-  fastReplyRoutingConfig?: Ref<FastReplyRoutingConfig>;
   /** Optional server-provided model capability map keyed by model id. */
   modelCapabilities?: Ref<Record<string, string[]>>;
   /** Pending base64 images (data URI); attached to payload then cleared. */
@@ -108,6 +94,14 @@ export interface UseSendStreamDeps {
   pendingImageThumbs: Ref<string[]>;
   /** Host-merged user options (baseUrl / accessToken / maxUserMessageChars). */
   options: AiAssistantOptions;
+  /** Optional dynamic base URL resolver (falls back to `options.baseUrl`). */
+  getEffectiveBaseUrl?: () => string;
+  /** Optional dynamic access token / API key resolver (falls back to `options.accessToken`). */
+  getEffectiveToken?: () => string | undefined;
+  /** Allow sending manually entered model names not listed in `/models`. */
+  allowCustomModel?: Ref<boolean>;
+  /** Skip `/url-preview` side-channel (e.g. direct OpenAI-compatible mode). */
+  disableUrlPreview?: Ref<boolean>;
   /** Computed locale messages bundle, re-evaluated on locale change. */
   t: ComputedRef<I18nMessages>;
   /** SSE-with-WS-fallback async generator factory. */
@@ -135,8 +129,6 @@ export interface UseSendStreamDeps {
   notify?: (message: string, durationMs?: number) => void;
   /** Coalesced scroll-to-bottom; pass force=true to bypass the sticky check. */
   scrollToBottom: (force: boolean) => void;
-  /** Notification chime (gated by user preference; safe no-op if muted). */
-  playNotificationSound: () => void;
   /** Drop oldest messages once the memory cap is reached. */
   trimMessagesForMemoryCap: () => void;
   /** Invalidate the rendered-markdown cache when content mutates. */
@@ -159,10 +151,6 @@ export interface UseSendStreamDeps {
   getStreamStoppedByUser: () => boolean;
   /** Set the stop flag (true on user-stop, false on each new send). */
   setStreamStoppedByUser: (stopped: boolean) => void;
-  /** Optional override for tests/hosts; defaults to capturing the current document. */
-  captureScreenshotForAnalysis?: () => Promise<ScreenshotCaptureResult>;
-  /** Cross-session memory fragment to prepend to systemPrompt. */
-  memoryPromptFragment?: Ref<string>;
   /**
    * User-toggled override for page-context attachment. When `false`, the
    * automatic `pageContextBlocks` collection is skipped for this send even if
@@ -335,9 +323,17 @@ export function useSendStream(deps: UseSendStreamDeps) {
     deps.trimMessagesForMemoryCap();
   }
 
+  function resolveBaseUrl(): string {
+    return deps.getEffectiveBaseUrl ? deps.getEffectiveBaseUrl() : deps.options.baseUrl || '';
+  }
+
+  function resolveAccessToken(): string | undefined {
+    return deps.getEffectiveToken ? deps.getEffectiveToken() : deps.options.accessToken;
+  }
+
   function normalizeUserTextForSend(): string {
     let text = deps.input.value.trim();
-    if (!text || deps.loading.value || !deps.options.baseUrl) return '';
+    if (!text || deps.loading.value || !resolveBaseUrl()) return '';
     const ucap = deps.options.maxUserMessageChars;
     if (ucap !== undefined && ucap > 0 && text.length > ucap) {
       text = `${text.slice(0, ucap)}\n…`;
@@ -356,10 +352,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
     userEntry.content = content;
   }
 
-  function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean, text: string) {
-    const selected = deps.selectedChatModel.value.trim();
-    const mid = pickFastReplyModel(selected, text) || selected;
-    if (mid && deps.modelChoices.value.includes(mid)) {
+  function applySelectedModel(payload: ChatPayload, hasImageAttachment: boolean) {
+    const mid = deps.selectedChatModel.value.trim();
+    if (mid && (deps.allowCustomModel?.value || deps.modelChoices.value.includes(mid))) {
       payload.model = mid;
       const hasServerVisionCapability = modelHasCapability(mid, 'vision');
       if (
@@ -371,21 +366,9 @@ export function useSendStream(deps: UseSendStreamDeps) {
     }
   }
 
-  function pickFastReplyModel(selected: string, text: string) {
-    if (!deps.fastReplyEnabled?.value || deps.mode.value !== 'chat') return '';
-    if (!isLowContextPrompt(text)) return '';
-    const choices = deps.modelChoices.value.filter((model) => model && model !== selected);
-    return (
-      choices.find((model) => /(?:^|[-_:./])m2$/i.test(model)) ||
-      choices.find((model) => /(?:mini|flash|lite|turbo|fast|haiku)/i.test(model)) ||
-      ''
-    );
-  }
-
   function isLowContextPrompt(text: string) {
     const normalized = text.trim().replace(/\s+/g, '');
-    const maxChars = deps.fastReplyRoutingConfig?.value.maxChars ?? 32;
-    if (!normalized || normalized.length > maxChars) return false;
+    if (!normalized || normalized.length > 32) return false;
     return !/(分析|总结|翻译|页面|截图|文件|代码|为什么|如何|怎么|列出|报告|搜索|联网|http|https)/i.test(
       normalized,
     );
@@ -396,17 +379,10 @@ export function useSendStream(deps: UseSendStreamDeps) {
     hasImageAttachment: boolean,
     text: string,
   ) {
-    applySelectedModel(payload, hasImageAttachment, text);
+    applySelectedModel(payload, hasImageAttachment);
     if (deps.mode.value !== 'chat') return;
-    const memFrag = deps.memoryPromptFragment?.value ?? '';
     const sp = deps.chatSystemPrompt.value.trim();
-    const deepThinkPrompt = deps.deepThinkEnabled?.value
-      ? '用户已开启深度思考：回答前先梳理关键约束，必要时给出更审慎的推理和权衡；如果问题很简单，保持简洁。'
-      : '';
-    // Artifacts 协议（默认开启，可用 options.artifactsEnabled=false 关闭）
-    const artifactPrompt = deps.options.artifactsEnabled === false ? '' : ARTIFACT_SYSTEM_PROMPT;
-    const combinedSp = [memFrag, sp, deepThinkPrompt, artifactPrompt].filter(Boolean).join('\n');
-    if (combinedSp) payload.systemPrompt = combinedSp;
+    if (sp) payload.systemPrompt = sp;
     if (deps.messages.value.length > 1 && !isLowContextPrompt(text)) {
       payload.history = deps.messages.value
         .slice(0, -1)
@@ -454,32 +430,6 @@ export function useSendStream(deps: UseSendStreamDeps) {
       });
     }
     if (ctx) payload.pageContext = ctx;
-  }
-
-  function attachTextContext(payload: ChatPayload, ctx: string) {
-    const clean = ctx.trim();
-    if (!clean) return;
-    payload.pageContext = [payload.pageContext, `# 当前页面截图文本回退\n${clean}`]
-      .filter(Boolean)
-      .join('\n\n');
-  }
-
-  async function prepareAutomaticScreenshotForVisualRequest(text: string): Promise<string> {
-    if (!isScreenshotAnalysisRequest(text)) return '';
-    if (deps.pendingImageDataList.value.some(Boolean)) return '';
-    const capture = deps.captureScreenshotForAnalysis ?? (() => captureScreenshot());
-    let result: ScreenshotCaptureResult;
-    try {
-      result = await capture();
-    } catch {
-      return '';
-    }
-    if (result.type === 'image' && result.data) {
-      deps.pendingImageDataList.value = [result.data];
-      deps.pendingImageThumbs.value = [result.data];
-      return '';
-    }
-    return result.data || '';
   }
 
   function completeLocalPageSnapshot(text: string): boolean {
@@ -589,10 +539,12 @@ export function useSendStream(deps: UseSendStreamDeps) {
     getStreamDone: () => boolean,
     setPreviewImages: (imgs: string[]) => void,
   ) {
+    if (deps.disableUrlPreview?.value) return;
     const pageUrl = deps.firstNonImageHttpUrl(deps.extractHttpUrls(text));
-    if (!pageUrl || !deps.options.baseUrl) return;
+    const baseUrl = resolveBaseUrl();
+    if (!pageUrl || !baseUrl) return;
     deps
-      .fetchUrlPreview(deps.options.baseUrl, pageUrl, deps.options.accessToken)
+      .fetchUrlPreview(baseUrl, pageUrl, resolveAccessToken())
       .then((r) => {
         /* 勿与 userEntry 做引用相等：Vue 会把消息项包成 Proxy，恒不等于原始对象，会导致整段预览永远不执行 */
         const userSlot = deps.messages.value[userMsgIdx];
@@ -714,9 +666,7 @@ export function useSendStream(deps: UseSendStreamDeps) {
 
     const text = normalizeUserTextForSend();
     if (!text) return;
-    const autoScreenshotTextContext = await prepareAutomaticScreenshotForVisualRequest(text);
     const { payload, requestStartedAt, userMsgIdx, msgIndex } = prepareSendRequest(text);
-    attachTextContext(payload, autoScreenshotTextContext);
     let urlPreviewImgs: string[] = [];
     let streamDone = false;
 
@@ -736,22 +686,18 @@ export function useSendStream(deps: UseSendStreamDeps) {
     deps.setStreamAbortController(controller);
     try {
       const onMeta = (meta: ChatRuntimeMeta) => applyRuntimeMeta(msgIndex, meta);
+      const baseUrl = resolveBaseUrl();
+      const accessToken = resolveAccessToken();
       const stream = deps.options.tenantId
         ? deps.streamWithFallback(
-            deps.options.baseUrl!,
+            baseUrl,
             payload,
-            deps.options.accessToken,
+            accessToken,
             controller.signal,
             onMeta,
             deps.options.tenantId,
           )
-        : deps.streamWithFallback(
-            deps.options.baseUrl!,
-            payload,
-            deps.options.accessToken,
-            controller.signal,
-            onMeta,
-          );
+        : deps.streamWithFallback(baseUrl, payload, accessToken, controller.signal, onMeta);
       const fullContent = await applyStreamToAssistantMessage(msgIndex, stream);
       streamDone = true;
       handleStreamSuccess(fullContent, text, msgIndex, requestStartedAt, urlPreviewImgs);
@@ -763,7 +709,6 @@ export function useSendStream(deps: UseSendStreamDeps) {
       streamStartedAt.value = null;
       firstTokenAt.value = null;
       deps.loading.value = false;
-      deps.playNotificationSound();
       deps.scrollToBottom(false);
     }
   }

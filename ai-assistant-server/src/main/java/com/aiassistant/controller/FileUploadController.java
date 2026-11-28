@@ -89,15 +89,46 @@ public class FileUploadController {
         return normalized.isBlank() ? null : normalized;
     }
 
+    public ResponseEntity<ChatResponse> summarizeFile(MultipartFile file) {
+        return summarizeFile(file, null, null);
+    }
+
     @PostMapping("/file/summarize")
-    public ResponseEntity<ChatResponse> summarizeFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ChatResponse> summarizeFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "question", required = false) String question,
+            @RequestParam(value = "model", required = false) String model) {
         try {
             String typeError = validateFileType(file);
             if (typeError != null)
                 return ResponseEntity.badRequest().body(ChatResponse.fail(typeError));
             String text = fileParserService.extractText(file);
-            String result = llmService.summarize(text);
-            usageStats.recordCall("file_summarize");
+            String trimmedQuestion = question != null ? question.trim() : "";
+            String result;
+            if (!trimmedQuestion.isEmpty()) {
+                String safeName =
+                        file.getOriginalFilename() != null && !file.getOriginalFilename().isBlank()
+                                ? file.getOriginalFilename()
+                                : "uploaded-file";
+                String prompt =
+                        "请严格基于以下上传文件《"
+                                + safeName
+                                + "》的内容回答用户问题。\n\n问题："
+                                + trimmedQuestion
+                                + "\n\n文件内容：\n"
+                                + text;
+                result =
+                        llmService.chat(
+                                prompt,
+                                java.util.Collections.emptyList(),
+                                null,
+                                model,
+                                (String) null);
+                usageStats.recordCall("file_qa");
+            } else {
+                result = llmService.summarize(text, model);
+                usageStats.recordCall("file_summarize");
+            }
             return ResponseEntity.ok(ChatResponse.ok(result));
         } catch (IllegalArgumentException e) {
             usageStats.recordError();

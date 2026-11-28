@@ -69,40 +69,6 @@ test('local-verify lane covers frontend build and backend package', async () => 
   assert.match(source, /--local-verify/)
 })
 
-test('compact chat search styles preserve mobile touch target variables', async () => {
-  const source = await readFile(
-    'ai-assistant-ui/src/components/styles/99-enterprise-overhaul.css',
-    'utf8',
-  )
-
-  assert.match(source, /--ai-search-input-height: 44px/)
-  assert.match(source, /--ai-search-nav-size: 44px/)
-  assert.match(
-    source,
-    /\.ai-chat-search-input \{\s+height: var\(--ai-search-input-height, 26px\) !important;\s+min-height: var\(--ai-search-input-height, 26px\) !important;/,
-  )
-  assert.match(
-    source,
-    /\.ai-search-nav,\s+\.ai-assistant-wrapper\.ai-assistant-wrapper\.ai-assistant-wrapper \.ai-search-options-toggle \{\s+height: var\(--ai-search-nav-size, 26px\) !important;\s+min-height: var\(--ai-search-nav-size, 26px\) !important;/,
-  )
-})
-
-test('Admin tabs switch to a non-scrolling grid at tablet and mobile breakpoints', async () => {
-  const source = await readFile(
-    'ai-assistant-vue-playground/src/AdminDemoPanel.vue',
-    'utf8',
-  )
-
-  assert.match(
-    source,
-    /@media \(max-width: 820px\) \{[\s\S]*?\.admin-app-tabs \{[\s\S]*?display: grid;[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);[\s\S]*?overflow-x: visible;/,
-  )
-  assert.match(
-    source,
-    /@media \(max-width: 700px\) \{[\s\S]*?\.admin-app-tabs \{\s+grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
-  )
-})
-
 test('Spring Boot artifacts exclude PDFBox commons-logging in favor of spring-jcl', async () => {
   for (const pomPath of ['ai-assistant-server/pom.xml', 'ai-assistant-demo/pom.xml']) {
     const pom = await readFile(pomPath, 'utf8')
