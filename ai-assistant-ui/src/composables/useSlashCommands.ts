@@ -2,13 +2,9 @@ import { ref, computed, type Ref } from 'vue';
 import type { I18nMessages } from '../utils/i18n';
 
 export interface SlashCommand {
-  /** e.g. "/clear" */
   name: string;
-  /** Short description shown in the popup */
   description: string;
-  /** SVG icon path(s) for 24x24 viewBox */
   icon: string;
-  /** Callback when the command is selected. Return `true` to clear input. */
   action: () => boolean | void;
 }
 
@@ -17,9 +13,9 @@ export interface UseSlashCommandsOptions {
   t: Ref<I18nMessages>;
   onClear: () => void;
   onNewSession: () => void;
-  onExport: () => void;
-  onChangeMode: (mode: 'translate' | 'summarize' | 'chat') => void;
-  extraCommands?: SlashCommand[];
+  onUploadFile?: () => void;
+  onFormFill?: () => void;
+  formAutoFillEnabled?: Ref<boolean>;
 }
 
 export function useSlashCommands(opts: UseSlashCommandsOptions) {
@@ -27,16 +23,30 @@ export function useSlashCommands(opts: UseSlashCommandsOptions) {
   const forceHide = ref(false);
 
   function buildCommands(): SlashCommand[] {
-    return [
-      {
-        name: '/clear',
-        description: opts.t.value.clear || '清除对话',
-        icon: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
+    const cmds: SlashCommand[] = [];
+    if (opts.formAutoFillEnabled?.value && opts.onFormFill) {
+      cmds.push({
+        name: '/fill',
+        description: opts.t.value.formFillAction || '从剪贴板自动填充当前表单',
+        icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',
         action: () => {
-          opts.onClear();
+          opts.onFormFill?.();
           return true;
         },
-      },
+      });
+    }
+    if (opts.onUploadFile) {
+      cmds.push({
+        name: '/upload',
+        description: opts.t.value.uploadFile || '上传文件提问或摘要',
+        icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11z',
+        action: () => {
+          opts.onUploadFile?.();
+          return true;
+        },
+      });
+    }
+    cmds.push(
       {
         name: '/new',
         description: opts.t.value.newSession || '新会话',
@@ -47,43 +57,16 @@ export function useSlashCommands(opts: UseSlashCommandsOptions) {
         },
       },
       {
-        name: '/translate',
-        description: opts.t.value.translate || '翻译',
-        icon: 'M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z',
+        name: '/clear',
+        description: opts.t.value.clear || '清空对话',
+        icon: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
         action: () => {
-          opts.onChangeMode('translate');
+          opts.onClear();
           return true;
         },
       },
-      {
-        name: '/summarize',
-        description: opts.t.value.summarize || '摘要',
-        icon: 'M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z',
-        action: () => {
-          opts.onChangeMode('summarize');
-          return true;
-        },
-      },
-      {
-        name: '/chat',
-        description: opts.t.value.chat || '对话',
-        icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z',
-        action: () => {
-          opts.onChangeMode('chat');
-          return true;
-        },
-      },
-      {
-        name: '/export',
-        description: opts.t.value.export || '导出',
-        icon: 'M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z',
-        action: () => {
-          opts.onExport();
-          return true;
-        },
-      },
-      ...(opts.extraCommands ?? []),
-    ];
+    );
+    return cmds;
   }
 
   const query = computed(() => {
@@ -93,10 +76,7 @@ export function useSlashCommands(opts: UseSlashCommandsOptions) {
     return v.toLowerCase();
   });
 
-  const visible = computed(() => {
-    if (forceHide.value) return false;
-    return query.value !== null;
-  });
+  const visible = computed(() => !forceHide.value && query.value !== null);
 
   const filteredCommands = computed(() => {
     const q = query.value;
@@ -118,56 +98,51 @@ export function useSlashCommands(opts: UseSlashCommandsOptions) {
 
   function executeSelected(): boolean {
     const cmds = filteredCommands.value;
-    if (cmds.length === 0) return false;
-    const idx = Math.min(selectedIndex.value, cmds.length - 1);
-    const cmd = cmds[idx];
-    const shouldClear = cmd.action();
-    if (shouldClear !== false) {
-      opts.input.value = '';
-    }
+    if (!visible.value || cmds.length === 0) return false;
+    const cmd = cmds[selectedIndex.value] || cmds[0];
+    if (!cmd) return false;
+    const clear = cmd.action();
+    if (clear !== false) opts.input.value = '';
     resetState();
     return true;
   }
 
-  function dismiss() {
-    forceHide.value = true;
-  }
-
-  /** Call on every input change to reset forced-hide when user re-types `/`. */
-  function onInputChange() {
-    if (opts.input.value.startsWith('/')) {
-      forceHide.value = false;
-      selectedIndex.value = 0;
-    }
-  }
-
-  /**
-   * Handle keydown in textarea. Returns `true` if the event was consumed
-   * (caller should `preventDefault`).
-   */
   function handleKeydown(e: KeyboardEvent): boolean {
-    if (!visible.value || filteredCommands.value.length === 0) return false;
-
-    switch (e.key) {
-      case 'ArrowUp':
-        moveSelection(-1);
+    if (!visible.value) return false;
+    const len = filteredCommands.value.length;
+    if (len === 0) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        forceHide.value = true;
         return true;
-      case 'ArrowDown':
-        moveSelection(1);
-        return true;
-      case 'Enter':
-        if (!e.shiftKey && !e.ctrlKey) {
-          return executeSelected();
-        }
-        return false;
-      case 'Tab':
-        return executeSelected();
-      case 'Escape':
-        dismiss();
-        return true;
-      default:
-        return false;
+      }
+      return false;
     }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveSelection(1);
+      return true;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveSelection(-1);
+      return true;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      return executeSelected();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      forceHide.value = true;
+      return true;
+    }
+    return false;
+  }
+
+  function onInputChange() {
+    forceHide.value = false;
+    selectedIndex.value = 0;
   }
 
   return {
@@ -176,7 +151,8 @@ export function useSlashCommands(opts: UseSlashCommandsOptions) {
     selectedIndex,
     handleKeydown,
     executeSelected,
-    dismiss,
+    moveSelection,
     onInputChange,
+    resetState,
   };
 }

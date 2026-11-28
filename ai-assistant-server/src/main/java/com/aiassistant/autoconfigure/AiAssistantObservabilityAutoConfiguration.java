@@ -1,11 +1,9 @@
 package com.aiassistant.autoconfigure;
 
 import com.aiassistant.config.AiAssistantProperties;
-import com.aiassistant.spi.AssistantCapability;
 import com.aiassistant.spi.ConversationMemoryProvider;
 import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolRegistry;
-import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -58,13 +56,11 @@ public class AiAssistantObservabilityAutoConfiguration {
     @Bean
     public ApplicationListener<ApplicationReadyEvent> multiReplicaStorageAdvisorLogger(
             com.aiassistant.config.MultiReplicaStorageAdvisor advisor,
-            ObjectProvider<com.aiassistant.rag.VectorStore> vectorStoreProvider,
             ObjectProvider<com.aiassistant.service.SessionStore> sessionStoreProvider,
             ObjectProvider<TokenUsageTracker> tokenUsageTrackerProvider,
             ObjectProvider<ConversationMemoryProvider> conversationMemoryProviderProvider) {
         return event ->
                 advisor.logWarnings(
-                        vectorStoreProvider.getIfAvailable(),
                         sessionStoreProvider.getIfAvailable(),
                         tokenUsageTrackerProvider.getIfAvailable(),
                         conversationMemoryProviderProvider.getIfAvailable());
@@ -76,14 +72,12 @@ public class AiAssistantObservabilityAutoConfiguration {
             @org.springframework.beans.factory.annotation.Value(
                             "${ai-assistant.deployment-replicas:1}")
                     int replicas,
-            ObjectProvider<com.aiassistant.rag.VectorStore> vectorStore,
             ObjectProvider<com.aiassistant.service.SessionStore> sessionStore,
             ObjectProvider<TokenUsageTracker> tokenUsage,
             ObjectProvider<ConversationMemoryProvider> memory) {
         return () ->
                 advisor.enforceReplicaCount(
                         replicas,
-                        vectorStore.getIfAvailable(),
                         sessionStore.getIfAvailable(),
                         tokenUsage.getIfAvailable(),
                         memory.getIfAvailable());
@@ -134,14 +128,10 @@ public class AiAssistantObservabilityAutoConfiguration {
         @ConditionalOnMissingBean(name = "aiAssistantMetrics")
         public com.aiassistant.observability.AiAssistantMetrics aiAssistantMetrics(
                 io.micrometer.core.instrument.MeterRegistry registry,
-                ObjectProvider<List<AssistantCapability>> capabilitiesProvider,
                 ToolRegistry toolRegistry,
                 TokenUsageTracker tokenUsageTracker) {
             return new com.aiassistant.observability.AiAssistantMetrics(
-                    registry,
-                    capabilitiesProvider.getIfAvailable(),
-                    toolRegistry,
-                    tokenUsageTracker);
+                    registry, toolRegistry, tokenUsageTracker);
         }
     }
 }

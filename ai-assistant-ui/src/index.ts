@@ -3,16 +3,17 @@ import { createApp } from 'vue';
 import AiAssistant from './components/AiAssistant.vue';
 import type { PageContextBlock } from './utils/pageContextDom';
 import type { FormAutoFillOptions } from './composables/useFormAutoFill';
+import type { EdgeDockStyle } from './composables/useEdgeDockStyle';
 
 export interface AiAssistantOptions {
   baseUrl?: string;
   primaryColor?: string;
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  /** 默认侧边隐藏样式（用户可在面板设置内切换）。 */
+  edgeDockStyle?: EdgeDockStyle;
   theme?: 'light' | 'dark' | 'auto';
   /** 阅读主题：限宽正文 + 衬线标题 + 暖白表面 + 升字号（默认关闭）。 */
   readingMode?: boolean;
-  /** Artifacts/Canvas：把成品（代码/文档/HTML/图）放到侧边画布展示。默认开启，设 false 关闭。 */
-  artifactsEnabled?: boolean;
   persistHistory?: boolean;
   /** 是否持久化悬浮球位置与贴边状态（localStorage），默认 true */
   persistFabPosition?: boolean;
@@ -216,23 +217,20 @@ export default {
 };
 
 export { AiAssistant };
-/* Public API surface policy:
- * - Core integration exports (AiAssistant, useAiAssistant, API helpers, WC entry)
- *   are the stable surface used by most host apps.
- * - Admin/MCP/plugin/composable utilities below are intentionally exported for
- *   advanced hosts, but new internal refactors should NOT be re-exported by
- *   default. Promote a helper here only when a host can use it independently
- *   without depending on AiAssistant.vue internals.
- * - Prefer secondary entries (`./admin`, `./mcp`, `./form-fill`, `./screenshot`)
- *   for new advanced helpers so the main entry can remain focused on the core
- *   Vue plugin and stable integration API. */
+/* Public API surface: focused on the floating orb chat widget,
+ * Markdown/code rendering, file upload Q&A, session management,
+ * host page context, and form auto-fill. */
 export { useAiAssistant } from './composables/useAiAssistant';
 export { useSessionSearch, highlightSearchInHtml } from './composables/useSessionSearch';
 export { useAiMarkdownRenderer } from './composables/useAiMarkdownRenderer';
-export { usePageSelection } from './composables/usePageSelection';
-export type { PageSelectionState } from './composables/usePageSelection';
 export type { StreamOptions } from './composables/useAiAssistant';
-export type { ChatPayload, ChatResult, UrlPreviewResult, ExportFormat } from './utils/api';
+export type {
+  ChatPayload,
+  ChatResult,
+  ChatRuntimeMeta,
+  ModelsListResult,
+  UrlPreviewResult,
+} from './utils/api';
 export {
   AiAssistantApiError,
   postChat,
@@ -240,137 +238,26 @@ export {
   uploadFile,
   fetchUrlPreview,
   fetchModels,
-  discoverRuntimeProviderModels,
-  fetchRuntimeModelConfig,
-  fetchPromptTemplates,
-  postServerExport,
-  saveRuntimeModelConfig,
 } from './utils/api';
-export type {
-  ChatRuntimeMeta,
-  ModelsListResult,
-  PromptTemplateEntry,
-  PromptTemplatesListResult,
-} from './utils/api';
-export type { RuntimeModelConfigPayload, RuntimeModelConfigResult } from './utils/api';
 export { collectPageContextText, collectSmartPageContext } from './utils/pageContextDom';
 export type { PageContextBlock, PageContextOptions } from './utils/pageContextDom';
-/** @deprecated Import Admin SDK helpers from `@ai-assistant/vue/admin` in v2-ready code. */
-/* D3: Admin SDK — host-side admin dashboard helpers around /admin/* endpoints */
-export {
-  adminOverview,
-  adminListTokens,
-  adminSetTokenQuota,
-  adminListPrompts,
-  adminCreatePrompt,
-  adminListTools,
-  adminIngestRag,
-  adminRagStats,
-  adminConfigureAbTest,
-  adminListAbTests,
-  adminSetFallbackChain,
-  adminGetFallbackChain,
-  adminListPlugins,
-  adminUnloadPlugin,
-  adminSystemInfo,
-} from './utils/adminApi';
-export type {
-  AdminResult,
-  AdminCallOptions,
-  AdminOverview,
-  AdminPromptEntry,
-  AdminToolEntry,
-  AdminRagStats,
-  AdminRagIngestResult,
-  AdminAbTestConfig,
-  AdminFallbackChain,
-  AdminPluginsResult,
-  AdminSystemInfo,
-} from './utils/adminApi';
-/** @deprecated Import screenshot helpers from `@ai-assistant/vue/screenshot` in v2-ready code. */
-export { captureScreenshot } from './utils/pageScreenshot';
-export { extractStructuredData } from './utils/pageStructuredData';
-export {
-  highlightElement,
-  highlightByText,
-  clearHighlights,
-  injectHighlightStyles,
-} from './utils/domHighlight';
 export { wsStreamChat } from './utils/wsChat';
 export { useStreamWithFallback } from './composables/useStreamWithFallback';
-export { providePluginRegistry, usePluginRegistry } from './composables/usePluginRegistry';
-export type { AiPlugin, PluginContext } from './composables/usePluginRegistry';
-export { createStreamTracker } from './utils/perfMetrics';
-export type { StreamMetrics } from './utils/perfMetrics';
 export { useMultiSession } from './composables/useMultiSession';
 export type { SessionEntry } from './composables/useMultiSession';
-export { useMultiModelChat } from './composables/useMultiModelChat';
-export type { MultiModelColumn, UseMultiModelChatOptions } from './composables/useMultiModelChat';
-export { useTextToSpeech } from './composables/useTextToSpeech';
-export type { TtsSpeakOptions } from './composables/useTextToSpeech';
-export {
-  usePromptTemplateLibrary,
-  renderPromptTemplate,
-} from './composables/usePromptTemplateLibrary';
-export type {
-  PromptTemplate,
-  PromptTemplateVariable,
-  UsePromptTemplateLibraryOptions,
-} from './composables/usePromptTemplateLibrary';
-export { useMermaidRenderer } from './composables/useMermaidRenderer';
-export type { MermaidRenderOptions } from './composables/useMermaidRenderer';
 export { useMessageVirtualScroll } from './composables/useMessageVirtualScroll';
 export type {
   UseMessageVirtualScrollOptions,
   VirtualWindow,
 } from './composables/useMessageVirtualScroll';
-/** @deprecated Import MCP helpers from `@ai-assistant/vue/mcp` in v2-ready code. */
-export { useMcpClient, McpRpcError } from './composables/useMcpClient';
-export type {
-  McpClientOptions,
-  McpTool,
-  McpInitializeResult,
-  McpToolCallResult,
-} from './composables/useMcpClient';
-export { useMcpAutoPlugin } from './composables/useMcpAutoPlugin';
-export type { UseMcpAutoPluginOptions } from './composables/useMcpAutoPlugin';
-export { useMcpStream, McpStreamUnavailable } from './composables/useMcpStream';
-export type {
-  McpStreamOptions,
-  McpStreamNotification,
-  EventSourceLike,
-} from './composables/useMcpStream';
-export { useIdleScheduler, runInChunks } from './composables/useIdleScheduler';
-export type { IdleTask, IdleScheduleOptions } from './composables/useIdleScheduler';
-export { useRafBatch, createReadWriteBatch } from './composables/useRafBatch';
-export type { RafBatch } from './composables/useRafBatch';
 export { useCommandPalette } from './composables/useCommandPalette';
 export type { UseCommandPaletteOptions } from './composables/useCommandPalette';
 export type { CommandItem } from './types/command-palette';
-export { useMarkdownWorker } from './composables/useMarkdownWorker';
-export type { UseMarkdownWorkerOptions } from './composables/useMarkdownWorker';
-/* K22: opt-in wrapper that bundles marked + marked-highlight + hljs (6 core
- * languages) into the worker for off-main-thread syntax highlighting. */
-export { useHljsMarkdownWorker } from './composables/useHljsMarkdownWorker';
-export type { UseHljsMarkdownWorkerOptions } from './composables/useHljsMarkdownWorker';
-/* K35: terminal-style ↑/↓ prompt recall. Hosts can opt-in by recording
- * sent prompts and wiring keydown handlers on their input field. */
 export { usePromptHistory } from './composables/usePromptHistory';
 export type {
   UsePromptHistoryOptions,
   UsePromptHistoryReturn,
 } from './composables/usePromptHistory';
-/* K38: drag-and-drop file ingestion on FAB. Standalone composable so SDK
- * consumers can bolt it onto any draggable target (FAB / sidebar dock /
- * floating widget) with a custom onFiles callback (KB / S3 / etc.). */
-export { useFabDropIngest } from './composables/useFabDropIngest';
-export type {
-  UseFabDropIngestOptions,
-  UseFabDropIngestReturn,
-} from './composables/useFabDropIngest';
-/* K39: cross-session full-text search. Standalone composable; consumers
- * pass reactive sessions[] + query string and receive flat or grouped
- * matches with HTML-safe highlighted snippets. */
 export {
   useCrossSessionSearch,
   buildSnippet,
@@ -383,15 +270,7 @@ export type {
   UseCrossSessionSearchOptions,
   UseCrossSessionSearchReturn,
 } from './composables/useCrossSessionSearch';
-/* K40: pure-function line-level diff (LCS DP + side-by-side row layout).
- * Standalone so consumers can build their own diff dialog or feed any
- * source/target pair (file revisions / API responses / etc.). */
-export { diffLines, opsToRows, summariseRows } from './composables/useLineDiff';
-export type { DiffOp, DiffOpEntry, SideBySideRow, DiffSummary } from './composables/useLineDiff';
 /** @deprecated Import form-fill helpers from `@ai-assistant/vue/form-fill` in v2-ready code. */
-/* L1: form auto-fill (Phase 1) — clipboard "key:value" pairs auto-write into
- * host page form fields. Composable + pure-function utils are exported so
- * advanced hosts can build custom UI without `<AiAssistant>`. */
 export { useFormAutoFill } from './composables/useFormAutoFill';
 export type {
   FormAutoFillOptions,
@@ -435,9 +314,21 @@ export {
   highlightFilledField,
   clearFillHighlights,
 } from './utils/formAutoFill/filler';
+export { useEdgeDockStyle, EDGE_DOCK_STYLES } from './composables/useEdgeDockStyle';
+export type { EdgeDockStyle, EdgeDockStyleOption } from './composables/useEdgeDockStyle';
+export {
+  useConnectionConfig,
+  CONNECTION_CONFIG_KEY,
+  DIRECT_MODEL_PRESETS,
+  createDefaultConnectionConfig,
+  createProviderFromPreset,
+  createCustomProvider,
+} from './composables/useConnectionConfig';
+export type {
+  ConnectionConfig,
+  ConnectionMode,
+  DirectModelPreset,
+  DirectProviderConfig,
+  ProviderProtocol,
+} from './composables/useConnectionConfig';
 export type { FillRecord } from './utils/formAutoFill/filler';
-/* CommandPalette / MessageReactionBar / ColorThemeSwitcher components are
- * shipped as SFCs in dist/ but NOT re-exported from the main entry to keep
- * the lib bundle structure clean. Import them directly:
- *   import CommandPalette from '@ai-assistant/vue/components/CommandPalette.vue';
- * Or copy them into the host project for full styling control. */

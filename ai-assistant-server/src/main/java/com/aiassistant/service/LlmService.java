@@ -6,7 +6,6 @@ import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.TenantContext;
 import com.aiassistant.memory.ConversationMemory;
 import com.aiassistant.model.ChatRequest;
-import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.BlockingLlmCallExecutor;
@@ -48,7 +47,6 @@ public class LlmService {
     private final ContentFilter contentFilter;
     private final TokenUsageTracker tokenUsageTracker;
     private final ModelRouter modelRouter;
-    private final RagService ragService;
     private final ConversationMemoryProvider memoryProvider;
     private final List<ChatInterceptor> interceptors;
     private final AuditEventStore auditEventStore;
@@ -74,8 +72,7 @@ public class LlmService {
             ToolRegistry toolRegistry,
             ContentFilter contentFilter,
             TokenUsageTracker tokenUsageTracker,
-            ModelRouter modelRouter,
-            RagService ragService) {
+            ModelRouter modelRouter) {
         this(
                 properties,
                 urlFetchService,
@@ -85,7 +82,6 @@ public class LlmService {
                 contentFilter,
                 tokenUsageTracker,
                 modelRouter,
-                ragService,
                 null,
                 null,
                 null);
@@ -100,7 +96,6 @@ public class LlmService {
             ContentFilter contentFilter,
             TokenUsageTracker tokenUsageTracker,
             ModelRouter modelRouter,
-            RagService ragService,
             ConversationMemoryProvider memoryProvider,
             List<ChatInterceptor> interceptors,
             AuditEventStore auditEventStore) {
@@ -116,11 +111,10 @@ public class LlmService {
         this.contentFilter = contentFilter;
         this.tokenUsageTracker = tokenUsageTracker;
         this.modelRouter = modelRouter;
-        this.ragService = ragService;
         this.memoryProvider = memoryProvider;
         this.interceptors = interceptors != null ? interceptors : List.of();
         this.auditEventStore = auditEventStore;
-        this.promptComposer = new PromptComposer(requestBuilder, memoryProvider, ragService);
+        this.promptComposer = new PromptComposer(requestBuilder, memoryProvider);
         this.requestEnricher = new RequestEnricher(contentFilter, urlFetchService);
         this.responsePostProcessor =
                 new ResponsePostProcessor(contentFilter, tokenUsageTracker, responseParser);
@@ -176,14 +170,13 @@ public class LlmService {
 
         int timeout = Math.max(1, Math.min(properties.getTimeoutSeconds(), 600));
         log.info(
-                "AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}, pii={}, rag={}, memory={}, interceptors={}",
+                "AI Assistant initialized: provider={}, model={}, timeout={}s, keys={}, metrics={}, pii={}, memory={}, interceptors={}",
                 properties.getProvider(),
                 properties.resolveModel(),
                 timeout,
                 keyRotator.keyCount(),
                 meterRegistry != null,
                 contentFilter != null,
-                ragService != null,
                 memoryProvider != null,
                 this.interceptors.size());
     }
@@ -821,7 +814,6 @@ public class LlmService {
         private ContentFilter contentFilter;
         private TokenUsageTracker tokenUsageTracker;
         private ModelRouter modelRouter;
-        private RagService ragService;
         private ConversationMemoryProvider memoryProvider;
         private List<ChatInterceptor> interceptors;
         private AuditEventStore auditEventStore;
@@ -868,11 +860,6 @@ public class LlmService {
             return this;
         }
 
-        public Builder ragService(RagService ragService) {
-            this.ragService = ragService;
-            return this;
-        }
-
         public Builder memoryProvider(ConversationMemoryProvider memoryProvider) {
             this.memoryProvider = memoryProvider;
             return this;
@@ -898,7 +885,6 @@ public class LlmService {
                     contentFilter,
                     tokenUsageTracker,
                     modelRouter,
-                    ragService,
                     memoryProvider,
                     interceptors,
                     auditEventStore);

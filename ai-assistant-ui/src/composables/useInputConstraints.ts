@@ -54,7 +54,7 @@ export function useInputConstraints(deps: UseInputConstraintsOptions) {
 
   const sendBlockedActionLabel = computed(() => {
     if (!input.value.trim()) return '';
-    if (!options.baseUrl) return t.value.diagnosticsUseDefaultBaseUrl;
+    if (!options.baseUrl) return t.value.useDefaultBaseUrl;
     return '';
   });
 

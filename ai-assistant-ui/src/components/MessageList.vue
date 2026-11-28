@@ -4,11 +4,6 @@
       {{ showEarlierLabel }}
     </button>
   </div>
-  <!--
-    C10 虚拟窗口：当 `virtualSlice` 启用时，只渲染 [startIndex, endIndex) 区间
-    的消息，用 spacer div 撑开剩余高度以保持 scrollbar 行为正确。spacer 通过
-    `min-height` 而非 height 避免与 flex 父容器冲突。
-  -->
   <div
     v-if="virtualSlice && virtualSlice.enabled && virtualSlice.topSpacer > 0"
     class="ai-msg-virtual-spacer ai-msg-virtual-spacer-top"
@@ -24,18 +19,9 @@
       'ai-msg',
       msg.role,
       { 'ai-msg-streaming': isActiveStreaming(displayOffset + renderedStart + idx, msg) },
-      { 'ai-msg-selected': selectMode && selectedIndices.has(displayOffset + renderedStart + idx) },
     ]"
     :data-ai-msg-global-idx="displayOffset + renderedStart + idx"
-    @click="selectMode ? emit('toggle-selection', displayOffset + renderedStart + idx) : undefined"
   >
-    <input
-      v-if="selectMode"
-      type="checkbox"
-      class="ai-msg-checkbox"
-      :checked="selectedIndices.has(displayOffset + renderedStart + idx)"
-      @click.stop="emit('toggle-selection', displayOffset + renderedStart + idx)"
-    />
     <span
       v-if="msg.role === 'assistant'"
       class="ai-assistant-avatar"
@@ -44,7 +30,12 @@
       }"
       aria-hidden="true"
     >
-      <AssistantIcon class="ai-assistant-avatar-icon" name="sparkle" :size="22" />
+      <BrandMark
+        class="ai-assistant-avatar-icon"
+        :size="16"
+        :active="isActiveStreaming(displayOffset + renderedStart + idx, msg)"
+        data-assistant-icon="sparkles"
+      />
     </span>
     <template v-if="editingIdx === displayOffset + renderedStart + idx">
       <div class="ai-bubble ai-bubble-editing">
@@ -83,24 +74,8 @@
         aria-live="polite"
       >
         <span class="ai-thinking-orb" aria-hidden="true"></span>
-        <span class="ai-thinking-text">
-          {{ streamStageText(displayOffset + renderedStart + idx, msg) }}
-        </span>
+        <span class="ai-thinking-text">{{ t.replying }}</span>
       </div>
-      <MessageWebSearchMeta
-        v-if="
-          msg.role === 'assistant' &&
-          isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
-          !hasVisibleContent(msg.content)
-        "
-        :meta="msg.meta"
-        :content="msg.content"
-        :message-key="`${displayOffset + renderedStart + idx}-early`"
-        :references-label="t.responseMetaWebSearchReferences || 'References'"
-        :t="t"
-        mode="early"
-      />
-      <!-- 首 token 前的骨架屏：缓解等待空白；屏读由上方 thinking-bubble 播报，故 aria-hidden -->
       <div
         v-if="
           isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
@@ -113,22 +88,6 @@
         <span class="ai-skeleton-line"></span>
         <span class="ai-skeleton-line ai-skeleton-line-sm"></span>
       </div>
-      <MessageThinkingBlocks
-        v-if="msg.role === 'assistant'"
-        :thinking="msg.thinking"
-        :active-streaming="isActiveStreaming(displayOffset + renderedStart + idx, msg)"
-        :has-visible-content="hasVisibleContent(msg.content)"
-        :thinking-label="t.thinkingLabel || '思考过程'"
-        :thinking-live-label="t.thinkingLive || '正在思考…'"
-        :render-bubble="
-          (content, isLast) => renderBubble(content, displayOffset + renderedStart + idx, isLast)
-        "
-      />
-      <!-- Agent / Deep Research steps -->
-      <ResearchTimeline
-        v-if="msg.agentSteps && msg.agentSteps.length > 0"
-        :steps="msg.agentSteps"
-      />
       <div v-if="msg.role === 'user' && messageImageThumbs(msg).length > 0" class="ai-user-images">
         <img
           v-for="(thumb, imageIdx) in messageImageThumbs(msg)"
@@ -138,65 +97,24 @@
           class="ai-user-image-thumb"
         />
       </div>
-      <!-- Tool calls display -->
-      <MessageToolCalls
-        v-if="msg.toolCalls && msg.toolCalls.length > 0"
-        :tool-calls="msg.toolCalls"
-        :tool-result-label="t.toolResult || '结果'"
-        :t="t"
-        :call-tool="callTool"
-      />
-      <template
-        v-else-if="
+      <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
+      <div
+        v-if="
           !(
             isActiveStreaming(displayOffset + renderedStart + idx, msg) &&
             !hasVisibleContent(msg.content)
           )
         "
-      >
-        <MessageReadingPreview
-          v-if="shouldShowReadingPreview(msg, displayOffset + renderedStart + idx)"
-          :content="msg.content"
-          :expanded="isReadingExpanded(displayOffset + renderedStart + idx)"
-          :message-key="`${displayOffset + renderedStart + idx}`"
-          @toggle="toggleReadingExpanded(displayOffset + renderedStart + idx)"
-        />
-        <!-- eslint-disable vue/no-v-html -- 渲染内容已由 useAiMarkdownRenderer 统一清洗 -->
-        <div
-          v-if="
-            !shouldShowReadingPreview(msg, displayOffset + renderedStart + idx) ||
-            isReadingExpanded(displayOffset + renderedStart + idx)
-          "
-          class="ai-bubble"
-          @contextmenu="onBubbleContextMenu($event, displayOffset + renderedStart + idx, msg.role)"
-          v-html="
-            citeBubble(
-              msg,
-              displayOffset + renderedStart + idx,
-              loading && msg.role === 'assistant' && idx === messages.length - 1,
-            )
-          "
-        ></div>
-        <!-- eslint-enable vue/no-v-html -->
-        <MessageWebSearchMeta
-          v-if="msg.role === 'assistant'"
-          :meta="msg.meta"
-          :content="msg.content"
-          :message-key="`${displayOffset + renderedStart + idx}`"
-          :references-label="t.responseMetaWebSearchReferences || 'References'"
-          :t="t"
-          @regenerate-with-citations="
-            emit('regenerate-with-citations', displayOffset + renderedStart + idx)
-          "
-        />
-      </template>
-      <!-- Artifacts/Canvas 卡片：点击在侧边画布打开 -->
-      <div
-        v-if="msg.role === 'assistant' && msg.artifacts && msg.artifacts.length > 0"
-        class="ai-artifact-cards"
-      >
-        <ArtifactCard v-for="a in msg.artifacts" :key="a.id" :artifact="a" />
-      </div>
+        class="ai-bubble"
+        v-html="
+          renderBubble(
+            msg.content,
+            displayOffset + renderedStart + idx,
+            loading && msg.role === 'assistant' && idx === messages.length - 1,
+          )
+        "
+      ></div>
+      <!-- eslint-enable vue/no-v-html -->
       <span v-if="msg.role !== 'assistant' && msg.timestamp" class="ai-msg-time">
         {{ formatRelativeTime(msg.timestamp) }}
       </span>
@@ -213,16 +131,7 @@
       aria-live="polite"
     >
       <span class="ai-stream-progress-dot" aria-hidden="true"></span>
-      <span class="ai-stream-progress-stage">
-        {{ streamStageText(displayOffset + renderedStart + idx, msg) }}
-      </span>
-      ·
-      <span v-if="firstTokenAt != null" class="ai-stream-progress-ttft">
-        {{ t.streamTtftLabel || 'TTFT' }}
-        {{ ((firstTokenAt - streamStartedAt) / 1000).toFixed(1) }}s ·
-      </span>
-      {{ msg.content.length }} {{ t.streamProgressChars || 'chars' }}
-      ·
+      {{ msg.content.length }} {{ t.streamProgressChars || 'chars' }} ·
       {{ ((streamingNowMs - streamStartedAt) / 1000).toFixed(1) }}s
     </span>
     <button
@@ -246,20 +155,7 @@
         :aria-label="t.msgCtxEdit"
         @click="emit('start-edit', displayOffset + renderedStart + idx)"
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-        </svg>
+        <AssistantIcon name="pencil" :size="14" />
       </button>
     </div>
     <div
@@ -286,21 +182,7 @@
           >
             {{ t.codeCopied }}
           </span>
-          <svg
-            v-else
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="9" y="9" width="13" height="13" rx="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
+          <AssistantIcon v-else name="copy" :size="14" />
         </button>
         <button
           v-if="formAutoFillEnabled"
@@ -310,22 +192,7 @@
           :aria-label="t.formFillAction || 'Fill form'"
           @click="emit('form-fill', displayOffset + renderedStart + idx)"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M7 9h4" />
-            <path d="M7 13h2" />
-            <path d="M13 15l2 2 4-4" />
-          </svg>
+          <AssistantIcon name="square-check-big" :size="14" />
         </button>
         <button
           type="button"
@@ -334,179 +201,14 @@
           :aria-label="t.regenerate"
           @click="emit('regenerate-at', displayOffset + renderedStart + idx)"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 12a9 9 0 0 1-15.1 6.64" />
-            <path d="M3 12A9 9 0 0 1 18.1 5.36" />
-            <path d="M21 3v6h-6" />
-            <path d="M3 21v-6h6" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          class="ai-msg-feedback"
-          :class="{ active: msg.feedback === 'up' }"
-          :title="t.thumbsUp"
-          :aria-label="t.thumbsUp"
-          :aria-pressed="msg.feedback === 'up' ? 'true' : 'false'"
-          @click="emit('set-feedback', displayOffset + renderedStart + idx, 'up')"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M7 10v12" />
-            <path
-              d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          class="ai-msg-feedback"
-          :class="{ active: msg.feedback === 'down' }"
-          :title="t.thumbsDown"
-          :aria-label="t.thumbsDown"
-          :aria-pressed="msg.feedback === 'down' ? 'true' : 'false'"
-          @click="emit('set-feedback', displayOffset + renderedStart + idx, 'down')"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M17 14V2" />
-            <path
-              d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"
-            />
-          </svg>
+          <AssistantIcon name="rotate-ccw" :size="14" />
         </button>
       </div>
       <span v-if="msg.timestamp" class="ai-msg-time">{{ formatRelativeTime(msg.timestamp) }}</span>
-      <div v-if="msg.meta" class="ai-msg-meta">
-        <span v-if="runtimeModelLabel(msg)" class="ai-msg-meta-pill">
-          {{ t.responseMetaEffectiveModel || 'Actual' }} {{ runtimeModelLabel(msg) }}
-        </span>
-        <span v-if="msg.meta.fallback" class="ai-msg-meta-pill">
-          {{ t.responseMetaFallback || 'Model switched' }}
-        </span>
-        <span v-if="msg.meta.webSearchEnabled" class="ai-msg-meta-pill">
-          {{ t.responseMetaWebSearch || 'Web' }} {{ msg.meta?.webSearchProvider?.trim() || '' }}
-        </span>
-        <span v-if="msg.meta.webSearchResultCount != null" class="ai-msg-meta-pill">
-          {{ webSearchResultLabel(msg.meta.webSearchResultCount) }}
-        </span>
-        <span v-if="msg.meta.webSearchFallback" class="ai-msg-meta-pill">
-          {{ t.responseMetaWebSearchFallback || 'Search fallback' }}
-        </span>
-        <span v-if="msg.meta.webSearchFailureReason" class="ai-msg-meta-pill">
-          {{ msg.meta.webSearchFailureReason }}
-        </span>
-        <span v-if="msg.meta.elapsedMs != null" class="ai-msg-meta-pill">
-          {{ t.responseMetaElapsed || 'Elapsed' }} {{ formatMs(msg.meta.elapsedMs) }}
-        </span>
-        <button
-          v-if="hasSecondaryMeta(msg.meta)"
-          type="button"
-          class="ai-msg-meta-toggle"
-          :aria-expanded="
-            isMetaDetailsExpanded(displayOffset + renderedStart + idx) ? 'true' : 'false'
-          "
-          :aria-label="
-            isMetaDetailsExpanded(displayOffset + renderedStart + idx)
-              ? t.responseMetaHideLabel || 'Hide details'
-              : t.responseMetaMoreLabel || 'More details'
-          "
-          :title="
-            isMetaDetailsExpanded(displayOffset + renderedStart + idx)
-              ? t.responseMetaHideLabel || 'Hide details'
-              : t.responseMetaMoreLabel || 'More details'
-          "
-          @click="toggleMetaDetails(displayOffset + renderedStart + idx)"
-        >
-          ⋯
-        </button>
-        <div
-          v-if="
-            hasSecondaryMeta(msg.meta) && isMetaDetailsExpanded(displayOffset + renderedStart + idx)
-          "
-          class="ai-msg-meta-secondary"
-        >
-          <span v-if="msg.meta.visionInputCount" class="ai-msg-meta-pill">
-            {{ t.responseMetaVision || 'Vision' }} {{ msg.meta.visionInputCount }}
-          </span>
-          <span v-if="msg.meta.visionRoute" class="ai-msg-meta-pill">
-            {{ t.responseMetaVisionRoute || 'Vision route' }} {{ msg.meta.visionRoute }}
-          </span>
-          <span v-if="msg.meta.ttftMs != null" class="ai-msg-meta-pill">
-            {{ t.responseMetaTtft || 'TTFT' }} {{ formatMs(msg.meta.ttftMs) }}
-          </span>
-          <span v-if="msg.meta.retried" class="ai-msg-meta-pill">
-            {{ t.responseMetaRetried || 'Retried' }}
-          </span>
-          <span v-if="msg.meta.webSearchDurationMs != null" class="ai-msg-meta-pill">
-            Search {{ formatMs(msg.meta.webSearchDurationMs) }}
-          </span>
-          <span v-if="msg.meta.webSearchStableDurationMs != null" class="ai-msg-meta-pill">
-            Stable {{ formatMs(msg.meta.webSearchStableDurationMs) }}
-          </span>
-          <span v-if="msg.meta.webSearchFallbackDurationMs != null" class="ai-msg-meta-pill">
-            Fallback {{ formatMs(msg.meta.webSearchFallbackDurationMs) }}
-          </span>
-          <a
-            v-for="(url, sourceIdx) in webSearchSourceUrls(msg.meta)"
-            :key="`${displayOffset + renderedStart + idx}-source-${sourceIdx}`"
-            class="ai-msg-meta-pill ai-msg-meta-source-link"
-            :href="url"
-            target="_blank"
-            rel="noopener noreferrer"
-            @click.stop
-          >
-            {{ t.responseMetaWebSearchSource || 'Source' }} {{ sourceIdx + 1 }}
-          </a>
-        </div>
-      </div>
+      <span v-if="msg.meta?.elapsedMs != null" class="ai-msg-meta">
+        <span class="ai-msg-meta-pill">{{ (msg.meta.elapsedMs / 1000).toFixed(1) }}s</span>
+      </span>
     </div>
-    <!-- K24: extended reactions row. Distinct from .ai-msg-actions above which
-         holds the canonical thumbs-up/down (kept for backwards i18n + analytics
-         compatibility). The bar below adds love/favorite/pin which the host
-         can wire to a reaction-tracking backend via @set-reaction. -->
-    <MessageReactionBar
-      v-if="msg.role === 'assistant' && msg.content && !loading"
-      :message-id="String(displayOffset + renderedStart + idx)"
-      :selected="msg.reactions?.selected ?? ''"
-      :counts="msg.reactions?.counts ?? {}"
-      :reactions="[
-        { emoji: '❤️', label: t.reactLove || '喜欢 / Love', icon: 'heart' },
-        { emoji: '⭐', label: t.reactFavorite || '收藏 / Favorite', icon: 'star' },
-        { emoji: '📌', label: t.reactPin || '钉选 / Pin', icon: 'pin' },
-      ]"
-      @reaction="
-        (p) => emit('set-reaction', displayOffset + renderedStart + idx, p.emoji, p.toggled)
-      "
-    />
     <button
       v-if="isErrorMessage(msg) && !loading"
       type="button"
@@ -527,144 +229,12 @@
 
 <script setup lang="ts">
 import type { PropType } from 'vue';
-import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { Message } from '../types/message';
 import type { I18nMessages } from '../utils/i18n/types';
-import type { ToolCallResult } from '../utils/api';
 import type { VirtualWindow } from '../composables/useMessageVirtualScroll';
-import MessageReadingPreview from './MessageReadingPreview.vue';
-import MessageThinkingBlocks from './MessageThinkingBlocks.vue';
-import MessageToolCalls from './MessageToolCalls.vue';
-import MessageWebSearchMeta from './MessageWebSearchMeta.vue';
-import ResearchTimeline from './ResearchTimeline.vue';
-import ArtifactCard from './ArtifactCard.vue';
 import AssistantIcon from './AssistantIcon.vue';
-import { linkifyCitations } from '../utils/citations';
-/* K24: MessageReactionBar enables a 3-emoji extended reaction row (❤ ⭐ 📌)
- * under each assistant message. Lazy-imported so the chunk only loads when
- * a message is actually rendered. */
-import { defineAsyncComponent } from 'vue';
-const MessageReactionBar = defineAsyncComponent(() => import('./MessageReactionBar.vue'));
-
-function formatMs(value: number) {
-  if (!Number.isFinite(value) || value < 0) return '0.0s';
-  return `${(value / 1000).toFixed(1)}s`;
-}
-
-function runtimeModelLabel(msg: Message) {
-  const effective = msg.meta?.effectiveModel?.trim();
-  if (!effective) return '';
-  const selected = msg.meta?.model?.trim() || msg.meta?.requestedModel?.trim();
-  return selected && selected === effective ? '' : effective;
-}
-
-function webSearchResultLabel(count: number) {
-  const safeCount = Number.isFinite(count) && count >= 0 ? count : 0;
-  const unit =
-    safeCount === 1
-      ? props.t.responseMetaWebSearchResult || 'result'
-      : props.t.responseMetaWebSearchResults || 'results';
-  return `${safeCount} ${unit}`;
-}
-
-function webSearchSourceUrls(meta: Message['meta']) {
-  return (meta?.webSearchSourceUrls || []).filter((url) => typeof url === 'string' && url.trim());
-}
-
-function webSearchSourcePreviews(meta: Message['meta']) {
-  return (meta?.webSearchSourcePreviews || []).filter(
-    (source) => source && (source.title || source.url || source.snippet),
-  );
-}
-
-/** Per-message ordered source list for inline `[n]` citation linkifying. */
-function citationSources(msg: Message) {
-  const previews = webSearchSourcePreviews(msg.meta);
-  if (previews.length > 0) {
-    return previews.map((p) => ({ url: p.url, title: p.title, snippet: p.snippet }));
-  }
-  return webSearchSourceUrls(msg.meta).map((url) => ({ url }));
-}
-
-/** Render an assistant bubble and turn its `[n]` markers into clickable citation
- * chips when the message carries web-search sources. Other roles render as-is. */
-function citeBubble(msg: Message, globalIdx: number, isLast: boolean): string {
-  const html = props.renderBubble(msg.content, globalIdx, isLast);
-  if (msg.role !== 'assistant') return html;
-  const sources = citationSources(msg);
-  return sources.length > 0 ? linkifyCitations(html, sources) : html;
-}
-
-function hasSecondaryMeta(meta: Message['meta']): boolean {
-  if (!meta) return false;
-  return (
-    (typeof meta.visionInputCount === 'number' && meta.visionInputCount > 0) ||
-    Boolean(meta.visionRoute) ||
-    typeof meta.ttftMs === 'number' ||
-    Boolean(meta.retried) ||
-    typeof meta.webSearchDurationMs === 'number' ||
-    typeof meta.webSearchStableDurationMs === 'number' ||
-    typeof meta.webSearchFallbackDurationMs === 'number' ||
-    webSearchSourcePreviews(meta).length > 0 ||
-    webSearchSourceUrls(meta).length > 0
-  );
-}
-
-const expandedMetaDetails = ref<Set<number>>(new Set());
-const expandedReadingMessages = ref<Set<number>>(new Set());
-const READING_PREVIEW_MIN_CHARS = 900;
-const READING_PREVIEW_MIN_LINES = 10;
-
-function isMetaDetailsExpanded(globalIdx: number): boolean {
-  return expandedMetaDetails.value.has(globalIdx);
-}
-
-function toggleMetaDetails(globalIdx: number) {
-  const next = new Set(expandedMetaDetails.value);
-  if (next.has(globalIdx)) {
-    next.delete(globalIdx);
-  } else {
-    next.add(globalIdx);
-  }
-  expandedMetaDetails.value = next;
-}
-
-function shouldShowReadingPreview(msg: Message, globalIdx: number): boolean {
-  if (msg.role !== 'assistant') return false;
-  if (props.isActiveStreaming(globalIdx, msg)) return false;
-  const content = msg.content || '';
-  if (content.length >= READING_PREVIEW_MIN_CHARS) return true;
-  return content.split(/\r?\n/).filter((line) => line.trim()).length >= READING_PREVIEW_MIN_LINES;
-}
-
-function isReadingExpanded(globalIdx: number): boolean {
-  return expandedReadingMessages.value.has(globalIdx);
-}
-
-function toggleReadingExpanded(globalIdx: number) {
-  const next = new Set(expandedReadingMessages.value);
-  if (next.has(globalIdx)) next.delete(globalIdx);
-  else next.add(globalIdx);
-  expandedReadingMessages.value = next;
-}
-
-function streamStageText(globalIdx: number, msg: Message) {
-  if (!props.isActiveStreaming(globalIdx, msg)) return props.t.replying;
-  if (msg.meta?.webSearchEnabled && !props.hasVisibleContent(msg.content)) {
-    return props.t.streamStageSearchingWeb || 'Searching web…';
-  }
-  if (props.firstTokenAt != null || props.hasVisibleContent(msg.content)) {
-    return props.t.streamStageGenerating || props.t.replying;
-  }
-  if (
-    props.streamStartedAt != null &&
-    props.streamingNowMs > 0 &&
-    props.streamingNowMs - props.streamStartedAt >= 1200
-  ) {
-    return props.t.streamStageWaitingFirstToken || props.t.replying;
-  }
-  return props.t.streamStageConnecting || props.t.replying;
-}
+import BrandMark from './BrandMark.vue';
 
 const props = defineProps({
   messages: {
@@ -681,14 +251,6 @@ const props = defineProps({
   },
   renderAllMessages: {
     type: Boolean,
-    required: true,
-  },
-  selectMode: {
-    type: Boolean,
-    required: true,
-  },
-  selectedIndices: {
-    type: Object as PropType<Set<number>>,
     required: true,
   },
   loading: {
@@ -735,10 +297,6 @@ const props = defineProps({
     type: Function as PropType<(content: string, globalIdx: number, isLast: boolean) => string>,
     required: true,
   },
-  onBubbleContextMenu: {
-    type: Function as PropType<(event: MouseEvent, globalIdx: number, role: string) => void>,
-    required: true,
-  },
   isErrorMessage: {
     type: Function as PropType<(msg: Message) => boolean>,
     required: true,
@@ -751,42 +309,20 @@ const props = defineProps({
     type: Number as PropType<number | null>,
     default: null,
   },
-  firstTokenAt: {
-    type: Number as PropType<number | null>,
-    default: null,
-  },
   streamingNowMs: {
     type: Number,
     default: 0,
   },
-  /**
-   * D1: 真实高度测量回调。当宿主启用虚拟滚动时传入，
-   * MessageList 会给每条 v-for 渲染的消息挂 ResizeObserver，
-   * 在 contentRect 变化时回调宿主的 `virtualScroll.updateMeasuredHeight`。
-   * 注意这里传的是 displayedMessages 内部索引，不是全局消息索引，
-   * 让 spacer 计算从 90px 估算转为真实像素，消除长会话滚动跳动。
-   */
   onMeasureHeight: {
     type: Function as PropType<(globalIdx: number, height: number) => void>,
     default: undefined,
   },
-  /** Opt-in per-message "fill form" action (host enables form-auto-fill). */
   formAutoFillEnabled: {
     type: Boolean,
     default: false,
   },
-  /** Host-provided read-only tool re-query; enables the pager on *_query_data result tables. */
-  callTool: {
-    type: Function as PropType<
-      (name: string, args: Record<string, unknown>) => Promise<ToolCallResult>
-    >,
-    default: undefined,
-  },
 });
 
-/* When virtualization is active, slice the messages array to the visible
-   window; otherwise pass through as-is. `renderedStart` always carries the
-   correct offset so child handlers can rebuild the global message index. */
 const renderedStart = computed(() =>
   props.virtualSlice && props.virtualSlice.enabled ? props.virtualSlice.startIndex : 0,
 );
@@ -797,7 +333,6 @@ const renderedMessages = computed(() => {
 
 const emit = defineEmits<{
   (e: 'show-all-older-messages'): void;
-  (e: 'toggle-selection', globalIdx: number): void;
   (e: 'confirm-edit', globalIdx: number): void;
   (e: 'cancel-edit'): void;
   (e: 'update:editing-text', text: string): void;
@@ -806,13 +341,6 @@ const emit = defineEmits<{
   (e: 'copy-message', text: string, globalIdx: number): void;
   (e: 'form-fill', globalIdx: number): void;
   (e: 'regenerate-at', globalIdx: number): void;
-  (e: 'regenerate-with-citations', globalIdx: number): void;
-  (e: 'set-feedback', globalIdx: number, kind: 'up' | 'down'): void;
-  /**
-   * K24: extended reaction system via MessageReactionBar. `toggled` is true
-   * when the same emoji is clicked again (clearing the selection).
-   */
-  (e: 'set-reaction', globalIdx: number, emoji: string, toggled: boolean): void;
   (e: 'retry-last-error', globalIdx: number): void;
 }>();
 
@@ -835,16 +363,13 @@ watch(
         try {
           el.setSelectionRange(el.value.length, el.value.length);
         } catch {
-          // ignore selection failures (older browsers)
+          // ignore
         }
       }
     });
   },
 );
 
-/* D1: ResizeObserver-based height measurement for virtual scroll precision.
- * 仅当宿主传入 onMeasureHeight (即启用虚拟滚动) 时才创建共享 observer。
- * v-for ref function 在 mount 时传 el、unmount 时传 null，方便清理。 */
 const measuredElements = new Map<number, Element>();
 const measuredElementIndexes = new WeakMap<Element, number>();
 let measureObserver: ResizeObserver | null = null;
@@ -880,6 +405,7 @@ function attachMeasureRef(el: unknown, globalIdx: number) {
     observer.observe(el);
   }
 }
+
 onBeforeUnmount(() => {
   measureObserver?.disconnect();
   measureObserver = null;

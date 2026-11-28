@@ -59,11 +59,11 @@
 }
 
 /* ────────────────────────────────────────────────────────────────
- * 1) Floating Action Button - ink / graphite 渐变 + 多层 glow
+ * 1) Floating Action Button - base glass geometry (themed in 99-enterprise-overhaul)
  * ────────────────────────────────────────────────────────────────*/
 .ai-assistant-wrapper .ai-fab {
-  width: 58px !important;
-  height: 58px !important;
+  width: 58px;
+  height: 58px;
   background:
     radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), transparent 50%),
     linear-gradient(
@@ -71,40 +71,35 @@
       var(--ai-gradient-1) 0%,
       var(--ai-gradient-2) 50%,
       var(--ai-gradient-3) 100%
-    ) !important;
+    );
   box-shadow:
     0 1px 1px rgba(255, 255, 255, 0.5) inset,
     0 8px 16px -6px rgba(23, 23, 23, 0.45),
     0 18px 36px -12px rgba(38, 38, 38, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.18) inset !important;
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset;
   transition:
     transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.25s ease,
-    filter 0.25s ease !important;
+    filter 0.25s ease;
 }
 
 .ai-assistant-wrapper .ai-fab:hover:not(.ai-fab-dragging) {
-  transform: scale(1.08) translateY(-2px) !important;
-  filter: saturate(1.1) brightness(1.05) !important;
+  transform: scale(1.08) translateY(-2px);
+  filter: saturate(1.1) brightness(1.05);
   box-shadow:
     0 1px 1px rgba(255, 255, 255, 0.6) inset,
     0 12px 22px -6px rgba(23, 23, 23, 0.6),
     0 24px 48px -12px rgba(38, 38, 38, 0.7),
     0 0 0 1px rgba(255, 255, 255, 0.28) inset,
-    0 0 80px -20px rgba(64, 64, 64, 0.6) !important;
-}
-
-.ai-assistant-wrapper .ai-fab:before,
-.ai-assistant-wrapper .ai-fab:after {
-  display: none !important;
+    0 0 80px -20px rgba(64, 64, 64, 0.6);
 }
 
 .ai-assistant-wrapper .ai-fab > svg {
-  color: #ffffff !important;
-  width: 26px !important;
-  height: 26px !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)) !important;
-  opacity: 1 !important;
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  opacity: 1;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -127,15 +122,6 @@
   border-bottom: 1px solid var(--ai-border) !important;
   backdrop-filter: blur(12px);
   padding: 12px 16px !important;
-}
-
-.ai-assistant-wrapper .ai-header-title {
-  font-weight: 600 !important;
-  letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent !important;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -253,46 +239,21 @@
 }
 
 /* 附件 / 麦克风：保持原有圆形无边框设计，仅 hover 用主色提示 */
-.ai-assistant-wrapper .ai-attach-image,
-.ai-assistant-wrapper .ai-mic,
-.ai-assistant-wrapper .ai-voice-loop {
+.ai-assistant-wrapper .ai-attach-image {
   color: var(--ai-text-muted) !important;
   transition:
     color 0.15s ease,
     transform 0.15s ease;
 }
 
-.ai-assistant-wrapper .ai-attach-image:hover:not(:disabled),
-.ai-assistant-wrapper .ai-mic:hover:not(:disabled),
-.ai-assistant-wrapper .ai-voice-loop:hover:not(:disabled) {
+.ai-assistant-wrapper .ai-attach-image:hover:not(:disabled) {
   color: var(--ai-gradient-1) !important;
   transform: scale(1.08);
 }
 
 /* 上传按钮（带文字）保留方形边框，但用主色描边 */
-.ai-assistant-wrapper .ai-upload,
-.ai-assistant-wrapper .ai-upload-inline {
-  background: rgba(255, 255, 255, 0.7) !important;
-  border-color: var(--ai-border) !important;
-  color: var(--ai-text-muted) !important;
-  transition: all 0.15s ease;
-}
 
-.ai-assistant-wrapper .ai-upload:hover:not(:disabled),
-.ai-assistant-wrapper .ai-upload-inline:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.12), rgba(38, 38, 38, 0.08)) !important;
-  border-color: var(--ai-gradient-1) !important;
-  color: var(--ai-gradient-1) !important;
-}
-
-/* ────────────────────────────────────────────────────────────────
- * UX-FIX: 完全隐藏 Markdown 工具栏
- *  - 对话场景下用户用自然语言指挥 AI 即可，手动插 ** 标记反而困惑
- *  - 如宿主仍需要，可在自有 CSS 中用更高优先级覆盖回来
- * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-md-toolbar {
-  display: none !important;
-}
+/* Markdown formatting toolbar (toggled via the ⋮ button in ChatInputComposer) */
 
 /* ────────────────────────────────────────────────────────────────
  * UX-FIX: 字数计数器
@@ -318,35 +279,6 @@
  *  - 圆形 → 胶囊小标签
  *  - active 时仅主色淡底 + 文字主色（不再大块色块）
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-footer-mode-row {
-  padding: 0 4px !important;
-  gap: 4px !important;
-  margin-bottom: 2px;
-}
-
-.ai-assistant-wrapper .ai-footer-mode-row button {
-  padding: 4px 12px !important;
-  font-size: 12px !important;
-  border-radius: 999px !important;
-  background: rgba(17, 17, 17, 0.04) !important;
-  border: 1px solid transparent !important;
-  color: var(--ai-text-muted) !important;
-  flex: 0 0 auto !important;
-  transition: all 0.15s ease;
-}
-
-.ai-assistant-wrapper .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(17, 17, 17, 0.08) !important;
-  color: var(--ai-gradient-1) !important;
-  border-color: transparent !important;
-}
-
-.ai-assistant-wrapper .ai-footer-mode-row button.active {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
-  box-shadow: 0 2px 6px -1px rgba(23, 23, 23, 0.35);
-}
 
 /* ────────────────────────────────────────────────────────────────
  * UX-FIX: textarea placeholder 更亮 + focus 时更清晰
@@ -365,22 +297,11 @@
 /* ────────────────────────────────────────────────────────────────
  * UX-FIX: 暗色模式下模式按钮 & 字数计数
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper.ai-dark .ai-footer-mode-row button {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: rgba(241, 245, 249, 0.6) !important;
-}
-
-.ai-assistant-wrapper.ai-dark .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(245, 245, 245, 0.15) !important;
-  color: var(--ai-gradient-2) !important;
-}
 
 /* ────────────────────────────────────────────────────────────────
  * 6) Slash command popup / dropdown - 玻璃质感
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-slash-popup,
-.ai-assistant-wrapper .ai-fab-ctx-menu,
-.ai-assistant-wrapper .ai-memory-panel {
+.ai-assistant-wrapper .ai-slash-popup {
   background: var(--ai-glass-bg) !important;
   backdrop-filter: blur(20px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
@@ -390,8 +311,7 @@
 }
 
 .ai-assistant-wrapper .ai-slash-item:hover,
-.ai-assistant-wrapper .ai-slash-item-active,
-.ai-assistant-wrapper .ai-fab-ctx-item:hover:not(:disabled) {
+.ai-assistant-wrapper .ai-slash-item-active {
   background: linear-gradient(90deg, rgba(17, 17, 17, 0.12), rgba(38, 38, 38, 0.06)) !important;
   color: var(--ai-text) !important;
 }
@@ -399,89 +319,10 @@
 /* ────────────────────────────────────────────────────────────────
  * 7) MultiModelCompare overlay - 与主面板一致玻璃质感
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-multi-model-overlay {
-  background: rgba(17, 17, 17, 0.4) !important;
-  backdrop-filter: blur(8px);
-}
-
-.ai-assistant-wrapper .ai-multi-model-card {
-  background: var(--ai-glass-bg) !important;
-  backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid var(--ai-glass-border) !important;
-  border-radius: var(--ai-radius-lg) !important;
-  box-shadow: var(--ai-shadow-soft) !important;
-}
-
-.ai-assistant-wrapper .ai-mm-model-chip-selected {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  border-color: transparent !important;
-}
-
-.ai-assistant-wrapper .ai-mm-btn-primary {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  box-shadow: 0 4px 12px -2px rgba(23, 23, 23, 0.35);
-}
-
-.ai-assistant-wrapper .ai-mm-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-}
-
-.ai-assistant-wrapper .ai-mm-col {
-  border-radius: var(--ai-radius-md) !important;
-  background: var(--ai-glass-bg-soft) !important;
-  border: 1px solid var(--ai-border) !important;
-  transition:
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-.ai-assistant-wrapper .ai-mm-col:hover {
-  box-shadow: 0 6px 18px -4px rgba(17, 17, 17, 0.12);
-}
-
-.ai-assistant-wrapper .ai-mm-col-loading {
-  box-shadow:
-    0 0 0 2px rgba(17, 17, 17, 0.3) inset,
-    0 6px 18px -4px rgba(17, 17, 17, 0.25) !important;
-}
 
 /* ────────────────────────────────────────────────────────────────
  * 8) PromptTemplateDialog - 与主面板一致玻璃质感
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-tpl-overlay {
-  background: rgba(17, 17, 17, 0.4) !important;
-  backdrop-filter: blur(8px);
-}
-
-.ai-assistant-wrapper .ai-tpl-card {
-  background: var(--ai-glass-bg) !important;
-  backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid var(--ai-glass-border) !important;
-  border-radius: var(--ai-radius-lg) !important;
-  box-shadow: var(--ai-shadow-soft) !important;
-}
-
-.ai-assistant-wrapper .ai-tpl-btn-primary {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  border-color: transparent !important;
-  box-shadow: 0 4px 12px -2px rgba(23, 23, 23, 0.35);
-}
-
-.ai-assistant-wrapper .ai-tpl-btn-primary:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-}
-
-.ai-assistant-wrapper .ai-tpl-list-item-active {
-  background: linear-gradient(90deg, rgba(17, 17, 17, 0.18), rgba(38, 38, 38, 0.08)) !important;
-  border-color: var(--ai-gradient-1) !important;
-}
-
-.ai-assistant-wrapper .ai-tpl-badge-preset {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.16), rgba(38, 38, 38, 0.16)) !important;
-  color: var(--ai-gradient-1) !important;
-}
 
 /* ────────────────────────────────────────────────────────────────
  * 9) Code blocks - 圆角 + 顶栏更精致
@@ -534,9 +375,6 @@
  * 11) 隐藏 code-wall 矩阵特效 - 让 modern 主题保持清爽
  *      （如宿主仍想要矩阵风格，可设置 options 或自行 override）
  * ────────────────────────────────────────────────────────────────*/
-.ai-assistant-wrapper .ai-code-wall-canvas {
-  display: none !important;
-}
 
 /* ────────────────────────────────────────────────────────────────
  * 12) Dark mode - 精致玻璃在暗色更显著
@@ -574,11 +412,7 @@
   box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.24) !important;
 }
 
-.ai-assistant-wrapper.ai-dark .ai-attach-image,
-.ai-assistant-wrapper.ai-dark .ai-mic,
-.ai-assistant-wrapper.ai-dark .ai-voice-loop,
-.ai-assistant-wrapper.ai-dark .ai-upload,
-.ai-assistant-wrapper.ai-dark .ai-upload-inline {
+.ai-assistant-wrapper.ai-dark .ai-attach-image {
   background: rgba(38, 38, 38, 0.6) !important;
   color: rgba(241, 245, 249, 0.7) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
@@ -628,23 +462,6 @@
   transform: scale(1.05);
 }
 
-/* 会话标签栏（SessionTabs） */
-.ai-assistant-wrapper .ai-session-tabs {
-  background: linear-gradient(180deg, transparent, rgba(17, 17, 17, 0.02)) !important;
-  border-bottom: 1px solid var(--ai-border) !important;
-}
-
-.ai-assistant-wrapper .ai-session-tab {
-  border-radius: 10px 10px 0 0 !important;
-  transition: all 0.18s ease;
-}
-
-.ai-assistant-wrapper .ai-session-tab.active {
-  background: linear-gradient(180deg, rgba(17, 17, 17, 0.12), transparent) !important;
-  color: var(--ai-text) !important;
-  font-weight: 500;
-}
-
 /* Stream caret 闪烁更柔和 */
 .ai-assistant-wrapper .ai-stream-caret {
   background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
@@ -659,19 +476,6 @@
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-header {
   padding: 10px 14px !important;
   min-height: 44px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-title {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
-  max-width: 120px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* #6 顶栏图标按钮统一 */
@@ -694,35 +498,6 @@
 }
 
 /* #2 模式按钮（对话/翻译/摘要）扁平胶囊（最高 specificity 再写一遍） */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row {
-  padding: 0 4px !important;
-  gap: 4px !important;
-  display: flex !important;
-  justify-content: center;
-  margin-bottom: 4px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button {
-  padding: 3px 14px !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  border-radius: 999px !important;
-  background: rgba(17, 17, 17, 0.04) !important;
-  border: 1px solid transparent !important;
-  color: var(--ai-text-muted) !important;
-  flex: 0 0 auto !important;
-  transition: all 0.15s ease !important;
-  min-width: 0 !important;
-  width: auto !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button:hover:not(.active) {
-  background: rgba(17, 17, 17, 0.1) !important;
-  color: var(--ai-gradient-1) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-mode-row button.active {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 6px -1px rgba(23, 23, 23, 0.35) !important;
-}
 
 /* #7 消息气泡间距更紧凑，左右对齐更明显 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg {
@@ -755,9 +530,7 @@
   grid-row: 1;
   margin-right: 0 !important;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper
-  .ai-msg.assistant
-  > *:not(.ai-assistant-avatar):not(.ai-msg-checkbox) {
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.assistant > *:not(.ai-assistant-avatar) {
   grid-column: 2;
   min-width: 0;
   max-width: 100%;
@@ -836,35 +609,6 @@
   opacity: 1 !important;
 }
 
-/* #3 录音红点压到麦克风按钮上做闪烁（CSS-only：给 .ai-mic.recording 加伪元素） */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic {
-  position: relative;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mic.recording::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 2px #ef4444aa;
-  animation: ai-mic-blink 0.9s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes ai-mic-blink {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(0.8);
-  }
-}
-
 /* #24 Thinking 动画精致化 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-bubble {
   background: linear-gradient(135deg, rgba(17, 17, 17, 0.06), rgba(38, 38, 38, 0.04)) !important;
@@ -892,24 +636,6 @@
 }
 
 /* 模型选择下拉更精致 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select {
-  background: rgba(255, 255, 255, 0.7) !important;
-  border: 1px solid var(--ai-border) !important;
-  border-radius: var(--ai-radius-sm) !important;
-  font-size: 12px !important;
-  padding: 4px 10px !important;
-  color: var(--ai-text) !important;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-model-select:hover {
-  border-color: var(--ai-gradient-1) !important;
-  background: rgba(255, 255, 255, 0.9) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-model-select {
-  background: rgba(38, 38, 38, 0.6) !important;
-  color: rgba(241, 245, 249, 0.85) !important;
-}
 
 /* 用户消息时间戳更弱化 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg-time {
@@ -940,55 +666,12 @@
 }
 
 /* #1 隐藏底部「✦」Code Wall 切换（modern 主题已禁用 code-wall canvas，按钮也没必要） */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row .ai-code-wall-toggle {
-  display: none !important;
-}
 
 /* #4 模型行更精致：模型选靠右，与底部对齐感更强 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-footer-model-row {
-  padding: 0 4px !important;
-  margin-top: 4px;
-  gap: 4px !important;
-}
 
 /* 当 v-html 输出 thinking-details / tool-calls 时，间距更小 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details {
-  border-radius: var(--ai-radius-sm) !important;
-  background: rgba(23, 23, 23, 0.04) !important;
-  padding: 6px 10px !important;
-  margin-bottom: 6px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-summary {
-  font-size: 11px !important;
-  color: var(--ai-text-muted) !important;
-  cursor: pointer;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-content {
-  font-size: 11px !important;
-  color: var(--ai-text-muted) !important;
-  margin-top: 4px;
-  line-height: 1.5;
-}
 
 /* tool-call 卡片精致化 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-tool-call-item {
-  border-radius: var(--ai-radius-sm) !important;
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.05), rgba(38, 38, 38, 0.03)) !important;
-  border: 1px solid rgba(17, 17, 17, 0.18) !important;
-  padding: 6px 10px !important;
-  margin-bottom: 4px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-tool-call-summary {
-  font-size: 12px !important;
-  color: var(--ai-gradient-1) !important;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-tool-spin {
-  animation: ai-tool-spin 1.2s linear infinite;
-}
 @keyframes ai-tool-spin {
   to {
     transform: rotate(360deg);
@@ -1002,13 +685,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px !important;
+  justify-content: flex-start;
+  padding: 12px 14px;
   text-align: center;
-  color: var(--ai-text-muted) !important;
+  color: var(--ai-text-muted);
   font-size: 14px;
   flex: 1;
-  min-height: 200px;
+  min-height: 0;
 }
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty::before {
   content: '';
@@ -1047,48 +730,7 @@
   }
 }
 
-/* SessionTabs 美化 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tabs-list {
-  gap: 4px !important;
-  padding: 6px 10px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tab {
-  background: rgba(17, 17, 17, 0.04) !important;
-  border: 1px solid transparent !important;
-  border-radius: 8px !important;
-  padding: 4px 10px !important;
-  font-size: 12px !important;
-  color: var(--ai-text-muted) !important;
-  transition: all 0.15s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tab:hover {
-  background: rgba(17, 17, 17, 0.08) !important;
-  color: var(--ai-gradient-1) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-session-tab.active {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.18), rgba(38, 38, 38, 0.1)) !important;
-  border-color: var(--ai-gradient-1) !important;
-  color: var(--ai-text) !important;
-  font-weight: 500;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-session-tab {
-  background: rgba(255, 255, 255, 0.04) !important;
-  color: rgba(241, 245, 249, 0.6) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-session-tab.active {
-  background: linear-gradient(135deg, rgba(23, 23, 23, 0.25), rgba(245, 245, 245, 0.15)) !important;
-  color: #f5f5f5 !important;
-}
-
 /* #9 空状态 starter 示例 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 20px;
-  width: 100%;
-  max-width: 320px;
-}
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starter {
   display: flex;
   align-items: center;
@@ -1131,124 +773,47 @@
   color: #f5f5f5;
 }
 
-/* AI 助手图标按钮（顶栏新对话）也精致化 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-action {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 8px !important;
-  border: 1px solid transparent !important;
-  background: transparent !important;
-  color: var(--ai-text-muted) !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-new-session:hover,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-action:hover {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.1), rgba(38, 38, 38, 0.06)) !important;
-  color: var(--ai-gradient-1) !important;
-  transform: translateY(-1px);
-}
-
 /* ────────────────────────────────────────────────────────────────
  * 第三波 UX 现代化 #2 #6 #12 #14 #18 #20 #27
  * ────────────────────────────────────────────────────────────────*/
 
-/* 杜绝任何意外的横向溢出 — empty state、quick actions、thinking 等都不该撑出滚动条 */
+/* 杜绝任何意外的横向溢出 — empty state、thinking 等都不该撑出滚动条 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-body,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-panel,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty-starters {
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-empty {
   overflow-x: hidden !important;
   max-width: 100%;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
-  flex-wrap: wrap !important;
-  max-width: 100% !important;
 }
 
 /* #2 quick action 胶囊化（覆盖 03-input-popups.css 的 .ai-quick-actions）
  * 用 wrapper 双重选择器获得 specificity，避开 !important 滥用 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions {
-  display: flex !important;
-  gap: 6px !important;
-  padding: 8px 12px !important;
-  background: transparent !important;
-  border-top: none !important;
-  border-radius: 0 !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button {
-  flex: 0 0 auto !important;
-  padding: 5px 14px !important;
-  border-radius: 999px !important;
-  border: 1px solid var(--ai-border) !important;
-  background: var(--ai-glass-bg-soft) !important;
-  color: var(--ai-text-muted) !important;
-  font-size: 12px !important;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button:hover:not(.active) {
-  background: rgba(17, 17, 17, 0.06) !important;
-  border-color: rgba(17, 17, 17, 0.3) !important;
-  color: var(--ai-text) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-quick-actions button.active {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2)) !important;
-  border-color: transparent !important;
-  color: #fff !important;
-  box-shadow: 0 2px 8px -2px rgba(17, 17, 17, 0.5) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(241, 245, 249, 0.7) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-quick-actions button.active {
-  color: #fff !important;
-}
 
 /* #6 顶栏图标按钮统一玻璃风格（所有 header 内 button） */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-personalize,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-diagnostics,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-batch-export-btn,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-btn,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-clear,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-expand,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-close,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-plugin-btn,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-theme-toggle {
-  width: 28px !important;
-  height: 28px !important;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-close {
+  width: 28px;
+  height: 28px;
   min-width: 28px;
-  padding: 0 !important;
-  border-radius: 8px !important;
-  border: 1px solid transparent !important;
-  background: transparent !important;
-  color: var(--ai-text-muted) !important;
-  display: inline-flex !important;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ai-text-muted);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
   font-size: 13px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-personalize-text,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-header-diagnostics-text {
-  display: none !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button:hover {
-  background: rgba(17, 17, 17, 0.1) !important;
-  color: var(--ai-gradient-1) !important;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions > button:hover {
+  background: rgba(17, 17, 17, 0.1);
+  color: var(--ai-gradient-1);
   transform: translateY(-1px);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button.active,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header button[aria-pressed='true'] {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.15), rgba(38, 38, 38, 0.1)) !important;
-  color: var(--ai-gradient-1) !important;
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions > button.active,
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-actions > button[aria-pressed='true'] {
+  background: linear-gradient(135deg, rgba(17, 17, 17, 0.15), rgba(38, 38, 38, 0.1));
+  color: var(--ai-gradient-1);
 }
 
 /* #12 滚动到底部按钮 - 玻璃质感圆形浮按钮 */
@@ -1285,39 +850,9 @@
 }
 
 /* #14 链接预览卡片化 - 消息正文里的 a[href] 自动 chip 样式 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]:not(.ai-link-bare) {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 8px;
-  margin: 0 2px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.08), rgba(38, 38, 38, 0.04));
-  border: 1px solid rgba(17, 17, 17, 0.18);
-  color: var(--ai-gradient-1) !important;
-  text-decoration: none !important;
-  font-size: 0.95em;
-  transition: all 0.15s ease;
-  word-break: break-all;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]:hover {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.18), rgba(38, 38, 38, 0.1));
-  border-color: var(--ai-gradient-1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px -2px rgba(17, 17, 17, 0.35);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-md a[href]::before {
-  content: none;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-md a[href]:not(.ai-link-bare) {
-  background: linear-gradient(135deg, rgba(250, 250, 250, 0.12), rgba(212, 212, 212, 0.06));
-  border-color: rgba(250, 250, 250, 0.25);
-}
 
 /* #18 图片附件点击放大 - 图片 hover 微缩放 + cursor: zoom-in */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-md img,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble img,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-pending-images img {
+.ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble img {
   border-radius: var(--ai-radius-sm);
   cursor: zoom-in;
   transition:
@@ -1325,7 +860,6 @@
     box-shadow 0.2s ease;
   max-width: 100%;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-md img:hover,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-bubble img:hover {
   transform: scale(1.02);
   box-shadow: 0 6px 20px -4px rgba(17, 17, 17, 0.18);
@@ -1387,10 +921,6 @@
 }
 
 /* #27 暗色一键切换按钮（在 #6 通用 header button 风格下额外微调） */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header .ai-theme-toggle svg {
-  width: 16px;
-  height: 16px;
-}
 
 /* #20 响应式 - 窄屏（< 600px）自动全屏 + 隐藏拖拽 */
 @media (max-width: 600px) {
@@ -1411,18 +941,11 @@
     right: 20px !important;
   }
   /* 拖拽手柄无意义 */
-  .ai-assistant-wrapper.ai-assistant-wrapper .ai-resize-handle {
-    display: none !important;
-  }
   /* 顶栏标题字号下调 */
   .ai-assistant-wrapper.ai-assistant-wrapper .ai-title {
     font-size: 14px !important;
   }
   /* 多模型对比 / 模板对话 满屏 */
-  .ai-assistant-wrapper.ai-assistant-wrapper .ai-multi-compare-overlay,
-  .ai-assistant-wrapper.ai-assistant-wrapper .ai-prompt-template-overlay {
-    padding: 0 !important;
-  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1435,67 +958,6 @@
  * ════════════════════════════════════════════════════════════════ */
 
 /* —— #A1 思考过程折叠紧凑 —— 默认状态像一颗小灰药丸贴在助手头像右侧 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details {
-  border-radius: 999px !important;
-  background: transparent !important;
-  border: 1px solid var(--ai-border) !important;
-  padding: 0 !important;
-  margin: 0 0 6px !important;
-  display: inline-block;
-  width: auto;
-  max-width: fit-content;
-  font-size: 11px;
-  line-height: 1;
-  transition: all 0.2s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details[open] {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  border-radius: var(--ai-radius-sm) !important;
-  background: rgba(2, 132, 199, 0.04) !important;
-  border-color: rgba(2, 132, 199, 0.18) !important;
-  padding: 6px 10px !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-summary {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  font-size: 11px !important;
-  color: var(--ai-text-muted) !important;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-summary::-webkit-details-marker {
-  display: none;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details[open] .ai-thinking-summary {
-  padding: 0 0 4px;
-  border-bottom: 1px dashed rgba(17, 17, 17, 0.18);
-  margin-bottom: 4px;
-  width: 100%;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-icon {
-  width: 11px;
-  height: 11px;
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-thinking-details:hover {
-  border-color: var(--ai-gradient-1) !important;
-  color: var(--ai-text) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-thinking-details {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-thinking-details[open] {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
-}
 
 /* —— #A2 用户胶囊：80% 宽 + 铅笔只在 hover 显示 —— */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-msg.user .ai-bubble {
@@ -1529,53 +991,6 @@
 }
 
 /* —— #A3 分段式模式按钮 (model-row 内嵌) —— */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segmented {
-  display: inline-flex;
-  flex: 0 0 auto;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid var(--ai-border);
-  border-radius: 999px;
-  padding: 2px;
-  gap: 0;
-  margin-right: 8px;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment {
-  flex: 0 0 auto;
-  padding: 4px 12px;
-  border: 0;
-  background: transparent;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ai-text-muted);
-  cursor: pointer;
-  transition: all 0.18s ease;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment:hover:not(.active) {
-  color: var(--ai-text);
-  background: rgba(17, 17, 17, 0.06);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-mode-segment.active {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2));
-  color: #fff;
-  box-shadow: 0 1px 4px -1px rgba(17, 17, 17, 0.4);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segmented {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment {
-  color: rgba(241, 245, 249, 0.6);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(241, 245, 249, 0.95);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-mode-segment.active {
-  color: #fff;
-}
 
 /* —— #A4 助手头像加 "AI" 字样 —— 覆盖原 ::before 的纯圆点装饰 */
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-assistant-avatar {
@@ -1609,68 +1024,6 @@
  *   开启态：ink 渐变玻璃药丸 + 文件图标
  *   关闭态：灰色虚线轮廓 + 半透明文字
  * ════════════════════════════════════════════════════════════════ */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border: 1px solid rgba(17, 17, 17, 0.32);
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.1), rgba(64, 64, 64, 0.06));
-  color: var(--ai-gradient-1);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.3;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  flex: 0 0 auto;
-  margin-right: 6px;
-  white-space: nowrap;
-  user-select: none;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge:hover {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.18), rgba(64, 64, 64, 0.1));
-  border-color: var(--ai-gradient-1);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px -2px rgba(17, 17, 17, 0.35);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge svg {
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge-off {
-  border-style: dashed;
-  border-color: var(--ai-border);
-  background: transparent;
-  color: var(--ai-text-muted);
-  opacity: 0.7;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-page-context-badge-off:hover {
-  background: rgba(15, 23, 42, 0.03);
-  border-color: var(--ai-text-muted);
-  color: var(--ai-text);
-  opacity: 1;
-  box-shadow: none;
-  transform: none;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-page-context-badge {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(163, 163, 163, 0.06));
-  color: rgba(245, 245, 245, 0.95);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-page-context-badge:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(163, 163, 163, 0.12));
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-page-context-badge-off {
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.16);
-  color: rgba(241, 245, 249, 0.55);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-page-context-badge-off:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.32);
-  color: rgba(241, 245, 249, 0.92);
-}
 
 /* ════════════════════════════════════════════════════════════════
  * D5 - 流式生成进度小注脚
@@ -1723,38 +1076,12 @@
   box-shadow: 0 0 8px rgba(245, 245, 245, 0.7);
 }
 /* E2: TTFT 分段稍浅一档以与总耗时区分 */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-stream-progress-ttft {
-  opacity: 0.72;
-  margin-right: 1px;
-}
 
 /* ════════════════════════════════════════════════════════════════
  * D2 - Settings 齿轮按钮 + popover 菜单
  *   顶栏 personalize + diagnostics 两个独立按钮合并为单一齿轮入口
  *   点击齿轮弹出 2 项菜单，分别打开对应 dialog
  * ════════════════════════════════════════════════════════════════ */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  min-width: 140px;
-  padding: 4px;
-  background: var(--ai-bg);
-  border: 1px solid var(--ai-border);
-  border-radius: var(--ai-radius-md);
-  box-shadow:
-    0 10px 30px -10px rgba(15, 23, 42, 0.18),
-    0 4px 10px -4px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(8px);
-  animation: ai-settings-menu-in 0.12s ease;
-}
 @keyframes ai-settings-menu-in {
   from {
     opacity: 0;
@@ -1765,130 +1092,11 @@
     transform: translateY(0);
   }
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 0;
-  background: transparent;
-  border-radius: var(--ai-radius-sm);
-  font-size: 13px;
-  color: var(--ai-text);
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-  transition: all 0.12s ease;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item:hover {
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.1), rgba(64, 64, 64, 0.06));
-  color: var(--ai-gradient-1);
-  transform: translateX(2px);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item svg {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-header-settings-item:hover svg {
-  opacity: 1;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-menu {
-  background: rgba(15, 23, 42, 0.96);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    0 4px 10px -4px rgba(0, 0, 0, 0.3);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-item {
-  color: rgba(241, 245, 249, 0.85);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-header-settings-item:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(163, 163, 163, 0.1));
-  color: #ffffff;
-}
 
 /* ════════════════════════════════════════════════════════════════
  * E1 - Keyboard Shortcuts Cheat Sheet
  *   Ctrl + / opens; modal复用 personalize overlay & dialog 外壳
  * ════════════════════════════════════════════════════════════════ */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-dialog {
-  max-width: 580px !important;
-  width: min(580px, calc(100vw - 32px)) !important;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-content {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-group-title {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--ai-gradient-1);
-  border-bottom: 1px solid var(--ai-border);
-  padding-bottom: 4px;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-list {
-  margin: 0;
-  display: grid;
-  grid-template-columns: minmax(140px, max-content) 1fr;
-  gap: 6px 16px;
-  align-items: baseline;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-row {
-  display: contents;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-keys {
-  margin: 0;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: flex-start;
-  align-items: center;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-key {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  padding: 2px 7px;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ai-text);
-  background: linear-gradient(180deg, #ffffff, #f1f5f9);
-  border: 1px solid var(--ai-border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
-  line-height: 1.4;
-  white-space: nowrap;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-desc {
-  margin: 0;
-  font-size: 13px;
-  color: var(--ai-text);
-  line-height: 1.55;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-kbd-foot {
-  margin: 14px 0 0;
-  padding-top: 10px;
-  border-top: 1px dashed var(--ai-border);
-  font-size: 11px;
-  color: var(--ai-text-muted);
-  text-align: center;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-kbd-key {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
-  color: rgba(241, 245, 249, 0.95);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.5);
-}
 
 /* ════════════════════════════════════════════════════════════════
  * F4 - Code block enhancements
@@ -2032,41 +1240,41 @@
  *   触发：齿轮菜单 → "所有会话"
  *   特点：按时间桶分组（今天/昨天/本周/更早），support filter
  * ════════════════════════════════════════════════════════════════ */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer {
+.ai-personalize-overlay .ai-sessions-drawer {
   width: min(560px, calc(100vw - 32px));
   max-width: 560px;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-count {
+.ai-personalize-overlay .ai-sessions-drawer-count {
   font-size: 12px;
   font-weight: 500;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
   margin-left: 6px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-search {
+.ai-personalize-overlay .ai-sessions-drawer-search {
   margin: 4px 0 8px;
   position: relative;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input {
+.ai-personalize-overlay .ai-sessions-drawer-input {
   width: 100%;
   padding: 7px 12px;
   padding-right: 78px;
   font-size: 13px;
-  border: 1px solid var(--ai-border);
+  border: 1px solid var(--ai-border, rgba(17, 17, 17, 0.12));
   border-radius: 6px;
   outline: none;
-  background: var(--ai-bg);
-  color: var(--ai-text);
+  background: var(--ai-bg, #ffffff);
+  color: var(--ai-text, #1f2433);
   box-sizing: border-box;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-input:focus {
-  border-color: var(--ai-gradient-1);
+.ai-personalize-overlay .ai-sessions-drawer-input:focus {
+  border-color: var(--ai-gradient-1, #171717);
   box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.18);
 }
 /* K39: cross-session search count badge inside the sticky search input. */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-search-count {
+.ai-personalize-overlay .ai-sessions-drawer-search-count {
   position: absolute;
   right: 8px;
   top: 50%;
@@ -2080,12 +1288,12 @@
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-search-count {
+.ai-personalize-overlay.ai-dark .ai-sessions-drawer-search-count {
   color: #f5f5f5;
   background: rgba(255, 255, 255, 0.12);
 }
 /* K39: per-session match list rendered below the session item meta. */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-list {
+.ai-personalize-overlay .ai-sessions-drawer-match-list {
   list-style: none;
   padding: 4px 0 2px 8px;
   margin: 0;
@@ -2093,11 +1301,11 @@
   flex-direction: column;
   gap: 2px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match {
+.ai-personalize-overlay .ai-sessions-drawer-match {
   padding: 0;
   margin: 0;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-btn {
+.ai-personalize-overlay .ai-sessions-drawer-match-btn {
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -2109,23 +1317,23 @@
   font-size: 12px;
   text-align: left;
   cursor: pointer;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
   line-height: 1.45;
   border-radius: 4px;
   transition: background 0.12s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-btn:hover {
+.ai-personalize-overlay .ai-sessions-drawer-match-btn:hover {
   background: rgba(17, 17, 17, 0.08);
   border-left-color: rgba(17, 17, 17, 0.6);
-  color: var(--ai-text);
+  color: var(--ai-text, #1f2433);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-role {
+.ai-personalize-overlay .ai-sessions-drawer-match-role {
   flex-shrink: 0;
   font-size: 12px;
   line-height: 1.4;
   opacity: 0.7;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-match-snippet {
+.ai-personalize-overlay .ai-sessions-drawer-match-snippet {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -2134,6 +1342,7 @@
   -webkit-box-orient: vertical;
   word-break: break-word;
 }
+.ai-personalize-overlay .ai-cross-search-hl,
 .ai-assistant-wrapper.ai-assistant-wrapper .ai-cross-search-hl {
   background: rgba(250, 204, 21, 0.45);
   color: inherit;
@@ -2141,6 +1350,7 @@
   border-radius: 3px;
   font-weight: 600;
 }
+.ai-personalize-overlay.ai-dark .ai-cross-search-hl,
 .ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-cross-search-hl {
   background: rgba(250, 204, 21, 0.32);
   color: #fde68a;
@@ -2168,13 +1378,13 @@
     outline-offset: 2px;
   }
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-empty {
+.ai-personalize-overlay .ai-sessions-drawer-empty {
   padding: 20px 0;
   text-align: center;
   font-size: 13px;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-list {
+.ai-personalize-overlay .ai-sessions-drawer-list {
   flex: 1 1 auto;
   overflow-y: auto;
   display: flex;
@@ -2182,17 +1392,17 @@
   gap: 10px;
   padding-right: 4px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-group-title {
+.ai-personalize-overlay .ai-sessions-drawer-group-title {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
   margin: 4px 0;
   padding-bottom: 2px;
-  border-bottom: 1px dashed var(--ai-border);
+  border-bottom: 1px dashed var(--ai-border, rgba(17, 17, 17, 0.1));
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item {
+.ai-personalize-overlay .ai-sessions-drawer-item {
   position: relative;
   display: flex;
   align-items: stretch;
@@ -2202,15 +1412,15 @@
   border-radius: 6px;
   transition: all 0.12s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item:hover {
+.ai-personalize-overlay .ai-sessions-drawer-item:hover {
   background: linear-gradient(135deg, rgba(17, 17, 17, 0.06), rgba(64, 64, 64, 0.03));
   border-color: rgba(17, 17, 17, 0.2);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item.is-active {
+.ai-personalize-overlay .ai-sessions-drawer-item.is-active {
   background: linear-gradient(135deg, rgba(17, 17, 17, 0.16), rgba(64, 64, 64, 0.08));
-  border-color: var(--ai-gradient-1);
+  border-color: var(--ai-gradient-1, #171717);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-main {
+.ai-personalize-overlay .ai-sessions-drawer-item-main {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -2222,25 +1432,25 @@
   border: 0;
   cursor: pointer;
   font-size: 13px;
-  color: var(--ai-text);
+  color: var(--ai-text, #1f2433);
   min-width: 0;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-edit {
+.ai-personalize-overlay .ai-sessions-drawer-item-edit {
   flex: 1 1 auto;
   padding: 8px 10px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-rename-input {
+.ai-personalize-overlay .ai-sessions-drawer-rename-input {
   width: 100%;
   padding: 4px 8px;
-  border: 1px solid var(--ai-gradient-1);
+  border: 1px solid var(--ai-gradient-1, #171717);
   border-radius: 5px;
-  background: var(--ai-bg);
-  color: var(--ai-text);
+  background: var(--ai-bg, #ffffff);
+  color: var(--ai-text, #1f2433);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-title {
+.ai-personalize-overlay .ai-sessions-drawer-item-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -2248,19 +1458,19 @@
   line-height: 1.4;
   word-break: break-word;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-pin {
+.ai-personalize-overlay .ai-sessions-drawer-item-pin {
   display: inline-block;
   margin-right: 4px;
   color: #f59e0b;
   font-size: 11px;
   vertical-align: 1px;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-meta {
+.ai-personalize-overlay .ai-sessions-drawer-item-meta {
   font-size: 11px;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
   font-variant-numeric: tabular-nums;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-actions {
+.ai-personalize-overlay .ai-sessions-drawer-item-actions {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -2268,16 +1478,12 @@
   opacity: 0;
   transition: opacity 0.12s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper
-  .ai-sessions-drawer-item:hover
-  .ai-sessions-drawer-item-actions,
-.ai-assistant-wrapper.ai-assistant-wrapper
-  .ai-sessions-drawer-item.is-editing
-  .ai-sessions-drawer-item-actions,
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-actions:focus-within {
+.ai-personalize-overlay .ai-sessions-drawer-item:hover .ai-sessions-drawer-item-actions,
+.ai-personalize-overlay .ai-sessions-drawer-item.is-editing .ai-sessions-drawer-item-actions,
+.ai-personalize-overlay .ai-sessions-drawer-item-actions:focus-within {
   opacity: 1;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act {
+.ai-personalize-overlay .ai-sessions-drawer-item-act {
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -2286,33 +1492,32 @@
   background: transparent;
   border: 0;
   border-radius: 4px;
-  color: var(--ai-text-muted);
+  color: var(--ai-text-muted, #64748b);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.12s ease;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act:hover {
+.ai-personalize-overlay .ai-sessions-drawer-item-act:hover {
   background: rgba(17, 17, 17, 0.12);
-  color: var(--ai-gradient-1);
+  color: var(--ai-gradient-1, #171717);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-sessions-drawer-item-act.active {
+.ai-personalize-overlay .ai-sessions-drawer-item-act.active {
   color: #f59e0b;
 }
-.ai-assistant-wrapper.ai-assistant-wrapper
-  .ai-sessions-drawer-item-act.ai-sessions-drawer-item-delete:hover {
+.ai-personalize-overlay .ai-sessions-drawer-item-act.ai-sessions-drawer-item-delete:hover {
   background: rgba(239, 68, 68, 0.12);
   color: rgb(239, 68, 68);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-input {
+.ai-personalize-overlay.ai-dark .ai-sessions-drawer-input {
   background: rgba(255, 255, 255, 0.04);
   color: rgba(241, 245, 249, 0.95);
   border-color: rgba(255, 255, 255, 0.12);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-item:hover {
+.ai-personalize-overlay.ai-dark .ai-sessions-drawer-item:hover {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(163, 163, 163, 0.05));
   border-color: rgba(255, 255, 255, 0.28);
 }
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-sessions-drawer-item.is-active {
+.ai-personalize-overlay.ai-dark .ai-sessions-drawer-item.is-active {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(163, 163, 163, 0.12));
   border-color: rgba(255, 255, 255, 0.5);
 }
@@ -2320,48 +1525,6 @@
 /* ════════════════════════════════════════════════════════════════
  * H6 - Search mode toggles (Aa / W / .*)
  * ════════════════════════════════════════════════════════════════ */
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 2px;
-  background: transparent;
-  border: 1px solid var(--ai-border);
-  border-radius: 5px;
-  color: var(--ai-text-muted);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  user-select: none;
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode:hover {
-  background: rgba(17, 17, 17, 0.08);
-  border-color: rgba(17, 17, 17, 0.35);
-  color: var(--ai-gradient-1);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper .ai-search-mode.active {
-  background: linear-gradient(135deg, var(--ai-gradient-1), var(--ai-gradient-2));
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 1px 4px -1px rgba(17, 17, 17, 0.5);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode {
-  border-color: rgba(255, 255, 255, 0.14);
-  color: rgba(241, 245, 249, 0.5);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: rgba(245, 245, 245, 1);
-}
-.ai-assistant-wrapper.ai-assistant-wrapper.ai-dark .ai-search-mode.active {
-  color: #ffffff;
-}
 
 /* ════════════════════════════════════════════════════════════════
  * H2 - Accessibility: focus-visible

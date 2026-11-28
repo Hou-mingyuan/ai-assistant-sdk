@@ -90,17 +90,6 @@ public class AiAssistantEventPublisher {
                 Map.of("toolName", toolName, "success", success));
     }
 
-    public void capabilityInvoked(String capabilityName, long durationMs, boolean success) {
-        publish(
-                AiAssistantEvent.EventType.CAPABILITY_INVOKED,
-                "capability",
-                null,
-                null,
-                null,
-                durationMs,
-                Map.of("capabilityName", capabilityName, "success", success));
-    }
-
     private void publish(
             AiAssistantEvent.EventType type,
             String operation,

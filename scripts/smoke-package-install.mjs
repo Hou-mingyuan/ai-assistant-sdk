@@ -16,10 +16,8 @@ const packageDir = path.join(root, "ai-assistant-ui");
 
 const EXPORTS = [
     "@ai-assistant/vue",
-    "@ai-assistant/vue/admin",
+    "@ai-assistant/vue/core",
     "@ai-assistant/vue/form-fill",
-    "@ai-assistant/vue/mcp",
-    "@ai-assistant/vue/screenshot",
     "@ai-assistant/vue/plugin",
     "@ai-assistant/vue/wc",
     "@ai-assistant/vue/dist/style.css",
@@ -28,10 +26,8 @@ const EXPORTS = [
 export function buildConsumerProbe(packageName) {
     const imports = [
         packageName,
-        `${packageName}/admin`,
+        `${packageName}/core`,
         `${packageName}/form-fill`,
-        `${packageName}/mcp`,
-        `${packageName}/screenshot`,
         `${packageName}/plugin`,
         `${packageName}/wc`,
         `${packageName}/dist/style.css`,

@@ -1,15 +1,16 @@
 package com.aiassistant.autoconfigure;
 
 import com.aiassistant.config.AiAssistantProperties;
-import com.aiassistant.config.ConnectorProperties;
-import com.aiassistant.connector.ConnectorToolRegistrar;
-import com.aiassistant.connector.DataConnector;
+import com.aiassistant.routing.ModelRouter;
+import com.aiassistant.security.ContentFilter;
+import com.aiassistant.security.SsrfPolicy;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.UrlFetchService;
 import com.aiassistant.service.llm.ChatCompletionClient;
 import com.aiassistant.service.llm.ProviderAwareChatCompletionClient;
 import com.aiassistant.spi.ChatInterceptor;
 import com.aiassistant.spi.ConversationMemoryProvider;
+import com.aiassistant.stats.TokenUsageTracker;
 import com.aiassistant.tool.ToolDefinition;
 import com.aiassistant.tool.ToolRegistry;
 import java.util.List;
@@ -21,10 +22,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * LLM 装配：ChatCompletionClient 默认实现、ToolRegistry（含 DataConnector 自动注册）、LlmService 的两个变体（含/不含
- * Micrometer）、ModelRouter、AgentExecutor、ResilientLlmClient。
- *
- * <p>Refactor (T2)：从 {@link AiAssistantAutoConfiguration} 拆出。所有 Bean 行为与原版 100% 一致。
+ * LLM 装配：ChatCompletionClient 默认实现、UrlFetchService、ToolRegistry、LlmService 的两个变体（含/不含
+ * Micrometer）、ModelRouter、ResilientLlmClient。
  */
 @Configuration(proxyBeanMethods = false)
 public class AiAssistantLlmAutoConfiguration {
@@ -37,36 +36,16 @@ public class AiAssistantLlmAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ToolRegistry toolRegistry(
-            ObjectProvider<List<ToolDefinition>> toolDefs,
-            ObjectProvider<List<DataConnector>> connectorProvider,
-            AiAssistantProperties properties) {
+    public UrlFetchService urlFetchService(
+            AiAssistantProperties properties, SsrfPolicy ssrfPolicy) {
+        return new UrlFetchService(properties, null, ssrfPolicy);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ToolRegistry toolRegistry(ObjectProvider<List<ToolDefinition>> toolDefs) {
         List<ToolDefinition> defs = toolDefs.getIfAvailable();
-        ToolRegistry registry = new ToolRegistry(defs != null ? defs : List.of());
-
-        List<DataConnector> connectors = connectorProvider.getIfAvailable();
-        if (connectors != null) {
-            for (DataConnector connector : connectors) {
-                ConnectorToolRegistrar.register(connector, registry);
-            }
-        }
-
-        List<ConnectorProperties> cfgConnectors = properties.getConnectors();
-        if (cfgConnectors != null) {
-            java.util.Set<String> registeredIds = new java.util.HashSet<>();
-            if (connectors != null) {
-                connectors.forEach(c -> registeredIds.add(c.id()));
-            }
-            for (ConnectorProperties cfg : cfgConnectors) {
-                if (registeredIds.contains(cfg.resolveId())) continue;
-                DataConnector connector = com.aiassistant.connector.ConnectorFactory.create(cfg);
-                if (connector != null) {
-                    ConnectorToolRegistrar.register(connector, registry);
-                }
-            }
-        }
-
-        return registry;
+        return new ToolRegistry(defs != null ? defs : List.of());
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -80,10 +59,9 @@ public class AiAssistantLlmAutoConfiguration {
                 ChatCompletionClient chatCompletionClient,
                 ObjectProvider<io.micrometer.core.instrument.MeterRegistry> meterRegistryProvider,
                 ToolRegistry toolRegistry,
-                com.aiassistant.security.ContentFilter contentFilter,
-                com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
-                com.aiassistant.routing.ModelRouter modelRouter,
-                ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+                ContentFilter contentFilter,
+                TokenUsageTracker tokenUsageTracker,
+                ModelRouter modelRouter,
                 ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
                 ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
                 ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
@@ -96,7 +74,6 @@ public class AiAssistantLlmAutoConfiguration {
                     .contentFilter(contentFilter)
                     .tokenUsageTracker(tokenUsageTracker)
                     .modelRouter(modelRouter)
-                    .ragService(ragServiceProvider.getIfAvailable())
                     .memoryProvider(memoryProviderProvider.getIfAvailable())
                     .interceptors(interceptorsProvider.getIfAvailable())
                     .auditEventStore(auditEventStoreProvider.getIfAvailable())
@@ -112,10 +89,9 @@ public class AiAssistantLlmAutoConfiguration {
             UrlFetchService urlFetchService,
             ChatCompletionClient chatCompletionClient,
             ToolRegistry toolRegistry,
-            com.aiassistant.security.ContentFilter contentFilter,
-            com.aiassistant.stats.TokenUsageTracker tokenUsageTracker,
-            com.aiassistant.routing.ModelRouter modelRouter,
-            ObjectProvider<com.aiassistant.rag.RagService> ragServiceProvider,
+            ContentFilter contentFilter,
+            TokenUsageTracker tokenUsageTracker,
+            ModelRouter modelRouter,
             ObjectProvider<ConversationMemoryProvider> memoryProviderProvider,
             ObjectProvider<List<ChatInterceptor>> interceptorsProvider,
             ObjectProvider<com.aiassistant.audit.AuditEventStore> auditEventStoreProvider) {
@@ -128,7 +104,6 @@ public class AiAssistantLlmAutoConfiguration {
                 .contentFilter(contentFilter)
                 .tokenUsageTracker(tokenUsageTracker)
                 .modelRouter(modelRouter)
-                .ragService(ragServiceProvider.getIfAvailable())
                 .memoryProvider(memoryProviderProvider.getIfAvailable())
                 .interceptors(interceptorsProvider.getIfAvailable())
                 .auditEventStore(auditEventStoreProvider.getIfAvailable())
@@ -137,14 +112,8 @@ public class AiAssistantLlmAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public com.aiassistant.routing.ModelRouter modelRouter(AiAssistantProperties properties) {
-        return new com.aiassistant.routing.ModelRouter(properties.resolveModel());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public com.aiassistant.agent.AgentExecutor agentExecutor(ToolRegistry toolRegistry) {
-        return new com.aiassistant.agent.AgentExecutor(toolRegistry);
+    public ModelRouter modelRouter(AiAssistantProperties properties) {
+        return new ModelRouter(properties.resolveModel());
     }
 
     @Bean

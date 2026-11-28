@@ -55,12 +55,7 @@
 
 /* 数字密集区域用 tabular-nums，避免抖动 */
 .ai-stream-progress,
-.ai-elapsed,
-.ai-token-count,
-.ai-msg-time,
-.ai-counter,
-.ai-progress-chip,
-.ai-session-time {
+.ai-msg-time {
   font-variant-numeric: tabular-nums;
 }
 
@@ -71,9 +66,6 @@
   font-size: 14px;
 }
 
-.ai-panel-title,
-.ai-panel-head h2,
-.ai-empty-state h3,
 .ai-empty h3 {
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -132,28 +124,7 @@
   border-radius: var(--ai-radius-md);
 }
 
-.ai-bubble.ai-msg-user .ai-bubble,
-.ai-msg-user .ai-bubble {
-  border-radius: var(--ai-radius-lg) var(--ai-radius-sm) var(--ai-radius-lg) var(--ai-radius-lg);
-}
-
-.ai-msg-assistant .ai-bubble {
-  border-radius: var(--ai-radius-sm) var(--ai-radius-lg) var(--ai-radius-lg) var(--ai-radius-lg);
-}
-
 /* 输入框、按钮等次级元素 */
-.ai-input,
-.ai-textarea,
-.ai-input-area textarea,
-.ai-chat-input textarea {
-  border-radius: var(--ai-radius-md);
-  box-shadow: var(--ai-shadow-xs);
-}
-
-.ai-btn,
-.ai-quick-actions button {
-  border-radius: var(--ai-radius-sm);
-}
 
 /* ============================================================================
  * 性能：CSS containment + content-visibility（A）
@@ -161,7 +132,6 @@
  * - .ai-bubble 走 contain: content（限制 layout / paint 影响范围）
  * - .ai-msg 走 content-visibility: auto（屏外消息不参与 layout / paint）
  * - .ai-panel 走 contain: layout style（修改面板内不重排外部）
- * - .ai-md 走 contain: layout（markdown 子树独立）
  * ============================================================================
  */
 .ai-msg {
@@ -178,10 +148,6 @@
   contain: layout style;
 }
 
-.ai-md {
-  contain: layout style;
-}
-
 /* ============================================================================
  * 性能：will-change 提示（A）
  * ---------------------------------------------------------------------------
@@ -189,19 +155,13 @@
  * ============================================================================
  */
 .ai-fab,
-.ai-thinking-pill,
-.ai-msg.ai-streaming .ai-avatar,
 .ai-modal,
-.ai-popover,
-.ai-sessions-drawer,
-.ai-scroll-to-bottom-btn,
-.ai-jump-bottom-btn {
+.ai-sessions-drawer {
   will-change: transform, opacity;
 }
 
 /* 滚动容器加 overflow contain 优化滚动时重排 */
-.ai-body,
-.ai-messages {
+.ai-body {
   /* Browser scroll anchoring can pick a stale message while the footer repaints on hover,
      which may snap long chats back to the top. Keep chat scroll state under JS control. */
   overflow-anchor: none;
@@ -217,8 +177,7 @@
  * ============================================================================
  */
 .ai-panel,
-.ai-bubble,
-.ai-quick-actions {
+.ai-bubble {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -241,21 +200,7 @@
   background-color: #1e293b;
 }
 
-.ai-msg-user .ai-bubble {
-  background-color: #f1f5f9;
-}
-
-[data-theme='dark'] .ai-msg-user .ai-bubble {
-  background-color: #1e293b;
-}
-
 /* 保留 modal / popover 的轻量玻璃质感，但收紧到 small surface */
-.ai-modal-backdrop,
-.ai-popover-backdrop {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  background: rgba(15, 23, 42, 0.4);
-}
 
 /* ============================================================================
  * 排版：消息间距 + 头像对齐（C）
@@ -263,8 +208,7 @@
  * 4px 网格：8/12/16/20/24。统一 .ai-msg gap = 12px，.ai-body padding = 16px。
  * ============================================================================
  */
-.ai-body,
-.ai-messages {
+.ai-body {
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -278,33 +222,12 @@
   padding: 0;
 }
 
-.ai-msg .ai-avatar {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--ai-radius-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
 .ai-msg .ai-bubble {
   padding: 10px 14px;
   max-width: calc(100% - 40px);
 }
 
 /* 系统消息（系统提示、错误等）居中收窄 */
-.ai-msg.ai-msg-system .ai-bubble {
-  margin: 0 auto;
-  text-align: center;
-  font-size: 12px;
-  color: #64748b;
-  background: transparent;
-  border: 1px dashed #cbd5e1;
-}
 
 /* ============================================================================
  * 排版：输入区精致化（C）
@@ -312,39 +235,6 @@
  * 输入区一组按钮 + textarea 应该像一张卡片，不是散落的元素。
  * ============================================================================
  */
-.ai-chat-input,
-.ai-input-area {
-  padding: 12px 16px;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-[data-theme='dark'] .ai-chat-input,
-[data-theme='dark'] .ai-input-area {
-  background: #0f172a;
-  border-top-color: #1e293b;
-}
-
-.ai-input-area textarea,
-.ai-chat-input textarea {
-  padding: 10px 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  min-height: 40px;
-  resize: none;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-[data-theme='dark'] .ai-input-area textarea,
-[data-theme='dark'] .ai-chat-input textarea {
-  background: #1e293b;
-  border-color: #334155;
-  color: #f1f5f9;
-}
 
 /* ============================================================================
  * 排版：顶栏紧凑化（C）
@@ -352,7 +242,6 @@
  * 顶栏当前在多次迭代后已较拥挤；统一 padding 12px / 16px，icon 大小 16px。
  * ============================================================================
  */
-.ai-panel-head,
 .ai-header {
   padding: 12px 16px;
   display: flex;
@@ -361,19 +250,16 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-[data-theme='dark'] .ai-panel-head,
 [data-theme='dark'] .ai-header {
   border-bottom-color: #1e293b;
 }
 
-.ai-panel-head h2,
 .ai-header h2 {
   font-size: 14px;
   margin: 0;
   font-weight: 600;
 }
 
-.ai-panel-head button,
 .ai-header button {
   padding: 6px;
   width: 28px;
@@ -383,7 +269,6 @@
   justify-content: center;
 }
 
-.ai-panel-head button svg,
 .ai-header button svg {
   width: 16px;
   height: 16px;
@@ -407,10 +292,7 @@
 }
 
 .ai-modal,
-.ai-popover,
-.ai-prompt-tpl-dialog,
-.ai-personalize-dialog,
-.ai-keyboard-shortcuts-dialog {
+.ai-personalize-dialog {
   animation: ai-modal-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: top center;
 }
@@ -422,29 +304,23 @@
  * ============================================================================
  */
 .ai-panel,
-.ai-body,
-.ai-messages {
+.ai-body {
   color: #0f172a;
 }
 
 [data-theme='dark'] .ai-panel,
-[data-theme='dark'] .ai-body,
-[data-theme='dark'] .ai-messages {
+[data-theme='dark'] .ai-body {
   color: #e2e8f0;
 }
 
 /* 二级文本（时间、状态等） */
 .ai-msg-time,
-.ai-secondary-text,
-.ai-hint,
 .ai-msg-meta {
   color: #64748b;
   font-size: 12px;
 }
 
 [data-theme='dark'] .ai-msg-time,
-[data-theme='dark'] .ai-secondary-text,
-[data-theme='dark'] .ai-hint,
 [data-theme='dark'] .ai-msg-meta {
   color: #94a3b8;
 }
@@ -455,28 +331,6 @@
  * 会话列表、Tab 列表、模板列表 hover 时背景轻拍打；不再用突兀的深色块。
  * ============================================================================
  */
-.ai-session-item,
-.ai-prompt-tpl-item,
-.ai-tab,
-.ai-list-item {
-  padding: 8px 10px;
-  border-radius: var(--ai-radius-sm);
-  transition: background-color 140ms ease;
-}
-
-.ai-session-item:hover,
-.ai-prompt-tpl-item:hover,
-.ai-tab:hover,
-.ai-list-item:hover {
-  background-color: rgba(17, 17, 17, 0.06);
-}
-
-.ai-session-item.active,
-.ai-prompt-tpl-item.active,
-.ai-tab.active,
-.ai-list-item.active {
-  background-color: rgba(17, 17, 17, 0.12);
-}
 
 /* ============================================================================
  * 性能：高频元素不挂阴影（A）
@@ -484,9 +338,6 @@
  * 持续动画 + 大阴影 = 卡顿核心。把流式过程中的元素阴影简化。
  * ============================================================================
  */
-.ai-msg.ai-streaming .ai-bubble {
-  box-shadow: none !important;
-}
 
 .ai-fab {
   /* 复杂 box-shadow 改为 sharp + 一个 secondary 层即可 */
@@ -501,8 +352,7 @@
  * 之前 empty state 偏简陋；新设计有渐变文字 + 卡片化建议 + 适当呼吸感。
  * ============================================================================
  */
-.ai-empty,
-.ai-empty-state {
+.ai-empty {
   padding: 32px 24px;
   text-align: center;
   display: flex;
@@ -512,57 +362,18 @@
   justify-content: center;
 }
 
-.ai-empty h3,
-.ai-empty-state h3 {
+.ai-empty h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-.ai-empty p,
-.ai-empty-state p {
+.ai-empty p {
   margin: 0;
   color: #64748b;
   font-size: 13px;
   line-height: 1.5;
   max-width: 320px;
-}
-
-.ai-empty .ai-starters,
-.ai-empty-state .ai-starters,
-.ai-suggestion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  max-width: 360px;
-}
-
-.ai-empty .ai-starter,
-.ai-suggestion-chip {
-  padding: 8px 14px;
-  font-size: 12px;
-  border-radius: var(--ai-radius-full);
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #475569;
-  cursor: pointer;
-  transition: all 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-
-[data-theme='dark'] .ai-empty .ai-starter,
-[data-theme='dark'] .ai-suggestion-chip {
-  background: #1e293b;
-  border-color: #334155;
-  color: #cbd5e1;
-}
-
-.ai-empty .ai-starter:hover,
-.ai-suggestion-chip:hover {
-  background: rgba(17, 17, 17, 0.08);
-  border-color: rgba(17, 17, 17, 0.32);
-  color: #171717;
-  transform: translateY(-1px);
 }
 
 /* ============================================================================
@@ -571,10 +382,6 @@
  * input/textarea 输入时不触发外部 transition；避免每字一帧重排。
  * ============================================================================
  */
-.ai-bubble:has(.ai-streaming-cursor),
-.ai-streaming {
-  transition-duration: 0ms !important;
-}
 
 /* ============================================================================
  * Reduced motion 兜底（与 09/10 累加）
@@ -582,10 +389,7 @@
  */
 @media (prefers-reduced-motion: reduce) {
   .ai-modal,
-  .ai-popover,
-  .ai-prompt-tpl-dialog,
-  .ai-personalize-dialog,
-  .ai-keyboard-shortcuts-dialog {
+  .ai-personalize-dialog {
     animation: none !important;
   }
   * {

@@ -6,9 +6,10 @@
       effectivePositionClass,
       panelOpenFabAlignClass,
       themeClass,
-      readingClass,
       edgeDockClass,
+      edgeDockStyleClass,
       {
+        'dock-revealed': edgeDock !== 'none' && dockRevealed && !isOpen && !fabDragging,
         'panel-mounted': panelMountedForLayout,
         'panel-expanded': panelExpanded && isOpen,
         'fab-session-hidden': fabHidden && !panelMountedForLayout,
@@ -16,26 +17,23 @@
     ]"
     :style="wrapperStyle"
   >
-    <!-- Refactor (T1)：FAB 抽到 FabButton.vue，通过 ref 暴露原生按钮供 useFabDrag 解算坐标 -->
     <FabButton
       ref="fabButtonRef"
       :fab-hidden="fabHidden"
       :is-open="isOpen"
       :show-fab-during-panel-anim="showFabDuringPanelAnim"
       :fab-dragging="fabDragging"
-      :fab-drop-active="fabDrop.dropActive.value"
+      :fab-drop-active="false"
       :fab-layout-style="fabLayoutStyle"
+      :loading="loading"
+      :edge-dock="edgeDock"
+      :dock-revealed="dockRevealed"
+      :edge-dock-style="edgeDockStyle"
       v-bind="{ ariaLabel: t.fabOpen }"
-      :drop-hint-text="t.kbDropFabHint || 'Drop to add to KB'"
+      drop-hint-text=""
       @pointerdown="onFabPointerDown"
-      @contextmenu="onFabContextMenu"
-      @drag-enter="fabDrop.onFabDragEnter"
-      @drag-over="fabDrop.onFabDragOver"
-      @drag-leave="fabDrop.onFabDragLeave"
-      @drop="fabDrop.onFabDrop"
     />
 
-    <!-- Chat Panel -->
     <Transition
       name="ai-panel"
       @before-enter="onPanelBeforeEnter"
@@ -64,51 +62,34 @@
             @pointerdown.stop.prevent="(ev) => onPanelResizePointerDown(ev, rz.edge)"
           />
         </div>
-        <canvas ref="codeWallCanvasRef" class="ai-code-wall-canvas" aria-hidden="true"></canvas>
-        <!-- Artifacts/Canvas 覆盖层：打开 artifact 时滑入盖住聊天区 -->
-        <ArtifactCanvas
-          v-if="artifactPanelOpen"
-          :artifact="currentArtifact"
-          :versions="currentArtifactVersions"
-          @close="closeArtifact"
-          @resend="onArtifactResend"
-        />
-        <!-- Header：中间 ai-header-spacer 穿透命中顶边缩放手柄 -->
+
         <AssistantHeader
           :uid="uid"
-          :session-title="sessionTitle"
+          :selected-model="selectedChatModel"
           :panel-dragging="panelDragging"
-          :mode="mode"
-          :show-system-prompt-ui="showSystemPromptUi"
-          :diagnostics-open="diagnosticsOpen"
           :panel-expanded="panelExpanded"
-          :select-mode="selectMode"
-          :batch-export-menu-open="batchExportMenuOpen"
           :has-messages="messages.length > 0"
           :loading="loading"
-          :has-base-url="!!options.baseUrl"
-          :header-plugins="getPlugins('header')"
           :is-dark="isDark"
+          :settings-open="edgeDockSettingsOpen"
           :t="t"
           @pointerdown-header="onPanelHeaderPointerDown"
-          @open-personalize="openPersonalize"
-          @toggle-diagnostics="toggleDiagnostics"
-          @open-sessions-drawer="sessionsDrawerOpen = true"
+          @open-sessions-drawer="
+            edgeDockSettingsOpen = false;
+            sessionsDrawerOpen = true;
+          "
           @toggle-panel-expand="togglePanelExpand"
           @toggle-theme="toggleManualTheme"
-          @run-plugin="runPlugin"
+          @toggle-dock-settings="
+            sessionsDrawerOpen = false;
+            edgeDockSettingsOpen = !edgeDockSettingsOpen;
+          "
           @start-new-session="startNewSession"
-          @toggle-batch-export-menu="toggleBatchExportMenu"
-          @batch-export-all-json="batchExportAllJson"
-          @batch-export-all-markdown="batchExportAllMarkdown"
-          @batch-export-all-server="batchExportAllServer"
-          @toggle-select-mode="toggleSelectMode"
           @clear-messages="clearMessages"
           @close-panel="isOpen = false"
         />
 
         <div class="ai-sr-only" aria-live="polite" aria-atomic="true">{{ a11yStatusText }}</div>
-        <!-- A11y：流式结束后把助手正文播报给屏读用户（与状态区分离，避免互相打断） -->
         <div class="ai-sr-only" aria-live="polite" aria-atomic="true">
           {{ a11yReplyAnnouncement }}
         </div>
@@ -123,28 +104,6 @@
           @delete="deleteSessionTab"
         />
 
-        <!-- Refactor (T1)：搜索栏抽到 ChatSearchBar.vue -->
-        <ChatSearchBar
-          v-if="messages.length > 0"
-          :input-value="chatSearchInput"
-          :debounced-query="debouncedSearchQuery"
-          :total-matches="totalMatches"
-          :count-label="searchCountLabel"
-          :options-open="searchOptionsOpen"
-          :case-sensitive="searchCaseSensitive"
-          :whole-word="searchWholeWord"
-          :regex="searchRegex"
-          :t="t"
-          @update:input="chatSearchInput = $event"
-          @update:options-open="searchOptionsOpen = $event"
-          @update:case-sensitive="searchCaseSensitive = $event"
-          @update:whole-word="searchWholeWord = $event"
-          @update:regex="searchRegex = $event"
-          @next="goNextMatch"
-          @prev="goPrevMatch"
-        />
-
-        <!-- AI streaming progress bar -->
         <Transition name="ai-progress-fade">
           <div
             v-if="loading"
@@ -155,7 +114,7 @@
             <div class="ai-progress-bar-fill"></div>
           </div>
         </Transition>
-        <!-- Messages -->
+
         <div
           ref="bodyRef"
           class="ai-body"
@@ -170,56 +129,29 @@
           <Transition name="ai-fade">
             <div v-if="dragActive" class="ai-drop-overlay">
               <div class="ai-drop-overlay-inner">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-6-6v4h-2v-4H8l4-4 4 4h-2z"
-                  />
-                </svg>
+                <AssistantIcon name="upload" :size="36" />
                 <span>{{ t.dropFileHere }}</span>
               </div>
             </div>
           </Transition>
-          <div
-            v-if="fileUploading"
-            class="ai-upload-progress"
-            role="progressbar"
-            aria-label="Uploading"
-          >
-            <div class="ai-upload-progress-bar"></div>
-            <span class="ai-upload-progress-label">{{ t.uploadFile }} · {{ t.replying }}</span>
-          </div>
-          <!-- Refactor (T1)：空状态抽到 ChatEmptyState.vue + useEmptyStateContent composable -->
+
           <ChatEmptyState
             v-if="messages.length === 0"
-            :mode="mode"
             :greeting="t.greeting"
-            :skill-strip-label="t.skillStripLabel || 'Assistant skills'"
-            :task-launcher-label="t.emptyTaskLauncher || 'Browse starter tasks'"
-            :task-launcher-close-label="t.emptyTaskLauncherClose || 'Hide starter tasks'"
-            :starter-section-label="t.emptyStarterSection || 'Recommended tasks'"
-            :capability-section-label="t.emptyCapabilitySection || 'Capabilities'"
-            :template-section-label="t.emptyTemplateSection || 'Templates'"
-            :skills="defaultSkills"
-            :starters="emptyStarterCards"
-            :capability-hints="emptyCapabilityHints"
-            :prompt-templates="promptTemplateList"
-            @apply-skill="applyEmptySkill"
-            @apply-starter="applyEmptyStarter"
-            @apply-template="applyPromptTemplate"
+            :subtitle="t.emptySubtitle || ''"
+            :form-auto-fill-enabled="formAutoFillEnabled"
+            :quick-prompts="quickPrompts"
+            :is-zh="(options.locale || 'en') === 'zh'"
+            @apply-prompt="applyStarterPrompt"
+            @trigger-upload="openFilePicker"
+            @trigger-form-fill="triggerClipboardFormFill"
           />
+
           <MessageList
             :messages="displayedMessages"
             :display-offset="displayOffset"
             :hidden-older-count="hiddenOlderCount"
             :render-all-messages="renderAllMessages"
-            :select-mode="selectMode"
-            :selected-indices="selectedMsgIndices"
             :loading="loading"
             :editing-idx="editingMsgIdx"
             :editing-text="editingText"
@@ -227,21 +159,17 @@
             :show-earlier-label="showEarlierLabel"
             :t="t"
             :stream-started-at="streamStartedAt"
-            :first-token-at="firstTokenAt"
             :streaming-now-ms="streamingNowMs"
             :is-transient-abort="isTransientAbortAssistantMessage"
             :is-active-streaming="isActiveStreamingAssistant"
             :has-visible-content="hasVisibleAssistantContent"
             :format-relative-time="formatRelativeTime"
             :render-bubble="renderBubble"
-            :on-bubble-context-menu="onBubbleContextMenu"
             :is-error-message="isErrorMessage"
             :virtual-slice="virtualSliceForList"
             :on-measure-height="virtualScrollOption ? onVirtualMeasureHeight : undefined"
             :form-auto-fill-enabled="formAutoFillEnabled"
-            :call-tool="callToolFromUi"
             @show-all-older-messages="showAllOlderMessages"
-            @toggle-selection="toggleMsgSelection"
             @confirm-edit="confirmEditAndResend"
             @cancel-edit="cancelEdit"
             @update:editing-text="editingText = $event"
@@ -250,22 +178,16 @@
             @copy-message="copyMessage"
             @form-fill="fillFormFromMessage"
             @regenerate-at="regenerateAt"
-            @regenerate-with-citations="regenerateWithCitations"
-            @set-feedback="setFeedback"
-            @set-reaction="setReaction"
             @retry-last-error="retryLastError"
           />
         </div>
+
         <Transition name="ai-fade">
-          <BatchDeleteBar
-            v-if="selectMode && selectedMsgIndices.size > 0"
-            :count="selectedMsgIndices.size"
-            :delete-label="t.msgCtxDelete"
-            :cancel-label="t.closePanel"
-            @delete="deleteSelectedMessages"
-            @cancel="toggleSelectMode"
-          />
+          <div v-if="statusToastText" class="ai-status-toast" role="status" aria-live="polite">
+            {{ statusToastText }}
+          </div>
         </Transition>
+
         <Transition name="ai-fade">
           <ScrollToBottomButton
             v-if="showScrollToBottomBtn && !loading"
@@ -274,304 +196,69 @@
           />
         </Transition>
 
-        <div v-if="mode === 'chat' && quickPrompts.length > 0" class="ai-quick-prompts">
-          <button
-            v-for="(qp, qi) in quickPrompts"
-            :key="qi"
-            type="button"
-            class="ai-quick-prompt-btn"
-            @click="applyQuickPrompt(qp)"
-          >
-            {{ qp.label }}
-          </button>
-        </div>
-
-        <!-- Input -->
         <ChatInputArea
+          ref="chatInputRef"
           v-model="input"
-          :mode="mode"
           :loading="loading"
-          :ctrl-enter-to-send="ctrlEnterToSend"
-          :sound-enabled="soundEnabled"
+          :ctrl-enter-to-send="false"
           :color="color"
-          :placeholder="placeholder"
+          :placeholder="t.placeholder.chat"
           :char-count-label="charCountLabel"
           :char-count-near-limit="charCountNearLimit"
           :char-limit-warning-text="charLimitWarningText"
-          :send-blocked-reason="sendBlockedReason"
-          :send-blocked-action-label="sendBlockedActionLabel"
+          :pending-file="pendingFile"
           :pending-image-thumbs="pendingImageThumbs"
           :accept-types="ACCEPT_TYPES"
-          :has-base-url="!!options.baseUrl"
+          :has-base-url="!!effectiveBaseUrl"
           :show-model-picker="showModelPickerResolved"
           :selected-model="selectedChatModel"
-          :default-model="defaultChatModel"
           :model-choices="modelChoices"
-          :model-capabilities="modelCapabilities"
-          :model-list-message="modelListMessage"
-          :model-status-text="modelStatusText"
-          :model-status-kind="modelStatusKind"
-          :target-lang="targetLang"
-          :voice-supported="voiceSupported"
-          :voice-recording="voiceRecording"
-          :voice-conversation-active="voiceConversationActive"
+          :form-auto-fill-enabled="formAutoFillEnabled"
           :t="t"
           :slash-visible="slashCmd.visible.value"
           :slash-commands="slashCmd.filteredCommands.value"
           :slash-selected-index="slashCmd.selectedIndex.value"
-          :page-context-configured="pageContextConfigured"
-          :page-context-enabled="!pageContextDisabledOverride"
-          :page-context-block-count="options.pageContextBlocks?.length ?? 0"
-          :deep-think-enabled="deepThinkEnabled"
-          :web-search-enabled="webSearchEnabled"
-          :fast-reply-enabled="fastReplyEnabled"
           @send="send"
-          @change-mode="onChangeMode"
-          @toggle-page-context="togglePageContext"
-          @toggle-deep-think="setDeepThinkEnabled"
-          @toggle-web-search="setWebSearchEnabled"
-          @toggle-fast-reply="setFastReplyEnabled"
-          @send-blocked-action="handleSendBlockedAction"
+          @clear-pending-file="pendingFile = null"
           @clear-pending-image="clearPendingImage"
           @remove-pending-image="removePendingImage"
-          @edit-pending-image="openAnnotationForPendingImage"
-          @file-upload="processFileUpload"
+          @file-select="attachPendingFile"
           @paste-image="onPasteImage"
           @paste-text="onChatInputPasteText"
-          @toggle-voice="voiceToggle()"
-          @toggle-voice-conversation="toggleVoiceConversation"
           @chat-image="readFileAsDataUrl"
-          @slash-keydown="onSlashKeydown"
+          @trigger-form-fill="triggerClipboardFormFill"
+          @slash-keydown="(e) => slashCmd.handleKeydown(e)"
           @slash-select="onSlashSelect"
-          @slash-hover="onSlashHover"
+          @slash-hover="(idx) => (slashCmd.selectedIndex.value = idx)"
           @history-older="onHistoryOlder"
           @history-newer="onHistoryNewer"
           @history-reset="onHistoryReset"
-          @update:ctrl-enter-to-send="ctrlEnterToSend = $event"
-          @update:sound-enabled="soundEnabled = $event"
           @update:selected-model="selectedChatModel = $event"
-          @update:target-lang="targetLang = $event"
-        >
-          <template #footer-plugins>
-            <button
-              v-for="pl in getPlugins('footer')"
-              :key="pl.id"
-              type="button"
-              class="ai-plugin-btn"
-              :title="pl.label"
-              :aria-label="pl.label"
-              :disabled="loading"
-              @click="runPlugin(pl)"
-            >
-              {{ pl.icon || pl.label.charAt(0) }}
-            </button>
-          </template>
-          <template #model-row-actions>
-            <button
-              type="button"
-              class="ai-code-wall-toggle"
-              :class="{ active: !codeWallDisabled }"
-              title="Code Wall"
-              aria-label="Code Wall"
-              @click="onToggleCodeWall"
-            >
-              <AssistantIcon name="brick-wall" :size="14" />
-            </button>
-            <button
-              type="button"
-              class="ai-code-wall-toggle"
-              :class="{ active: soundEnabled }"
-              :title="soundEnabled ? t.soundOn : t.soundOff"
-              :aria-label="soundEnabled ? t.soundOn : t.soundOff"
-              @click="soundEnabled = !soundEnabled"
-            >
-              <AssistantIcon :name="soundEnabled ? 'volume-2' : 'volume-x'" :size="14" />
-            </button>
-          </template>
-        </ChatInputArea>
+        />
+
+        <Transition name="ai-fade">
+          <AssistantSettings
+            v-if="edgeDockSettingsOpen"
+            :model-value="edgeDockStyle"
+            :edge-dock="edgeDock"
+            :connection-config="connectionConfig"
+            :host-base-url="options.baseUrl"
+            :backend-models="backendModelChoices"
+            :selected-backend-model="selectedBackendModel"
+            :is-dark="isDark"
+            :is-zh="(options.locale || 'en') === 'zh'"
+            :t="t"
+            @update:model-value="setEdgeDockStyle"
+            @dock-now="applyDockActionFromSettings"
+            @save-connection="handleSaveConnection"
+            @reset-connection="handleResetConnection"
+            @select-backend-model="handleSelectBackendModel"
+            @refresh-backend-models="handleRefreshBackendModels"
+            @close="edgeDockSettingsOpen = false"
+          />
+        </Transition>
       </div>
     </Transition>
-
-    <FabContextMenu
-      :show="fabCtxMenu.show"
-      :x="fabCtxMenu.x"
-      :y="fabCtxMenu.y"
-      :color="color"
-      :is-dark="isDark"
-      :edge-dock="edgeDock"
-      :t="t"
-      @dock="
-        (edge) => {
-          dockFab(edge);
-          closeFabCtxMenu();
-        }
-      "
-      @hide="hideFabUntilPageReload"
-    />
-
-    <MessageContextMenu
-      :show="msgCtxMenu.show"
-      :x="msgCtxMenu.x"
-      :y="msgCtxMenu.y"
-      :color="color"
-      :selection-text="msgCtxMenu.selectionText"
-      :has-base-url="!!options.baseUrl"
-      :export-busy="exportServerBusy"
-      :tts-supported="tts.supported.value"
-      :tts-active="tts.speaking.value && tts.currentMessageIndex.value === msgCtxMenu.index"
-      :tts-paused="tts.paused.value"
-      :compare-mark-active="compareSet.length > 0"
-      :compare-mark-active-for-this="compareSlotOf(msgCtxMenu.index) >= 0"
-      :compare-set-count="compareSet.length"
-      :compare-set-full="compareSet.length >= maxCompareSides"
-      :form-auto-fill-enabled="formAutoFillEnabled"
-      :t="t"
-      @copy="copyAssistantSelection"
-      @translate="translateAssistantSelection"
-      @delete="deleteAssistantAt(msgCtxMenu.index)"
-      @export="(fmt) => exportAssistantMessageServer(msgCtxMenu.index, fmt)"
-      @fork="forkFromHere(msgCtxMenu.index)"
-      @form-fill="fillFormFromMessage(msgCtxMenu.index)"
-      @tts="ttsToggleCurrent"
-      @tts-pause-toggle="ttsPauseToggle"
-      @compare-mark="onCompareMark"
-      @compare-with="onCompareWith"
-    />
-
-    <CompareRegionsDialog
-      v-if="compareDialogOpen"
-      :open="compareDialogOpen"
-      :is-dark="isDark"
-      :t="t"
-      :sides="compareSet"
-      @close="compareDialogOpen = false"
-      @swap-pair="onCompareSwapPair"
-      @clear-set="onCompareClearSet"
-    />
-
-    <!-- Refactor (T1)：KB picker 抽到 KbPickerDialog.vue（Teleport 在子组件内部） -->
-    <KbPickerDialog
-      :visible="kbPickerVisible"
-      :is-dark="isDark"
-      :knowledge-bases="knowledgeBase.bases.value"
-      :title="t.kbPickerTitle || 'Ingest into…'"
-      :subtitle="
-        (t.kbPickerSubtitle || '{count} file(s)').replace('{count}', String(kbPickerFiles.length))
-      "
-      v-bind="{ ariaLabel: t.kbPickerTitle || 'Pick destination knowledge base' }"
-      :close-aria-label="t.closePanel"
-      :docs-unit="t.kbPickerDocsUnit || 'docs'"
-      :new-kb-label="t.kbPickerNewKb || 'New knowledge base'"
-      @close="closeKbPicker"
-      @pick="onKbPickerPick"
-      @create-new="onKbPickerCreateNew"
-      @keydown="onKbPickerKeydown"
-    />
-
-    <PersonalizeDialog
-      v-model="chatSystemPrompt"
-      :open="personalizeOpen"
-      :is-dark="isDark"
-      :disabled="loading"
-      :max-chars="systemPromptMaxInputCharsResolved"
-      :t="t"
-      :theme="themePalette"
-      :audio="audioPrefs"
-      :provider-config-enabled="runtimeProviderConfigEnabled"
-      :provider-input="providerInput"
-      :provider-base-url-input="providerBaseUrlInput"
-      :provider-api-key-input="providerApiKeyInput"
-      :provider-model-input="providerModelInput"
-      :provider-allowed-models-input="providerAllowedModelsInput"
-      :warmup-enabled-input="warmupEnabledInput"
-      :web-search-provider-input="webSearchProviderInput"
-      :web-search-api-key-input="webSearchApiKeyInput"
-      :web-search-max-results-input="webSearchMaxResultsInput"
-      :web-search-allowed-domains-input="webSearchAllowedDomainsInput"
-      :web-search-blocked-domains-input="webSearchBlockedDomainsInput"
-      :fast-route-max-chars-input="fastRouteMaxCharsInput"
-      :slow-ttft-threshold-ms-input="slowTtftThresholdMsInput"
-      :slow-total-threshold-ms-input="slowTotalThresholdMsInput"
-      :slow-request-warning-streak-input="slowRequestWarningStreakInput"
-      @update:theme="(v) => (themePalette = v as ThemePresetId)"
-      @update:audio="onAudioPrefsUpdate"
-      @save-provider-config="saveProviderConfig"
-      @discover-provider-models="discoverProviderModels"
-      @update:provider-input="providerInput = $event"
-      @update:provider-base-url-input="providerBaseUrlInput = $event"
-      @update:provider-api-key-input="providerApiKeyInput = $event"
-      @update:provider-model-input="providerModelInput = $event"
-      @update:provider-allowed-models-input="providerAllowedModelsInput = $event"
-      @update:warmup-enabled-input="warmupEnabledInput = $event"
-      @update:web-search-provider-input="webSearchProviderInput = $event"
-      @update:web-search-api-key-input="webSearchApiKeyInput = $event"
-      @update:web-search-max-results-input="webSearchMaxResultsInput = $event"
-      @update:web-search-allowed-domains-input="webSearchAllowedDomainsInput = $event"
-      @update:web-search-blocked-domains-input="webSearchBlockedDomainsInput = $event"
-      @update:fast-route-max-chars-input="fastRouteMaxCharsInput = $event"
-      @update:slow-ttft-threshold-ms-input="slowTtftThresholdMsInput = $event"
-      @update:slow-total-threshold-ms-input="slowTotalThresholdMsInput = $event"
-      @update:slow-request-warning-streak-input="slowRequestWarningStreakInput = $event"
-      @close="personalizeOpen = false"
-    />
-
-    <!-- K21 Phase 1: 3 inline panels (memory / kb / plugins) extracted into
-         AssistantInlineOverlays. Same `.ai-memory-overlay > .ai-memory-panel`
-         visual template; the child owns memoryNewText / kbNewName /
-         kbFileInputRef / kbUploadTargetId / addMemoryItem / createKb /
-         triggerKbUpload / onKbFileSelect. -->
-    <AssistantInlineOverlays
-      v-if="inlineOverlaysActive"
-      v-model:memory-open="memoryOpen"
-      v-model:kb-open="kbPanelOpen"
-      v-model:plugins-open="pluginsPanelOpen"
-      :cross-memory="crossMemory"
-      :knowledge-base="knowledgeBase"
-      :plugins="plugins"
-      :t="t"
-      @unregister-plugin="unregisterPlugin"
-    />
-
-    <!-- A1: Multi-model parallel compare overlay -->
-    <Transition name="ai-panel">
-      <MultiModelCompare
-        v-if="multiModelOpen"
-        :available-models="modelChoices"
-        :selected-models="multiModelChat.selectedModels.value"
-        :columns="multiModelChat.columns.value"
-        :is-running="multiModelChat.isRunning.value"
-        :max-columns="4"
-        :initial-prompt="input"
-        :t="t"
-        @close="closeMultiModelCompare"
-        @toggle-model="(m: string) => multiModelChat.toggleModel(m)"
-        @start="(p: string) => multiModelChat.start(p)"
-        @stop-one="(m: string) => multiModelChat.stopOne(m)"
-        @stop-all="multiModelChat.stopAll"
-      />
-    </Transition>
-
-    <!-- B7: Prompt template library overlay -->
-    <Transition name="ai-panel">
-      <PromptTemplateDialog
-        v-if="promptTemplateOpen"
-        :templates="promptTemplateLib.mergedTemplates.value"
-        :t="t"
-        @close="promptTemplateOpen = false"
-        @create-user="(tpl) => promptTemplateLib.addTemplate(tpl)"
-        @update-user="(id, patch) => promptTemplateLib.updateTemplate(id, patch)"
-        @delete-user="(id) => promptTemplateLib.deleteTemplate(id)"
-        @use="(rendered) => onPromptTemplateUse(rendered)"
-      />
-    </Transition>
-
-    <KeyboardShortcutsDialog
-      v-if="keyboardHelpOpen"
-      :open="keyboardHelpOpen"
-      :is-dark="isDark"
-      :t="t"
-      @close="keyboardHelpOpen = false"
-    />
 
     <SessionsDrawer
       v-if="sessionsDrawerOpen"
@@ -588,83 +275,8 @@
       @rename="multiSessions.renameSession"
     />
 
-    <ConnectionDiagnostics
-      v-if="diagnosticsOpen"
-      :uid="uid"
-      :busy="diagnosticsBusy"
-      :copied="diagnosticsCopied"
-      :copy-message="diagnosticsCopyMessage"
-      :status-message="diagnosticsStatusMessage"
-      :last-error="modelListError"
-      :base-url="options.baseUrl"
-      :model-endpoint="diagnosticsModelEndpoint"
-      :token-text="diagnosticsTokenText"
-      :selected-model="selectedChatModel"
-      :model-status-text="modelStatusText"
-      :model-status-kind="modelStatusKind"
-      :model-health-text="modelHealthText"
-      :web-search-diagnostics-text="webSearchDiagnosticsText"
-      :web-search-stats="webSearchStats"
-      :response-timing-summary="responseTimingSummary"
-      :response-timing-history="responseTimingHistory"
-      :response-timing-samples="responseTimingSamples"
-      :slow-request-hint-text="slowRequestHintText"
-      :benchmark-busy="benchmarkBusy"
-      :benchmark-summary="benchmarkSummary"
-      :benchmark-rows="benchmarkRows"
-      :model-source-text="modelSourceText"
-      :model-hint-text="modelHintText"
-      :remedy-kind="diagnosticsRemedyKind"
-      :model-count="modelChoices.length"
-      :last-checked="diagnosticsLastChecked"
-      :base-url-input="connectionBaseUrlInput"
-      :token-input="connectionTokenInput"
-      :persist-enabled="connectionPersistEnabled"
-      :config-message="connectionConfigMessage"
-      :is-dark="isDark"
-      :t="t"
-      @refresh="runModelDiagnostics"
-      @copy="copyDiagnostics"
-      @close="diagnosticsOpen = false"
-      @test-config="testConnectionConfig"
-      @save-config="saveConnectionConfig"
-      @use-default-base-url="useDefaultBaseUrlForDiagnostics"
-      @run-benchmark="runModelBenchmark"
-      @update:base-url-input="connectionBaseUrlInput = $event"
-      @update:token-input="connectionTokenInput = $event"
-      @update:persist-enabled="connectionPersistEnabled = $event"
-    />
-
-    <!-- K34 (K21 Phase 2): 3 transient bottom-of-viewport popovers grouped
-         into one wrapper. ExportToast / PageSelectionBar / InlineTranslate
-         all share the "shows briefly then dismisses" pattern and have no
-         coupling to chat state, so they're cheap to extract. -->
-    <AssistantBottomTransients
-      v-if="bottomTransientsActive"
-      :export-toast-text="exportToastText"
-      :color="color"
-      :is-dark="isDark"
-      :assistant-open="isOpen"
-      :page-sel="pageSel"
-      :inline-translate="inlineTranslatePopover"
-      :t="t"
-      @page-sel-action="onPageSelAction"
-    />
-
-    <ImageAnnotationDialog
-      v-if="annotationOpen"
-      :open="annotationOpen"
-      :image-src="annotationImageSrc"
-      :is-dark="isDark"
-      :t="t"
-      @close="closeAnnotationDialog"
-      @save="onAnnotationSave"
-    />
-
-    <!-- L1: Form auto-fill dialog (lazy-loaded via async component). Only mounts
-         when the feature is enabled and the composable opens the dialog. -->
     <FormAutoFillDialog
-      v-if="formAutoFillEnabled && formAutoFill.dialogOpen.value"
+      v-if="formAutoFillEnabled"
       :open="formAutoFill.dialogOpen.value"
       :is-dark="isDark"
       :t="t"
@@ -680,7 +292,6 @@
       @confirm="onFormAutoFillConfirm"
     />
 
-    <!-- Refactor (T1)：FormFillToast 抽出 -->
     <FormFillToast
       v-if="formAutoFillEnabled"
       :visible="formAutoFill.toastVisible.value && !!formAutoFill.toastSummary.value"
@@ -692,27 +303,14 @@
       @undo="onFormAutoFillUndo"
       @dismiss="onFormAutoFillToastDismiss"
     />
-
-    <CitationHoverCard :state="citationCard" :dark="isDark" />
-
-    <!-- K23: Ctrl+K command palette. Teleports to body so z-index is hassle-free. -->
-    <CommandPalette
-      v-if="cmdPalette.open.value"
-      :open="cmdPalette.open.value"
-      :commands="cmdPalette.commands.value"
-      @update:open="(v) => (cmdPalette.open.value = v)"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useThemePalette, type ThemePresetId } from '../composables/useThemePalette';
-
 import {
   ref,
   computed,
   inject,
-  provide,
   reactive,
   nextTick,
   watch,
@@ -721,179 +319,79 @@ import {
   defineAsyncComponent,
   type Ref,
 } from 'vue';
-import FabContextMenu from './FabContextMenu.vue';
-import MessageContextMenu from './MessageContextMenu.vue';
-import MessageList from './MessageList.vue';
-import AssistantHeader from './AssistantHeader.vue';
-import ChatInputArea from './ChatInputArea.vue';
-import AssistantIcon from './AssistantIcon.vue';
-import SessionTabs from './SessionTabs.vue';
-/* Refactor (T1)：从 AiAssistant.vue 抽出的 5 个子组件 */
-import FabButton from './FabButton.vue';
-import ChatSearchBar from './ChatSearchBar.vue';
-import ChatEmptyState from './ChatEmptyState.vue';
-import KbPickerDialog from './KbPickerDialog.vue';
-import FormFillToast from './FormFillToast.vue';
-import CitationHoverCard from './CitationHoverCard.vue';
-import ArtifactCanvas from './ArtifactCanvas.vue';
-import ScrollToBottomButton from './ScrollToBottomButton.vue';
-import BatchDeleteBar from './BatchDeleteBar.vue';
-import { useArtifacts, ARTIFACTS_KEY } from '../composables/useArtifacts';
-import { useCitationHover } from '../composables/useCitationHover';
-import { useVoiceInput } from '../composables/useVoiceInput';
+import type { AiAssistantOptions } from '../index';
+import type { Message } from '../types/message';
+import { getMessages, type Locale, type I18nMessages } from '../utils/i18n';
+import { fetchModels, fetchUrlPreview, uploadFile } from '../utils/api';
 import {
-  appendVoiceTranscript,
-  shouldAutoSendVoiceTranscript,
-} from '../composables/useVoiceConversation';
-import { useSlashCommands } from '../composables/useSlashCommands';
-import { useCrossSessionMemory } from '../composables/useCrossSessionMemory';
-import { useKnowledgeBase } from '../composables/useKnowledgeBase';
-import { useMultiModelChat } from '../composables/useMultiModelChat';
-import { useTextToSpeech } from '../composables/useTextToSpeech';
-import { useAudioPreferences } from '../composables/useAudioPreferences';
-import { useAssistantDiagnostics } from '../composables/useAssistantDiagnostics';
-import { useLatencyBenchmark } from '../composables/useLatencyBenchmark';
-import { useResponseTimingUi } from '../composables/useResponseTimingUi';
-import { useInputConstraints } from '../composables/useInputConstraints';
+  extractHttpUrls,
+  firstNonImageHttpUrl,
+  isProbablyDirectImageUrl,
+  preferHttpsImageUrlWhenPageIsSecure,
+} from '../utils/urlEmbed';
+import { writeClipboardText } from '../composables/useMessageCopy';
+import { useThemePalette } from '../composables/useThemePalette';
+import { useThemePreference } from '../composables/useThemePreference';
+import { useRelativeTime } from '../composables/useRelativeTime';
+import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer';
 import { useBubbleRenderer } from '../composables/useBubbleRenderer';
-import { useFabContextMenu } from '../composables/useFabContextMenu';
-import { useSessionActions } from '../composables/useSessionActions';
-import { useCapabilityToggles } from '../composables/useCapabilityToggles';
-import { usePanelTransitions } from '../composables/usePanelTransitions';
-import { useLoadingEffects } from '../composables/useLoadingEffects';
-import { useWrapperStyles } from '../composables/useWrapperStyles';
-import { writeClipboardText } from '../composables/useDiagnosticsClipboard';
-import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
-import { usePromptTemplateInteraction } from '../composables/usePromptTemplateInteraction';
-import { usePromptTemplateLibrary } from '../composables/usePromptTemplateLibrary';
+import { useCodeBlockActions } from '../composables/useCodeBlockActions';
 import { useQuickPromptOptions } from '../composables/useQuickPromptOptions';
-import { useServerPromptTemplates } from '../composables/useServerPromptTemplates';
-import { useAssistantPromptCommands } from '../composables/useAssistantPromptCommands';
-import { useAssistantFeatureCommands } from '../composables/useAssistantFeatureCommands';
-import { useAssistantCommandRegistry } from '../composables/useAssistantCommandRegistry';
-import { useAssistantCommandFamilies } from '../composables/useAssistantCommandFamilies';
-import { useAssistantWorkflowCommands } from '../composables/useAssistantWorkflowCommands';
-import { useAssistantAppCommands } from '../composables/useAssistantAppCommands';
-import { useMermaidRenderer } from '../composables/useMermaidRenderer';
-/* Refactor (T1-Wave3)：滚动 + 虚拟滚动整合到一个 composable（不再直接 import useMessageVirtualScroll） */
+import { useInputConstraints } from '../composables/useInputConstraints';
+import { useMultiSession } from '../composables/useMultiSession';
+import { useSessionActions } from '../composables/useSessionActions';
+import { useSessionSearch } from '../composables/useSessionSearch';
 import {
   useScrollAndVirtual,
   resolveVirtualScrollOption,
 } from '../composables/useScrollAndVirtual';
-import { useCommandPalette } from '../composables/useCommandPalette';
-import { useCommandPaletteRegistration } from '../composables/useCommandPaletteRegistration';
-const PersonalizeDialog = defineAsyncComponent(() => import('./PersonalizeDialog.vue'));
-const CompareRegionsDialog = defineAsyncComponent(() => import('./CompareRegionsDialog.vue'));
-const MultiModelCompare = defineAsyncComponent(() => import('./MultiModelCompare.vue'));
-const PromptTemplateDialog = defineAsyncComponent(() => import('./PromptTemplateDialog.vue'));
-/* K34: ExportToast / PageSelectionBar / InlineTranslatePopover moved into
- * the AssistantBottomTransients wrapper below. Their async imports live
- * in that file now so the chunks still split lazily. */
-const AssistantBottomTransients = defineAsyncComponent(
-  () => import('./AssistantBottomTransients.vue'),
-);
-const ConnectionDiagnostics = defineAsyncComponent(() => import('./ConnectionDiagnostics.vue'));
-const KeyboardShortcutsDialog = defineAsyncComponent(() => import('./KeyboardShortcutsDialog.vue'));
-const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
-const ImageAnnotationDialog = defineAsyncComponent(() => import('./ImageAnnotationDialog.vue'));
-/* K21 Phase 1: extracted ~135 lines of repetitive memory/kb/plugins panel
- * template into AssistantInlineOverlays. Lazy-loaded so the initial chunk
- * stays slim (only paid for when a user opens one of those panels). */
-const AssistantInlineOverlays = defineAsyncComponent(() => import('./AssistantInlineOverlays.vue'));
-/* K23: CommandPalette (Ctrl+K / ⌘+K) — flagship VSCode-style command runner
- * built on top of the K16 CommandPalette.vue + useCommandPalette composable. */
-const CommandPalette = defineAsyncComponent(() => import('./CommandPalette.vue'));
-import type { AiAssistantOptions } from '../index';
-import { uploadFile, fetchUrlPreview, callTool } from '../utils/api';
-import { useStreamWithFallback } from '../composables/useStreamWithFallback';
-import { useExportActions } from '../composables/useExportActions';
-import { useFabDrag } from '../composables/useFabDrag';
-import { usePanelMemory } from '../composables/usePanelMemory';
-import { useCodeWall } from '../composables/useCodeWall';
-import { useCodeBlockActions } from '../composables/useCodeBlockActions';
-import { usePanelGeometry } from '../composables/usePanelGeometry';
-import { useMsgContextMenu } from '../composables/useMsgContextMenu';
-import { getMessages } from '../utils/i18n';
-import type { Locale, I18nMessages } from '../utils/i18n';
-import { useSessionSearch } from '../composables/useSessionSearch';
-import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
-import { useChatOrchestrator } from '../composables/useChatOrchestrator';
-import { useMessageCopy } from '../composables/useMessageCopy';
-import { useMessageSelection } from '../composables/useMessageSelection';
-import { useMessageReactions } from '../composables/useMessageReactions';
-import { usePageSelectionActions } from '../composables/usePageSelectionActions';
-import { useCompareRegions } from '../composables/useCompareRegions';
-import { useSendStream } from '../composables/useSendStream';
 import {
   loadPersistedMessages,
   pruneTransientAssistantMessages,
   useChatHistoryPersistence,
 } from '../composables/useChatHistoryPersistence';
-import { useExportUi } from '../composables/useExportUi';
-import { useAiMarkdownRenderer } from '../composables/useAiMarkdownRenderer';
-import { useMultiSession } from '../composables/useMultiSession';
+import { useMessageMemoryCap } from '../composables/useMessageMemoryCap';
+import { useMessageCopy } from '../composables/useMessageCopy';
+import { useChatOrchestrator } from '../composables/useChatOrchestrator';
+import { useStreamWithFallback } from '../composables/useStreamWithFallback';
+import { useSendStream } from '../composables/useSendStream';
 import { useImagePasteAndDrop } from '../composables/useImagePasteAndDrop';
-import { useImageAnnotationState } from '../composables/useImageAnnotationState';
-import {
-  captureScreenDataUrl,
-  matchesScreenCaptureShortcut,
-} from '../composables/useScreenCapture';
-import {
-  providePluginRegistry,
-  usePluginRegistry,
-  type PluginContext,
-} from '../composables/usePluginRegistry';
-import { usePageSelection } from '../composables/usePageSelection';
-import { usePromptHistory } from '../composables/usePromptHistory';
-import { useFabDropIngest } from '../composables/useFabDropIngest';
-import { useKnowledgeDrop } from '../composables/useKnowledgeDrop';
-import { useFormAutoFillUi } from '../composables/useFormAutoFillUi';
-/* Refactor (T1)：从 AiAssistant.vue 抽出的 3 个 composable */
-import { useEmptyStateContent } from '../composables/useEmptyStateContent';
-import { useThemePreference } from '../composables/useThemePreference';
 import { useImageLightbox } from '../composables/useImageLightbox';
-import { useRelativeTime } from '../composables/useRelativeTime';
-import { useNotificationSound } from '../composables/useNotificationSound';
-const FormAutoFillDialog = defineAsyncComponent(() => import('./FormAutoFillDialog.vue'));
+import { usePromptHistory } from '../composables/usePromptHistory';
+import { useSlashCommands } from '../composables/useSlashCommands';
+import { useFormAutoFillUi } from '../composables/useFormAutoFillUi';
+import { useFabDrag } from '../composables/useFabDrag';
+import { useEdgeDockStyle } from '../composables/useEdgeDockStyle';
+import { usePanelGeometry } from '../composables/usePanelGeometry';
+import { usePanelMemory } from '../composables/usePanelMemory';
+import { usePanelTransitions } from '../composables/usePanelTransitions';
+import { useWrapperStyles } from '../composables/useWrapperStyles';
+import { useAssistantKeyboard } from '../composables/useAssistantKeyboard';
 import {
-  extractHttpUrls,
-  isProbablyDirectImageUrl,
-  firstNonImageHttpUrl,
-  preferHttpsImageUrlWhenPageIsSecure,
-} from '../utils/urlEmbed';
+  isEventInsideAssistantUi,
+  shouldClosePanelOnOutsideMousedown,
+} from '../composables/usePanelOutsideClose';
 
-import { extractThinking, type Message } from '../types/message';
+import FabButton from './FabButton.vue';
+import AssistantHeader from './AssistantHeader.vue';
+import SessionTabs from './SessionTabs.vue';
+import ChatEmptyState from './ChatEmptyState.vue';
+import MessageList from './MessageList.vue';
+import ScrollToBottomButton from './ScrollToBottomButton.vue';
+import ChatInputArea from './ChatInputArea.vue';
+import AssistantIcon from './AssistantIcon.vue';
+import FormFillToast from './FormFillToast.vue';
+import AssistantSettings from './AssistantSettings.vue';
+import { readTextFileForDirectQa, streamDirectProviderChat } from '../utils/directOpenAi';
+import { useConnectionConfig, type ConnectionConfig } from '../composables/useConnectionConfig';
 
-const sessionTitle = ref('');
-const multiSessions = useMultiSession();
-providePluginRegistry();
-const { plugins, getPlugins, unregisterPlugin } = usePluginRegistry();
-const { streamWithFallback } = useStreamWithFallback();
+const SessionsDrawer = defineAsyncComponent(() => import('./SessionsDrawer.vue'));
+const FormAutoFillDialog = defineAsyncComponent(() => import('./FormAutoFillDialog.vue'));
 
-function makePluginContext(): PluginContext {
-  return {
-    input: input.value,
-    messages: messages.value.map((m) => ({ role: m.role, content: m.contentArchive ?? m.content })),
-    setInput: (text: string) => {
-      input.value = text;
-    },
-    addMessage: (role: 'user' | 'assistant', content: string) => {
-      messages.value.push({ role, content, timestamp: Date.now() });
-      scrollToBottom(true);
-    },
-  };
-}
-
-async function runPlugin(plugin: { action: (ctx: PluginContext) => void | Promise<void> }) {
-  try {
-    await plugin.action(makePluginContext());
-  } catch (e) {
-    console.error('[AiAssistant] plugin action failed', e);
-  }
-}
+const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
+const MAX_RENDERED_MESSAGES = 60;
 
 const uid = 'ai-' + Math.random().toString(36).slice(2, 8);
-
 const options = reactive(
   inject<AiAssistantOptions>('ai-assistant-options', {
     baseUrl: '/ai-assistant',
@@ -902,700 +400,174 @@ const options = reactive(
     theme: 'light',
     persistHistory: false,
     locale: 'en',
-    showSystemPromptEditor: true,
-    systemPromptStorageKey: 'ai-assistant-chat-system-prompt',
-    systemPromptMaxInputChars: 4000,
     showModelPicker: true,
     selectedModelStorageKey: 'ai-assistant-selected-model',
   }),
 );
 
+const emit = defineEmits<{
+  (e: 'send', payload: { action: string; text: string }): void;
+  (e: 'response', content: string): void;
+  (e: 'error', message: string): void;
+  (e: 'feedback', payload: { index: number; value: 'up' | 'down' | null }): void;
+}>();
+
+const t = computed(() => getMessages((options.locale || 'en') as Locale));
+const color = computed(() => options.primaryColor || '#111111');
+const { themePaletteVars } = useThemePalette();
+const themePref = useThemePreference(computed(() => options.theme));
+const isDark = themePref.isDark;
+const toggleManualTheme = themePref.toggleManualTheme;
+const { formatRelativeTime } = useRelativeTime(t, () => options.locale || 'en');
+const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
+const { quickPrompts } = useQuickPromptOptions(options);
+
+const wrapperRef = ref<HTMLElement>();
+const panelRef = ref<HTMLElement>();
+const bodyRef = ref<HTMLElement>();
+const fabButtonRef = ref<InstanceType<typeof FabButton> | null>(null);
+const chatInputRef = ref<InstanceType<typeof ChatInputArea> | null>(null);
+
+const isOpen = ref(false);
+const fabHidden = ref(false);
+const input = ref('');
+const loading = ref(false);
+const pendingFile = ref<File | null>(null);
+const sessionsDrawerOpen = ref(false);
+const edgeDockSettingsOpen = ref(false);
+const sessionTitle = ref('');
+const mode = ref<'translate' | 'summarize' | 'chat'>('chat');
+const targetLang = ref('zh');
+const chatSystemPrompt = ref('');
+const pendingTimers: number[] = [];
+let streamAbortController: AbortController | null = null;
+let streamStoppedByUser = false;
+
+const statusToastText = ref('');
+let statusToastTimer: number | null = null;
+function showStatusToast(msg: string, durationMs = 2600) {
+  statusToastText.value = msg;
+  if (statusToastTimer != null) clearTimeout(statusToastTimer);
+  statusToastTimer = window.setTimeout(() => {
+    statusToastText.value = '';
+    statusToastTimer = null;
+  }, durationMs);
+}
+
 function reportAssistantError(source: string, message: string) {
   options.onAssistantError?.({ source, message });
 }
 
-const t = computed(() => getMessages((options.locale || 'en') as Locale));
-
-/* Artifacts/Canvas：provide 给子组件 ArtifactCard（inject 后打开），本组件渲染 ArtifactCanvas 覆盖层 */
-const artifactsController = useArtifacts();
-provide(ARTIFACTS_KEY, artifactsController);
-const currentArtifact = artifactsController.current;
-const currentArtifactVersions = artifactsController.currentVersions;
-const artifactPanelOpen = artifactsController.isOpen;
-const closeArtifact = artifactsController.closeArtifact;
-/* 编辑后重发：Canvas 给出新提示词 -> 关闭画布并走正常发送管线（handler 在 send 定义后注入） */
-function onArtifactResend(text: string) {
-  artifactsController.closeArtifact();
-  artifactsController.resend(text);
-}
-
-const { formatRelativeTime } = useRelativeTime(t, () => options.locale || 'en');
-
-const { renderContent, clearRenderCache } = useAiMarkdownRenderer(t, options);
-
-const wrapperRef = ref<HTMLElement>();
-/* Refactor (T1)：systemDark / reducedMotion / pageVisible / userOverride / isDark / toggleManualTheme
- * 全部抽到 useThemePreference composable，参见 #27 用户主题覆盖契约。 */
-const themePref = useThemePreference(computed(() => options.theme));
-const reducedMotionRef = themePref.reducedMotion;
-const pageVisibleRef = themePref.pageVisible;
-const isDark = themePref.isDark;
-const toggleManualTheme = themePref.toggleManualTheme;
-const isOpen = ref(false);
-/** 本会话内隐藏悬浮球，刷新页面后恢复（不用 localStorage） */
-const fabHidden = ref(false);
-const input = ref('');
-
-/**
- * Doubao-style quick toggles state. Pure UI-state by default; host can
- * react to `onToggleDeepThink` / `onToggleWebSearch` options to wire to a
- * backend flag (model param, tool plugin, etc.). Persisted across panel
- * opens within the same session — but intentionally NOT to localStorage,
- * because semantics depend on the host's wiring.
- */
-/* Refactor (batch 6)：深度思考/联网搜索/快速回答能力开关迁移到 useCapabilityToggles（装配在 setExportToast 之后，notify 注入该 toast 通道）。 */
-
-/* Refactor (T1)：Doubao-style skill chip / starter card / capability hint
- * 全部抽到 useEmptyStateContent composable（4 语言 i18n 静态数据 ~330 行）。
- * 因为 `mode` 在文件后段才声明，这里先用一个早期 ref 提前持有 mode，
- * 后面再覆盖到同名 ref（避免循环依赖）。 */
-const mode = ref<'translate' | 'summarize' | 'chat'>('chat');
-type EmptySkillChip = import('../composables/useEmptyStateContent').EmptySkillChip;
-type EmptyStarterCard = import('../composables/useEmptyStateContent').EmptyStarterCard;
+/* Connection & Models */
+const hostBaseUrlRef = computed(() => options.baseUrl);
+const hostAccessTokenRef = computed(() => options.accessToken);
 const {
-  defaultSkills,
-  defaultStartersRich,
-  modeStarterCards,
-  emptyStarterCards,
-  emptyCapabilityHints,
-} = useEmptyStateContent({
-  locale: computed(() => options.locale),
-  mode,
-});
-void defaultStartersRich;
-void modeStarterCards;
-/* Refactor (T1)：原 ~310 行的 4 语言 skill/starter/mode/capability 数据 + 局部 interface
- *（_legacyDefaultSkills / defaultStartersRich / modeStarterCards / emptyStarterCards /
- *  emptyCapabilityHints / EmptyStarterCard interface）已迁移到
- *  composables/useEmptyStateContent.ts，请去那里维护文案与 i18n 增量。 */
-/* ↑ 上面 5 个变量来自 useEmptyStateContent composable。原 ~258 行的 4 语言
- * skill/starter/mode/capability 数据已迁移到 composables/useEmptyStateContent.ts。 */
-
-function focusInput() {
-  void nextTick(() => {
-    const el = document.querySelector(
-      `.ai-assistant-wrapper .ai-footer-textarea`,
-    ) as HTMLTextAreaElement | null;
-    el?.focus();
-  });
-}
-
-function applyEmptySkill(skill: EmptySkillChip) {
-  input.value = skill.prompt;
-  setExportToast(`已填入「${skill.label}」模板，补充内容后发送`, 2200);
-  focusInput();
-}
-
-function applyEmptyStarter(starter: EmptyStarterCard) {
-  input.value = starter.prompt;
-  // Design v2: complete example questions send immediately — the empty state
-  // doubles as onboarding; template starters still pre-fill for completion.
-  if (starter.sendNow) {
-    void send();
-    return;
-  }
-  setExportToast(`已填入「${starter.title}」任务，补充内容后发送`, 2200);
-  focusInput();
-}
-
-const loading = ref(false);
-const ctrlEnterToSend = ref(false);
-const { soundEnabled, playNotificationSound } = useNotificationSound();
-const {
-  charCountLabel,
-  charCountNearLimit,
-  charLimitWarningText,
-  sendBlockedReason,
-  sendBlockedActionLabel,
-} = useInputConstraints({ input, options, t });
-let streamAbortController: AbortController | null = null;
-let streamStoppedByUser = false;
-const messages = ref<Message[]>(
-  pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)),
-);
-/* Refactor (batch 1)：响应计时/模型健康派生迁移到 useResponseTimingUi（在 diagnostics 解构后装配）。 */
-const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
-  messages,
-  () => !!options.persistHistory,
-);
-const { trimMessagesForMemoryCap } = useMessageMemoryCap(messages, options, clearRenderCache);
-/** 超过条数时只挂载最近 N 条 DOM，减少长会话卡顿 */
-const MAX_RENDERED_MESSAGES = 60;
-const renderAllMessages = ref(false);
-const { exportServerBusy, exportToastText, setExportToast, disposeExportToast } = useExportUi();
-
-const {
-  deepThinkEnabled,
-  webSearchEnabled,
-  fastReplyEnabled,
-  setDeepThinkEnabled,
-  setWebSearchEnabled,
-  setFastReplyEnabled,
-} = useCapabilityToggles({ notify: setExportToast });
-
-/* Refactor (batch 1)：formatTimingMs / latencyNumber / toResponseTimingSample 迁移到 useResponseTimingUi。 */
-
-const exportActions = useExportActions({
-  sessions: multiSessions.sessions,
-  messages,
-  wrapperRef,
-  getBaseUrl: () => options.baseUrl,
-  getAccessToken: () => options.accessToken,
-  isDark,
-  t,
-  exportServerBusy,
-  setExportToast,
-  reportError: reportAssistantError,
-});
-const {
-  batchExportMenuOpen,
-  toggleBatchExportMenu,
-  batchExportAllJson,
-  batchExportAllMarkdown,
-  batchExportAllServer,
-  exportAssistantMessageServer,
-} = exportActions;
-
-/* Refactor (T1)：`mode` 已前移至 useEmptyStateContent 之前声明，避免循环依赖。 */
-const chatSystemPrompt = ref('');
-const personalizeOpen = ref(false);
-const showSystemPromptUi = computed(() => options.showSystemPromptEditor !== false);
-const runtimeProviderConfigEnabled = computed(() =>
-  Boolean(options.adminToken?.trim() || options.accessToken?.trim()),
-);
-const systemPromptMaxInputCharsResolved = computed(() => {
-  const n = options.systemPromptMaxInputChars;
-  if (n !== undefined && n > 0) {
-    return Math.min(16_000, n);
-  }
-  return 4000;
-});
-const systemPromptStorageKeyResolved = computed(() => {
-  const k = options.systemPromptStorageKey?.trim();
-  return k || 'ai-assistant-chat-system-prompt';
-});
+  connectionConfig,
+  isDirectMode,
+  activeProvider,
+  activeProtocol,
+  effectiveBaseUrl,
+  effectiveToken,
+  saveConnectionConfig,
+  resetConnectionConfig,
+} = useConnectionConfig(hostBaseUrlRef, hostAccessTokenRef);
 
 const showModelPickerResolved = computed(() => options.showModelPicker !== false);
 const selectedModelStorageKeyResolved = computed(
   () => options.selectedModelStorageKey?.trim() || 'ai-assistant-selected-model',
 );
-const pendingTimers: number[] = [];
-const keyboardHelpOpen = ref(false);
-const sessionsDrawerOpen = ref(false);
-const assistantDiagnostics = useAssistantDiagnostics({
-  options,
-  t,
-  showModelPicker: showModelPickerResolved,
-  selectedModelStorageKey: selectedModelStorageKeyResolved,
-  pendingTimers,
-});
-const {
-  modelChoices,
-  modelCapabilities,
-  selectedChatModel,
-  defaultChatModel,
-  diagnosticsOpen,
-  diagnosticsBusy,
-  diagnosticsCopied,
-  diagnosticsCopyMessage,
-  diagnosticsLastChecked,
-  modelListError,
-  connectionBaseUrlInput,
-  connectionTokenInput,
-  connectionPersistEnabled,
-  connectionConfigMessage,
-  providerInput,
-  providerBaseUrlInput,
-  providerApiKeyInput,
-  providerModelInput,
-  providerAllowedModelsInput,
-  warmupEnabledInput,
-  webSearchProviderInput,
-  webSearchApiKeyInput,
-  webSearchMaxResultsInput,
-  webSearchAllowedDomainsInput,
-  webSearchBlockedDomainsInput,
-  fastRouteMaxCharsInput,
-  slowTtftThresholdMsInput,
-  slowTotalThresholdMsInput,
-  slowRequestWarningStreakInput,
-  webSearchDiagnosticsText,
-  webSearchStats,
-  modelListMessage,
-  diagnosticsModelEndpoint,
-  diagnosticsTokenText,
-  diagnosticsStatusMessage,
-  modelStatusKind,
-  modelStatusText,
-  modelSourceText,
-  modelHintText,
-  diagnosticsRemedyKind,
-  refreshRuntimeModelConfig,
-  refreshChatModels,
-  runModelDiagnostics,
-  toggleDiagnostics,
-  syncConnectionInputsFromOptions,
-  useDefaultBaseUrlForDiagnostics,
-  handleSendBlockedAction,
-  testConnectionConfig,
-  saveConnectionConfig,
-  saveProviderConfig,
-  discoverProviderModels,
-  copyDiagnostics,
-  connectionBaseUrlStorageKey,
-  connectionTokenStorageKey,
-} = assistantDiagnostics;
+const modelChoices = ref<string[]>([]);
+const backendModelChoices = ref<string[]>([]);
+const modelCapabilities = ref<Record<string, string[]>>({});
+const selectedChatModel = ref('');
+const selectedBackendModel = ref('');
+let modelsFetched = false;
 
-const { benchmarkBusy, benchmarkRows, benchmarkSummary, runBenchmark } = useLatencyBenchmark();
-const {
-  responseTimingSamples,
-  responseTimingHistory,
-  responseTimingSummary,
-  modelHealthText,
-  slowRequestHintText,
-  fastReplyRoutingConfig,
-} = useResponseTimingUi({
-  messages,
-  selectedChatModel,
-  fastRouteMaxCharsInput,
-  slowTtftThresholdMsInput,
-  slowTotalThresholdMsInput,
-  slowRequestWarningStreakInput,
-});
-
-function runModelBenchmark() {
-  void runBenchmark(options.baseUrl || '', options.accessToken, modelChoices.value);
+function syncDirectModelState() {
+  const prov = activeProvider.value;
+  const activeM = prov.activeModel.trim() || prov.models[0]?.trim() || '';
+  modelChoices.value = Array.from(new Set([activeM, ...prov.models].filter(Boolean)));
+  modelCapabilities.value = {};
+  selectedChatModel.value = activeM;
 }
 
-function openPersonalize() {
-  personalizeOpen.value = true;
+if (isDirectMode.value) {
+  syncDirectModelState();
 }
 
-const targetLang = ref('zh');
-
-const msgCtxComposable = useMsgContextMenu({
-  messages,
-  loading,
-  getBaseUrl: () => options.baseUrl,
-  getAccessToken: () => options.accessToken,
-  targetLang,
-  t,
-  reportError: reportAssistantError,
-});
-const {
-  msgCtxMenu,
-  inlineTranslatePopover,
-  closeMsgCtxMenu,
-  onBubbleContextMenu,
-  copyAssistantSelection,
-  translateAssistantSelection,
-  closeInlineTranslatePopover,
-  deleteAssistantAt,
-  detachInlinePopLayoutListeners,
-} = msgCtxComposable;
-
-const bodyRef = ref<HTMLElement>();
-/* 阅读/引用 v2.1：悬停正文 [n] 角标时，在 body 上 Teleport 一张样式来源卡。 */
-const { citationCard } = useCitationHover(bodyRef);
-
-/* Refactor (T1-Wave3)：showScrollToBottomBtn / scrollToBottomClick / 滚动 listener
- * 抽到 useScrollAndVirtual；与下面 C10 虚拟滚动接入合并。 */
-
-const panelRef = ref<HTMLElement>();
-
-/* Refactor (T1)：#18 图片点击放大 lightbox 逻辑抽到 useImageLightbox composable。
- * 行为契约不变：单一 overlay 复用，挂到 document.body，Esc / 点击 overlay 关闭。 */
-useImageLightbox({
-  panelRef,
-  closeAriaLabel: () => t.value.imageLightboxClose || 'Close',
-});
-const codeWallCanvasRef = ref<HTMLCanvasElement>();
-const fileUploading = ref(false);
-const {
-  selectMode,
-  selectedMsgIndices,
-  toggleSelectMode,
-  toggleMsgSelection,
-  deleteSelectedMessages,
-} = useMessageSelection({
-  messages,
-  clearRenderCache,
-});
-const {
-  dragActive,
-  pendingImageDataList,
-  pendingImageThumbs,
-  onBodyDragOver,
-  onBodyDragEnter,
-  onBodyDragLeave,
-  onBodyDrop,
-  onPasteImage,
-  readFileAsDataUrl,
-  setPendingImageDataUrl,
-  replacePendingImageDataUrl,
-  clearPendingImage,
-  removePendingImage,
-} = useImagePasteAndDrop({
-  loading,
-  messages,
-  errorPrefix: computed(() => t.value.errorPrefix),
-  processFileUpload,
-});
-
-const {
-  annotationOpen,
-  annotationImageSrc,
-  openAnnotationDialog,
-  openAnnotationForPendingImage,
-  closeAnnotationDialog,
-  onAnnotationSave,
-} = useImageAnnotationState({
-  pendingImageDataList,
-  setPendingImageDataUrl,
-  replacePendingImageDataUrl,
-});
-
-async function captureScreenIntoPendingImage() {
+async function refreshChatModels(force = false) {
+  if (isDirectMode.value) {
+    syncDirectModelState();
+    return;
+  }
+  const baseUrl = effectiveBaseUrl.value;
+  if ((modelsFetched && !force) || !baseUrl) return;
+  modelsFetched = true;
   try {
-    const dataUrl = await captureScreenDataUrl();
-    openAnnotationDialog(dataUrl, null);
-  } catch (e) {
-    const message =
-      e instanceof Error && e.message === 'screen-capture-unsupported'
-        ? t.value.screenCaptureUnsupported
-        : t.value.screenCaptureFailed;
-    setExportToast(message, 3200);
-  }
-}
-const {
-  disabled: codeWallDisabled,
-  start: startCodeWall,
-  stop: stopCodeWall,
-} = useCodeWall(codeWallCanvasRef, panelRef, reducedMotionRef, pageVisibleRef);
-
-const {
-  recording: voiceRecording,
-  supported: voiceSupported,
-  toggle: toggleVoiceRecognition,
-} = useVoiceInput((text) => {
-  input.value = appendVoiceTranscript(input.value, text);
-  if (
-    shouldAutoSendVoiceTranscript({
-      active: voiceConversationActive.value,
-      mode: mode.value,
-      hasBaseUrl: !!options.baseUrl,
-      loading: loading.value,
-      transcript: text,
-    })
-  ) {
-    void nextTick(() => {
-      if (input.value.trim() && !loading.value) void send();
-    });
-  }
-});
-const voiceConversationActive = ref(false);
-function voiceToggle() {
-  toggleVoiceRecognition({
-    continuous: voiceConversationActive.value,
-    interimResults: voiceConversationActive.value,
-  });
-}
-function toggleVoiceConversation() {
-  voiceConversationActive.value = !voiceConversationActive.value;
-  if (!voiceConversationActive.value && voiceRecording.value) {
-    toggleVoiceRecognition();
+    const res = await fetchModels(baseUrl, effectiveToken.value || undefined);
+    if (!res.success || !Array.isArray(res.models)) {
+      if (force) {
+        backendModelChoices.value = [];
+        if (!isDirectMode.value) modelChoices.value = [];
+      }
+      return;
+    }
+    backendModelChoices.value = res.models;
+    modelChoices.value = res.models;
+    const caps: Record<string, string[]> = {};
+    for (const detail of res.modelDetails ?? []) {
+      if (detail.id && Array.isArray(detail.capabilities)) caps[detail.id] = detail.capabilities;
+    }
+    modelCapabilities.value = caps;
+    let saved = '';
+    try {
+      saved = localStorage.getItem(selectedModelStorageKeyResolved.value) || '';
+    } catch {
+      /* ignore */
+    }
+    if (saved && res.models.includes(saved)) selectedChatModel.value = saved;
+    else if (res.defaultModel && res.models.includes(res.defaultModel))
+      selectedChatModel.value = res.defaultModel;
+    else if (res.models.length > 0) selectedChatModel.value = res.models[0];
+    selectedBackendModel.value = selectedChatModel.value;
+  } catch {
+    /* ignore */
   }
 }
 
-const crossMemory = useCrossSessionMemory();
-const memoryOpen = ref(false);
-
-const pluginsPanelOpen = ref(false);
-
-const knowledgeBase = useKnowledgeBase();
-const kbPanelOpen = ref(false);
-
-/**
- * K38 / K43: drag-and-drop a non-image file onto the FAB while the panel
- * is closed → ingest into a knowledge base.
- *
- * 设计选择：
- * - 只在 FAB 可见时启用（!isOpen.value）。面板打开后 body 的 drop 走旧 UX
- *   (translate / summarize 单文件)。
- * - 拒收 image/*：图片走 Vision pendingImage 流程，避免误入 KB。
- * - K38: 0 或 1 个 KB 时自动 ingest 到 "Quick Ingest" (auto-create)。
- * - K43: ≥ 2 个 KB 时弹出 picker popover 让用户选择目标 KB。
- * - 文件名带可视化 toast 反馈，用现有 setExportToast 通道（3.2s 自动消失）。
- */
-const knowledgeDrop = useKnowledgeDrop({
-  knowledgeBase,
-  t,
-  setToast: setExportToast,
-  focusPicker: () => {
-    const shell = document.querySelector('.ai-kb-picker-shell') as HTMLElement | null;
-    shell?.focus();
-  },
-});
-const {
-  kbPickerVisible,
-  kbPickerFiles,
-  closeKbPicker,
-  onKbPickerPick,
-  onKbPickerCreateNew,
-  onKbPickerKeydown,
-  ingestFilesIntoKb,
-} = knowledgeDrop;
-
-/* K48: picker keyboard shortcuts and auto-dismiss timer are owned by useKnowledgeDrop. */
-onUnmounted(() => knowledgeDrop.dispose());
-
-const fabDrop = useFabDropIngest({
-  enabled: computed(() => !isOpen.value),
-  rejectMimePrefix: ['image/'],
-  onFiles: ingestFilesIntoKb,
+watch(selectedChatModel, (v) => {
+  if (!v) return;
+  try {
+    localStorage.setItem(selectedModelStorageKeyResolved.value, v);
+  } catch {
+    /* ignore */
+  }
 });
 
-/**
- * A1: 多模型并行对比面板状态。
- *
- * - `multiModelOpen` 由 `/compare` 斜杠命令或未来快捷键切换。
- * - `multiModelChat` 内部独立管理 N 列流式响应；为避免与主面板的 systemPrompt
- *   语义漂移，这里直接复用 `chatSystemPrompt` 和当前会话 history。
- * - `parseChunk` 重用 `extractThinking`，让 `<think>` 块也能在对比列中
- *   折叠展示，与主面板的渲染风格保持一致。
- */
-const multiModelOpen = ref(false);
-const multiModelBaseUrl = computed(() => options.baseUrl ?? '');
-const multiModelToken = computed(() => options.accessToken);
-const multiModelHistory = computed(() =>
-  messages.value.map((m) => ({ role: m.role, content: m.contentArchive ?? m.content })),
+/* Messages & Sessions */
+const multiSessions = useMultiSession();
+const messages = ref<Message[]>(
+  pruneTransientAssistantMessages(loadPersistedMessages(!!options.persistHistory)),
 );
-const multiModelSystemPrompt = computed(() => chatSystemPrompt.value || undefined);
-const multiModelChat = useMultiModelChat({
-  baseUrl: multiModelBaseUrl,
-  token: multiModelToken,
-  history: multiModelHistory,
-  systemPrompt: multiModelSystemPrompt,
-  maxColumns: 4,
-  parseChunk: (raw: string) => {
-    const { content, thinking } = extractThinking(raw);
-    return { content, thinking };
-  },
-});
-
-function openMultiModelCompare() {
-  if (modelChoices.value.length > 1 && multiModelChat.selectedModels.value.length === 0) {
-    /* 默认选当前模型 + 第二个候选，方便用户立刻看到对比效果 */
-    const first = selectedChatModel.value || modelChoices.value[0];
-    const second = modelChoices.value.find((m) => m !== first);
-    multiModelChat.setSelectedModels(second ? [first, second] : [first]);
-  }
-  multiModelOpen.value = true;
-}
-function closeMultiModelCompare() {
-  multiModelOpen.value = false;
-  multiModelChat.stopAll();
-}
-
-/**
- * A4: 文本转语音朗读。
- *
- * 同一条消息上重复点击会切换播放/停止；切换到其它消息则会自动停掉前一条。
- * 当浏览器不支持 SpeechSynthesis（如部分嵌入式 webview）`ttsSupported` 为
- * false，右键菜单中的「朗读」按钮会自动隐藏。
- */
-const tts = useTextToSpeech();
-
-/**
- * K37: 用户音频偏好（voice / rate / autoRead），持久化到 localStorage。
- *
- * - voice: voiceURI 字符串；''（默认）= 由 useTextToSpeech 按语种启发式自动挑
- * - rate: 0.5 - 2.0，默认 1.0
- * - autoRead: 默认 false；开启后 assistant 流式结束自动朗读
- *
- * 实际朗读时把这三个偏好一并传给 tts.speak() / tts.toggleMessage()。
- */
-const AUDIO_PREFS_VOICE_KEY = 'ai-assistant.audio.voice.v1';
-const AUDIO_PREFS_RATE_KEY = 'ai-assistant.audio.rate.v1';
-const AUDIO_PREFS_AUTOREAD_KEY = 'ai-assistant.audio.autoRead.v1';
-const audioPreferences = useAudioPreferences({
-  voiceKey: AUDIO_PREFS_VOICE_KEY,
-  rateKey: AUDIO_PREFS_RATE_KEY,
-  autoReadKey: AUDIO_PREFS_AUTOREAD_KEY,
-});
-
-/** PersonalizeDialog 渲染所需的 view-model（轻量 voices 列表，避免传引用）。 */
-const audioPrefs = computed(() => ({
-  supported: tts.supported.value,
-  voice: audioPreferences.voice.value,
-  rate: audioPreferences.rate.value,
-  autoRead: audioPreferences.autoRead.value,
-  voices: tts.voices.value.map((v) => ({
-    voiceURI: v.voiceURI,
-    name: v.name,
-    lang: v.lang,
-  })),
-}));
-watch(personalizeOpen, (open) => {
-  if (open) {
-    tts.refreshVoices();
-    if (runtimeProviderConfigEnabled.value) void refreshRuntimeModelConfig();
-  }
-});
-function onAudioPrefsUpdate(patch: Partial<{ voice: string; rate: number; autoRead: boolean }>) {
-  audioPreferences.update(patch);
-}
-
-function ttsToggleCurrent() {
-  const idx = msgCtxMenu.value.index;
-  if (idx < 0) return;
-  const m = messages.value[idx];
-  if (!m) return;
-  const text = m.contentArchive ?? m.content;
-  closeMsgCtxMenu();
-  tts.toggleMessage(text, idx, {
-    voice: audioPreferences.voice.value || undefined,
-    rate: audioPreferences.rate.value,
-  });
-}
-function ttsPauseToggle() {
-  closeMsgCtxMenu();
-  if (tts.paused.value) tts.resume();
-  else tts.pause();
-}
-
-/**
- * K40 / K42: CompareRegionsView N-way state.
- *
- * 演进自 K40 (left + right) → K42 单一 `compareSet` (1-4)：
- * - 1 条 = "Add to Compare set" 后槽位为 A，等待第二条
- * - 2 条 = K40 原 UX，pair tab 只有一个，差异 dialog 立即可用
- * - 3-4 条 = pair tab N(N-1)/2 个（3 sides=3 tab，4 sides=6 tab）
- *
- * 槽位顺序代表添加顺序（不是 msgIndex 顺序）— 让用户掌控 base 是哪条。
- * Swap 在 dialog 内部按 pair 局部 swap。
- */
-const compareRegions = useCompareRegions({ messages, t });
-const {
-  compareSet,
-  compareDialogOpen,
-  compareSlotOf,
-  swapPair: onCompareSwapPair,
-  clearSet: onCompareClearSet,
-} = compareRegions;
-const maxCompareSides = compareRegions.maxSides;
-const { handleBodyClick } = useCodeBlockActions({
+const renderAllMessages = ref(false);
+const { saveHistory, clearStoredHistory } = useChatHistoryPersistence(
   messages,
-  compareSet,
-  maxCompareSides,
-  markCompare: compareRegions.mark,
-  openCodeInIde: options.openCodeInIde,
-  t,
-  setToast: setExportToast,
-  pendingTimers,
-});
+  () => !!options.persistHistory,
+);
+const { trimMessagesForMemoryCap } = useMessageMemoryCap(messages, options, clearRenderCache);
 
-function onCompareMark() {
-  const idx = msgCtxMenu.value.index;
-  const selection = (msgCtxMenu.value.selectionText ?? '').trim();
-  closeMsgCtxMenu();
-  compareRegions.mark(idx, selection);
-}
-
-function onCompareWith() {
-  const idx = msgCtxMenu.value.index;
-  const selection = (msgCtxMenu.value.selectionText ?? '').trim();
-  closeMsgCtxMenu();
-  compareRegions.compareWith(idx, selection);
-}
-
-/**
- * K37 auto-read: 当 loading 由 true → false 且最后一条是 assistant 内容非空时，
- * 自动朗读（受 audioAutoRead 偏好门控）。可手动 toggleMessage 取消。
- */
-/* Refactor (batch 9)：4 个 watch(loading) 流式结束副作用（TTS 朗读 / a11y 播报 / artifacts 注册 / 清理瞬态）合并到 useLoadingEffects。 */
-const { a11yReplyAnnouncement } = useLoadingEffects({
+const { displayOffset, displayedMessages, hiddenOlderCount, resetSearch } = useSessionSearch(
+  messages,
   loading,
-  messages,
-  audioPreferences,
-  voiceConversationActive,
-  tts,
-  artifactsController,
-  removeTransientAssistantMessages,
-});
+  renderAllMessages,
+  MAX_RENDERED_MESSAGES,
+  panelRef,
+);
+const showEarlierLabel = computed(() =>
+  t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
+);
 
-/**
- * B7: Prompt 模板库。
- *
- * 把 `AiAssistantOptions.promptTemplates` 注入到 composable 作为只读「预置」段，
- * 与用户在 localStorage 里保存的模板合并展示。「使用」按钮把渲染后的文本写入
- * 主输入框，仍由用户决定何时发送，避免误触意外消耗 token。
- */
-const { promptTemplateOpen, onPromptTemplateUse } = usePromptTemplateInteraction({ input });
-const { presetPromptTemplates, refreshServerPromptTemplates } = useServerPromptTemplates(options);
-const promptTemplateLib = usePromptTemplateLibrary({
-  presetTemplates: presetPromptTemplates,
-});
-const { quickPrompts } = useQuickPromptOptions(options);
-
-type PromptTemplate = NonNullable<AiAssistantOptions['promptTemplates']>[number];
-const promptTemplateList = computed<PromptTemplate[]>(() => {
-  const t = options.promptTemplates;
-  if (!Array.isArray(t)) return [];
-  return t.filter((x) => x && typeof x.label === 'string' && typeof x.template === 'string');
-});
-
-const promptCommands = useAssistantPromptCommands({
-  input,
-  setMode,
-  quickPrompts,
-  promptTemplates: promptTemplateList,
-  templateDescription: computed(
-    () => t.value.slashCmdTemplateDesc || t.value.tplDialogTitle || 'Templates',
-  ),
-  openPromptTemplateDialog: () => {
-    void refreshServerPromptTemplates();
-    promptTemplateOpen.value = true;
-  },
-});
-const { applyQuickPrompt, applyPromptTemplate } = promptCommands;
-
-/**
- * C10: 真接入虚拟滚动（opt-in via options.virtualScroll）。
- *
- * - 默认 false：保持原有 `MAX_RENDERED_MESSAGES = 60` 折叠机制不变；
- * - 设为 true 或对象时启用：监听 bodyRef 滚动，每帧节流地更新 scrollTop
- *   和 viewportHeight，传给 `useMessageVirtualScroll` 算出可视窗口；
- *   超过阈值（默认 60）才真的切片，否则即便启用也走全量渲染（与
- *   composable 内部的 minActivationCount 联动）。
- *
- * 与 `displayedMessages` 的关系：
- * - `useSessionSearch` 在「折叠早期消息」时已先做了一次切片，传入的
- *   `messageCount` 是 displayedMessages.length（不是 messages.length），
- *   保证虚拟窗口与折叠 banner 一致。
- */
-/* Refactor (T1-Wave3)：C10 虚拟滚动 + 普通滚动 listener 统一到 useScrollAndVirtual。
- *
- * - virtualScrollOption 决定是否启用虚拟滚动；
- * - showScrollToBottomBtn 与 scrollToBottomClick 直接被模板使用；
- * - 父组件下面 win-resize 等场景仍可手动 sync viewport（通过 scrollAndVirtual.virtualScroll）。
- */
 const virtualScrollOption = computed(() => resolveVirtualScrollOption(options.virtualScroll));
-const scrollAndVirtual = useScrollAndVirtual({
-  bodyRef,
-  displayedMessageCount: computed(() => displayedMessages.value.length),
-  virtualScrollOption,
-});
 const {
   showScrollToBottomBtn,
   scrollToBottomClick,
@@ -1604,535 +576,83 @@ const {
   virtualSliceForList,
   onVirtualMeasureHeight,
   onBodyScrollForVirtual,
-} = scrollAndVirtual;
-
-/**
- * B8: Mermaid 渲染调度。
- *
- * `useAiMarkdownRenderer` 把 ```mermaid 围栏替换成 `.ai-mermaid-placeholder`
- * 占位符，本 watch 在消息变更并完成 DOM 写入后扫描 bodyRef，调用
- * `useMermaidRenderer.renderInside` 把它们替换为 SVG。
- *
- * - `loading` 期间不触发：流式中 mermaid 源码尚未闭合，提前渲染只会拿到语法错误
- * - 失败/未安装 mermaid 时 placeholder 内容已 fallback 为可读源码，所以即便
- *   这里完全不被调用页面也不会出现「空白方框」
- */
-const mermaidRenderer = useMermaidRenderer();
-let mermaidRenderRaf = 0;
-function scheduleMermaidRender() {
-  if (mermaidRenderRaf) return;
-  mermaidRenderRaf = requestAnimationFrame(() => {
-    mermaidRenderRaf = 0;
-    void nextTick(() => {
-      void mermaidRenderer.renderInside(bodyRef.value);
-    });
-  });
-}
-watch(
-  () => [messages.value.length, loading.value],
-  ([, isLoading]) => {
-    if (isLoading) return;
-    scheduleMermaidRender();
-  },
-);
-/* K21 Phase 1: kbNewName / kbFileInputRef / kbUploadTargetId / addMemoryItem /
- * createKb / onKbFileSelect / triggerKbUpload all moved into
- * AssistantInlineOverlays.vue. We keep memory toggle here because keyboard
- * shortcuts still reference it by name. */
-function toggleMemoryPanel() {
-  memoryOpen.value = !memoryOpen.value;
-}
-
-/**
- * L1: 表单自动填充 composable。`options.formAutoFill` 既可为 `boolean` 也可
- * 为对象，统一规范化成对象传给 composable。关闭时 composable 仍然存在但所
- * 有公开方法都会因为 autoDetectPaste/options 未设而早退。
- */
-/* Refactor (batch 7)：表单自动填充 UI 适配（options 规范化 + handlers + toast 文案）迁移到 useFormAutoFillUi。 */
-const {
-  formAutoFill,
-  formAutoFillEnabled,
-  onChatInputPasteText,
-  onFormAutoFillToggle,
-  onFormAutoFillToggleAll,
-  onFormAutoFillOverride,
-  onFormAutoFillConfirm,
-  onFormAutoFillUndo,
-  onFormAutoFillToastDismiss,
-  formAutoFillToastText,
-} = useFormAutoFillUi({ options, t });
-
-/**
- * Per-message "填入表单": parse the assistant answer (or the user's pasted text
- * that produced it) into field/value pairs and open the fill dialog. Host opts in
- * via the `form-auto-fill` attribute; the button stays hidden otherwise.
- */
-function fillFormFromMessage(globalIdx: number) {
-  if (!formAutoFillEnabled.value) return;
-  const msg = messages.value[globalIdx];
-  const text = msg?.contentArchive ?? msg?.content ?? '';
-  void formAutoFill.triggerFromText(text);
-}
-
-/**
- * Re-run a read-only `*_query_data` tool from the result-table pager (POST /tools/execute),
- * using the configured base URL / access token / tenant. No model round-trip.
- */
-function callToolFromUi(name: string, args: Record<string, unknown>) {
-  return callTool(options.baseUrl ?? '', name, args, options.accessToken, options.tenantId);
-}
-
-const featureCommands = useAssistantFeatureCommands({
-  t,
-  input,
-  memoryOpen,
-  kbPanelOpen,
-  pluginsPanelOpen,
-  formAutoFillEnabled,
-  openMultiModelCompare,
-  triggerFormAutoFill: (text) => {
-    void formAutoFill.triggerFromText(text);
-  },
-});
-const workflowCommands = useAssistantWorkflowCommands({
-  t,
-  diagnosticsOpen,
-  sessionsDrawerOpen,
-  openExportMenu: () => toggleBatchExportMenu(),
-});
-const appCommands = useAssistantAppCommands({
-  t,
-  isOpen,
-  isDark,
-  startNewSession: () => startNewSession(),
-  clearMessages: () => clearMessages(),
-  toggleManualTheme,
-  openPersonalize,
-  keyboardHelpOpen,
-});
-const importMetaWithEnv = import.meta as ImportMeta & { env?: { DEV?: boolean; MODE?: string } };
-const commandRegistry = useAssistantCommandRegistry({
-  throwOnDuplicatePaletteCommandIds: importMetaWithEnv.env?.MODE === 'test',
-  families: useAssistantCommandFamilies({
-    appCommands,
-    promptCommands,
-    featureCommands,
-    workflowCommands,
-  }),
-});
-watch(
-  commandRegistry.duplicatePaletteCommandIds,
-  (ids) => {
-    if (ids.length > 0 && importMetaWithEnv.env?.DEV) {
-      console.warn('[AiAssistant] Duplicate command palette ids:', ids);
-    }
-  },
-  { immediate: true },
-);
-
-const slashCmd = useSlashCommands({
-  input,
-  t: computed(() => t.value) as unknown as Ref<I18nMessages>,
-  onClear: () => clearMessages(),
-  onNewSession: () => startNewSession(),
-  onExport: () => toggleBatchExportMenu(),
-  onChangeMode: (m) => onChangeMode(m),
-  extraCommands: commandRegistry.slashCommands,
+} = useScrollAndVirtual({
+  bodyRef,
+  displayedMessageCount: computed(() => displayedMessages.value.length),
+  virtualScrollOption,
 });
 
-function onSlashKeydown(e: KeyboardEvent) {
-  slashCmd.handleKeydown(e);
-}
-function onSlashSelect(idx: number) {
-  slashCmd.selectedIndex.value = idx;
-  slashCmd.executeSelected();
-}
-function onSlashHover(idx: number) {
-  slashCmd.selectedIndex.value = idx;
-}
-watch(input, () => slashCmd.onInputChange());
+const SCROLL_STICKY_PX = 80;
+let scrollCoalesceRaf = 0;
+let scrollPendingForce = false;
+let scrollPendingSoft = false;
 
-function onToggleCodeWall() {
-  codeWallDisabled.value = !codeWallDisabled.value;
-  if (codeWallDisabled.value) {
-    stopCodeWall();
-  } else {
-    startCodeWall();
+function flushScrollToBottom() {
+  scrollCoalesceRaf = 0;
+  const el = bodyRef.value;
+  const doForce = scrollPendingForce;
+  const doSoft = scrollPendingSoft;
+  scrollPendingForce = false;
+  scrollPendingSoft = false;
+  if (!el) return;
+  if (doForce) {
+    el.scrollTop = el.scrollHeight;
+    return;
+  }
+  if (doSoft && el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_STICKY_PX) {
+    el.scrollTop = el.scrollHeight;
   }
 }
 
-const ACCEPT_TYPES = '.txt,.md,.csv,.log,.json,.xml,.html,.yml,.yaml,.pdf,.docx,.doc,.xlsx,.xls';
-
-const placeholder = computed(() => t.value.placeholder[mode.value] || t.value.placeholder.chat);
-
-/**
- * D4: 用户对自动页面上下文的临时开关。默认 false（即上下文自动附带）。
- * 配置在 options.pageContextBlocks 之外，只影响本次会话的 send，不持久化。
- * 当宿主未配置 pageContextBlocks 时该开关无意义（UI 也不会显示）。
- */
-const pageContextDisabledOverride = ref(false);
-const pageContextConfigured = computed(() => (options.pageContextBlocks?.length ?? 0) > 0);
-function togglePageContext() {
-  pageContextDisabledOverride.value = !pageContextDisabledOverride.value;
+function scrollToBottom(force: boolean) {
+  if (force) scrollPendingForce = true;
+  else scrollPendingSoft = true;
+  if (scrollCoalesceRaf) return;
+  nextTick(() => {
+    if (scrollCoalesceRaf) return;
+    scrollCoalesceRaf = requestAnimationFrame(() => flushScrollToBottom());
+  });
 }
-
-const {
-  chatSearchInput,
-  debouncedSearchQuery,
-  displayOffset,
-  displayedMessages,
-  hiddenOlderCount,
-  totalMatches,
-  currentMatchIdx,
-  activeMatchGlobalIdx,
-  searchCaseSensitive,
-  searchWholeWord,
-  searchRegex,
-  goNextMatch,
-  goPrevMatch,
-  resetSearch,
-  disposeSearch,
-} = useSessionSearch(messages, loading, renderAllMessages, MAX_RENDERED_MESSAGES, panelRef);
-const searchOptionsOpen = ref(false);
-
-const showEarlierLabel = computed(() =>
-  t.value.showEarlierTemplate.replace(/\{n\}/g, String(hiddenOlderCount.value)),
-);
-
-/* Refactor (batch 3)：renderBubble / injectCodeBlockCompareButton / escapeHtmlLite / isTransientAbortAssistantMessage 迁移到 useBubbleRenderer（在 useSendStream 之后装配，因 renderBubble 依赖其 sanitizeAssistantContent）。 */
 
 function removeTransientAssistantMessages() {
   const cleaned = pruneTransientAssistantMessages(messages.value);
-  if (cleaned.length === messages.value.length) return;
-  messages.value = cleaned;
-  clearRenderCache();
+  if (cleaned.length !== messages.value.length) {
+    messages.value = cleaned;
+    clearRenderCache();
+  }
 }
 
-const searchCountLabel = computed(() => {
-  const q = debouncedSearchQuery.value.trim();
-  if (!q) return '';
-  if (totalMatches.value === 0) {
-    const loc = options.locale ?? 'en';
-    return loc === 'zh'
-      ? '无结果'
-      : loc === 'ja'
-        ? '結果なし'
-        : loc === 'ko'
-          ? '결과 없음'
-          : 'No results';
-  }
-  return `${currentMatchIdx.value + 1}/${totalMatches.value}`;
-});
-const a11yStatusText = computed(() => {
-  if (!isOpen.value) return '';
-  if (exportServerBusy.value) return t.value.exportPreparing;
-  if (loading.value) return t.value.replying;
-  return '';
-});
+const a11yReplyAnnouncement = ref('');
+const a11yStatusText = computed(() => (isOpen.value && loading.value ? t.value.replying : ''));
 
-const color = computed(() => options.primaryColor || '#111111');
-
-const { themePalette, themePaletteVars } = useThemePalette();
-const positionClass = computed(() => `pos-${options.position || 'bottom-right'}`);
-
-const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
-const readingClass = computed(() => (options.readingMode ? 'ai-reading' : ''));
-
-const DRAG_CLICK_PX = 8;
-const DOCK_BREAK_PX = 10;
-let winResizeRaf = 0;
-
-/* Refactor (T1)：fabRef 现在通过 FabButton 子组件的 expose 拿到原生按钮 ref。
- * 保留同名 computed 以兼容下面 onFabContextMenu / useFabDrag 等所有调用点。 */
-const fabButtonRef = ref<InstanceType<typeof FabButton> | null>(null);
-const fabRef = computed<HTMLButtonElement | undefined>(() => fabButtonRef.value?.fabRef);
-const { selection: pageSel, dismissSelection: dismissPageSel } = usePageSelection(wrapperRef);
-const { onPageSelAction } = usePageSelectionActions({
-  getSelectionText: () => pageSel.value.text,
-  dismissSelection: dismissPageSel,
-  mode,
-  input,
-  isOpen,
-  send: () => send(),
-  nextTickFn: (cb) => {
-    void nextTick(cb);
-  },
-});
-const persistFabRef = computed(() => options.persistFabPosition !== false);
-const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
-/* 面板记忆：开合 / 展开 / 自定义尺寸写 localStorage，刷新后恢复；关闭时不清空几何状态 */
-const persistPanelRef = computed(() => options.persistPanelState !== false);
-const panelMemory = usePanelMemory(
-  persistPanelRef,
-  computed(() => options.panelStateStorageKey),
-);
-const {
-  fabLeft,
-  fabTop,
-  edgeDock,
-  fabDragging,
-  fabPositionCustomized,
-  edgeDockClass: fabEdgeDockClass,
-  clampFabPos,
-  defaultFabCoords,
-  loadFabPos,
-  saveFabPos,
-  markFabPositionCustomized,
-  FAB_SIZE,
-} = fab;
-const panelGeo = usePanelGeometry({
-  fabLeft,
-  fabTop,
-  fabSize: FAB_SIZE,
-  isOpen,
-  saveFabPos,
-  markFabPositionCustomized,
-  defaultPosition: options.position || 'bottom-right',
-  keepPanelStateOnClose: () => persistPanelRef.value,
-});
-const {
-  panelExpanded,
-  panelMountedForLayout,
-  panelDragging,
-  panelOpenFabAlignClass,
-  panelTransformOrigin,
-  resizeZoneDefs,
-  effectivePanelWidthPx,
-  effectivePanelHeightPx,
-  togglePanelExpand,
-  restorePanelState,
-  panelUserSize,
-  wrapperOffsetFromFab,
-  ensurePanelInViewport,
-  syncFabPixelFromWrapperDom,
-  onPanelResizePointerDown,
-  onPanelHeaderPointerDown,
-  onPanelOpen,
-  onPanelClose,
-  onWinResizePanel,
-  cleanupGeometry,
-  openPanelQuadrant,
-} = panelGeo;
-watch(
-  [isOpen, panelExpanded, panelUserSize],
-  () => {
-    panelMemory.save({
-      open: isOpen.value,
-      expanded: panelExpanded.value,
-      w: panelUserSize.value?.w,
-      h: panelUserSize.value?.h,
-    });
-  },
-  { deep: true },
-);
-const fabDrag = ref<{
-  pointerId: number;
-  startX: number;
-  startY: number;
-  originLeft: number;
-  originTop: number;
-} | null>(null);
-
-/** 打开前面板的贴边状态；关闭时只恢复贴边，球位保留拖动结果 */
-const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null);
-/** 打开面板瞬间的球位；关面板且本会话未拖过标题栏时还原到此（避免仅放大/夹紧视口导致球跑偏） */
-const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null);
-const { fabCtxMenu, onFabContextMenu, closeFabCtxMenu, hideFabUntilPageReload, dockFab } =
-  useFabContextMenu({
-    isOpen,
-    fabHidden,
-    edgeDock,
-    getFab: () => fabRef.value,
-    dock: (edge) => fab.dockFab(edge),
-  });
-/* K34: inlineTransPopRef removed — it was declared but never read by any
- * code path in this file. InlineTranslatePopover now lives inside
- * AssistantBottomTransients, where parent-side ref access is no longer
- * needed. If a future iteration needs programmatic show/hide, expose a
- * method via defineExpose on AssistantBottomTransients. */
-
-/** 面板进出场时短暂保留悬浮球，使缩放原点与球心一致 */
-/* Refactor (batch 8)：面板进出动画 flag（showFabDuringPanelAnim + 4 个 Transition 钩子）迁移到 usePanelTransitions。 */
-const {
-  showFabDuringPanelAnim,
-  onPanelBeforeEnter,
-  onPanelAfterEnter,
-  onPanelBeforeLeave,
-  onPanelAfterLeave,
-} = usePanelTransitions({ panelMountedForLayout });
-
-const effectivePositionClass = computed(() => (fabLeft.value !== null ? '' : positionClass.value));
-
-const edgeDockClass = fabEdgeDockClass;
-
-/* Refactor (batch 10)：wrapperStyle / panelStyle 迁移到 useWrapperStyles（装配在 panelStyle 原位置，因其依赖 panelTransformOrigin）。 */
-
-/* Refactor (batch 4)：FAB 右键菜单（fabCtxMenu 状态 + onFabContextMenu/closeFabCtxMenu/hideFabUntilPageReload/dockFab）迁移到 useFabContextMenu（装配在 fabCtxMenu 原定义处）。 */
-
-function onDocPointerDownCloseFabMenu(e: MouseEvent) {
-  const el = e.target;
-  if (el instanceof Element && el.closest('.ai-fab-ctx-menu')) return;
-  if (el instanceof Element && el.closest('.ai-msg-ctx-menu')) return;
-  if (el instanceof Element && el.closest('.ai-inline-trans-pop')) return;
-  if (inlineTranslatePopover.value.show) closeInlineTranslatePopover();
-  if (fabCtxMenu.value.show) closeFabCtxMenu();
-  if (msgCtxMenu.value.show) closeMsgCtxMenu();
-}
-
-function onFabPointerDown(e: PointerEvent) {
-  if (isOpen.value || fabHidden.value || e.button !== 0) return;
-  e.preventDefault();
-  const el = wrapperRef.value;
-  if (!el) return;
-
-  if (fabLeft.value === null || fabTop.value === null) {
-    const d = defaultFabCoords();
-    fabLeft.value = d.left;
-    fabTop.value = d.top;
-  }
-
-  let L = fabLeft.value;
-  let T = fabTop.value;
-  if (edgeDock.value === 'left') {
-    L = 0;
-  } else if (edgeDock.value === 'right') {
-    L = window.innerWidth - FAB_SIZE;
-  }
-  fabLeft.value = L;
-  fabTop.value = T;
-  /* 不在此清除 edgeDock：纯点击打开时仍为贴边，供 watch 记录 dockRestore */
-
-  fabDrag.value = {
-    pointerId: e.pointerId,
-    startX: e.clientX,
-    startY: e.clientY,
-    originLeft: L,
-    originTop: T,
-  };
-  fabDragging.value = true;
-  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-
-  window.addEventListener('pointermove', onFabPointerMove);
-  window.addEventListener('pointerup', onFabPointerUp);
-  window.addEventListener('pointercancel', onFabPointerUp);
-}
-
-function onFabPointerMove(e: PointerEvent) {
-  if (!fabDrag.value || e.pointerId !== fabDrag.value.pointerId) return;
-  const d = fabDrag.value;
-  const dx = e.clientX - d.startX;
-  const dy = e.clientY - d.startY;
-  const movedFromStart = Math.hypot(dx, dy);
-  if (movedFromStart > DOCK_BREAK_PX) {
-    edgeDock.value = 'none';
-    markFabPositionCustomized();
-  }
-  /* 仍在贴边且位移未超过阈值：不移动球，避免误触拖动 */
-  if (edgeDock.value !== 'none') {
-    return;
-  }
-  const nl = d.originLeft + dx;
-  const nt = d.originTop + dy;
-  const c = clampFabPos(nl, nt);
-  fabLeft.value = c.left;
-  fabTop.value = c.top;
-}
-
-function onFabPointerUp(e: PointerEvent) {
-  window.removeEventListener('pointermove', onFabPointerMove);
-  window.removeEventListener('pointerup', onFabPointerUp);
-  window.removeEventListener('pointercancel', onFabPointerUp);
-
-  if (!fabDrag.value || e.pointerId !== fabDrag.value.pointerId) return;
-
-  const d = fabDrag.value;
-  fabDrag.value = null;
-  fabDragging.value = false;
-
-  if (!d) return;
-
-  const dx = e.clientX - d.startX;
-  const dy = e.clientY - d.startY;
-  const moved = Math.hypot(dx, dy);
-
-  if (moved < DRAG_CLICK_PX) {
-    isOpen.value = true;
-    saveFabPos();
-    return;
-  }
-
-  saveFabPos();
-}
-
-const fabStyle = computed(() => ({ backgroundColor: color.value }));
-const bottomTransientsActive = computed(
-  () =>
-    !!exportToastText.value ||
-    (pageSel.value.show && !isOpen.value) ||
-    inlineTranslatePopover.value.show,
-);
-const inlineOverlaysActive = computed(
-  () => memoryOpen.value || kbPanelOpen.value || pluginsPanelOpen.value,
-);
-const fabLayoutStyle = computed(() => {
-  const base = fabStyle.value;
-  if (fabLeft.value !== null) {
-    if (panelMountedForLayout.value) {
-      return { ...base, position: 'absolute' as const, zIndex: 2 };
+watch(loading, (now, prev) => {
+  if (prev === true && now === false) {
+    removeTransientAssistantMessages();
+    const last = messages.value[messages.value.length - 1];
+    if (last?.role === 'assistant' && last.content.trim()) {
+      a11yReplyAnnouncement.value = '';
+      void nextTick(() => {
+        a11yReplyAnnouncement.value = last.content.slice(0, 1000);
+      });
     }
-    return { ...base, position: 'absolute' as const, left: '0', top: '0', zIndex: 2 };
   }
-  const p = options.position || 'bottom-right';
-  const map: Record<string, Record<string, string>> = {
-    'bottom-right': { position: 'absolute', right: '0', bottom: '0', zIndex: '2' },
-    'bottom-left': { position: 'absolute', left: '0', bottom: '0', zIndex: '2' },
-    'top-right': { position: 'absolute', right: '0', top: '0', zIndex: '2' },
-    'top-left': { position: 'absolute', left: '0', top: '0', zIndex: '2' },
-  };
-  return { ...base, ...(map[p] || map['bottom-right']) };
 });
-const isMobileViewport = ref(
-  typeof window !== 'undefined' && window.matchMedia('(max-width: 600px)').matches,
+
+watch(
+  () => messages.value.length,
+  () => {
+    removeTransientAssistantMessages();
+    trimMessagesForMemoryCap();
+    scrollToBottom(false);
+    saveHistory();
+  },
 );
-const { wrapperStyle, panelStyle } = useWrapperStyles({
-  color,
-  themePaletteVars,
-  panelMountedForLayout,
-  isMobileViewport,
-  effectivePanelWidthPx,
-  effectivePanelHeightPx,
-  fabLeft,
-  fabTop,
-  wrapperOffsetFromFab,
-  openPanelQuadrant,
-  panelTransformOrigin,
-});
 
-const emit = defineEmits<{
-  (e: 'send', payload: { action: string; text: string }): void;
-  (e: 'response', content: string): void;
-  (e: 'error', message: string): void;
-  (e: 'feedback', payload: { index: number; value: 'up' | 'down' | null }): void;
-  /** K24: emitted when the user clicks an emoji on MessageReactionBar. */
-  (e: 'reaction', payload: { messageIndex: number; emoji: string; toggled: boolean }): void;
-}>();
-
-function setMode(m: 'translate' | 'summarize' | 'chat') {
-  mode.value = m;
-}
-
-function onChangeMode(m: 'translate' | 'summarize' | 'chat') {
-  if (m === mode.value) return;
-  setMode(m);
-}
-
-/* Refactor (batch 5)：多会话生命周期动作迁移到 useSessionActions（装配在此，scrollToBottom 为 hoisted function，可前向引用）。saveCurrentSessionToMulti 仅 composable 内部使用，不在主组件解构。 */
 const {
   startNewSession,
   switchToSession,
   onPickCrossSessionMessage,
   deleteSessionTab,
-  forkFromHere,
   clearMessages,
   showAllOlderMessages,
 } = useSessionActions({
@@ -2149,6 +669,332 @@ const {
   scrollToBottom,
 });
 
+/* Images, Lightbox & File Upload Q&A */
+useImageLightbox({
+  panelRef,
+  closeAriaLabel: () => t.value.imageLightboxClose || 'Close',
+});
+
+function attachPendingFile(file: File) {
+  pendingFile.value = file;
+  showStatusToast(`已挂载文件：${file.name}（可直接输入问题或发送总结）`, 2600);
+  void nextTick(() => chatInputRef.value?.focusInput());
+}
+
+const {
+  dragActive,
+  pendingImageDataList,
+  pendingImageThumbs,
+  onBodyDragOver,
+  onBodyDragEnter,
+  onBodyDragLeave,
+  onBodyDrop,
+  onPasteImage,
+  readFileAsDataUrl,
+  clearPendingImage,
+  removePendingImage,
+} = useImagePasteAndDrop({
+  loading,
+  messages,
+  errorPrefix: computed(() => t.value.errorPrefix),
+  processFileUpload: (file) => attachPendingFile(file),
+});
+
+function handleSaveConnection(next: ConnectionConfig) {
+  const prev = connectionConfig.value;
+  const backendConnChanged =
+    prev.backendBaseUrl !== next.backendBaseUrl || prev.backendToken !== next.backendToken;
+  saveConnectionConfig(next);
+  if (next.mode === 'direct') {
+    syncDirectModelState();
+    return;
+  }
+  modelChoices.value = backendModelChoices.value;
+  selectedChatModel.value = selectedBackendModel.value;
+  if (backendConnChanged || !modelsFetched) {
+    modelsFetched = false;
+    void refreshChatModels(true);
+  }
+}
+
+function handleRefreshBackendModels(next: ConnectionConfig) {
+  saveConnectionConfig(next);
+  modelsFetched = false;
+  void refreshChatModels(true);
+}
+
+function handleResetConnection() {
+  resetConnectionConfig();
+  modelsFetched = false;
+  backendModelChoices.value = [];
+  modelChoices.value = [];
+  selectedBackendModel.value = '';
+  selectedChatModel.value = '';
+  void refreshChatModels(true);
+}
+
+function handleSelectBackendModel(modelId: string) {
+  selectedBackendModel.value = modelId;
+  if (!isDirectMode.value) {
+    selectedChatModel.value = modelId;
+  } else {
+    try {
+      localStorage.setItem(selectedModelStorageKeyResolved.value, modelId);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+watch(selectedChatModel, (v) => {
+  if (isDirectMode.value) {
+    const trimmed = v.trim();
+    if (trimmed && trimmed !== activeProvider.value.activeModel.trim()) {
+      const nextProviders = connectionConfig.value.providers.map((p) => {
+        if (p.id !== activeProvider.value.id) return p;
+        const models = p.models.includes(trimmed) ? p.models : [trimmed, ...p.models];
+        return { ...p, activeModel: trimmed, models };
+      });
+      saveConnectionConfig({
+        ...connectionConfig.value,
+        providers: nextProviders,
+        directModel: trimmed,
+      });
+    }
+  } else if (v) {
+    selectedBackendModel.value = v;
+  }
+});
+
+async function runDirectFileQuestion(file: File, trimmedQ: string) {
+  const parsed = await readTextFileForDirectQa(file, trimmedQ || undefined);
+  if (!parsed.ok) {
+    const content = `${t.value.errorPrefix}: ${parsed.error}`;
+    messages.value.push({ role: 'assistant', content, timestamp: Date.now() });
+    scrollToBottom(true);
+    reportAssistantError('file-upload', parsed.error);
+    emit('error', parsed.error);
+    return;
+  }
+
+  messages.value.push({ role: 'assistant', content: '', timestamp: Date.now() });
+  const msgIdx = messages.value.length - 1;
+  const controller = new AbortController();
+  streamAbortController = controller;
+  try {
+    for await (const chunk of streamDirectProviderChat(
+      activeProtocol.value,
+      effectiveBaseUrl.value,
+      {
+        action: 'chat',
+        text: parsed.promptText,
+        model: selectedChatModel.value.trim() || undefined,
+      },
+      effectiveToken.value || undefined,
+      controller.signal,
+    )) {
+      messages.value[msgIdx].content += chunk;
+      scrollToBottom(false);
+    }
+    if (messages.value[msgIdx].content) {
+      emit('response', messages.value[msgIdx].content);
+    }
+  } finally {
+    if (streamAbortController === controller) {
+      streamAbortController = null;
+    }
+  }
+}
+
+async function submitPendingFileQuestion(file: File, questionText: string) {
+  if (loading.value || !effectiveBaseUrl.value) return;
+  const trimmedQ = questionText.trim();
+  const sizeKb = (file.size / 1024).toFixed(1);
+  const displayUserText = trimmedQ
+    ? `📄 ${file.name} (${sizeKb}KB)\n${trimmedQ}`
+    : `📄 ${file.name} (${sizeKb}KB)`;
+
+  pendingFile.value = null;
+  input.value = '';
+  messages.value.push({ role: 'user', content: displayUserText, timestamp: Date.now() });
+  if (!sessionTitle.value) sessionTitle.value = file.name.slice(0, 20);
+  multiSessions.updateActiveTitle(sessionTitle.value);
+  loading.value = true;
+  scrollToBottom(true);
+  emit('send', { action: 'summarize', text: displayUserText });
+
+  try {
+    if (isDirectMode.value) {
+      await runDirectFileQuestion(file, trimmedQ);
+      return;
+    }
+    const res = await uploadFile(
+      effectiveBaseUrl.value,
+      file,
+      'summarize',
+      targetLang.value,
+      effectiveToken.value || undefined,
+      options.tenantId,
+      trimmedQ || undefined,
+      selectedChatModel.value || undefined,
+    );
+    const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`;
+    messages.value.push({ role: 'assistant', content, timestamp: Date.now() });
+    scrollToBottom(true);
+    if (res.success) {
+      emit('response', content);
+    } else {
+      reportAssistantError('file-upload', res.error || 'Unknown error');
+      emit('error', res.error || 'Unknown error');
+    }
+  } catch (e: unknown) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      const lastMsg = messages.value[messages.value.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content) {
+        messages.value.pop();
+      }
+      return;
+    }
+    const message = e instanceof Error ? e.message : String(e);
+    const errText = `${t.value.errorPrefix}: ${message}`;
+    const lastMsg = messages.value[messages.value.length - 1];
+    if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content) {
+      lastMsg.content = errText;
+    } else {
+      messages.value.push({
+        role: 'assistant',
+        content: errText,
+        timestamp: Date.now(),
+      });
+    }
+    scrollToBottom(true);
+    reportAssistantError('file-upload', message);
+    emit('error', message || 'Unknown error');
+  } finally {
+    loading.value = false;
+    scrollToBottom(false);
+  }
+}
+
+/* Stream send & Message orchestration */
+const { streamWithFallback } = useStreamWithFallback({ enableWsFallback: false });
+const activeStreamWithFallback: typeof streamWithFallback = (
+  baseUrl,
+  payload,
+  token,
+  signal,
+  onMeta,
+  tenantId,
+) => {
+  if (isDirectMode.value) {
+    return streamDirectProviderChat(activeProtocol.value, baseUrl, payload, token, signal, onMeta);
+  }
+  return streamWithFallback(baseUrl, payload, token, signal, onMeta, tenantId);
+};
+const { charCountLabel, charCountNearLimit, charLimitWarningText } = useInputConstraints({
+  input,
+  options,
+  t,
+});
+
+const streamingNowMs = ref(Date.now());
+let streamingTickHandle: ReturnType<typeof setInterval> | null = null;
+const {
+  send: sendChatRaw,
+  streamStartedAt,
+  sanitizeAssistantContent,
+  hasVisibleAssistantContent,
+} = useSendStream({
+  messages,
+  input,
+  loading,
+  sessionTitle,
+  activeSessionId: multiSessions.activeSessionId,
+  mode,
+  targetLang,
+  chatSystemPrompt,
+  selectedChatModel,
+  modelChoices,
+  modelCapabilities,
+  pendingImageDataList,
+  pendingImageThumbs,
+  options,
+  getEffectiveBaseUrl: () => effectiveBaseUrl.value,
+  getEffectiveToken: () => effectiveToken.value || undefined,
+  allowCustomModel: isDirectMode,
+  disableUrlPreview: isDirectMode,
+  t,
+  streamWithFallback: activeStreamWithFallback,
+  fetchUrlPreview,
+  extractHttpUrls,
+  isProbablyDirectImageUrl,
+  firstNonImageHttpUrl,
+  preferHttpsImageUrlWhenPageIsSecure,
+  clearPendingImage,
+  notify: showStatusToast,
+  scrollToBottom,
+  trimMessagesForMemoryCap,
+  clearRenderCache,
+  reportAssistantError,
+  updateActiveSessionTitle: (title) => multiSessions.updateActiveTitle(title),
+  emitSend: (payload) => emit('send', payload),
+  emitResponse: (content) => emit('response', content),
+  emitError: (message) => emit('error', message),
+  getStreamAbortController: () => streamAbortController,
+  setStreamAbortController: (c) => {
+    streamAbortController = c;
+  },
+  getStreamStoppedByUser: () => streamStoppedByUser,
+  setStreamStoppedByUser: (v) => {
+    streamStoppedByUser = v;
+  },
+  pageContextEnabled: computed(() => true),
+});
+
+watch(streamStartedAt, (v) => {
+  if (v != null && streamingTickHandle == null) {
+    streamingNowMs.value = Date.now();
+    streamingTickHandle = window.setInterval(() => {
+      streamingNowMs.value = Date.now();
+    }, 1000);
+  } else if (v == null && streamingTickHandle != null) {
+    clearInterval(streamingTickHandle);
+    streamingTickHandle = null;
+  }
+});
+
+const promptHistory = usePromptHistory({
+  max: 50,
+  storageKey: 'ai-assistant.prompt-history.v1',
+});
+
+function send() {
+  const prompt = input.value;
+  if (prompt.trim()) promptHistory.record(prompt);
+  else promptHistory.reset();
+
+  if (pendingFile.value) {
+    return submitPendingFileQuestion(pendingFile.value, prompt);
+  }
+  return sendChatRaw();
+}
+
+function isActiveStreamingAssistant(globalIdx: number, msg: Message): boolean {
+  return loading.value && msg.role === 'assistant' && globalIdx === messages.value.length - 1;
+}
+
+const { renderBubble, isTransientAbortAssistantMessage } = useBubbleRenderer({
+  t,
+  sanitizeAssistantContent,
+  renderContent,
+});
+const { handleBodyClick } = useCodeBlockActions({
+  messages,
+  openCodeInIde: options.openCodeInIde,
+  t,
+  setToast: showStatusToast,
+  pendingTimers,
+});
 const { copiedIndex, copyMessage } = useMessageCopy({
   writeText: writeClipboardText,
   reportError: reportAssistantError,
@@ -2157,7 +1003,6 @@ const { copiedIndex, copyMessage } = useMessageCopy({
 
 const editingMsgIdx = ref<number | null>(null);
 const editingText = ref('');
-
 const {
   stopGenerate,
   isErrorMessage,
@@ -2166,7 +1011,6 @@ const {
   startEdit,
   cancelEdit,
   confirmEditAndResend,
-  setFeedback,
 } = useChatOrchestrator({
   messages,
   loading,
@@ -2185,327 +1029,58 @@ const {
   emitFeedback: (payload) => emit('feedback', payload),
 });
 
-const { setReaction } = useMessageReactions({
-  messages,
-  onReaction: options.onReaction,
-  emitReaction: (payload) => emit('reaction', payload),
-});
-
-// Image paste / drop / pending thumbnail logic moved to useImagePasteAndDrop.
-
-/* K23: CommandPalette wiring
- * --------------------------
- * Registers Ctrl+K / ⌘+K as a global shortcut that opens a VSCode-style
- * command palette. Each command is a thin wrapper around an existing action
- * (clearMessages / startNewSession / toggleManualTheme / ...) so we don't
- * duplicate behaviour — Ctrl+K is purely a discoverability surface.
- *
- * Why register lazily inside a watch on isOpen instead of upfront:
- *   most commands are no-ops or wrong-context when the panel is closed
- *   (e.g. "Clear chat" with no panel visible). Keeping them gated by the
- *   panel state avoids surprise execution.
- */
-const cmdPalette = useCommandPalette();
-
-useCommandPaletteRegistration({
-  cmdPalette,
-  commands: commandRegistry.commandPaletteExtraCommands,
-});
-
-defineExpose({ isOpen, messages, mode, targetLang, clearMessages, cmdPalette });
-
-watch(panelExpanded, () => {
-  if (isOpen.value) {
-    nextTick(() => ensurePanelInViewport());
-  }
-});
-
-const mobileScrollLockClass = 'ai-assistant-mobile-scroll-locked';
-let mobileScrollLockOwned = false;
-
-function releaseMobileBodyScrollLock() {
-  if (!mobileScrollLockOwned || typeof document === 'undefined') return;
-  mobileScrollLockOwned = false;
-  const anotherOpenPanel = Array.from(
-    document.querySelectorAll('.ai-assistant-wrapper .ai-panel'),
-  ).some((panel) => !wrapperRef.value?.contains(panel));
-  if (!anotherOpenPanel) {
-    document.documentElement.classList.remove(mobileScrollLockClass);
-    document.body.classList.remove(mobileScrollLockClass);
-  }
-}
-
-function syncMobileBodyScrollLock(open: boolean) {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  const shouldLock = open && isMobileViewport.value;
-  if (!shouldLock) {
-    releaseMobileBodyScrollLock();
-    return;
-  }
-  document.documentElement.classList.add(mobileScrollLockClass);
-  document.body.classList.add(mobileScrollLockClass);
-  mobileScrollLockOwned = true;
-}
-
-watch(isOpen, (open) => {
-  syncMobileBodyScrollLock(open);
-  if (open) {
-    void refreshChatModels();
-    if (fabLeft.value !== null && fabTop.value !== null) {
-      fabFreePosBeforePanel.value = { left: fabLeft.value, top: fabTop.value };
-    } else {
-      fabFreePosBeforePanel.value = null;
-    }
-    panelSnapshot.value = { edge: edgeDock.value };
-    onPanelOpen(wrapperRef.value, edgeDock);
-    nextTick(() => {
-      if (fabLeft.value === null || fabTop.value === null) {
-        syncFabPixelFromWrapperDom(wrapperRef.value);
-      }
-      ensurePanelInViewport();
-      saveFabPos(panelSnapshot.value?.edge);
-      startCodeWall();
-      panelRef.value
-        ?.querySelector<HTMLTextAreaElement>('textarea')
-        ?.focus({ preventScroll: true });
-    });
-  } else {
-    stopCodeWall();
-    onPanelClose();
-    if (panelSnapshot.value) {
-      const s = panelSnapshot.value;
-      panelSnapshot.value = null;
-      if (s.edge === 'left' || s.edge === 'right') {
-        fabFreePosBeforePanel.value = null;
-        dockFab(s.edge);
-      } else {
-        edgeDock.value = 'none';
-        if (fabFreePosBeforePanel.value) {
-          if (!panelGeo.panelHeaderDraggedWhileOpen) {
-            const p = fabFreePosBeforePanel.value;
-            const c = clampFabPos(p.left, p.top);
-            fabLeft.value = c.left;
-            fabTop.value = c.top;
-          }
-          fabFreePosBeforePanel.value = null;
-        }
-        saveFabPos();
-      }
-    }
-  }
-});
-
-function onWinResize() {
-  isMobileViewport.value = window.matchMedia('(max-width: 600px)').matches;
-  if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
-  winResizeRaf = requestAnimationFrame(() => {
-    winResizeRaf = 0;
-    syncMobileBodyScrollLock(isOpen.value);
-    if (!fabPositionCustomized.value && edgeDock.value === 'none') {
-      const nextDefault = defaultFabCoords();
-      fabLeft.value = nextDefault.left;
-      fabTop.value = nextDefault.top;
-      if (fabFreePosBeforePanel.value) {
-        fabFreePosBeforePanel.value = nextDefault;
-      }
-    }
-    if (fabLeft.value === null || fabTop.value === null) return;
-    const c = clampFabPos(fabLeft.value, fabTop.value);
-    fabLeft.value = c.left;
-    fabTop.value = c.top;
-    if (edgeDock.value === 'right') fabLeft.value = window.innerWidth - FAB_SIZE;
-    saveFabPos();
-    if (isOpen.value) onWinResizePanel();
-  });
-}
-
-function isActiveStreamingAssistant(globalIdx: number, msg: Message): boolean {
-  return loading.value && msg.role === 'assistant' && globalIdx === messages.value.length - 1;
-}
-
-/**
- * D5: 流式生成进度的 1Hz tick。
- * 仅在 streamStartedAt 非 null 时（即正在流式生成）启用，避免 idle 状态下白白消耗主线程；
- * 用 `Date.now()` 而不是 `performance.now()`，与 useSendStream 的起始时间戳保持同一时钟。
- */
-const streamingNowMs = ref<number>(Date.now());
-let streamingTickHandle: ReturnType<typeof setInterval> | null = null;
-function startStreamingTick() {
-  if (streamingTickHandle != null) return;
-  streamingNowMs.value = Date.now();
-  streamingTickHandle = setInterval(() => {
-    streamingNowMs.value = Date.now();
-  }, 1000);
-}
-function stopStreamingTick() {
-  if (streamingTickHandle != null) {
-    clearInterval(streamingTickHandle);
-    streamingTickHandle = null;
-  }
-}
-onUnmounted(() => stopStreamingTick());
-
+/* Form Auto-Fill */
 const {
-  send: sendRaw,
-  streamStartedAt,
-  firstTokenAt,
-  sanitizeAssistantContent,
-  hasVisibleAssistantContent,
-} = useSendStream({
-  messages,
+  formAutoFill,
+  formAutoFillEnabled,
+  onChatInputPasteText,
+  onFormAutoFillToggle,
+  onFormAutoFillToggleAll,
+  onFormAutoFillOverride,
+  onFormAutoFillConfirm,
+  onFormAutoFillUndo,
+  onFormAutoFillToastDismiss,
+  formAutoFillToastText,
+} = useFormAutoFillUi({ options, t });
+
+function triggerClipboardFormFill() {
+  if (!formAutoFillEnabled.value) return;
+  void formAutoFill.triggerFromText(input.value);
+}
+
+function fillFormFromMessage(globalIdx: number) {
+  if (!formAutoFillEnabled.value) return;
+  const msg = messages.value[globalIdx];
+  const text = msg?.contentArchive ?? msg?.content ?? '';
+  void formAutoFill.triggerFromText(text);
+}
+
+/* Slash commands & Empty state helpers */
+function openFilePicker() {
+  chatInputRef.value?.openFilePicker();
+}
+
+const slashCmd = useSlashCommands({
   input,
-  loading,
-  sessionTitle,
-  activeSessionId: multiSessions.activeSessionId,
-  mode,
-  targetLang,
-  chatSystemPrompt,
-  selectedChatModel,
-  modelChoices,
-  deepThinkEnabled,
-  webSearchEnabled,
-  fastReplyEnabled,
-  fastReplyRoutingConfig,
-  modelCapabilities,
-  pendingImageDataList,
-  pendingImageThumbs,
-  options,
-  t,
-  streamWithFallback,
-  fetchUrlPreview,
-  extractHttpUrls,
-  isProbablyDirectImageUrl,
-  firstNonImageHttpUrl,
-  preferHttpsImageUrlWhenPageIsSecure,
-  clearPendingImage,
-  notify: setExportToast,
-  scrollToBottom,
-  playNotificationSound,
-  trimMessagesForMemoryCap,
-  clearRenderCache,
-  reportAssistantError,
-  updateActiveSessionTitle: (title) => multiSessions.updateActiveTitle(title),
-  emitSend: (payload) =>
-    emit('send', payload as { action: 'translate' | 'summarize' | 'chat'; text: string }),
-  emitResponse: (content) => emit('response', content),
-  emitError: (message) => emit('error', message),
-  getStreamAbortController: () => streamAbortController,
-  setStreamAbortController: (c) => {
-    streamAbortController = c;
-  },
-  getStreamStoppedByUser: () => streamStoppedByUser,
-  setStreamStoppedByUser: (v) => {
-    streamStoppedByUser = v;
-  },
-  memoryPromptFragment: computed(() => {
-    const mem = crossMemory.memoryPromptFragment.value;
-    const rag = knowledgeBase.ragPromptFragment.value;
-    return [mem, rag].filter(Boolean).join('\n');
-  }),
-  pageContextEnabled: computed(() => !pageContextDisabledOverride.value),
+  t: computed(() => t.value) as unknown as Ref<I18nMessages>,
+  onClear: clearMessages,
+  onNewSession: startNewSession,
+  onUploadFile: openFilePicker,
+  onFormFill: triggerClipboardFormFill,
+  formAutoFillEnabled,
 });
+watch(input, () => slashCmd.onInputChange());
 
-const { renderBubble, isTransientAbortAssistantMessage } = useBubbleRenderer({
-  t,
-  sanitizeAssistantContent,
-  renderContent,
-  debouncedSearchQuery,
-  activeMatchGlobalIdx,
-  searchCaseSensitive,
-  searchWholeWord,
-  searchRegex,
-});
-
-watch(streamStartedAt, (v) => {
-  if (v != null) startStreamingTick();
-  else stopStreamingTick();
-});
-
-/**
- * K36: terminal 风格 ↑/↓ prompt 历史回放。
- *
- * - send() 之前 record 当前输入；空 / whitespace-only 不入栈，连续同 prompt 自动去重。
- * - 在 ChatInputArea textarea 内按 ↑（空输入框或处在回放状态）调用 recallOlder()；
- *   ↓ 走更新；Esc 退出回放并清空。
- * - 持久化到 localStorage，跨页面 / 跨标签共享同一历史。
- */
-const promptHistory = usePromptHistory({
-  max: 50,
-  storageKey: 'ai-assistant.prompt-history.v1',
-});
-function send() {
-  const prompt = input.value;
-  if (prompt && prompt.trim()) {
-    promptHistory.record(prompt);
-  } else {
-    promptHistory.reset();
-  }
-  if (handleLocalFastReply(prompt)) return;
-  return sendRaw();
+function onSlashSelect(idx: number) {
+  slashCmd.selectedIndex.value = idx;
+  slashCmd.executeSelected();
 }
 
-/* Artifacts：编辑后重发 -> 灌入输入框并走 chat 发送；每轮回复完成后归并 artifact 版本 */
-artifactsController.setResendHandler((text: string) => {
-  if (loading.value) return;
-  mode.value = 'chat';
+function applyStarterPrompt(text: string) {
   input.value = text;
-  void send();
-});
-/* Refactor (batch 9)：artifacts 注册副作用已并入 useLoadingEffects。 */
-
-function regenerateWithCitations(globalIdx: number) {
-  if (loading.value) return;
-  let userIdx = globalIdx - 1;
-  while (userIdx >= 0 && messages.value[userIdx].role !== 'user') {
-    userIdx--;
-  }
-  if (userIdx < 0) return;
-  const userMsg = messages.value[userIdx];
-  const cleanText = (userMsg.contentArchive ?? userMsg.content).replace(/^🖼️\s*/, '');
-  messages.value.splice(globalIdx, 1);
-  clearRenderCache();
-  webSearchEnabled.value = true;
-  input.value = `${cleanText}\n\n请基于联网搜索来源回答，并在每个关键结论后使用 [1]、[2] 这样的来源编号引用。`;
-  nextTick(() => {
-    void send();
-  });
+  void nextTick(() => chatInputRef.value?.focusInput());
 }
 
-function handleLocalFastReply(rawPrompt: string) {
-  const text = rawPrompt.trim();
-  if (mode.value !== 'chat' || loading.value || pendingImageDataList.value.length > 0) return false;
-  if (!isLocalIdentityQuestion(text)) return false;
-  const now = Date.now();
-  const reply =
-    '你好，我是 AI 助手。可以帮你做页面分析、内容总结、翻译、文件处理和后台任务梳理。你可以直接告诉我想做什么。';
-  messages.value.push({ role: 'user', content: text, timestamp: now });
-  messages.value.push({
-    role: 'assistant',
-    content: reply,
-    timestamp: now,
-    meta: {
-      model: 'local-fast-path',
-      requestedModel: selectedChatModel.value || undefined,
-      effectiveModel: 'local-fast-path',
-      elapsedMs: 0,
-      ttftMs: 0,
-    },
-  });
-  input.value = '';
-  emit('send', { action: 'chat', text });
-  emit('response', reply);
-  setExportToast('已用本地快速回复，未调用远端模型', 1800);
-  scrollToBottom(true);
-  return true;
-}
-
-function isLocalIdentityQuestion(text: string) {
-  const normalized = text
-    .replace(/\s+/g, '')
-    .replace(/[?？。.!！]+$/g, '')
-    .toLowerCase();
-  return /^(你是|你是谁|你是什么|你能做什么|whoareyou|whatareyou|whatcanyoudo)$/.test(normalized);
-}
 function onHistoryOlder() {
   const v = promptHistory.recallOlder();
   if (v != null) input.value = v;
@@ -2519,187 +1094,268 @@ function onHistoryReset() {
   input.value = '';
 }
 
-async function processFileUpload(file: File) {
-  if (!file || loading.value || !options.baseUrl) return;
+/* FAB Drag / Edge Dock / Panel Geometry & Outside Close */
+const persistFabRef = computed(() => options.persistFabPosition !== false);
+const { edgeDockStyle, setEdgeDockStyle, edgeDockStyleClass } = useEdgeDockStyle(
+  options.edgeDockStyle,
+);
+const fab = useFabDrag(isOpen, fabHidden, persistFabRef, options.position || 'bottom-right');
+const {
+  fabLeft,
+  fabTop,
+  edgeDock,
+  dockRevealed,
+  fabDragging,
+  fabPositionCustomized,
+  edgeDockClass,
+  clampFabPos,
+  defaultFabCoords,
+  loadFabPos,
+  saveFabPos,
+  dockFab,
+  syncDockedFabToViewport,
+  onFabPointerDown,
+  FAB_SIZE,
+} = fab;
 
-  const action = mode.value === 'translate' ? ('translate' as const) : ('summarize' as const);
-  const label = `${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
-  messages.value.push({ role: 'user', content: label, timestamp: Date.now() });
-  loading.value = true;
-  fileUploading.value = true;
-  setExportToast(`${t.value.uploadFile} · ${file.name} · ${t.value.replying}`, 2400);
-  scrollToBottom(true);
+const persistPanelRef = computed(() => options.persistPanelState !== false);
+const panelMemory = usePanelMemory(
+  persistPanelRef,
+  computed(() => options.panelStateStorageKey),
+);
+const panelGeo = usePanelGeometry({
+  fabLeft,
+  fabTop,
+  fabSize: FAB_SIZE,
+  isOpen,
+  saveFabPos,
+  markFabPositionCustomized: fab.markFabPositionCustomized,
+  defaultPosition: options.position || 'bottom-right',
+  keepPanelStateOnClose: () => persistPanelRef.value,
+});
+const {
+  panelExpanded,
+  panelMountedForLayout,
+  panelDragging,
+  panelOpenFabAlignClass,
+  panelTransformOrigin,
+  wrapperOffsetFromFab,
+  effectivePanelWidthPx,
+  effectivePanelHeightPx,
+  resizeZoneDefs,
+  togglePanelExpand,
+  restorePanelState,
+  ensurePanelInViewport,
+  onPanelResizePointerDown,
+  onPanelHeaderPointerDown,
+  onPanelOpen,
+  onPanelClose,
+  onWinResizePanel,
+  cleanupGeometry,
+  openPanelQuadrant,
+} = panelGeo;
 
-  emit('send', { action, text: label });
-  try {
-    const res = await uploadFile(
-      options.baseUrl,
-      file,
-      action,
-      targetLang.value,
-      options.accessToken,
-      options.tenantId,
-    );
-    const content = res.success ? res.result! : `${t.value.errorPrefix}: ${res.error}`;
-    messages.value.push({ role: 'assistant', content, timestamp: Date.now() });
-    scrollToBottom(true);
-    if (res.success) {
-      setExportToast(`${t.value.uploadFile} · ${file.name} · OK`, 1800);
-      emit('response', content);
-    } else {
-      setExportToast(`${t.value.uploadFile} · ${t.value.errorPrefix}: ${res.error}`, 3600);
-      reportAssistantError('file-upload', res.error || 'Unknown error');
-      emit('error', res.error || 'Unknown error');
+const {
+  showFabDuringPanelAnim,
+  onPanelBeforeEnter,
+  onPanelAfterEnter,
+  onPanelBeforeLeave,
+  onPanelAfterLeave,
+} = usePanelTransitions({ panelMountedForLayout });
+
+const effectivePositionClass = computed(() =>
+  fabLeft.value !== null ? '' : `pos-${options.position || 'bottom-right'}`,
+);
+const themeClass = computed(() => (isDark.value ? 'ai-dark' : ''));
+const fabStyle = computed(() => ({ '--ai-fab-accent': color.value }));
+const fabLayoutStyle = computed(() => {
+  const base = fabStyle.value;
+  if (fabLeft.value !== null) {
+    if (panelMountedForLayout.value) {
+      return { ...base, position: 'absolute' as const, zIndex: 2 };
     }
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    messages.value.push({
-      role: 'assistant',
-      content: `${t.value.errorPrefix}: ${message}`,
-      timestamp: Date.now(),
-    });
-    scrollToBottom(true);
-    setExportToast(`${t.value.uploadFile} · ${t.value.errorPrefix}: ${message}`, 3600);
-    reportAssistantError('file-upload', message);
-    emit('error', message || 'Unknown error');
-  } finally {
-    loading.value = false;
-    fileUploading.value = false;
-    playNotificationSound();
-    scrollToBottom(false);
+    if (!fabDragging.value && edgeDock.value === 'right') {
+      return {
+        ...base,
+        position: 'absolute' as const,
+        right: '0',
+        left: 'auto',
+        top: '0',
+        zIndex: 2,
+      };
+    }
+    return { ...base, position: 'absolute' as const, left: '0', top: '0', zIndex: 2 };
   }
-}
+  const p = options.position || 'bottom-right';
+  const map: Record<string, Record<string, string>> = {
+    'bottom-right': { position: 'absolute', right: '0', bottom: '0', zIndex: '2' },
+    'bottom-left': { position: 'absolute', left: '0', bottom: '0', zIndex: '2' },
+    'top-right': { position: 'absolute', right: '0', top: '0', zIndex: '2' },
+    'top-left': { position: 'absolute', left: '0', top: '0', zIndex: '2' },
+  };
+  return { ...base, ...(map[p] || map['bottom-right']) };
+});
+const isMobileViewport = ref(
+  typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 600px)').matches,
+);
+const { wrapperStyle, panelStyle } = useWrapperStyles({
+  color,
+  themePaletteVars,
+  panelMountedForLayout,
+  isMobileViewport,
+  effectivePanelWidthPx,
+  effectivePanelHeightPx,
+  fabLeft,
+  fabTop,
+  wrapperOffsetFromFab,
+  openPanelQuadrant,
+  panelTransformOrigin,
+});
 
-/** 距底部小于此值则视为「在跟随」，流式更新时才自动滚 */
-const SCROLL_STICKY_PX = 80;
+const panelSnapshot = ref<{ edge: 'none' | 'left' | 'right' } | null>(null);
+const fabFreePosBeforePanel = ref<{ left: number; top: number } | null>(null);
 
-let scrollCoalesceRaf = 0;
-let scrollPendingForce = false;
-let scrollPendingSoft = false;
-
-function flushScrollToBottom() {
-  scrollCoalesceRaf = 0;
-  const el = bodyRef.value;
-  const doForce = scrollPendingForce;
-  const doSoft = scrollPendingSoft;
-  scrollPendingForce = false;
-  scrollPendingSoft = false;
-  if (!el) return;
-  if (doForce) {
-    el.scrollTop = el.scrollHeight;
-    return;
+function applyDockActionFromSettings(edge: 'left' | 'right' | 'none') {
+  edgeDockSettingsOpen.value = false;
+  if (edge === 'left' || edge === 'right') {
+    fabFreePosBeforePanel.value = null;
+    panelSnapshot.value = { edge };
+  } else {
+    panelSnapshot.value = { edge: 'none' };
+    dockFab('none');
+    if (fabLeft.value !== null && fabTop.value !== null) {
+      fabFreePosBeforePanel.value = { left: fabLeft.value, top: fabTop.value };
+    }
   }
-  if (doSoft) {
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_STICKY_PX;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
-  }
-}
-
-function scrollToBottom(force: boolean) {
-  if (force) scrollPendingForce = true;
-  else scrollPendingSoft = true;
-  if (scrollCoalesceRaf) return;
-  nextTick(() => {
-    if (scrollCoalesceRaf) return;
-    scrollCoalesceRaf = requestAnimationFrame(() => {
-      flushScrollToBottom();
-    });
-  });
+  isOpen.value = false;
 }
 
 watch(
-  () => messages.value.length,
+  [isOpen, panelExpanded, panelGeo.panelUserSize],
   () => {
-    removeTransientAssistantMessages();
-    trimMessagesForMemoryCap();
-    scrollToBottom(false);
-    saveHistory();
+    panelMemory.save({
+      open: isOpen.value,
+      expanded: panelExpanded.value,
+      w: panelGeo.panelUserSize.value?.w,
+      h: panelGeo.panelUserSize.value?.h,
+    });
   },
+  { deep: true },
 );
 
-/* Refactor (batch 9)：清理瞬态消息副作用已并入 useLoadingEffects。 */
+watch(isOpen, (open) => {
+  dockRevealed.value = false;
+  if (open) {
+    void refreshChatModels();
+    fabFreePosBeforePanel.value =
+      fabLeft.value !== null && fabTop.value !== null
+        ? { left: fabLeft.value, top: fabTop.value }
+        : null;
+    panelSnapshot.value = { edge: edgeDock.value };
+    onPanelOpen(wrapperRef.value, edgeDock);
+    nextTick(() => {
+      if (fabLeft.value === null || fabTop.value === null) {
+        const rect = wrapperRef.value?.getBoundingClientRect();
+        if (rect && rect.width > 0) {
+          const c = clampFabPos(rect.left, rect.top);
+          fabLeft.value = c.left;
+          fabTop.value = c.top;
+        }
+      }
+      ensurePanelInViewport();
+      saveFabPos(panelSnapshot.value?.edge);
+      chatInputRef.value?.focusInput();
+    });
+  } else {
+    edgeDockSettingsOpen.value = false;
+    onPanelClose();
+    if (panelSnapshot.value) {
+      const s = panelSnapshot.value;
+      panelSnapshot.value = null;
+      if (s.edge === 'left' || s.edge === 'right') {
+        fabFreePosBeforePanel.value = null;
+        dockFab(s.edge);
+      } else {
+        edgeDock.value = 'none';
+        if (fabFreePosBeforePanel.value && !panelGeo.panelHeaderDraggedWhileOpen) {
+          const c = clampFabPos(fabFreePosBeforePanel.value.left, fabFreePosBeforePanel.value.top);
+          fabLeft.value = c.left;
+          fabTop.value = c.top;
+        }
+        fabFreePosBeforePanel.value = null;
+        saveFabPos();
+      }
+    }
+  }
+});
+
+function onDocPointerDown(e: MouseEvent) {
+  if (
+    dockRevealed.value &&
+    !isOpen.value &&
+    e.button === 0 &&
+    !isEventInsideAssistantUi(e, panelRef.value, wrapperRef.value)
+  ) {
+    dockRevealed.value = false;
+  }
+
+  if (
+    shouldClosePanelOnOutsideMousedown(e, {
+      isOpen: isOpen.value,
+      panelEl: panelRef.value,
+      wrapperEl: wrapperRef.value,
+      hasOpenModal: sessionsDrawerOpen.value || formAutoFill.dialogOpen.value,
+    })
+  ) {
+    isOpen.value = false;
+  }
+}
+
+let winResizeRaf = 0;
+function onWinResize() {
+  isMobileViewport.value =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 600px)').matches;
+  if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
+  winResizeRaf = requestAnimationFrame(() => {
+    winResizeRaf = 0;
+    if (!fabPositionCustomized.value && edgeDock.value === 'none') {
+      const nextDefault = defaultFabCoords();
+      fabLeft.value = nextDefault.left;
+      fabTop.value = nextDefault.top;
+      if (fabFreePosBeforePanel.value) fabFreePosBeforePanel.value = nextDefault;
+    }
+    if (fabLeft.value === null || fabTop.value === null) return;
+    syncDockedFabToViewport();
+    saveFabPos();
+    if (isOpen.value) onWinResizePanel();
+  });
+}
 
 const { trapFocus, onEscKeydown } = useAssistantKeyboard({
   options,
   panelRef,
-  wrapperRef,
   isOpen,
   panelExpanded,
   fabHidden,
-  mode,
-  keyboardHelpOpen,
-  personalizeOpen,
-  diagnosticsOpen,
   sessionsDrawerOpen,
-  inlineTranslatePopover,
-  msgCtxMenu,
-  fabCtxMenu,
-  matchesScreenCaptureShortcut,
-  captureScreenIntoPendingImage,
+  edgeDockSettingsOpen,
+  formAutoFillDialogOpen: formAutoFill.dialogOpen,
+  onCloseFormAutoFillDialog: () => formAutoFill.closeDialog(),
   clearMessages,
   startNewSession,
-  toggleBatchExportMenu,
-  toggleMemoryPanel,
-  closeInlineTranslatePopover,
-  closeMsgCtxMenu,
-  closeFabCtxMenu,
-});
-
-function onVisualViewportChange() {
-  onWinResize();
-}
-
-watch(chatSystemPrompt, (v) => {
-  try {
-    localStorage.setItem(systemPromptStorageKeyResolved.value, v);
-  } catch {
-    /* localStorage 不可用或配额满 */
-  }
-});
-
-watch(selectedChatModel, (v) => {
-  if (!v) return;
-  try {
-    localStorage.setItem(selectedModelStorageKeyResolved.value, v);
-  } catch {
-    /* ignore */
-  }
-});
-
-watch([reducedMotionRef, pageVisibleRef, codeWallDisabled], () => {
-  if (isOpen.value) {
-    nextTick(() => startCodeWall());
-  }
 });
 
 onMounted(() => {
-  try {
-    const savedBaseUrl = localStorage.getItem(connectionBaseUrlStorageKey);
-    const savedToken = localStorage.getItem(connectionTokenStorageKey);
-    if (savedBaseUrl) options.baseUrl = savedBaseUrl;
-    if (savedToken) options.accessToken = savedToken;
-    syncConnectionInputsFromOptions();
-  } catch {
-    /* ignore */
-  }
-  try {
-    const s = localStorage.getItem(systemPromptStorageKeyResolved.value);
-    if (s) {
-      const cap = systemPromptMaxInputCharsResolved.value;
-      chatSystemPrompt.value = s.length > cap ? s.slice(0, cap) : s;
-    }
-  } catch {
-    /* ignore */
-  }
   loadFabPos();
-  /* 面板记忆：恢复上次关闭前的开合 / 展开 / 尺寸（尺寸按当前视口裁剪） */
   const panelMem = panelMemory.load();
   if (panelMem) {
     restorePanelState({ expanded: panelMem.expanded, w: panelMem.w, h: panelMem.h });
     if (panelMem.open) isOpen.value = true;
   }
-  void refreshServerPromptTemplates();
-  /* 初始化虚拟滚动 viewport，避免首屏 window=0 时算出错误的可视区 */
   void nextTick(() => {
     const el = bodyRef.value;
     if (el) {
@@ -2708,54 +1364,36 @@ onMounted(() => {
     }
   });
   window.addEventListener('resize', onWinResize);
-  window.visualViewport?.addEventListener('resize', onVisualViewportChange);
-  window.visualViewport?.addEventListener('scroll', onVisualViewportChange);
   window.addEventListener('keydown', onEscKeydown, true);
-  document.addEventListener('mousedown', onDocPointerDownCloseFabMenu, true);
-  if (isOpen.value) {
-    nextTick(() => startCodeWall());
-  }
+  document.addEventListener('mousedown', onDocPointerDown, true);
 });
 
 onUnmounted(() => {
-  releaseMobileBodyScrollLock();
+  if (statusToastTimer != null) clearTimeout(statusToastTimer);
+  if (streamingTickHandle != null) clearInterval(streamingTickHandle);
+  if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
+  if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   pendingTimers.forEach(clearTimeout);
   pendingTimers.length = 0;
   streamAbortController?.abort();
   streamAbortController = null;
-  detachInlinePopLayoutListeners();
-  disposeSearch();
-  disposeExportToast();
   cleanupGeometry();
-  stopCodeWall();
-  if (winResizeRaf) cancelAnimationFrame(winResizeRaf);
-  if (scrollCoalesceRaf) cancelAnimationFrame(scrollCoalesceRaf);
   window.removeEventListener('resize', onWinResize);
-  window.visualViewport?.removeEventListener('resize', onVisualViewportChange);
-  window.visualViewport?.removeEventListener('scroll', onVisualViewportChange);
   window.removeEventListener('keydown', onEscKeydown, true);
-  document.removeEventListener('mousedown', onDocPointerDownCloseFabMenu, true);
-  window.removeEventListener('pointermove', onFabPointerMove);
-  window.removeEventListener('pointerup', onFabPointerUp);
-  window.removeEventListener('pointercancel', onFabPointerUp);
+  document.removeEventListener('mousedown', onDocPointerDown, true);
 });
+
+defineExpose({ isOpen, messages, clearMessages });
 </script>
 
-<style src="./styles/00-fonts.css"></style>
 <style src="./styles/00-enterprise-tokens.css"></style>
 <style src="./styles/01-shell.css"></style>
 <style src="./styles/02-header-messages.css"></style>
 <style src="./styles/03-input-popups.css"></style>
 <style src="./styles/04-features.css"></style>
 <style src="./styles/05-overlays-resize.css"></style>
-<style src="./styles/06-page-feedback.css"></style>
-<style src="./styles/07-voice-thinking.css"></style>
 <style src="./styles/08-late-additions.css"></style>
 <style src="./styles/09-modern-overhaul.css"></style>
-<style src="./styles/10-polish-wave-6.css"></style>
 <style src="./styles/11-refinement-and-performance.css"></style>
-<style src="./styles/12-extreme-performance.css"></style>
 <style src="./styles/13-containment.css"></style>
 <style src="./styles/99-enterprise-overhaul.css"></style>
-<style src="./styles/14-adaptive-effects.css"></style>
-<style src="./styles/15-artifacts.css"></style>

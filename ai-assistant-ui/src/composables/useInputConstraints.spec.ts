@@ -54,9 +54,7 @@ describe('useInputConstraints', () => {
 
   it('offers the default-base-url action label under the same condition', () => {
     expect(make('', { baseUrl: '' }).sendBlockedActionLabel.value).toBe('');
-    expect(make('hi', { baseUrl: '' }).sendBlockedActionLabel.value).toBe(
-      en.diagnosticsUseDefaultBaseUrl,
-    );
+    expect(make('hi', { baseUrl: '' }).sendBlockedActionLabel.value).toBe(en.useDefaultBaseUrl);
     expect(make('hi', { baseUrl: '/api' }).sendBlockedActionLabel.value).toBe('');
   });
 });

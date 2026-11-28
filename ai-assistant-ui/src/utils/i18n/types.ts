@@ -97,50 +97,8 @@ export interface I18nMessages {
   inputNearLimitWarning: string;
   inputOverLimitWarning: string;
   sendUnavailableNoBackend: string;
-  diagnosticsTitle: string;
-  diagnosticsRefresh: string;
-  diagnosticsCopy: string;
-  diagnosticsCopied: string;
-  diagnosticsCopyFailed: string;
-  diagnosticsClose: string;
-  diagnosticsBaseUrl: string;
-  diagnosticsModelEndpoint: string;
-  diagnosticsToken: string;
-  diagnosticsTokenConfigured: string;
-  diagnosticsTokenMissing: string;
-  diagnosticsSelectedModel: string;
-  diagnosticsNoSelectedModel: string;
-  diagnosticsModelSource: string;
-  diagnosticsModelSourceSelected: string;
-  diagnosticsModelSourceDefault: string;
-  diagnosticsModelSourceUnavailable: string;
-  diagnosticsModelHintReady: string;
-  diagnosticsModelHintCheck: string;
-  diagnosticsModelHintNoBaseUrl: string;
-  diagnosticsRemedyNoBaseUrlTitle: string;
-  diagnosticsRemedyNoBaseUrlText: string;
-  diagnosticsRemedyUnauthorizedTitle: string;
-  diagnosticsRemedyUnauthorizedText: string;
-  diagnosticsRemedyRateLimitedTitle: string;
-  diagnosticsRemedyRateLimitedText: string;
-  diagnosticsRemedyServerTitle: string;
-  diagnosticsRemedyServerText: string;
-  diagnosticsRemedyNetworkTitle: string;
-  diagnosticsRemedyNetworkText: string;
-  diagnosticsRemedyGenericTitle: string;
-  diagnosticsRemedyGenericText: string;
-  diagnosticsUseDefaultBaseUrl: string;
-  diagnosticsFocusToken: string;
-  diagnosticsClearToken: string;
-  diagnosticsAvailableModels: string;
-  diagnosticsLastChecked: string;
-  diagnosticsNeverChecked: string;
-  diagnosticsStatus: string;
-  diagnosticsStatusReady: string;
-  diagnosticsStatusChecking: string;
-  diagnosticsStatusNoBaseUrl: string;
-  diagnosticsLastError: string;
-  diagnosticsNoError: string;
+  copyFailed: string;
+  useDefaultBaseUrl: string;
   connectionConfigTitle: string;
   connectionConfigBaseUrlPlaceholder: string;
   connectionConfigTokenPlaceholder: string;
@@ -177,8 +135,6 @@ export interface I18nMessages {
   /** 页面选中文本浮层：发起对话 */
   pageSelAsk: string;
   dropFileHere: string;
-  ttsPlay: string;
-  ttsStop: string;
   thumbsUp: string;
   thumbsDown: string;
   /** K24: MessageReactionBar emoji labels (optional, fallback to default Chinese text). */
@@ -255,8 +211,6 @@ export interface I18nMessages {
   compareDialogAllColumnsHint?: string;
   micStart: string;
   micStop: string;
-  voiceLoopOn: string;
-  voiceLoopOff: string;
   newSession: string;
   msgCtxFork: string;
   msgCtxEdit: string;
@@ -358,9 +312,6 @@ export interface I18nMessages {
   tplNewDefaultLabel: string;
   tplNewDefaultBody: string;
   slashCmdTemplateDesc: string;
-  /** TTS 暂停/继续 */
-  ttsPause: string;
-  ttsResume: string;
   /** 暗色/亮色一键切换按钮 tooltip */
   themeToggleToDark: string;
   themeToggleToLight: string;
@@ -518,24 +469,16 @@ export interface I18nMessages {
   markdownLink?: string;
   markdownList?: string;
   /** Empty-state collapsed starter task launcher labels. */
+  emptySubtitle?: string;
   emptyTaskLauncher?: string;
   emptyTaskLauncherClose?: string;
   emptyStarterSection?: string;
   emptyCapabilitySection?: string;
   emptyTemplateSection?: string;
-  /**
-   * Doubao-style quick-toggle row above input. The host can opt into
-   * deep-think / web-search by listening to `toggleDeepThink` and
-   * `toggleWebSearch` and applying the desired side effects (model param,
-   * tool plugin, etc). All optional with inline fallback in template.
-   */
-  deepThinkLabel?: string;
-  deepThinkOn?: string;
-  deepThinkOff?: string;
   webSearchLabel?: string;
   webSearchOn?: string;
   webSearchOff?: string;
-  fastReplyLabel?: string;
-  fastReplyOn?: string;
-  fastReplyOff?: string;
+  /** Streamlined orb edge-dock settings title. */
+  assistantSettingsTitle?: string;
+  edgeDockSettingsTitle?: string;
 }

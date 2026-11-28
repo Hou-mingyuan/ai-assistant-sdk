@@ -14,14 +14,14 @@ interface CodeBlockActionLabels {
   codeUnfold?: string;
   codeCopied?: string;
   copyCode?: string;
-  diagnosticsCopyFailed?: string;
+  copyFailed?: string;
 }
 
 interface UseCodeBlockActionsDeps<TMessage> {
   messages: Ref<TMessage[]>;
-  compareSet: Ref<readonly unknown[]>;
-  maxCompareSides: number;
-  markCompare: (msgIndex: number, codeText: string) => void;
+  compareSet?: Ref<readonly unknown[]>;
+  maxCompareSides?: number;
+  markCompare?: (msgIndex: number, codeText: string) => void;
   openCodeInIde?: (payload: { code: string; language?: string }) => void;
   t: ComputedRef<CodeBlockActionLabels>;
   setToast: (text: string, ms: number) => void;
@@ -62,7 +62,8 @@ export function useCodeBlockActions<TMessage>(deps: UseCodeBlockActionsDeps<TMes
     const message = msgIdx >= 0 ? deps.messages.value[msgIdx] : undefined;
     if (!message || !codeText.trim()) return true;
 
-    if (deps.compareSet.value.length >= deps.maxCompareSides) {
+    if (!deps.markCompare) return true;
+    if ((deps.compareSet?.value.length ?? 0) >= (deps.maxCompareSides ?? 4)) {
       deps.setToast(deps.t.value.msgCtxCompareSetFull || 'Compare set is full (max 4)', 2400);
       return true;
     }
@@ -112,10 +113,7 @@ export function useCodeBlockActions<TMessage>(deps: UseCodeBlockActionsDeps<TMes
           scheduleCopyLabelReset(copyTarget);
         })
         .catch(() => {
-          updateCodeCopyFailureState(
-            copyTarget,
-            deps.t.value.diagnosticsCopyFailed || 'Copy failed',
-          );
+          updateCodeCopyFailureState(copyTarget, deps.t.value.copyFailed || 'Copy failed');
           scheduleCopyLabelReset(copyTarget);
         });
       return true;

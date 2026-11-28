@@ -6,11 +6,8 @@ import static org.mockito.Mockito.mock;
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.config.RateLimitFilter;
 import com.aiassistant.controller.AiAssistantController;
-import com.aiassistant.controller.AssistantExportController;
-import com.aiassistant.controller.CapabilityController;
 import com.aiassistant.controller.FileUploadController;
 import com.aiassistant.controller.RuntimeConfigController;
-import com.aiassistant.controller.RuntimeModelConfigController;
 import com.aiassistant.controller.SseStreamController;
 import com.aiassistant.controller.StatsController;
 import com.aiassistant.observability.AiAssistantMetrics;
@@ -18,7 +15,6 @@ import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.security.DefaultSsrfPolicy;
 import com.aiassistant.security.SsrfPolicy;
-import com.aiassistant.service.AssistantExportService;
 import com.aiassistant.service.FileParserService;
 import com.aiassistant.service.LlmService;
 import com.aiassistant.service.SessionStore;
@@ -238,11 +234,7 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context).hasSingleBean(SseStreamController.class);
                             assertThat(context).hasSingleBean(StatsController.class);
                             assertThat(context).hasSingleBean(RuntimeConfigController.class);
-                            assertThat(context).doesNotHaveBean(RuntimeModelConfigController.class);
-                            assertThat(context).hasSingleBean(CapabilityController.class);
                             assertThat(context).hasSingleBean(FileUploadController.class);
-                            assertThat(context).hasSingleBean(AssistantExportController.class);
-                            assertThat(context).hasSingleBean(AssistantExportService.class);
                             assertThat(context).hasSingleBean(FileParserService.class);
                             assertThat(context).hasSingleBean(SessionStore.class);
                             assertThat(context).hasSingleBean(UsageStats.class);
@@ -254,22 +246,6 @@ class AiAssistantAutoConfigurationTest {
                             assertThat(context.getBean(SsrfPolicy.class))
                                     .isInstanceOf(DefaultSsrfPolicy.class);
                         });
-    }
-
-    @Test
-    void runtimeModelConfigIsOnlyRegisteredWhenAdminApiIsExplicitlyEnabled() {
-        contextRunner
-                .withPropertyValues(
-                        "ai-assistant.api-key=sk-test-admin",
-                        "ai-assistant.admin-enabled=true",
-                        "ai-assistant.admin-token=admin-secret")
-                .run(
-                        context ->
-                                assertThat(context)
-                                        .hasSingleBean(RuntimeModelConfigController.class)
-                                        .hasSingleBean(
-                                                com.aiassistant.config.RuntimeModelConfigService
-                                                        .class));
     }
 
     @Test

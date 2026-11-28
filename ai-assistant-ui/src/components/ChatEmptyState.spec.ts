@@ -1,52 +1,56 @@
-import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
+import { mount } from '@vue/test-utils';
 import ChatEmptyState from './ChatEmptyState.vue';
 
-function mountEmptyState() {
-  return mount(ChatEmptyState, {
-    props: {
-      mode: 'chat',
-      greeting: 'Hello',
-      skillStripLabel: 'Quick skills',
-      taskLauncherLabel: 'Browse starter tasks',
-      taskLauncherCloseLabel: 'Hide starter tasks',
-      starterSectionLabel: 'Recommended tasks',
-      capabilitySectionLabel: 'Capabilities',
-      templateSectionLabel: 'Templates',
-      skills: [{ icon: 'pen-line', label: 'Write', tone: 'violet', prompt: 'Write ' }],
-      starters: [
-        {
-          icon: 'briefcase-business',
-          title: 'Draft mail',
-          desc: 'Polished tone',
-          prompt: 'Draft ',
-          tone: 'cyan',
-        },
-      ],
-      capabilityHints: [{ icon: 'command', label: 'Context aware' }],
-      promptTemplates: [{ label: 'Weekly report', template: 'Report' }],
-    },
+describe('ChatEmptyState', () => {
+  it('renders greeting, subtitle, and direct starter cards without nested drawers', () => {
+    const wrapper = mount(ChatEmptyState, {
+      props: {
+        greeting: '您好，有什么可以帮您？',
+        subtitle: '纯悬浮球对话、文件问答与表单自动填充',
+        formAutoFillEnabled: true,
+        isZh: true,
+      },
+    });
+
+    expect(wrapper.find('.ai-empty-greeting').text()).toBe('您好，有什么可以帮您？');
+    expect(wrapper.find('.ai-empty-subtitle').text()).toBe('纯悬浮球对话、文件问答与表单自动填充');
+    expect(wrapper.find('.ai-empty-launcher-popover').exists()).toBe(false);
+    expect(wrapper.findAll('.ai-empty-starter')).toHaveLength(3);
   });
-}
 
-describe('ChatEmptyState task launcher', () => {
-  it('keeps task suggestions collapsed until the user opens the launcher', async () => {
-    const wrapper = mountEmptyState();
+  it('emits apply-prompt, trigger-upload, and trigger-form-fill from the cards', async () => {
+    const wrapper = mount(ChatEmptyState, {
+      props: {
+        greeting: 'Hello',
+        formAutoFillEnabled: true,
+        isZh: false,
+      },
+    });
 
-    expect(wrapper.find('.ai-empty-brand-icon').attributes('data-assistant-icon')).toBe('sparkles');
-    expect(wrapper.find('.ai-empty-task-panel').exists()).toBe(false);
-    expect(wrapper.find('.ai-empty-task-toggle').attributes('aria-expanded')).toBe('false');
+    const cards = wrapper.findAll('.ai-empty-starter');
+    await cards[0]!.trigger('click');
+    await cards[1]!.trigger('click');
+    await cards[2]!.trigger('click');
 
-    await wrapper.find('.ai-empty-task-toggle').trigger('click');
+    expect(wrapper.emitted('apply-prompt')?.[0]?.[0]).toContain('Summarize this page');
+    expect(wrapper.emitted('trigger-upload')).toHaveLength(1);
+    expect(wrapper.emitted('trigger-form-fill')).toHaveLength(1);
+  });
 
-    expect(wrapper.find('.ai-empty-task-toggle').attributes('aria-expanded')).toBe('true');
-    expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Recommended tasks');
-    expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Draft mail');
-    expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Capabilities');
-    expect(wrapper.find('.ai-empty-task-panel').text()).toContain('Templates');
-    expect(wrapper.findAll('.ai-empty-task-panel [data-assistant-icon]')).toHaveLength(3);
+  it('uses host quickPrompts when provided and hides form-fill card when disabled', async () => {
+    const wrapper = mount(ChatEmptyState, {
+      props: {
+        greeting: 'Hello',
+        formAutoFillEnabled: false,
+        quickPrompts: [{ label: 'Quick Ask', text: 'Summarize docs' }],
+      },
+    });
 
-    await wrapper.find('.ai-empty-starter').trigger('click');
-    expect(wrapper.emitted('apply-starter')?.[0]?.[0]).toMatchObject({ title: 'Draft mail' });
+    const cards = wrapper.findAll('.ai-empty-starter');
+    expect(cards).toHaveLength(1);
+    expect(cards[0]!.text()).toContain('Quick Ask');
+    await cards[0]!.trigger('click');
+    expect(wrapper.emitted('apply-prompt')?.[0]).toEqual(['Summarize docs']);
   });
 });

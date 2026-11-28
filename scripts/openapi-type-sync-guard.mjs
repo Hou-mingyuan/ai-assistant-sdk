@@ -21,29 +21,17 @@ export const GENERATED_TYPES_FILE = 'ai-assistant-ui/src/types/api-generated.d.t
 export const OPENAPI_SPEC_FILE = 'docs/api/openapi.json'
 
 const CONTRACT_FILES = new Set([
-  'ai-assistant-server/src/main/java/com/aiassistant/config/ConnectorProperties.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/AdminDashboardController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/AiAssistantController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/AssistantExportController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/AsyncTaskController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/BatchController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/CapabilityController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/ConnectorHealthController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/FileUploadController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/PromptTemplateController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/RuntimeConfigController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/controller/RuntimeModelConfigController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/SessionController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/SseStreamController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/controller/StatsController.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/mcp/McpServerController.java',
   'ai-assistant-server/src/main/java/com/aiassistant/model/ChatRequest.java',
   'ai-assistant-server/src/main/java/com/aiassistant/model/ChatResponse.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/model/ExportRequest.java',
   'ai-assistant-server/src/main/java/com/aiassistant/model/ModelsListResponse.java',
   'ai-assistant-server/src/main/java/com/aiassistant/model/SessionData.java',
   'ai-assistant-server/src/main/java/com/aiassistant/model/UrlPreviewResponse.java',
-  'ai-assistant-server/src/main/java/com/aiassistant/service/RuntimeModelConfigService.java',
 ])
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

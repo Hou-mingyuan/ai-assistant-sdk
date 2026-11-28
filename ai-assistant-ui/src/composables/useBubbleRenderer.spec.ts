@@ -1,80 +1,56 @@
 import { computed, ref } from 'vue';
-import { describe, expect, it } from 'vitest';
-import { getMessages } from '../utils/i18n';
+import { describe, expect, it, vi } from 'vitest';
 import { escapeHtmlLite, useBubbleRenderer } from './useBubbleRenderer';
+import type { I18nMessages } from '../utils/i18n';
 
-const t = computed(() => getMessages('en'));
-
-function makeRenderer(opts: Partial<Parameters<typeof useBubbleRenderer>[0]> = {}) {
+function makeRenderer(overrides: Partial<Parameters<typeof useBubbleRenderer>[0]> = {}) {
   return useBubbleRenderer({
-    t,
-    sanitizeAssistantContent: (c: string) => c,
-    renderContent: (c: string) => `<pre>${c}</pre>`,
-    debouncedSearchQuery: ref(''),
-    activeMatchGlobalIdx: ref(-1),
-    searchCaseSensitive: ref(false),
-    searchWholeWord: ref(false),
-    searchRegex: ref(false),
-    ...opts,
+    t: computed(() => ({ copyCode: 'Copy' }) as I18nMessages),
+    sanitizeAssistantContent: (s) => s.trim(),
+    renderContent: vi.fn((content, _copy, streaming) =>
+      streaming ? `<p>${content}</p>` : `<div><pre><code>${content}</code></pre></div>`,
+    ),
+    ...overrides,
   });
 }
 
 describe('escapeHtmlLite', () => {
-  it('escapes ampersand and angle brackets only', () => {
-    expect(escapeHtmlLite('<a> & </a>')).toBe('&lt;a&gt; &amp; &lt;/a&gt;');
-    expect(escapeHtmlLite('no special')).toBe('no special');
-  });
-});
-
-describe('useBubbleRenderer.injectCodeBlockCompareButton', () => {
-  it('injects a compare button into a plain <pre>', () => {
-    const { injectCodeBlockCompareButton } = makeRenderer();
-    const out = injectCodeBlockCompareButton('<pre>code</pre>', 3);
-    expect(out).toContain('data-ai-cmp-msg="3"');
-    expect(out).toContain('data-ai-cmp-wrapped="1"');
-    expect(out).toContain('ai-code-cmp-btn');
-  });
-
-  it('does not double-wrap an already-wrapped <pre>', () => {
-    const { injectCodeBlockCompareButton } = makeRenderer();
-    const input = '<pre data-ai-cmp-wrapped="1">x</pre>';
-    expect(injectCodeBlockCompareButton(input, 0)).toBe(input);
-  });
-
-  it('skips the streaming-plain <pre>', () => {
-    const { injectCodeBlockCompareButton } = makeRenderer();
-    const out = injectCodeBlockCompareButton('<pre data-ai-stream-plain="1">x</pre>', 0);
-    expect(out).not.toContain('ai-code-cmp-btn');
+  it('escapes ampersands and angle brackets', () => {
+    expect(escapeHtmlLite('a & <b>c</b>')).toBe('a &amp; &lt;b&gt;c&lt;/b&gt;');
   });
 });
 
 describe('useBubbleRenderer.renderBubble', () => {
-  it('renders the streaming-plain branch for long streaming content', () => {
-    const long = 'a'.repeat(201);
-    const html = makeRenderer().renderBubble(long, 0, true);
-    expect(html).toContain('ai-stream-plain');
-    expect(html).toContain(long);
+  it('uses escaped <pre class="ai-stream-plain"> fast path for long active streams', () => {
+    const renderContent = vi.fn();
+    const { renderBubble } = makeRenderer({ renderContent });
+    const long = '<x>' + 'a'.repeat(210);
+    const out = renderBubble(long, 0, true);
+    expect(out).toContain('class="ai-stream-plain"');
+    expect(out).toContain('&lt;x&gt;');
+    expect(renderContent).not.toHaveBeenCalled();
   });
 
-  it('renders markdown and injects the compare button for non-streaming content', () => {
-    const html = makeRenderer().renderBubble('code', 0, false);
-    expect(html).toContain('ai-code-cmp-btn');
+  it('renders sanitized markdown via renderContent when not on long-stream fast path', () => {
+    const { renderBubble } = makeRenderer();
+    const out = renderBubble('  code  ', 0, false);
+    expect(out).toContain('<pre><code>code</code></pre>');
   });
 
-  it('applies search highlight only when a query is present', () => {
+  it('applies search highlight when optional search refs are supplied', () => {
     const withQuery = makeRenderer({ debouncedSearchQuery: ref('code') }).renderBubble(
       'code',
       0,
       false,
     );
-    const withoutQuery = makeRenderer().renderBubble('code', 0, false);
-    expect(withQuery).not.toBe(withoutQuery);
+    expect(withQuery).toContain('<mark');
   });
-});
 
-describe('useBubbleRenderer.isTransientAbortAssistantMessage', () => {
-  it('returns false for non-assistant messages', () => {
+  it('detects transient abort cancellation messages', () => {
     const { isTransientAbortAssistantMessage } = makeRenderer();
-    expect(isTransientAbortAssistantMessage({ role: 'user', content: 'anything' })).toBe(false);
+    expect(isTransientAbortAssistantMessage({ role: 'user', content: 'Cancelled' })).toBe(false);
+    expect(
+      isTransientAbortAssistantMessage({ role: 'assistant', content: 'Error: AbortError' }),
+    ).toBe(true);
   });
 });

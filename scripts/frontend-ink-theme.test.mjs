@@ -124,13 +124,13 @@ test('active assistant surfaces contain no purple brand literals', async () => {
     }
 })
 
-test('built-in presets expose approved technology colors and default to Obsidian', async () => {
+test('built-in presets expose approved technology colors and match UI + playground', async () => {
     const switcher = await readFile(
         'ai-assistant-ui/src/components/ColorThemeSwitcher.vue',
         'utf8',
     )
-    const assistant = await readFile(
-        'ai-assistant-ui/src/components/AiAssistant.vue',
+    const palette = await readFile(
+        'ai-assistant-ui/src/composables/useThemePalette.ts',
         'utf8',
     )
     const playground = await readFile(
@@ -143,21 +143,18 @@ test('built-in presets expose approved technology colors and default to Obsidian
         assert.ok(playground.includes(`色调: ${theme.label}`))
         for (const color of theme.colors) {
             assert.ok(switcher.includes(color), `${theme.label} missing ${color} in switcher`)
-            assert.ok(assistant.includes(color), `${theme.label} missing ${color} in assistant`)
+            assert.ok(palette.includes(color), `${theme.label} missing ${color} in palette composable`)
             assert.ok(playground.includes(color), `${theme.label} missing ${color} in playground`)
         }
     }
 
-    assert.match(assistant, /return 'graphite'/)
-    assert.match(
-        playground,
-        /localStorage\.getItem\("playground-theme"\)\s*\?\?\s*"graphite"/,
-    )
+    assert.match(palette, /return 'sky'/)
+    assert.match(playground, /return saved \?\? "sky"/)
 })
 
 test('brand marks follow the selected palette with a dark-mode contrast color', async () => {
-    const assistant = await readFile(
-        'ai-assistant-ui/src/components/AiAssistant.vue',
+    const palette = await readFile(
+        'ai-assistant-ui/src/composables/useThemePalette.ts',
         'utf8',
     )
     const tokens = await readFile(
@@ -173,8 +170,8 @@ test('brand marks follow the selected palette with a dark-mode contrast color', 
         'utf8',
     )
 
-    assert.match(assistant, /'--ai-theme-mark': p\.mark/)
-    assert.match(assistant, /'--ai-theme-mark-dark': p\.darkMark/)
+    assert.match(palette, /'--ai-theme-mark': p\.mark/)
+    assert.match(palette, /'--ai-theme-mark-dark': p\.darkMark/)
     assert.match(tokens, /--ai-brand-mark: var\(--ai-theme-mark, var\(--ai-c-ink-950\)\)/)
     assert.match(
         tokens,
@@ -185,50 +182,7 @@ test('brand marks follow the selected palette with a dark-mode contrast color', 
     assert.match(finalStyles, /\.ai-assistant-avatar \{[\s\S]*?color: var\(--ai-brand-mark/)
     assert.match(
         playground,
-        /\.assistant-loader-fab \{[\s\S]*?color: var\(--demo-primary-from/,
-    )
-})
-
-test('floating quick tools reserve a responsive row outside scrollable messages', async () => {
-    const styles = await readFile(
-        'ai-assistant-ui/src/components/styles/99-enterprise-overhaul.css',
-        'utf8',
-    )
-    const reservation = styles.match(
-        /\.ai-footer:has\(\.ai-footer-quick-toggles\)\s*\{([^}]*)\}/,
-    )
-    const floatingRow = styles.match(
-        /\.ai-footer-quick-toggles\s*\{\s*position:\s*absolute\s*!important;([^}]*)\}/,
-    )
-
-    assert.ok(reservation, 'quick tools must reserve space in the footer layout')
-    assert.match(
-        reservation[1],
-        /margin-top:\s*calc\(var\(--ai-quick-toggle-min-height,\s*22px\)\s*\+\s*8px\)\s*!important;/,
-    )
-    assert.ok(floatingRow, 'quick tools should remain visually outside the composer surface')
-    assert.match(floatingRow[1], /flex-wrap:\s*nowrap\s*!important;/)
-})
-
-test('model picker clears floating quick tools and expands inward', async () => {
-    const styles = await readFile(
-        'ai-assistant-ui/src/components/styles/99-enterprise-overhaul.css',
-        'utf8',
-    )
-    const popupRule = styles.match(
-        /\.ai-model-menu\s*\{\s*box-sizing:\s*border-box;([\s\S]*?)\}/,
-    )
-    const collisionGuard = styles.match(
-        /\.ai-footer:has\(\.ai-footer-quick-toggles\)\s*\.ai-model-menu\s*\{([^}]*)\}/,
-    )
-
-    assert.ok(popupRule, 'model picker must use its declared width as the rendered width')
-    assert.match(popupRule[1], /left:\s*auto\s*!important;/)
-    assert.match(popupRule[1], /right:\s*0\s*!important;/)
-    assert.ok(collisionGuard, 'model picker must account for the floating quick-tool row')
-    assert.match(
-        collisionGuard[1],
-        /bottom:\s*calc\(100%\s*\+\s*var\(--ai-quick-toggle-min-height,\s*22px\)\s*\+\s*18px\)\s*!important;/,
+        /\.assistant-loader-fab \{[\s\S]*?var\(--demo-primary-from/,
     )
 })
 
@@ -236,7 +190,6 @@ test('base brand surfaces remain ink outside the approved theme palettes', async
     const files = [
         'ai-assistant-ui/src/components/styles/00-enterprise-tokens.css',
         'ai-assistant-ui/src/components/styles/99-enterprise-overhaul.css',
-        'ai-assistant-vue-playground/src/AdminDemoPanel.vue',
         'ai-assistant-vue-playground/src/main.ts',
     ]
 
@@ -251,5 +204,5 @@ test('base brand surfaces remain ink outside the approved theme palettes', async
     }
 
     const main = await readFile('ai-assistant-vue-playground/src/main.ts', 'utf8')
-    assert.match(main, /primaryColor: "#181818"/)
+    assert.match(main, /primaryColor: "#2457d6"/)
 })

@@ -40,7 +40,6 @@ public class AiAssistantSecurityAutoConfiguration {
     public static final int FILTER_ORDER_REQUEST_ID = -1;
     public static final int FILTER_ORDER_RATE_LIMIT = 0;
     public static final int FILTER_ORDER_AUTH = 1;
-    public static final int FILTER_ORDER_ADMIN_AUTH = 2;
     public static final int FILTER_ORDER_API_VERSION = -5;
 
     @Bean
@@ -157,32 +156,6 @@ public class AiAssistantSecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    public FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter>
-            aiAssistantAdminAuthFilter(AiAssistantProperties properties) {
-        String adminToken = properties.getAdmin().resolveAdminToken(properties.getAccessToken());
-        // P0 hardening: fail fast when admin endpoints are enabled but resolve to no token —
-        // previously an empty adminToken made AdminAuthFilter reject every /admin request, but
-        // if the filter itself were absent (custom override removing this bean) the /admin
-        // surface — including tenant-token issuance — would be silently unguarded. Encode the
-        // Auth(1) → AdminAuth(2) ordering as named constants so the dependency is explicit.
-        if (properties.isAdminEnabled() && (adminToken == null || adminToken.isBlank())) {
-            throw new IllegalStateException(
-                    "ai-assistant.admin-enabled=true but no admin token could be resolved "
-                            + "(ai-assistant.admin.token / ai-assistant.access-token). Refusing to start: "
-                            + "admin endpoints (incl. tenant-token issuance) must not run unguarded.");
-        }
-        FilterRegistrationBean<com.aiassistant.config.AdminAuthFilter> registration =
-                new FilterRegistrationBean<>();
-        registration.setFilter(
-                new com.aiassistant.config.AdminAuthFilter(
-                        properties.getContextPath(), adminToken));
-        addAdminUrlPatterns(registration, properties);
-        registration.setOrder(FILTER_ORDER_ADMIN_AUTH);
-        return registration;
-    }
-
-    @Bean
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     public FilterRegistrationBean<com.aiassistant.config.TracingFilter> aiAssistantTracingFilter(
             AiAssistantProperties properties) {
         FilterRegistrationBean<com.aiassistant.config.TracingFilter> registration =
@@ -245,13 +218,6 @@ public class AiAssistantSecurityAutoConfiguration {
             FilterRegistrationBean<?> registration, AiAssistantProperties properties) {
         registration.addUrlPatterns(
                 com.aiassistant.config.ApiVersionConfig.resolveAssistantUrlPatterns(
-                        properties.getContextPath(), properties.getApiVersion()));
-    }
-
-    private static void addAdminUrlPatterns(
-            FilterRegistrationBean<?> registration, AiAssistantProperties properties) {
-        registration.addUrlPatterns(
-                com.aiassistant.config.ApiVersionConfig.resolveAdminUrlPatterns(
                         properties.getContextPath(), properties.getApiVersion()));
     }
 }

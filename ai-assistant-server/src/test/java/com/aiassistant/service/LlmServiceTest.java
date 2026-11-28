@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import com.aiassistant.config.AiAssistantProperties;
 import com.aiassistant.memory.ConversationMemory;
 import com.aiassistant.model.ChatRequest;
-import com.aiassistant.rag.RagService;
 import com.aiassistant.routing.ModelRouter;
 import com.aiassistant.security.ContentFilter;
 import com.aiassistant.service.llm.ChatCompletionClient;
@@ -39,7 +38,6 @@ class LlmServiceTest {
                                 properties,
                                 urlFetchService(),
                                 new CapturingChatClient(),
-                                null,
                                 null,
                                 null,
                                 null,
@@ -181,7 +179,7 @@ class LlmServiceTest {
         CapturingChatClient client = new CapturingChatClient();
         client.enqueueRaw(chatResponse("I am MiniMax-M2.7"));
         ModelRouter router = new ModelRouter("MiniMax-M2.5");
-        LlmService service = newService(properties, client, null, null, router, null, List.of());
+        LlmService service = newService(properties, client, null, null, router, List.of());
 
         assertEquals("I am MiniMax-M2.7", service.chat("你是什么模型", null, null, "MiniMax-M2.7"));
 
@@ -200,7 +198,7 @@ class LlmServiceTest {
         CapturingChatClient client = new CapturingChatClient();
         client.enqueueFailure(new RuntimeException("primary unavailable"));
         client.enqueueRaw(chatResponse("fallback ok"));
-        LlmService service = newService(properties, client, null, null, router, null, List.of());
+        LlmService service = newService(properties, client, null, null, router, List.of());
 
         assertEquals("fallback ok", service.chat("hello"));
 
@@ -211,13 +209,11 @@ class LlmServiceTest {
     }
 
     @Test
-    void chatAppliesInterceptorsMemoryRagAndContentFilter() throws Exception {
+    void chatAppliesInterceptorsMemoryAndContentFilter() throws Exception {
         AiAssistantProperties properties = baseProperties();
         ConversationMemory memory = new ConversationMemory();
         memory.addFact("user prefers concise answers");
         ConversationMemoryProvider memoryProvider = sessionId -> memory;
-        RagService ragService = mock(RagService.class);
-        when(ragService.buildContextPrompt(anyString(), anyString())).thenReturn("RAG context");
 
         ChatInterceptor interceptor =
                 new ChatInterceptor() {
@@ -241,7 +237,6 @@ class LlmServiceTest {
                         new ContentFilter(),
                         null,
                         null,
-                        ragService,
                         List.of(interceptor),
                         memoryProvider);
 
@@ -251,7 +246,6 @@ class LlmServiceTest {
         String systemPrompt =
                 client.requests.get(0).path("messages").get(0).path("content").asText();
         assertTrue(systemPrompt.contains("user prefers concise answers"));
-        assertTrue(systemPrompt.contains("RAG context"));
         assertEquals(
                 "hello [手机号已脱敏]",
                 client.requests.get(0).path("messages").get(1).path("content").asText());
@@ -270,7 +264,7 @@ class LlmServiceTest {
         client.enqueueRaw(
                 "{\"choices\":[{\"message\":{\"content\":\"ok\"}}],"
                         + "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5}}");
-        LlmService service = newService(properties, client, null, tracker, null, null, List.of());
+        LlmService service = newService(properties, client, null, tracker, null, List.of());
 
         assertEquals("ok", service.chat("hello"));
 
@@ -286,7 +280,7 @@ class LlmServiceTest {
         CapturingChatClient client = new CapturingChatClient();
         client.enqueueStream(List.of("phone ", "13800138000"));
         LlmService service =
-                newService(properties, client, new ContentFilter(), tracker, null, null, List.of());
+                newService(properties, client, new ContentFilter(), tracker, null, List.of());
 
         List<String> chunks = service.chatStream("hello").collectList().block();
 
@@ -297,7 +291,7 @@ class LlmServiceTest {
 
     private static LlmService newService(
             AiAssistantProperties properties, CapturingChatClient client) throws Exception {
-        return newService(properties, client, null, null, null, null, List.of());
+        return newService(properties, client, null, null, null, List.of());
     }
 
     private static LlmService newService(
@@ -306,7 +300,6 @@ class LlmServiceTest {
             ContentFilter contentFilter,
             TokenUsageTracker tokenUsageTracker,
             ModelRouter modelRouter,
-            RagService ragService,
             List<ChatInterceptor> interceptors)
             throws Exception {
         return newService(
@@ -315,7 +308,6 @@ class LlmServiceTest {
                 contentFilter,
                 tokenUsageTracker,
                 modelRouter,
-                ragService,
                 interceptors,
                 null);
     }
@@ -326,7 +318,6 @@ class LlmServiceTest {
             ContentFilter contentFilter,
             TokenUsageTracker tokenUsageTracker,
             ModelRouter modelRouter,
-            RagService ragService,
             List<ChatInterceptor> interceptors,
             ConversationMemoryProvider memoryProvider)
             throws Exception {
@@ -339,7 +330,6 @@ class LlmServiceTest {
                 contentFilter,
                 tokenUsageTracker,
                 modelRouter,
-                ragService,
                 memoryProvider,
                 interceptors,
                 null);

@@ -49,7 +49,6 @@ public class UrlFetchService {
     private final HttpContentFetcher fetcher;
     private final WebSearchService webSearchService;
     private final UrlPreviewService urlPreviewService;
-    private volatile HeadlessFetcher headlessFetchService;
 
     public UrlFetchService(AiAssistantProperties properties) {
         this(properties, null, DefaultSsrfPolicy.INSTANCE);
@@ -65,11 +64,6 @@ public class UrlFetchService {
         this.fetcher = new HttpContentFetcher(properties, httpClient, ssrfPolicy);
         this.webSearchService = new WebSearchService(properties, fetcher);
         this.urlPreviewService = new UrlPreviewService(properties, fetcher);
-    }
-
-    public void setHeadlessFetchService(HeadlessFetcher headlessFetchService) {
-        this.headlessFetchService = headlessFetchService;
-        this.urlPreviewService.setHeadlessFetchService(headlessFetchService);
     }
 
     public UrlPreviewResponse previewUrl(String url) {
@@ -136,16 +130,6 @@ public class UrlFetchService {
                                                                             raw, uri);
                                                             String html = new String(raw, cs);
                                                             extracted = htmlToPlain(html);
-                                                            if (extracted.length() < 200
-                                                                    && headlessFetchService
-                                                                            != null) {
-                                                                HeadlessFetcher.Result hr =
-                                                                        headlessFetchService.fetch(
-                                                                                url);
-                                                                if (!hr.text().isBlank()) {
-                                                                    extracted = hr.text();
-                                                                }
-                                                            }
                                                             fetcher.putCachedText(uri, extracted);
                                                         }
                                                         if (injectCap > 0

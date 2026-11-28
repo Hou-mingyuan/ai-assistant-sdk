@@ -51,10 +51,8 @@ import org.springframework.web.reactive.function.client.WebClient;
     AiAssistantLlmAutoConfiguration.class,
     AiAssistantWebAutoConfiguration.class,
     AiAssistantSecurityAutoConfiguration.class,
-    AiAssistantRagAutoConfiguration.class,
     AiAssistantStorageAutoConfiguration.class,
     AiAssistantObservabilityAutoConfiguration.class,
-    AiAssistantConnectorAutoConfiguration.class,
 })
 public class AiAssistantAutoConfiguration {
 
